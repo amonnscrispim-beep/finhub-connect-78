@@ -9,7 +9,8 @@ import {
   Edit2,
   Trash2,
   CheckCircle2,
-  Circle
+  Circle,
+  AlertTriangle
 } from 'lucide-react';
 import { useClients } from '@/contexts/ClientContext';
 import { Client, FunnelStage, FUNNEL_STAGES } from '@/types/client';
@@ -53,8 +54,16 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
     <div
       draggable
       onDragStart={onDragStart}
-      className="kanban-card group"
+      className={`kanban-card group ${client.pendingSchedule ? 'border-destructive/50 border-2' : ''}`}
     >
+      {/* Pending Schedule Alert */}
+      {client.pendingSchedule && (
+        <div className="flex items-center gap-1.5 mb-3 px-2 py-1.5 bg-destructive/10 rounded-md border border-destructive/20">
+          <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
+          <span className="text-xs font-medium text-destructive">Agendamento Pendente</span>
+        </div>
+      )}
+      
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">

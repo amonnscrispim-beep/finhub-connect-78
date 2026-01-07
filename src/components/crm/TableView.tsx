@@ -7,7 +7,8 @@ import {
   Check, 
   X,
   RefreshCw,
-  TrendingUp
+  TrendingUp,
+  AlertTriangle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -52,6 +53,7 @@ export function TableView({ onEditClient }: TableViewProps) {
   const [filterStage, setFilterStage] = useState<string>('all');
   const [filterState, setFilterState] = useState<string>('all');
   const [filterRenewed, setFilterRenewed] = useState<string>('all');
+  const [filterPendingSchedule, setFilterPendingSchedule] = useState<string>('all');
   const [sortField, setSortField] = useState<SortField>('createdAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -73,8 +75,13 @@ export function TableView({ onEditClient }: TableViewProps) {
           (filterRenewed === 'renewed' && client.renewed) ||
           (filterRenewed === 'potential' && client.renewalPotential && !client.renewed) ||
           (filterRenewed === 'none' && !client.renewed && !client.renewalPotential);
+        
+        const matchesPendingSchedule = 
+          filterPendingSchedule === 'all' || 
+          (filterPendingSchedule === 'pending' && client.pendingSchedule) ||
+          (filterPendingSchedule === 'ok' && !client.pendingSchedule);
 
-        return matchesSearch && matchesStage && matchesState && matchesRenewed;
+        return matchesSearch && matchesStage && matchesState && matchesRenewed && matchesPendingSchedule;
       })
       .sort((a, b) => {
         let comparison = 0;
@@ -94,7 +101,7 @@ export function TableView({ onEditClient }: TableViewProps) {
         }
         return sortDirection === 'asc' ? comparison : -comparison;
       });
-  }, [clients, searchTerm, filterStage, filterState, filterRenewed, sortField, sortDirection]);
+  }, [clients, searchTerm, filterStage, filterState, filterRenewed, filterPendingSchedule, sortField, sortDirection]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -176,6 +183,17 @@ export function TableView({ onEditClient }: TableViewProps) {
                 <SelectItem value="none">Sem potencial</SelectItem>
               </SelectContent>
             </Select>
+
+            <Select value={filterPendingSchedule} onValueChange={setFilterPendingSchedule}>
+              <SelectTrigger className={`w-[180px] crm-input ${filterPendingSchedule === 'pending' ? 'border-destructive' : ''}`}>
+                <SelectValue placeholder="Agendamento" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="pending">⚠️ Pendentes</SelectItem>
+                <SelectItem value="ok">Em dia</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
@@ -239,6 +257,11 @@ export function TableView({ onEditClient }: TableViewProps) {
                     >
                       <TableCell>
                         <div className="flex items-center gap-1">
+                          {client.pendingSchedule && (
+                            <div className="p-1 rounded-full bg-destructive/10" title="Agendamento Pendente">
+                              <AlertTriangle className="w-3 h-3 text-destructive" />
+                            </div>
+                          )}
                           {client.renewed && (
                             <div className="p-1 rounded-full bg-success/10" title="Renovado">
                               <RefreshCw className="w-3 h-3 text-success" />

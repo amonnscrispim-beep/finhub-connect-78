@@ -41,6 +41,7 @@ interface FormData {
   funnelStage: FunnelStage;
   renewed: boolean;
   renewalPotential: boolean;
+  pendingSchedule: boolean;
 }
 
 const defaultFormData: FormData = {
@@ -66,6 +67,7 @@ const defaultFormData: FormData = {
   funnelStage: 'Novo cliente',
   renewed: false,
   renewalPotential: false,
+  pendingSchedule: false,
 };
 
 export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
@@ -97,6 +99,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         funnelStage: client.funnelStage,
         renewed: client.renewed,
         renewalPotential: client.renewalPotential,
+        pendingSchedule: client.pendingSchedule,
       });
     } else {
       setFormData(defaultFormData);
@@ -130,6 +133,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       funnelStage: formData.funnelStage,
       renewed: formData.renewed,
       renewalPotential: formData.renewalPotential,
+      pendingSchedule: formData.pendingSchedule,
     };
 
     if (client) {
@@ -372,7 +376,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
             </div>
 
             {/* Status */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="funnelStage">Etapa do Funil</Label>
                 <Select value={formData.funnelStage} onValueChange={(value) => handleChange('funnelStage', value)}>
@@ -404,6 +408,18 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 <Label htmlFor="renewalPotential">Potencial Renovação?</Label>
                 <Select value={formData.renewalPotential ? 'sim' : 'não'} onValueChange={(value) => handleChange('renewalPotential', value === 'sim')}>
                   <SelectTrigger className="crm-input">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sim">Sim</SelectItem>
+                    <SelectItem value="não">Não</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="pendingSchedule">Agendamento Pendente?</Label>
+                <Select value={formData.pendingSchedule ? 'sim' : 'não'} onValueChange={(value) => handleChange('pendingSchedule', value === 'sim')}>
+                  <SelectTrigger className={`crm-input ${formData.pendingSchedule ? 'border-destructive bg-destructive/10' : ''}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
