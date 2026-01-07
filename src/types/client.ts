@@ -47,6 +47,7 @@ export interface Client {
   funnelStage: FunnelStage;
   renewed: boolean;
   renewalPotential: boolean;
+  pendingSchedule: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
