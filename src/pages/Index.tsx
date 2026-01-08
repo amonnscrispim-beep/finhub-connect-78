@@ -13,6 +13,9 @@ import { TableView } from '@/components/crm/TableView';
 import { KanbanView } from '@/components/crm/KanbanView';
 import { ClientModal } from '@/components/crm/ClientModal';
 import { PendingScheduleModal } from '@/components/crm/PendingScheduleModal';
+import { TotalClientsModal } from '@/components/crm/TotalClientsModal';
+import { RenewalsModal } from '@/components/crm/RenewalsModal';
+import { RenewalAlerts } from '@/components/crm/RenewalAlerts';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -22,6 +25,8 @@ function CRMDashboard() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>();
   const [pendingScheduleModalOpen, setPendingScheduleModalOpen] = useState(false);
+  const [totalClientsModalOpen, setTotalClientsModalOpen] = useState(false);
+  const [renewalsModalOpen, setRenewalsModalOpen] = useState(false);
 
   const handleNewClient = () => {
     setEditingClient(undefined);
@@ -35,9 +40,9 @@ function CRMDashboard() {
 
   const handleExportCSV = () => {
     const headers = [
-      'Nome', 'Email', 'Telefone', 'Cidade', 'UF', 'Profissão',
+      'Nome', 'Email', 'Telefone', 'Cidade', 'UF', 'Residência', 'Profissão',
       'Objetivo', 'Perfil Investidor', 'Faturamento Mensal', 'Aporte Mensal',
-      'Etapa Funil', 'Renovado', 'Potencial Renovação', 'Início Contrato', 'Fim Contrato'
+      'Etapa Funil', 'Status Renovação', 'Data Renovação', 'Renovado', 'Potencial Renovação', 'Início Contrato', 'Fim Contrato'
     ];
 
     const rows = clients.map(client => [
@@ -46,12 +51,15 @@ function CRMDashboard() {
       client.phone,
       client.city,
       client.state,
+      client.residence || '',
       client.profession,
       client.objective,
       client.investorProfile,
       client.monthlyRevenue.toString(),
       client.monthlyContribution.toString(),
       client.funnelStage,
+      client.renewalStatus || '',
+      client.renewalDate ? new Date(client.renewalDate).toISOString().split('T')[0] : '',
       client.renewed ? 'Sim' : 'Não',
       client.renewalPotential ? 'Sim' : 'Não',
       client.contractStart.toISOString().split('T')[0],
@@ -110,8 +118,15 @@ function CRMDashboard() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 space-y-6">
+        {/* Renewal Alerts */}
+        <RenewalAlerts onEditClient={handleEditClient} />
+
         {/* Stats */}
-        <StatsCards onPendingScheduleClick={() => setPendingScheduleModalOpen(true)} />
+        <StatsCards 
+          onPendingScheduleClick={() => setPendingScheduleModalOpen(true)}
+          onTotalClientsClick={() => setTotalClientsModalOpen(true)}
+          onRenewalsClick={() => setRenewalsModalOpen(true)}
+        />
 
         {/* Views */}
         <Tabs value={view} onValueChange={(v) => setView(v as 'table' | 'kanban')} className="space-y-4">
@@ -151,6 +166,19 @@ function CRMDashboard() {
       <PendingScheduleModal
         open={pendingScheduleModalOpen}
         onOpenChange={setPendingScheduleModalOpen}
+        onEditClient={handleEditClient}
+      />
+
+      {/* Total Clients Modal */}
+      <TotalClientsModal
+        open={totalClientsModalOpen}
+        onOpenChange={setTotalClientsModalOpen}
+      />
+
+      {/* Renewals Modal */}
+      <RenewalsModal
+        open={renewalsModalOpen}
+        onOpenChange={setRenewalsModalOpen}
         onEditClient={handleEditClient}
       />
     </div>

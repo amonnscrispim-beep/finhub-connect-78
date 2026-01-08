@@ -15,6 +15,10 @@ export type InvestorProfile =
   | 'Arrojado' 
   | 'Agressivo';
 
+export type Residence = 'Mora no Brasil' | 'Mora no exterior' | '';
+
+export type RenewalStatus = 'Renovação' | 'Potencial Renovação' | 'Não aplicável' | '';
+
 export interface Task {
   id: string;
   description: string;
@@ -48,6 +52,9 @@ export interface Client {
   renewed: boolean;
   renewalPotential: boolean;
   pendingSchedule: boolean;
+  residence: Residence;
+  renewalStatus: RenewalStatus;
+  renewalDate: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -69,6 +76,17 @@ export const INVESTOR_PROFILES: InvestorProfile[] = [
   'Moderado',
   'Arrojado',
   'Agressivo',
+];
+
+export const RESIDENCE_OPTIONS: Residence[] = [
+  'Mora no Brasil',
+  'Mora no exterior',
+];
+
+export const RENEWAL_STATUS_OPTIONS: RenewalStatus[] = [
+  'Renovação',
+  'Potencial Renovação',
+  'Não aplicável',
 ];
 
 export const BRAZILIAN_STATES = [
