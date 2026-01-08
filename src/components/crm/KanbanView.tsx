@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { 
   GripVertical, 
   Check, 
@@ -10,19 +10,14 @@ import {
   Trash2,
   CheckCircle2,
   Circle,
-  AlertTriangle
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { useClients } from '@/contexts/ClientContext';
 import { Client, FunnelStage, FUNNEL_STAGES } from '@/types/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 interface KanbanViewProps {
   onEditClient: (client: Client) => void;
@@ -33,6 +28,9 @@ interface KanbanCardProps {
   onEdit: () => void;
   onDragStart: (e: React.DragEvent) => void;
 }
+
+// Filter out "Novo cliente" from Kanban stages
+const KANBAN_STAGES = FUNNEL_STAGES.filter(stage => stage !== 'Novo cliente');
 
 function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
   const { toggleTask, addTask, deleteClient, deleteTask } = useClients();
@@ -199,10 +197,50 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
   );
 }
 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+
 export function KanbanView({ onEditClient }: KanbanViewProps) {
   const { clients, moveClientToStage } = useClients();
   const [draggedClient, setDraggedClient] = useState<Client | null>(null);
   const [dragOverStage, setDragOverStage] = useState<FunnelStage | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScrollability = () => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      setCanScrollLeft(container.scrollLeft > 0);
+      setCanScrollRight(
+        container.scrollLeft < container.scrollWidth - container.clientWidth - 10
+      );
+    }
+  };
+
+  useEffect(() => {
+    checkScrollability();
+    window.addEventListener('resize', checkScrollability);
+    return () => window.removeEventListener('resize', checkScrollability);
+  }, []);
+
+  const scrollLeft = () => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.scrollBy({ left: -300, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.scrollBy({ left: 300, behavior: 'smooth' });
+    }
+  };
 
   const getClientsByStage = (stage: FunnelStage) => {
     return clients.filter(client => client.funnelStage === stage);
@@ -232,62 +270,87 @@ export function KanbanView({ onEditClient }: KanbanViewProps) {
   };
 
   const getStageColor = (stage: FunnelStage) => {
-    if (stage === 'Novo cliente') return 'bg-primary';
     if (stage === 'Em atendimento') return 'bg-warning';
     if (stage === 'Conclusão') return 'bg-success';
     return 'bg-muted-foreground';
   };
 
   return (
-    <ScrollArea className="w-full">
-      <div className="flex gap-4 p-4 min-w-max">
-        {FUNNEL_STAGES.map((stage) => {
-          const stageClients = getClientsByStage(stage);
-          const isOver = dragOverStage === stage;
-          
-          return (
-            <div
-              key={stage}
-              className={`kanban-column transition-all duration-200 ${
-                isOver ? 'ring-2 ring-primary ring-offset-2' : ''
-              }`}
-              onDragOver={(e) => handleDragOver(e, stage)}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, stage)}
-            >
-              {/* Column Header */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${getStageColor(stage)}`} />
-                  <h3 className="font-medium text-sm text-foreground">{stage}</h3>
-                </div>
-                <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                  {stageClients.length}
-                </span>
-              </div>
+    <div className="relative">
+      {/* Left Arrow */}
+      {canScrollLeft && (
+        <button
+          onClick={scrollLeft}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-background/90 backdrop-blur-sm border rounded-full shadow-lg hover:bg-muted transition-colors"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+      )}
+      
+      {/* Right Arrow */}
+      {canScrollRight && (
+        <button
+          onClick={scrollRight}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-background/90 backdrop-blur-sm border rounded-full shadow-lg hover:bg-muted transition-colors"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      )}
 
-              {/* Cards */}
-              <div className="space-y-3">
-                {stageClients.map((client) => (
-                  <KanbanCard
-                    key={client.id}
-                    client={client}
-                    onEdit={() => onEditClient(client)}
-                    onDragStart={(e) => handleDragStart(e, client)}
-                  />
-                ))}
-                
-                {stageClients.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground text-sm">
-                    Nenhum cliente
+      {/* Scrollable Container */}
+      <div
+        ref={scrollContainerRef}
+        onScroll={checkScrollability}
+        className="overflow-x-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent"
+      >
+        <div className="flex gap-4 p-4 min-w-max">
+          {KANBAN_STAGES.map((stage) => {
+            const stageClients = getClientsByStage(stage);
+            const isOver = dragOverStage === stage;
+            
+            return (
+              <div
+                key={stage}
+                className={`kanban-column transition-all duration-200 ${
+                  isOver ? 'ring-2 ring-primary ring-offset-2' : ''
+                }`}
+                onDragOver={(e) => handleDragOver(e, stage)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, stage)}
+              >
+                {/* Column Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${getStageColor(stage)}`} />
+                    <h3 className="font-medium text-sm text-foreground">{stage}</h3>
                   </div>
-                )}
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                    {stageClients.length}
+                  </span>
+                </div>
+
+                {/* Cards */}
+                <div className="space-y-3">
+                  {stageClients.map((client) => (
+                    <KanbanCard
+                      key={client.id}
+                      client={client}
+                      onEdit={() => onEditClient(client)}
+                      onDragStart={(e) => handleDragStart(e, client)}
+                    />
+                  ))}
+                  
+                  {stageClients.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      Nenhum cliente
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-      <ScrollBar orientation="horizontal" />
-    </ScrollArea>
+    </div>
   );
 }

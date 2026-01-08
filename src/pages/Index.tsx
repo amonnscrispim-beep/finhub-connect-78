@@ -12,6 +12,7 @@ import { StatsCards } from '@/components/crm/StatsCards';
 import { TableView } from '@/components/crm/TableView';
 import { KanbanView } from '@/components/crm/KanbanView';
 import { ClientModal } from '@/components/crm/ClientModal';
+import { PendingScheduleModal } from '@/components/crm/PendingScheduleModal';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -20,6 +21,7 @@ function CRMDashboard() {
   const [view, setView] = useState<'table' | 'kanban'>('table');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>();
+  const [pendingScheduleModalOpen, setPendingScheduleModalOpen] = useState(false);
 
   const handleNewClient = () => {
     setEditingClient(undefined);
@@ -109,7 +111,7 @@ function CRMDashboard() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Stats */}
-        <StatsCards />
+        <StatsCards onPendingScheduleClick={() => setPendingScheduleModalOpen(true)} />
 
         {/* Views */}
         <Tabs value={view} onValueChange={(v) => setView(v as 'table' | 'kanban')} className="space-y-4">
@@ -143,6 +145,13 @@ function CRMDashboard() {
         open={modalOpen}
         onOpenChange={setModalOpen}
         client={editingClient}
+      />
+      
+      {/* Pending Schedule Modal */}
+      <PendingScheduleModal
+        open={pendingScheduleModalOpen}
+        onOpenChange={setPendingScheduleModalOpen}
+        onEditClient={handleEditClient}
       />
     </div>
   );

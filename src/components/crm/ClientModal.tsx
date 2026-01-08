@@ -64,7 +64,7 @@ const defaultFormData: FormData = {
   observations: '',
   city: '',
   state: 'SP',
-  funnelStage: 'Novo cliente',
+  funnelStage: 'Em atendimento',
   renewed: false,
   renewalPotential: false,
   pendingSchedule: false,
