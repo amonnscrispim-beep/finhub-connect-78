@@ -7,10 +7,16 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Client, FUNNEL_STAGES, INVESTOR_PROFILES, BRAZILIAN_STATES } from '@/types/client';
+import { Client, FUNNEL_STAGES, INVESTOR_PROFILES, BRAZILIAN_STATES, RESIDENCE_OPTIONS, RENEWAL_STATUS_OPTIONS } from '@/types/client';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useClients } from '@/contexts/ClientContext';
 
-import type { InvestorProfile, FunnelStage } from '@/types/client';
+import type { InvestorProfile, FunnelStage, Residence, RenewalStatus } from '@/types/client';
 
 interface ClientModalProps {
   open: boolean;
@@ -42,6 +48,9 @@ interface FormData {
   renewed: boolean;
   renewalPotential: boolean;
   pendingSchedule: boolean;
+  residence: Residence;
+  renewalStatus: RenewalStatus;
+  renewalDate: Date | null;
 }
 
 const defaultFormData: FormData = {
@@ -68,6 +77,9 @@ const defaultFormData: FormData = {
   renewed: false,
   renewalPotential: false,
   pendingSchedule: false,
+  residence: '',
+  renewalStatus: '',
+  renewalDate: null,
 };
 
 export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
@@ -100,6 +112,9 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         renewed: client.renewed,
         renewalPotential: client.renewalPotential,
         pendingSchedule: client.pendingSchedule,
+        residence: client.residence,
+        renewalStatus: client.renewalStatus,
+        renewalDate: client.renewalDate,
       });
     } else {
       setFormData(defaultFormData);
@@ -134,6 +149,9 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       renewed: formData.renewed,
       renewalPotential: formData.renewalPotential,
       pendingSchedule: formData.pendingSchedule,
+      residence: formData.residence,
+      renewalStatus: formData.renewalStatus,
+      renewalDate: formData.renewalDate,
     };
 
     if (client) {
@@ -145,7 +163,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     onOpenChange(false);
   };
 
-  const handleChange = (field: string, value: string | boolean) => {
+  const handleChange = (field: string, value: string | boolean | Date | null) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -246,7 +264,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
             </div>
 
             {/* Location */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="city">Cidade</Label>
                 <Input
@@ -267,6 +285,21 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                     {BRAZILIAN_STATES.map((state) => (
                       <SelectItem key={state} value={state}>
                         {state}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="residence">Residência</Label>
+                <Select value={formData.residence} onValueChange={(value) => handleChange('residence', value)}>
+                  <SelectTrigger className="crm-input">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {RESIDENCE_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -427,6 +460,55 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                     <SelectItem value="não">Não</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+
+            {/* Renewal Info */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="renewalStatus">Status de Renovação</Label>
+                <Select value={formData.renewalStatus} onValueChange={(value) => handleChange('renewalStatus', value)}>
+                  <SelectTrigger className="crm-input">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {RENEWAL_STATUS_OPTIONS.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {status}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="renewalDate">Data de Renovação</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal crm-input",
+                        !formData.renewalDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.renewalDate ? (
+                        format(new Date(formData.renewalDate), "dd/MM/yyyy", { locale: ptBR })
+                      ) : (
+                        <span>Selecione uma data</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.renewalDate ? new Date(formData.renewalDate) : undefined}
+                      onSelect={(date) => handleChange('renewalDate', date || null)}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
 

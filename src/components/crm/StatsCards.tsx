@@ -3,15 +3,21 @@ import { useClients } from '@/contexts/ClientContext';
 
 interface StatsCardsProps {
   onPendingScheduleClick: () => void;
+  onTotalClientsClick: () => void;
+  onRenewalsClick: () => void;
 }
 
-export function StatsCards({ onPendingScheduleClick }: StatsCardsProps) {
+export function StatsCards({ onPendingScheduleClick, onTotalClientsClick, onRenewalsClick }: StatsCardsProps) {
   const { clients } = useClients();
 
   const totalClients = clients.length;
   const pendingScheduleCount = clients.filter(c => c.pendingSchedule).length;
-  const renewedCount = clients.filter(c => c.renewed).length;
-  const renewalPotential = clients.filter(c => c.renewalPotential && !c.renewed).length;
+  const renewedCount = clients.filter(
+    c => c.renewalStatus === 'Renovação' || c.renewed
+  ).length;
+  const renewalPotential = clients.filter(
+    c => (c.renewalStatus === 'Potencial Renovação' || c.renewalPotential) && !c.renewed && c.renewalStatus !== 'Renovação'
+  ).length;
 
   const stats = [
     {
@@ -19,7 +25,7 @@ export function StatsCards({ onPendingScheduleClick }: StatsCardsProps) {
       value: totalClients,
       icon: Users,
       color: 'bg-primary/10 text-primary',
-      onClick: undefined,
+      onClick: onTotalClientsClick,
     },
     {
       label: 'Agendamento Pendente',
@@ -34,14 +40,14 @@ export function StatsCards({ onPendingScheduleClick }: StatsCardsProps) {
       value: renewedCount,
       icon: RefreshCw,
       color: 'bg-success/10 text-success',
-      onClick: undefined,
+      onClick: onRenewalsClick,
     },
     {
       label: 'Potencial Renovação',
       value: renewalPotential,
       icon: TrendingUp,
       color: 'bg-accent/10 text-accent',
-      onClick: undefined,
+      onClick: onRenewalsClick,
     },
   ];
 
