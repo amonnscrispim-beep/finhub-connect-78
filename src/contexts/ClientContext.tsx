@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { Client, Task, FunnelStage, ClientFile } from '@/types/client';
+import { Client, Task, FunnelStage, ClientFile, ChildInfo, ScheduledMeeting } from '@/types/client';
 
 interface ClientContextType {
   clients: Client[];
@@ -11,11 +11,26 @@ interface ClientContextType {
   toggleTask: (clientId: string, taskId: string) => void;
   deleteTask: (clientId: string, taskId: string) => void;
   updateClientFiles: (clientId: string, files: ClientFile[]) => void;
+  scheduleClientMeeting: (clientId: string, meeting: ScheduledMeeting) => void;
 }
 
 const ClientContext = createContext<ClientContextType | undefined>(undefined);
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
+
+// Default values for new fields
+const defaultClientFields = {
+  hasChildren: false,
+  children: [] as ChildInfo[],
+  portfolioDistribution: null,
+  privatePensionStatus: '' as const,
+  privatePensionType: '' as const,
+  retirementGoal: null,
+  contractedMeetings: null,
+  meetingNotes: {},
+  lastActivityAt: new Date(),
+  scheduledMeeting: null,
+};
 
 // Sample data for demonstration
 const sampleClients: Client[] = [
@@ -56,6 +71,12 @@ const sampleClients: Client[] = [
     files: [],
     createdAt: new Date('2024-01-15'),
     updatedAt: new Date(),
+    ...defaultClientFields,
+    hasChildren: true,
+    children: [{ id: generateId(), name: 'Lucas Silva', age: 8 }],
+    portfolioDistribution: { fixedIncome: 40, stocks: 30, realEstate: 20, international: 10 },
+    contractedMeetings: 3,
+    meetingNotes: { 1: 'Reunião inicial realizada com sucesso.' },
   },
   {
     id: generateId(),
@@ -93,6 +114,8 @@ const sampleClients: Client[] = [
     files: [],
     createdAt: new Date('2024-03-01'),
     updatedAt: new Date(),
+    ...defaultClientFields,
+    lastActivityAt: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000), // 35 days ago - inactive
   },
   {
     id: generateId(),
@@ -128,6 +151,8 @@ const sampleClients: Client[] = [
     files: [],
     createdAt: new Date('2024-06-10'),
     updatedAt: new Date(),
+    ...defaultClientFields,
+    scheduledMeeting: { date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000) }, // Tomorrow
   },
   {
     id: generateId(),
@@ -166,6 +191,21 @@ const sampleClients: Client[] = [
     files: [],
     createdAt: new Date('2023-12-01'),
     updatedAt: new Date(),
+    ...defaultClientFields,
+    hasChildren: true,
+    children: [
+      { id: generateId(), name: 'Fernanda Costa', age: 28 },
+      { id: generateId(), name: 'Ricardo Costa', age: 25 },
+    ],
+    privatePensionStatus: 'Sim',
+    privatePensionType: 'PGBL',
+    retirementGoal: { desiredAge: 60, desiredMonthlyIncome: 50000 },
+    contractedMeetings: 6,
+    meetingNotes: { 
+      1: 'Reunião inicial - levantamento de patrimônio', 
+      2: 'Discussão sobre holding familiar',
+      3: 'Análise tributária detalhada'
+    },
   },
   {
     id: generateId(),
@@ -203,16 +243,32 @@ const sampleClients: Client[] = [
     files: [],
     createdAt: new Date('2024-08-15'),
     updatedAt: new Date(),
+    ...defaultClientFields,
   },
 ];
 
 // Migrate any "Novo cliente" to "Em atendimento"
 const migrateClients = (clients: Client[]): Client[] => {
   return clients.map(client => {
+    let updatedClient = { ...client };
+    
     if ((client.funnelStage as string) === 'Novo cliente') {
-      return { ...client, funnelStage: 'Em atendimento' as FunnelStage };
+      updatedClient.funnelStage = 'Em atendimento' as FunnelStage;
     }
-    return client;
+    
+    // Ensure new fields exist
+    if (updatedClient.hasChildren === undefined) updatedClient.hasChildren = false;
+    if (!updatedClient.children) updatedClient.children = [];
+    if (updatedClient.portfolioDistribution === undefined) updatedClient.portfolioDistribution = null;
+    if (!updatedClient.privatePensionStatus) updatedClient.privatePensionStatus = '';
+    if (!updatedClient.privatePensionType) updatedClient.privatePensionType = '';
+    if (updatedClient.retirementGoal === undefined) updatedClient.retirementGoal = null;
+    if (updatedClient.contractedMeetings === undefined) updatedClient.contractedMeetings = null;
+    if (!updatedClient.meetingNotes) updatedClient.meetingNotes = {};
+    if (!updatedClient.lastActivityAt) updatedClient.lastActivityAt = updatedClient.updatedAt;
+    if (updatedClient.scheduledMeeting === undefined) updatedClient.scheduledMeeting = null;
+    
+    return updatedClient;
   });
 };
 
@@ -225,6 +281,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
       id: generateId(),
       createdAt: new Date(),
       updatedAt: new Date(),
+      lastActivityAt: new Date(),
     };
     setClients(prev => [...prev, newClient]);
   }, []);
@@ -263,7 +320,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     setClients(prev =>
       prev.map(client =>
         client.id === clientId
-          ? { ...client, tasks: [...client.tasks, newTask], updatedAt: new Date() }
+          ? { ...client, tasks: [...client.tasks, newTask], updatedAt: new Date(), lastActivityAt: new Date() }
           : client
       )
     );
@@ -279,6 +336,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
                 task.id === taskId ? { ...task, completed: !task.completed } : task
               ),
               updatedAt: new Date(),
+              lastActivityAt: new Date(),
             }
           : client
       )
@@ -309,6 +367,22 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const scheduleClientMeeting = useCallback((clientId: string, meeting: ScheduledMeeting) => {
+    setClients(prev =>
+      prev.map(client =>
+        client.id === clientId
+          ? { 
+              ...client, 
+              scheduledMeeting: meeting, 
+              pendingSchedule: false,
+              updatedAt: new Date(),
+              lastActivityAt: new Date(),
+            }
+          : client
+      )
+    );
+  }, []);
+
   return (
     <ClientContext.Provider
       value={{
@@ -321,6 +395,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
         toggleTask,
         deleteTask,
         updateClientFiles,
+        scheduleClientMeeting,
       }}
     >
       {children}

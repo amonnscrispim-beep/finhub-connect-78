@@ -20,6 +20,12 @@ export type RenewalStatus = 'Renovação' | 'Potencial Renovação' | 'Não apli
 
 export type FileFolder = 'documentos' | 'planejamento' | 'desempenho';
 
+export type ContractedMeetings = 1 | 3 | 6;
+
+export type PrivatePensionStatus = 'Sim' | 'Não' | 'Não precisa' | '';
+
+export type PrivatePensionType = 'PGBL' | 'VGBL' | '';
+
 export interface ClientFile {
   id: string;
   name: string;
@@ -41,6 +47,33 @@ export interface PartnerInfo {
   name: string;
   age: number | null;
   profession: string;
+}
+
+export interface ChildInfo {
+  id: string;
+  name: string;
+  age: number | null;
+}
+
+export interface PortfolioDistribution {
+  fixedIncome: number; // % Renda Fixa
+  stocks: number; // % Ações
+  realEstate: number; // % Fundos Imobiliários
+  international: number; // % Exterior
+}
+
+export interface RetirementGoal {
+  desiredAge: number | null;
+  desiredMonthlyIncome: number | null;
+}
+
+export interface MeetingNotes {
+  [key: number]: string; // 1, 2, 3... up to 6
+}
+
+export interface ScheduledMeeting {
+  date: Date;
+  time?: string;
 }
 
 export interface Client {
@@ -74,6 +107,16 @@ export interface Client {
   renewalDate: Date | null;
   married: boolean;
   partner: PartnerInfo | null;
+  hasChildren: boolean;
+  children: ChildInfo[];
+  portfolioDistribution: PortfolioDistribution | null;
+  privatePensionStatus: PrivatePensionStatus;
+  privatePensionType: PrivatePensionType;
+  retirementGoal: RetirementGoal | null;
+  contractedMeetings: ContractedMeetings | null;
+  meetingNotes: MeetingNotes;
+  lastActivityAt: Date;
+  scheduledMeeting: ScheduledMeeting | null;
   files: ClientFile[];
   createdAt: Date;
   updatedAt: Date;
@@ -112,6 +155,19 @@ export const FILE_FOLDERS: { value: FileFolder; label: string }[] = [
   { value: 'documentos', label: 'Documentos' },
   { value: 'planejamento', label: 'Planejamento' },
   { value: 'desempenho', label: 'Desempenho' },
+];
+
+export const CONTRACTED_MEETINGS_OPTIONS: ContractedMeetings[] = [1, 3, 6];
+
+export const PRIVATE_PENSION_STATUS_OPTIONS: PrivatePensionStatus[] = [
+  'Sim',
+  'Não',
+  'Não precisa',
+];
+
+export const PRIVATE_PENSION_TYPE_OPTIONS: PrivatePensionType[] = [
+  'PGBL',
+  'VGBL',
 ];
 
 export const BRAZILIAN_STATES = [
