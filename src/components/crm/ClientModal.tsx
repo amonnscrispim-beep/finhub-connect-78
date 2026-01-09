@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Heart } from 'lucide-react';
+import { X, Heart, Users, PieChart, Landmark, Target, Calendar } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,18 +7,36 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Client, FUNNEL_STAGES, INVESTOR_PROFILES, BRAZILIAN_STATES, RESIDENCE_OPTIONS, RENEWAL_STATUS_OPTIONS, ClientFile, PartnerInfo } from '@/types/client';
-import { Calendar } from '@/components/ui/calendar';
+import { 
+  Client, 
+  FUNNEL_STAGES, 
+  INVESTOR_PROFILES, 
+  BRAZILIAN_STATES, 
+  RESIDENCE_OPTIONS, 
+  RENEWAL_STATUS_OPTIONS, 
+  ClientFile, 
+  PartnerInfo,
+  ChildInfo,
+  PortfolioDistribution,
+  RetirementGoal,
+  MeetingNotes,
+  CONTRACTED_MEETINGS_OPTIONS,
+  PRIVATE_PENSION_STATUS_OPTIONS,
+  PRIVATE_PENSION_TYPE_OPTIONS,
+  ScheduledMeeting,
+} from '@/types/client';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useClients } from '@/contexts/ClientContext';
 import { ClientFiles } from './ClientFiles';
 import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
 
-import type { InvestorProfile, FunnelStage, Residence, RenewalStatus } from '@/types/client';
+import type { InvestorProfile, FunnelStage, Residence, RenewalStatus, ContractedMeetings, PrivatePensionStatus, PrivatePensionType } from '@/types/client';
 
 interface ClientModalProps {
   open: boolean;
@@ -57,8 +75,22 @@ interface FormData {
   partnerName: string;
   partnerAge: string;
   partnerProfession: string;
+  hasChildren: boolean;
+  children: ChildInfo[];
+  portfolioFixedIncome: string;
+  portfolioStocks: string;
+  portfolioRealEstate: string;
+  portfolioInternational: string;
+  privatePensionStatus: PrivatePensionStatus;
+  privatePensionType: PrivatePensionType;
+  retirementAge: string;
+  retirementIncome: string;
+  contractedMeetings: ContractedMeetings | null;
+  meetingNotes: MeetingNotes;
   files: ClientFile[];
 }
+
+const generateId = () => Math.random().toString(36).substring(2, 15);
 
 const defaultFormData: FormData = {
   contractStart: new Date().toISOString().split('T')[0],
@@ -91,6 +123,18 @@ const defaultFormData: FormData = {
   partnerName: '',
   partnerAge: '',
   partnerProfession: '',
+  hasChildren: false,
+  children: [],
+  portfolioFixedIncome: '',
+  portfolioStocks: '',
+  portfolioRealEstate: '',
+  portfolioInternational: '',
+  privatePensionStatus: '',
+  privatePensionType: '',
+  retirementAge: '',
+  retirementIncome: '',
+  contractedMeetings: null,
+  meetingNotes: {},
   files: [],
 };
 
@@ -131,6 +175,18 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         partnerName: client.partner?.name || '',
         partnerAge: client.partner?.age?.toString() || '',
         partnerProfession: client.partner?.profession || '',
+        hasChildren: client.hasChildren || false,
+        children: client.children || [],
+        portfolioFixedIncome: client.portfolioDistribution?.fixedIncome?.toString() || '',
+        portfolioStocks: client.portfolioDistribution?.stocks?.toString() || '',
+        portfolioRealEstate: client.portfolioDistribution?.realEstate?.toString() || '',
+        portfolioInternational: client.portfolioDistribution?.international?.toString() || '',
+        privatePensionStatus: client.privatePensionStatus || '',
+        privatePensionType: client.privatePensionType || '',
+        retirementAge: client.retirementGoal?.desiredAge?.toString() || '',
+        retirementIncome: client.retirementGoal?.desiredMonthlyIncome?.toString() || '',
+        contractedMeetings: client.contractedMeetings || null,
+        meetingNotes: client.meetingNotes || {},
         files: client.files || [],
       });
     } else {
@@ -152,6 +208,29 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     } else if (!formData.married && client?.partner) {
       // Keep partner data saved but hidden
       partner = client.partner;
+    }
+
+    // Build children array - keep data saved but hidden if hasChildren is false
+    let children: ChildInfo[] = formData.hasChildren ? formData.children : (client?.children || []);
+
+    // Build portfolio distribution
+    let portfolioDistribution: PortfolioDistribution | null = null;
+    if (formData.portfolioFixedIncome || formData.portfolioStocks || formData.portfolioRealEstate || formData.portfolioInternational) {
+      portfolioDistribution = {
+        fixedIncome: parseFloat(formData.portfolioFixedIncome) || 0,
+        stocks: parseFloat(formData.portfolioStocks) || 0,
+        realEstate: parseFloat(formData.portfolioRealEstate) || 0,
+        international: parseFloat(formData.portfolioInternational) || 0,
+      };
+    }
+
+    // Build retirement goal
+    let retirementGoal: RetirementGoal | null = null;
+    if (formData.retirementAge || formData.retirementIncome) {
+      retirementGoal = {
+        desiredAge: formData.retirementAge ? parseInt(formData.retirementAge) : null,
+        desiredMonthlyIncome: formData.retirementIncome ? parseFloat(formData.retirementIncome) : null,
+      };
     }
 
     const clientData = {
@@ -184,6 +263,16 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       renewalDate: formData.renewalDate,
       married: formData.married,
       partner: formData.married ? partner : (client?.partner || null),
+      hasChildren: formData.hasChildren,
+      children: children,
+      portfolioDistribution: portfolioDistribution,
+      privatePensionStatus: formData.privatePensionStatus,
+      privatePensionType: formData.privatePensionStatus === 'Sim' ? formData.privatePensionType : '',
+      retirementGoal: retirementGoal,
+      contractedMeetings: formData.contractedMeetings,
+      meetingNotes: formData.meetingNotes,
+      lastActivityAt: client?.lastActivityAt || new Date(),
+      scheduledMeeting: client?.scheduledMeeting || null,
       files: formData.files,
     };
 
@@ -196,7 +285,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     onOpenChange(false);
   };
 
-  const handleChange = (field: string, value: string | boolean | Date | null) => {
+  const handleChange = (field: string, value: string | boolean | Date | null | ContractedMeetings) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -204,9 +293,50 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     setFormData(prev => ({ ...prev, files }));
   };
 
+  const handleAddChild = () => {
+    setFormData(prev => ({
+      ...prev,
+      children: [...prev.children, { id: generateId(), name: '', age: null }],
+    }));
+  };
+
+  const handleRemoveChild = (childId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      children: prev.children.filter(c => c.id !== childId),
+    }));
+  };
+
+  const handleChildChange = (childId: string, field: 'name' | 'age', value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      children: prev.children.map(c =>
+        c.id === childId
+          ? { ...c, [field]: field === 'age' ? (value ? parseInt(value) : null) : value }
+          : c
+      ),
+    }));
+  };
+
+  const handleMeetingNoteChange = (meetingNumber: number, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      meetingNotes: { ...prev.meetingNotes, [meetingNumber]: value },
+    }));
+  };
+
+  // Calculate portfolio total
+  const portfolioTotal = 
+    (parseFloat(formData.portfolioFixedIncome) || 0) +
+    (parseFloat(formData.portfolioStocks) || 0) +
+    (parseFloat(formData.portfolioRealEstate) || 0) +
+    (parseFloat(formData.portfolioInternational) || 0);
+
+  const portfolioValid = portfolioTotal === 0 || portfolioTotal === 100;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] p-0">
+      <DialogContent className="max-w-4xl max-h-[90vh] p-0">
         <DialogHeader className="crm-header p-6 rounded-t-lg">
           <DialogTitle className="text-xl">
             {client ? 'Editar Cliente' : 'Novo Cliente'}
@@ -404,6 +534,81 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 </div>
               )}
             </div>
+
+            {/* Children Section */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
+                <Label className="text-base font-semibold">Filhos</Label>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="hasChildren">Filhos?</Label>
+                <Select value={formData.hasChildren ? 'sim' : 'não'} onValueChange={(value) => {
+                  const hasChildren = value === 'sim';
+                  handleChange('hasChildren', hasChildren);
+                  if (hasChildren && formData.children.length === 0) {
+                    handleAddChild();
+                  }
+                }}>
+                  <SelectTrigger className="crm-input w-[200px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sim">Sim</SelectItem>
+                    <SelectItem value="não">Não</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {formData.hasChildren && (
+                <div className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
+                  <h4 className="font-medium text-foreground">Dados dos Filhos</h4>
+                  {formData.children.map((child, index) => (
+                    <div key={child.id} className="flex items-end gap-3">
+                      <div className="flex-1 space-y-2">
+                        <Label>Nome do Filho(a) {index + 1}</Label>
+                        <Input
+                          value={child.name}
+                          onChange={(e) => handleChildChange(child.id, 'name', e.target.value)}
+                          placeholder="Nome completo"
+                          className="crm-input"
+                        />
+                      </div>
+                      <div className="w-24 space-y-2">
+                        <Label>Idade</Label>
+                        <Input
+                          type="number"
+                          value={child.age?.toString() || ''}
+                          onChange={(e) => handleChildChange(child.id, 'age', e.target.value)}
+                          placeholder="Idade"
+                          className="crm-input"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveChild(child.id)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddChild}
+                    className="mt-2"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar outro filho
+                  </Button>
+                </div>
+              )}
+            </div>
             <Separator />
 
             {/* Financial Info */}
@@ -483,7 +688,171 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               </div>
             </div>
 
+            {/* Portfolio Distribution Section */}
+            <Separator />
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <PieChart className="w-5 h-5 text-primary" />
+                <Label className="text-base font-semibold">Distribuição da Carteira</Label>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="portfolioFixedIncome">% Renda Fixa</Label>
+                  <Input
+                    id="portfolioFixedIncome"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={formData.portfolioFixedIncome}
+                    onChange={(e) => handleChange('portfolioFixedIncome', e.target.value)}
+                    placeholder="0"
+                    className="crm-input"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="portfolioStocks">% Ações</Label>
+                  <Input
+                    id="portfolioStocks"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={formData.portfolioStocks}
+                    onChange={(e) => handleChange('portfolioStocks', e.target.value)}
+                    placeholder="0"
+                    className="crm-input"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="portfolioRealEstate">% Fundos Imob.</Label>
+                  <Input
+                    id="portfolioRealEstate"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={formData.portfolioRealEstate}
+                    onChange={(e) => handleChange('portfolioRealEstate', e.target.value)}
+                    placeholder="0"
+                    className="crm-input"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="portfolioInternational">% Exterior</Label>
+                  <Input
+                    id="portfolioInternational"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={formData.portfolioInternational}
+                    onChange={(e) => handleChange('portfolioInternational', e.target.value)}
+                    placeholder="0"
+                    className="crm-input"
+                  />
+                </div>
+              </div>
+              
+              {portfolioTotal > 0 && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Total:</span>
+                    <span className={portfolioValid ? 'text-success font-medium' : 'text-destructive font-medium'}>
+                      {portfolioTotal}%
+                    </span>
+                  </div>
+                  <Progress 
+                    value={Math.min(portfolioTotal, 100)} 
+                    className={`h-2 ${!portfolioValid ? '[&>div]:bg-destructive' : ''}`}
+                  />
+                  {!portfolioValid && (
+                    <p className="text-xs text-destructive">A soma deve ser igual a 100%</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Private Pension Section */}
+            <Separator />
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Landmark className="w-5 h-5 text-primary" />
+                <Label className="text-base font-semibold">Previdência Privada</Label>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="privatePensionStatus">Possui previdência privada?</Label>
+                  <Select value={formData.privatePensionStatus} onValueChange={(value) => handleChange('privatePensionStatus', value)}>
+                    <SelectTrigger className="crm-input">
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRIVATE_PENSION_STATUS_OPTIONS.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {formData.privatePensionStatus === 'Sim' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="privatePensionType">Modalidade</Label>
+                    <Select value={formData.privatePensionType} onValueChange={(value) => handleChange('privatePensionType', value)}>
+                      <SelectTrigger className="crm-input">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PRIVATE_PENSION_TYPE_OPTIONS.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Retirement Goal Section */}
+            <Separator />
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Target className="w-5 h-5 text-primary" />
+                <Label className="text-base font-semibold">Objetivo de Aposentadoria</Label>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="retirementAge">Idade desejada para aposentadoria</Label>
+                  <Input
+                    id="retirementAge"
+                    type="number"
+                    min="0"
+                    max="120"
+                    value={formData.retirementAge}
+                    onChange={(e) => handleChange('retirementAge', e.target.value)}
+                    placeholder="Ex: 60"
+                    className="crm-input"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="retirementIncome">Renda mensal desejada (R$)</Label>
+                  <Input
+                    id="retirementIncome"
+                    type="number"
+                    value={formData.retirementIncome}
+                    onChange={(e) => handleChange('retirementIncome', e.target.value)}
+                    placeholder="R$ 0,00"
+                    className="crm-input"
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Objectives */}
+            <Separator />
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="objective">Objetivo</Label>
@@ -599,7 +968,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
+                    <CalendarComponent
                       mode="single"
                       selected={formData.renewalDate ? new Date(formData.renewalDate) : undefined}
                       onSelect={(date) => handleChange('renewalDate', date || null)}
@@ -611,9 +980,56 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               </div>
             </div>
 
+            {/* Contracted Meetings Section */}
+            <Separator />
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-primary" />
+                <Label className="text-base font-semibold">Reuniões Contratadas</Label>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="contractedMeetings">Quantidade de Reuniões</Label>
+                <Select 
+                  value={formData.contractedMeetings?.toString() || ''} 
+                  onValueChange={(value) => handleChange('contractedMeetings', value ? parseInt(value) as ContractedMeetings : null)}
+                >
+                  <SelectTrigger className="crm-input w-[200px]">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CONTRACTED_MEETINGS_OPTIONS.map((num) => (
+                      <SelectItem key={num} value={num.toString()}>
+                        {num} reunião{num > 1 ? 's' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {formData.contractedMeetings && (
+                <div className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
+                  <h4 className="font-medium text-foreground">O que foi feito em cada reunião</h4>
+                  {Array.from({ length: formData.contractedMeetings }, (_, i) => i + 1).map((meetingNum) => (
+                    <div key={meetingNum} className="space-y-2">
+                      <Label htmlFor={`meeting-${meetingNum}`}>{meetingNum}ª Reunião</Label>
+                      <Textarea
+                        id={`meeting-${meetingNum}`}
+                        value={formData.meetingNotes[meetingNum] || ''}
+                        onChange={(e) => handleMeetingNoteChange(meetingNum, e.target.value)}
+                        placeholder={`Descreva o que foi realizado na ${meetingNum}ª reunião...`}
+                        className="crm-input min-h-[80px]"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Notes */}
+            <Separator />
             <div className="space-y-2">
-              <Label htmlFor="workDone">O que foi feito</Label>
+              <Label htmlFor="workDone">O que foi feito (geral)</Label>
               <Textarea
                 id="workDone"
                 value={formData.workDone}
@@ -650,7 +1066,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               >
                 Cancelar
               </Button>
-              <Button type="submit" className="crm-btn-accent">
+              <Button type="submit" className="crm-btn-accent" disabled={portfolioTotal > 0 && !portfolioValid}>
                 {client ? 'Salvar Alterações' : 'Criar Cliente'}
               </Button>
             </div>

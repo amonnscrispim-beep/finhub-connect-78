@@ -1,11 +1,5 @@
 import { useState } from 'react';
-import { 
-  Plus, 
-  Download, 
-  LayoutGrid, 
-  Table as TableIcon,
-  Briefcase
-} from 'lucide-react';
+import { Plus, Download, LayoutGrid, Table as TableIcon, Briefcase } from 'lucide-react';
 import { ClientProvider, useClients } from '@/contexts/ClientContext';
 import { Client } from '@/types/client';
 import { StatsCards } from '@/components/crm/StatsCards';
@@ -16,6 +10,9 @@ import { PendingScheduleModal } from '@/components/crm/PendingScheduleModal';
 import { TotalClientsModal } from '@/components/crm/TotalClientsModal';
 import { RenewalsModal } from '@/components/crm/RenewalsModal';
 import { RenewalAlerts } from '@/components/crm/RenewalAlerts';
+import { MeetingAlerts } from '@/components/crm/MeetingAlerts';
+import { InactivityAlerts } from '@/components/crm/InactivityAlerts';
+import { FinancialAssetsModal } from '@/components/crm/FinancialAssetsModal';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -27,6 +24,7 @@ function CRMDashboard() {
   const [pendingScheduleModalOpen, setPendingScheduleModalOpen] = useState(false);
   const [totalClientsModalOpen, setTotalClientsModalOpen] = useState(false);
   const [renewalsModalOpen, setRenewalsModalOpen] = useState(false);
+  const [financialAssetsModalOpen, setFinancialAssetsModalOpen] = useState(false);
 
   const handleNewClient = () => {
     setEditingClient(undefined);
@@ -118,14 +116,17 @@ function CRMDashboard() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 space-y-6">
-        {/* Renewal Alerts */}
+        {/* Alerts */}
         <RenewalAlerts onEditClient={handleEditClient} />
+        <MeetingAlerts onEditClient={handleEditClient} />
+        <InactivityAlerts onEditClient={handleEditClient} />
 
         {/* Stats */}
         <StatsCards 
           onPendingScheduleClick={() => setPendingScheduleModalOpen(true)}
           onTotalClientsClick={() => setTotalClientsModalOpen(true)}
           onRenewalsClick={() => setRenewalsModalOpen(true)}
+          onFinancialAssetsClick={() => setFinancialAssetsModalOpen(true)}
         />
 
         {/* Views */}
@@ -155,32 +156,12 @@ function CRMDashboard() {
         </Tabs>
       </main>
 
-      {/* Client Modal */}
-      <ClientModal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        client={editingClient}
-      />
-      
-      {/* Pending Schedule Modal */}
-      <PendingScheduleModal
-        open={pendingScheduleModalOpen}
-        onOpenChange={setPendingScheduleModalOpen}
-        onEditClient={handleEditClient}
-      />
-
-      {/* Total Clients Modal */}
-      <TotalClientsModal
-        open={totalClientsModalOpen}
-        onOpenChange={setTotalClientsModalOpen}
-      />
-
-      {/* Renewals Modal */}
-      <RenewalsModal
-        open={renewalsModalOpen}
-        onOpenChange={setRenewalsModalOpen}
-        onEditClient={handleEditClient}
-      />
+      {/* Modals */}
+      <ClientModal open={modalOpen} onOpenChange={setModalOpen} client={editingClient} />
+      <PendingScheduleModal open={pendingScheduleModalOpen} onOpenChange={setPendingScheduleModalOpen} onEditClient={handleEditClient} />
+      <TotalClientsModal open={totalClientsModalOpen} onOpenChange={setTotalClientsModalOpen} />
+      <RenewalsModal open={renewalsModalOpen} onOpenChange={setRenewalsModalOpen} onEditClient={handleEditClient} />
+      <FinancialAssetsModal open={financialAssetsModalOpen} onOpenChange={setFinancialAssetsModalOpen} onEditClient={handleEditClient} />
     </div>
   );
 }

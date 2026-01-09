@@ -6,25 +6,25 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
+    --background: 210 20% 98%;
+    --foreground: 220 30% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 220 30% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 220 30% 15%;
 
-    --primary: 217 91% 60%;
+    --primary: 220 60% 25%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 204 94% 94%;
-    --secondary-foreground: 217 91% 40%;
+    --secondary: 220 20% 94%;
+    --secondary-foreground: 220 30% 25%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 10% 45%;
 
-    --accent: 25 95% 53%;
+    --accent: 220 60% 35%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
@@ -36,70 +36,70 @@
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 217 91% 60%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 220 60% 25%;
 
     --radius: 0.75rem;
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 217 91% 60%;
+    --sidebar-foreground: 220 30% 15%;
+    --sidebar-primary: 220 60% 25%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 204 94% 94%;
-    --sidebar-accent-foreground: 217 91% 40%;
-    --sidebar-border: 214 32% 91%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-accent: 220 20% 94%;
+    --sidebar-accent-foreground: 220 30% 25%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 220 60% 25%;
 
-    /* Custom CRM tokens */
-    --kanban-bg: 210 40% 96%;
+    /* Custom CRM tokens - BTG Pactual inspired */
+    --kanban-bg: 220 14% 96%;
     --kanban-column: 0 0% 100%;
     --kanban-card: 0 0% 100%;
-    --kanban-card-hover: 210 40% 98%;
+    --kanban-card-hover: 220 14% 98%;
     
-    --status-new: 217 91% 60%;
+    --status-new: 220 60% 25%;
     --status-attending: 38 92% 50%;
     --status-meeting: 280 84% 60%;
     --status-conclusion: 142 76% 36%;
     
     --renewal-active: 142 76% 36%;
     --renewal-potential: 38 92% 50%;
-    --renewal-none: 215 16% 70%;
+    --renewal-none: 220 10% 70%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(217 91% 50%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(25 95% 53%) 0%, hsl(25 95% 45%) 100%);
-    --gradient-header: linear-gradient(135deg, hsl(217 91% 55%) 0%, hsl(217 91% 45%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(220 60% 25%) 0%, hsl(220 60% 18%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(220 60% 35%) 0%, hsl(220 60% 28%) 100%);
+    --gradient-header: linear-gradient(135deg, hsl(220 60% 22%) 0%, hsl(220 60% 15%) 100%);
     
-    --shadow-sm: 0 1px 2px 0 hsl(222 47% 11% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(222 47% 11% / 0.1), 0 2px 4px -2px hsl(222 47% 11% / 0.1);
-    --shadow-lg: 0 10px 15px -3px hsl(222 47% 11% / 0.1), 0 4px 6px -4px hsl(222 47% 11% / 0.1);
-    --shadow-card: 0 1px 3px 0 hsl(222 47% 11% / 0.1), 0 1px 2px -1px hsl(222 47% 11% / 0.1);
+    --shadow-sm: 0 1px 2px 0 hsl(220 30% 15% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(220 30% 15% / 0.1), 0 2px 4px -2px hsl(220 30% 15% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(220 30% 15% / 0.1), 0 4px 6px -4px hsl(220 30% 15% / 0.1);
+    --shadow-card: 0 1px 3px 0 hsl(220 30% 15% / 0.1), 0 1px 2px -1px hsl(220 30% 15% / 0.1);
   }
 
   .dark {
-    --background: 222 47% 8%;
-    --foreground: 210 40% 98%;
+    --background: 220 30% 8%;
+    --foreground: 210 20% 98%;
 
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
+    --card: 220 30% 11%;
+    --card-foreground: 210 20% 98%;
 
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 220 30% 11%;
+    --popover-foreground: 210 20% 98%;
 
-    --primary: 217 91% 60%;
+    --primary: 220 60% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 220 25% 17%;
+    --secondary-foreground: 210 20% 98%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 220 25% 17%;
+    --muted-foreground: 220 15% 65%;
 
-    --accent: 25 95% 53%;
+    --accent: 220 60% 45%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 210 20% 98%;
 
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
@@ -107,14 +107,14 @@
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 217 91% 60%;
+    --border: 220 25% 17%;
+    --input: 220 25% 17%;
+    --ring: 220 60% 50%;
 
-    --kanban-bg: 222 47% 6%;
-    --kanban-column: 222 47% 11%;
-    --kanban-card: 222 47% 14%;
-    --kanban-card-hover: 222 47% 17%;
+    --kanban-bg: 220 30% 6%;
+    --kanban-column: 220 30% 11%;
+    --kanban-card: 220 30% 14%;
+    --kanban-card-hover: 220 30% 17%;
   }
 }
 
