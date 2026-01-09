@@ -29,8 +29,8 @@ interface KanbanCardProps {
   onDragStart: (e: React.DragEvent) => void;
 }
 
-// Filter out "Novo cliente" from Kanban stages
-const KANBAN_STAGES = FUNNEL_STAGES.filter(stage => stage !== 'Novo cliente');
+// All funnel stages are valid for Kanban (Novo cliente was removed from the type)
+const KANBAN_STAGES = FUNNEL_STAGES;
 
 function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
   const { toggleTask, addTask, deleteClient, deleteTask } = useClients();

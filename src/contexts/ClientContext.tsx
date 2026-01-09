@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { Client, Task, FunnelStage } from '@/types/client';
+import { Client, Task, FunnelStage, ClientFile } from '@/types/client';
 
 interface ClientContextType {
   clients: Client[];
@@ -10,6 +10,7 @@ interface ClientContextType {
   addTask: (clientId: string, description: string) => void;
   toggleTask: (clientId: string, taskId: string) => void;
   deleteTask: (clientId: string, taskId: string) => void;
+  updateClientFiles: (clientId: string, files: ClientFile[]) => void;
 }
 
 const ClientContext = createContext<ClientContextType | undefined>(undefined);
@@ -50,6 +51,9 @@ const sampleClients: Client[] = [
     residence: 'Mora no Brasil',
     renewalStatus: 'Potencial Renovação',
     renewalDate: new Date('2025-01-10'),
+    married: true,
+    partner: { name: 'Ana Silva', age: 33, profession: 'Arquiteta' },
+    files: [],
     createdAt: new Date('2024-01-15'),
     updatedAt: new Date(),
   },
@@ -84,6 +88,9 @@ const sampleClients: Client[] = [
     residence: 'Mora no Brasil',
     renewalStatus: 'Renovação',
     renewalDate: null,
+    married: false,
+    partner: null,
+    files: [],
     createdAt: new Date('2024-03-01'),
     updatedAt: new Date(),
   },
@@ -116,6 +123,9 @@ const sampleClients: Client[] = [
     residence: 'Mora no Brasil',
     renewalStatus: 'Não aplicável',
     renewalDate: null,
+    married: false,
+    partner: null,
+    files: [],
     createdAt: new Date('2024-06-10'),
     updatedAt: new Date(),
   },
@@ -151,6 +161,9 @@ const sampleClients: Client[] = [
     residence: 'Mora no exterior',
     renewalStatus: 'Renovação',
     renewalDate: null,
+    married: true,
+    partner: { name: 'Roberto Costa', age: 58, profession: 'Empresário' },
+    files: [],
     createdAt: new Date('2023-12-01'),
     updatedAt: new Date(),
   },
@@ -185,13 +198,26 @@ const sampleClients: Client[] = [
     residence: 'Mora no Brasil',
     renewalStatus: 'Potencial Renovação',
     renewalDate: new Date('2025-02-01'),
+    married: false,
+    partner: null,
+    files: [],
     createdAt: new Date('2024-08-15'),
     updatedAt: new Date(),
   },
 ];
 
+// Migrate any "Novo cliente" to "Em atendimento"
+const migrateClients = (clients: Client[]): Client[] => {
+  return clients.map(client => {
+    if ((client.funnelStage as string) === 'Novo cliente') {
+      return { ...client, funnelStage: 'Em atendimento' as FunnelStage };
+    }
+    return client;
+  });
+};
+
 export function ClientProvider({ children }: { children: ReactNode }) {
-  const [clients, setClients] = useState<Client[]>(sampleClients);
+  const [clients, setClients] = useState<Client[]>(() => migrateClients(sampleClients));
 
   const addClient = useCallback((clientData: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>) => {
     const newClient: Client = {
@@ -273,6 +299,16 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const updateClientFiles = useCallback((clientId: string, files: ClientFile[]) => {
+    setClients(prev =>
+      prev.map(client =>
+        client.id === clientId
+          ? { ...client, files, updatedAt: new Date() }
+          : client
+      )
+    );
+  }, []);
+
   return (
     <ClientContext.Provider
       value={{
@@ -284,6 +320,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
         addTask,
         toggleTask,
         deleteTask,
+        updateClientFiles,
       }}
     >
       {children}

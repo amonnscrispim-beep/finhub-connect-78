@@ -1,5 +1,4 @@
 export type FunnelStage =
-  | 'Novo cliente'
   | 'Em atendimento'
   | '1ª Reunião agendada'
   | '2ª Reunião agendada'
@@ -19,11 +18,29 @@ export type Residence = 'Mora no Brasil' | 'Mora no exterior' | '';
 
 export type RenewalStatus = 'Renovação' | 'Potencial Renovação' | 'Não aplicável' | '';
 
+export type FileFolder = 'documentos' | 'planejamento' | 'desempenho';
+
+export interface ClientFile {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  folder: FileFolder;
+  uploadedAt: Date;
+  dataUrl: string; // Base64 for localStorage persistence
+}
+
 export interface Task {
   id: string;
   description: string;
   completed: boolean;
   createdAt: Date;
+}
+
+export interface PartnerInfo {
+  name: string;
+  age: number | null;
+  profession: string;
 }
 
 export interface Client {
@@ -55,12 +72,14 @@ export interface Client {
   residence: Residence;
   renewalStatus: RenewalStatus;
   renewalDate: Date | null;
+  married: boolean;
+  partner: PartnerInfo | null;
+  files: ClientFile[];
   createdAt: Date;
   updatedAt: Date;
 }
 
 export const FUNNEL_STAGES: FunnelStage[] = [
-  'Novo cliente',
   'Em atendimento',
   '1ª Reunião agendada',
   '2ª Reunião agendada',
@@ -87,6 +106,12 @@ export const RENEWAL_STATUS_OPTIONS: RenewalStatus[] = [
   'Renovação',
   'Potencial Renovação',
   'Não aplicável',
+];
+
+export const FILE_FOLDERS: { value: FileFolder; label: string }[] = [
+  { value: 'documentos', label: 'Documentos' },
+  { value: 'planejamento', label: 'Planejamento' },
+  { value: 'desempenho', label: 'Desempenho' },
 ];
 
 export const BRAZILIAN_STATES = [

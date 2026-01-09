@@ -126,7 +126,6 @@ export function TableView({ onEditClient }: TableViewProps) {
   };
 
   const getStageBadgeClass = (stage: string) => {
-    if (stage === 'Novo cliente') return 'bg-primary/10 text-primary border-primary/20';
     if (stage === 'Em atendimento') return 'bg-warning/10 text-warning border-warning/20';
     if (stage === 'Conclusão') return 'bg-success/10 text-success border-success/20';
     return 'bg-secondary text-secondary-foreground border-secondary';
