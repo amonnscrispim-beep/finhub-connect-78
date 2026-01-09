@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, Heart } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Client, FUNNEL_STAGES, INVESTOR_PROFILES, BRAZILIAN_STATES, RESIDENCE_OPTIONS, RENEWAL_STATUS_OPTIONS } from '@/types/client';
+import { Client, FUNNEL_STAGES, INVESTOR_PROFILES, BRAZILIAN_STATES, RESIDENCE_OPTIONS, RENEWAL_STATUS_OPTIONS, ClientFile, PartnerInfo } from '@/types/client';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
@@ -15,6 +15,8 @@ import { ptBR } from 'date-fns/locale';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useClients } from '@/contexts/ClientContext';
+import { ClientFiles } from './ClientFiles';
+import { Separator } from '@/components/ui/separator';
 
 import type { InvestorProfile, FunnelStage, Residence, RenewalStatus } from '@/types/client';
 
@@ -51,6 +53,11 @@ interface FormData {
   residence: Residence;
   renewalStatus: RenewalStatus;
   renewalDate: Date | null;
+  married: boolean;
+  partnerName: string;
+  partnerAge: string;
+  partnerProfession: string;
+  files: ClientFile[];
 }
 
 const defaultFormData: FormData = {
@@ -80,6 +87,11 @@ const defaultFormData: FormData = {
   residence: '',
   renewalStatus: '',
   renewalDate: null,
+  married: false,
+  partnerName: '',
+  partnerAge: '',
+  partnerProfession: '',
+  files: [],
 };
 
 export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
@@ -115,6 +127,11 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         residence: client.residence,
         renewalStatus: client.renewalStatus,
         renewalDate: client.renewalDate,
+        married: client.married,
+        partnerName: client.partner?.name || '',
+        partnerAge: client.partner?.age?.toString() || '',
+        partnerProfession: client.partner?.profession || '',
+        files: client.files || [],
       });
     } else {
       setFormData(defaultFormData);
@@ -124,6 +141,19 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Build partner info - keep data saved but hidden if married is false
+    let partner: PartnerInfo | null = null;
+    if (formData.married && (formData.partnerName || formData.partnerAge || formData.partnerProfession)) {
+      partner = {
+        name: formData.partnerName,
+        age: formData.partnerAge ? parseInt(formData.partnerAge) : null,
+        profession: formData.partnerProfession,
+      };
+    } else if (!formData.married && client?.partner) {
+      // Keep partner data saved but hidden
+      partner = client.partner;
+    }
+
     const clientData = {
       contractStart: new Date(formData.contractStart),
       contractEnd: new Date(formData.contractEnd),
@@ -152,6 +182,9 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       residence: formData.residence,
       renewalStatus: formData.renewalStatus,
       renewalDate: formData.renewalDate,
+      married: formData.married,
+      partner: formData.married ? partner : (client?.partner || null),
+      files: formData.files,
     };
 
     if (client) {
@@ -165,6 +198,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
 
   const handleChange = (field: string, value: string | boolean | Date | null) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleFilesChange = (files: ClientFile[]) => {
+    setFormData(prev => ({ ...prev, files }));
   };
 
   return (
@@ -306,6 +343,68 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 </Select>
               </div>
             </div>
+
+            {/* Married Section */}
+            <Separator />
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Heart className="w-5 h-5 text-primary" />
+                <Label className="text-base font-semibold">Estado Civil</Label>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="married">Casado(a)?</Label>
+                <Select value={formData.married ? 'sim' : 'não'} onValueChange={(value) => handleChange('married', value === 'sim')}>
+                  <SelectTrigger className="crm-input w-[200px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sim">Sim</SelectItem>
+                    <SelectItem value="não">Não</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {formData.married && (
+                <div className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
+                  <h4 className="font-medium text-foreground">Dados do Parceiro(a)</h4>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="partnerName">Nome do Parceiro(a)</Label>
+                      <Input
+                        id="partnerName"
+                        value={formData.partnerName}
+                        onChange={(e) => handleChange('partnerName', e.target.value)}
+                        placeholder="Nome completo"
+                        className="crm-input"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="partnerAge">Idade</Label>
+                      <Input
+                        id="partnerAge"
+                        type="number"
+                        value={formData.partnerAge}
+                        onChange={(e) => handleChange('partnerAge', e.target.value)}
+                        placeholder="Ex: 35"
+                        className="crm-input"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="partnerProfession">Profissão</Label>
+                      <Input
+                        id="partnerProfession"
+                        value={formData.partnerProfession}
+                        onChange={(e) => handleChange('partnerProfession', e.target.value)}
+                        placeholder="Ex: Advogada"
+                        className="crm-input"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            <Separator />
 
             {/* Financial Info */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -534,6 +633,13 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 className="crm-input min-h-[80px]"
               />
             </div>
+
+            {/* Files Section */}
+            <Separator />
+            <ClientFiles 
+              files={formData.files} 
+              onFilesChange={handleFilesChange}
+            />
 
             {/* Actions */}
             <div className="flex justify-end gap-3 pt-4 border-t">
