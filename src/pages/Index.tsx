@@ -12,6 +12,7 @@ import { RenewalsModal } from '@/components/crm/RenewalsModal';
 import { RenewalAlerts } from '@/components/crm/RenewalAlerts';
 import { MeetingAlerts } from '@/components/crm/MeetingAlerts';
 import { InactivityAlerts } from '@/components/crm/InactivityAlerts';
+import { BirthdayAlerts } from '@/components/crm/BirthdayAlerts';
 import { FinancialAssetsModal } from '@/components/crm/FinancialAssetsModal';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -117,6 +118,7 @@ function CRMDashboard() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Alerts */}
+        <BirthdayAlerts onEditClient={handleEditClient} />
         <RenewalAlerts onEditClient={handleEditClient} />
         <MeetingAlerts onEditClient={handleEditClient} />
         <InactivityAlerts onEditClient={handleEditClient} />

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { Client, Task, FunnelStage, ClientFile, ChildInfo, ScheduledMeeting } from '@/types/client';
+import { Client, Task, FunnelStage, ClientFile, ChildInfo, ScheduledMeeting, DebtInfo } from '@/types/client';
 
 interface ClientContextType {
   clients: Client[];
@@ -30,6 +30,12 @@ const defaultClientFields = {
   meetingNotes: {},
   lastActivityAt: new Date(),
   scheduledMeeting: null,
+  birthDate: null,
+  organizedFinances: '' as const,
+  debts: [] as DebtInfo[],
+  consultingResult: null,
+  consultingFinished: false,
+  isRenewedClient: false,
 };
 
 // Sample data for demonstration
@@ -40,6 +46,7 @@ const sampleClients: Client[] = [
     contractEnd: new Date('2025-01-15'),
     name: 'João Silva',
     age: 35,
+    birthDate: new Date('1989-01-10'), // Birthday today for demo
     email: 'joao.silva@email.com',
     phone: '(11) 99999-1234',
     profession: 'Engenheiro',
@@ -77,6 +84,7 @@ const sampleClients: Client[] = [
     portfolioDistribution: { fixedIncome: 40, stocks: 30, realEstate: 20, international: 10 },
     contractedMeetings: 3,
     meetingNotes: { 1: 'Reunião inicial realizada com sucesso.' },
+    isRenewedClient: true, // Premium indicator
   },
   {
     id: generateId(),
@@ -84,6 +92,7 @@ const sampleClients: Client[] = [
     contractEnd: new Date('2025-03-01'),
     name: 'Maria Santos',
     age: 42,
+    birthDate: null,
     email: 'maria.santos@email.com',
     phone: '(21) 98888-5678',
     profession: 'Médica',
@@ -123,6 +132,7 @@ const sampleClients: Client[] = [
     contractEnd: new Date('2025-06-10'),
     name: 'Pedro Oliveira',
     age: 28,
+    birthDate: null,
     email: 'pedro.oliveira@email.com',
     phone: '(31) 97777-9012',
     profession: 'Desenvolvedor',
@@ -160,6 +170,7 @@ const sampleClients: Client[] = [
     contractEnd: new Date('2024-12-01'),
     name: 'Ana Costa',
     age: 55,
+    birthDate: null,
     email: 'ana.costa@email.com',
     phone: '(41) 96666-3456',
     profession: 'Empresária',
@@ -213,6 +224,7 @@ const sampleClients: Client[] = [
     contractEnd: new Date('2025-08-15'),
     name: 'Carlos Ferreira',
     age: 38,
+    birthDate: null,
     email: 'carlos.ferreira@email.com',
     phone: '(51) 95555-7890',
     profession: 'Advogado',
@@ -245,9 +257,48 @@ const sampleClients: Client[] = [
     updatedAt: new Date(),
     ...defaultClientFields,
   },
+  // One finalized client example
+  {
+    id: generateId(),
+    contractStart: new Date('2022-01-01'),
+    contractEnd: new Date('2023-01-01'),
+    name: 'Roberto Lima (Finalizado)',
+    age: 50,
+    birthDate: null,
+    email: 'roberto.lima@email.com',
+    phone: '(11) 91111-2222',
+    profession: 'Empresário',
+    objective: 'Aposentadoria',
+    investmentTerm: '10 anos',
+    financialAssets: 1500000,
+    materialAssets: 3000000,
+    emergencyReserve: 200000,
+    investorProfile: 'Moderado',
+    monthlyRevenue: 50000,
+    monthlyContribution: 10000,
+    workDone: 'Consultoria completa finalizada',
+    tasks: [],
+    observations: 'Consultoria finalizada com sucesso',
+    city: 'São Paulo',
+    state: 'SP',
+    funnelStage: 'Conclusão',
+    renewed: false,
+    renewalPotential: false,
+    pendingSchedule: false,
+    residence: 'Mora no Brasil',
+    renewalStatus: 'Não aplicável',
+    renewalDate: null,
+    married: true,
+    partner: { name: 'Sandra Lima', age: 48, profession: 'Médica' },
+    files: [],
+    createdAt: new Date('2022-01-01'),
+    updatedAt: new Date(),
+    ...defaultClientFields,
+    consultingFinished: true, // Finalized client
+  },
 ];
 
-// Migrate any "Novo cliente" to "Em atendimento"
+// Migrate any "Novo cliente" to "Em atendimento" and ensure new fields exist
 const migrateClients = (clients: Client[]): Client[] => {
   return clients.map(client => {
     let updatedClient = { ...client };
@@ -267,6 +318,14 @@ const migrateClients = (clients: Client[]): Client[] => {
     if (!updatedClient.meetingNotes) updatedClient.meetingNotes = {};
     if (!updatedClient.lastActivityAt) updatedClient.lastActivityAt = updatedClient.updatedAt;
     if (updatedClient.scheduledMeeting === undefined) updatedClient.scheduledMeeting = null;
+    
+    // New fields
+    if (updatedClient.birthDate === undefined) updatedClient.birthDate = null;
+    if (!updatedClient.organizedFinances) updatedClient.organizedFinances = '';
+    if (!updatedClient.debts) updatedClient.debts = [];
+    if (updatedClient.consultingResult === undefined) updatedClient.consultingResult = null;
+    if (updatedClient.consultingFinished === undefined) updatedClient.consultingFinished = false;
+    if (updatedClient.isRenewedClient === undefined) updatedClient.isRenewedClient = false;
     
     return updatedClient;
   });

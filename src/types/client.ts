@@ -26,6 +26,34 @@ export type PrivatePensionStatus = 'Sim' | 'Não' | 'Não precisa' | '';
 
 export type PrivatePensionType = 'PGBL' | 'VGBL' | '';
 
+export type OrganizedFinancesStatus = 'Sim' | 'Não' | 'Não precisa' | '';
+
+export type DebtType = 'emprestimo' | 'financiamento' | 'consorcio';
+
+export type AmortizationPeriodUnit = 'meses' | 'anos';
+
+export type AmortizationSystem = 'PRICE' | 'SAC' | '';
+
+export type AmortizationStrategy = 'Redução de prazo' | 'Redução de parcela' | '';
+
+export interface DebtInfo {
+  id: string;
+  type: DebtType;
+  cetPercentage: number | null; // CET % ao ano
+  term: number | null;
+  termUnit: AmortizationPeriodUnit;
+  amortizationSystem: AmortizationSystem;
+  // Payoff planning (manual)
+  payoffStrategy: AmortizationStrategy;
+  payoffYears: number | null;
+  payoffSavings: number | null; // R$
+}
+
+export interface ConsultingResult {
+  initialPatrimony: number | null;
+  finalPatrimony: number | null;
+}
+
 export interface ClientFile {
   id: string;
   name: string;
@@ -82,6 +110,7 @@ export interface Client {
   contractEnd: Date;
   name: string;
   age: number;
+  birthDate: Date | null; // Birthday field
   email: string;
   phone: string;
   profession: string;
@@ -118,6 +147,12 @@ export interface Client {
   lastActivityAt: Date;
   scheduledMeeting: ScheduledMeeting | null;
   files: ClientFile[];
+  // New fields
+  organizedFinances: OrganizedFinancesStatus;
+  debts: DebtInfo[];
+  consultingResult: ConsultingResult | null;
+  consultingFinished: boolean; // Logical deactivation
+  isRenewedClient: boolean; // Premium indicator
   createdAt: Date;
   updatedAt: Date;
 }
@@ -168,6 +203,28 @@ export const PRIVATE_PENSION_STATUS_OPTIONS: PrivatePensionStatus[] = [
 export const PRIVATE_PENSION_TYPE_OPTIONS: PrivatePensionType[] = [
   'PGBL',
   'VGBL',
+];
+
+export const ORGANIZED_FINANCES_OPTIONS: OrganizedFinancesStatus[] = [
+  'Sim',
+  'Não',
+  'Não precisa',
+];
+
+export const DEBT_TYPE_OPTIONS: { value: DebtType; label: string }[] = [
+  { value: 'emprestimo', label: 'Empréstimo' },
+  { value: 'financiamento', label: 'Financiamento' },
+  { value: 'consorcio', label: 'Consórcio' },
+];
+
+export const AMORTIZATION_SYSTEM_OPTIONS: AmortizationSystem[] = [
+  'PRICE',
+  'SAC',
+];
+
+export const AMORTIZATION_STRATEGY_OPTIONS: AmortizationStrategy[] = [
+  'Redução de prazo',
+  'Redução de parcela',
 ];
 
 export const BRAZILIAN_STATES = [
