@@ -12,7 +12,8 @@ import {
   Circle,
   AlertTriangle,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Award
 } from 'lucide-react';
 import { useClients } from '@/contexts/ClientContext';
 import { Client, FunnelStage, FUNNEL_STAGES } from '@/types/client';
@@ -67,7 +68,15 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
         <div className="flex items-center gap-2">
           <GripVertical className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-grab" />
           <div>
-            <h4 className="font-medium text-foreground leading-tight">{client.name}</h4>
+            <div className="flex items-center gap-1.5">
+              <h4 className="font-medium text-foreground leading-tight">{client.name}</h4>
+              {/* Premium Renewed Client Badge */}
+              {client.isRenewedClient && (
+                <div className="p-0.5 rounded-full bg-amber-500/20" title="Cliente Renovado">
+                  <Award className="w-3 h-3 text-amber-500" />
+                </div>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">{client.profession}</p>
           </div>
         </div>
@@ -243,7 +252,8 @@ export function KanbanView({ onEditClient }: KanbanViewProps) {
   };
 
   const getClientsByStage = (stage: FunnelStage) => {
-    return clients.filter(client => client.funnelStage === stage);
+    // Only show active clients (not finalized) in Kanban
+    return clients.filter(client => client.funnelStage === stage && !client.consultingFinished);
   };
 
   const handleDragStart = (e: React.DragEvent, client: Client) => {

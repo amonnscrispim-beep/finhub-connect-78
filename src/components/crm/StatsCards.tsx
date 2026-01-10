@@ -12,20 +12,23 @@ interface StatsCardsProps {
 export function StatsCards({ onPendingScheduleClick, onTotalClientsClick, onRenewalsClick, onFinancialAssetsClick }: StatsCardsProps) {
   const { clients } = useClients();
 
-  const totalClients = clients.length;
-  const pendingScheduleCount = clients.filter(c => c.pendingSchedule).length;
+  // Only count active clients (not finalized)
+  const activeClients = clients.filter(c => !c.consultingFinished);
+
+  const totalClients = activeClients.length;
+  const pendingScheduleCount = activeClients.filter(c => c.pendingSchedule).length;
   
-  // Unified renewals count
-  const renewedCount = clients.filter(
+  // Unified renewals count (only active clients)
+  const renewedCount = activeClients.filter(
     c => c.renewalStatus === 'Renovação' || c.renewed
   ).length;
-  const renewalPotentialCount = clients.filter(
+  const renewalPotentialCount = activeClients.filter(
     c => (c.renewalStatus === 'Potencial Renovação' || c.renewalPotential) && !c.renewed && c.renewalStatus !== 'Renovação'
   ).length;
   const totalRenewals = renewedCount + renewalPotentialCount;
 
-  // Total financial assets
-  const totalFinancialAssets = clients.reduce((sum, client) => sum + client.financialAssets, 0);
+  // Total financial assets (only active clients)
+  const totalFinancialAssets = activeClients.reduce((sum, client) => sum + client.financialAssets, 0);
   const formatCurrency = (value: number) => {
     if (value >= 1000000) {
       return `R$ ${(value / 1000000).toFixed(1)}M`;
@@ -35,9 +38,9 @@ export function StatsCards({ onPendingScheduleClick, onTotalClientsClick, onRene
     return `R$ ${value}`;
   };
 
-  // Inactivity count (30+ days)
+  // Inactivity count (30+ days) - only active clients
   const today = new Date();
-  const inactiveCount = clients.filter(client => {
+  const inactiveCount = activeClients.filter(client => {
     const lastActivity = client.lastActivityAt ? new Date(client.lastActivityAt) : client.updatedAt;
     return differenceInDays(today, lastActivity) >= 30;
   }).length;

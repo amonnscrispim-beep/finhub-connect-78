@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Heart, Users, PieChart, Landmark, Target, Calendar } from 'lucide-react';
+import { X, Heart, Users, PieChart, Landmark, Target, Calendar, Cake, CreditCard, TrendingUp, Award, CheckCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   Client, 
   FUNNEL_STAGES, 
@@ -23,6 +24,13 @@ import {
   CONTRACTED_MEETINGS_OPTIONS,
   PRIVATE_PENSION_STATUS_OPTIONS,
   PRIVATE_PENSION_TYPE_OPTIONS,
+  ORGANIZED_FINANCES_OPTIONS,
+  DEBT_TYPE_OPTIONS,
+  AMORTIZATION_SYSTEM_OPTIONS,
+  AMORTIZATION_STRATEGY_OPTIONS,
+  DebtInfo,
+  DebtType,
+  ConsultingResult,
   ScheduledMeeting,
 } from '@/types/client';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
@@ -36,7 +44,7 @@ import { ClientFiles } from './ClientFiles';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 
-import type { InvestorProfile, FunnelStage, Residence, RenewalStatus, ContractedMeetings, PrivatePensionStatus, PrivatePensionType } from '@/types/client';
+import type { InvestorProfile, FunnelStage, Residence, RenewalStatus, ContractedMeetings, PrivatePensionStatus, PrivatePensionType, OrganizedFinancesStatus, AmortizationSystem, AmortizationStrategy, AmortizationPeriodUnit } from '@/types/client';
 
 interface ClientModalProps {
   open: boolean;
@@ -49,6 +57,7 @@ interface FormData {
   contractEnd: string;
   name: string;
   age: string;
+  birthDate: Date | null;
   email: string;
   phone: string;
   profession: string;
@@ -88,6 +97,14 @@ interface FormData {
   contractedMeetings: ContractedMeetings | null;
   meetingNotes: MeetingNotes;
   files: ClientFile[];
+  // New fields
+  organizedFinances: OrganizedFinancesStatus;
+  selectedDebtTypes: DebtType[];
+  debts: DebtInfo[];
+  consultingInitialPatrimony: string;
+  consultingFinalPatrimony: string;
+  consultingFinished: boolean;
+  isRenewedClient: boolean;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
@@ -97,6 +114,7 @@ const defaultFormData: FormData = {
   contractEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
   name: '',
   age: '',
+  birthDate: null,
   email: '',
   phone: '',
   profession: '',
@@ -136,6 +154,13 @@ const defaultFormData: FormData = {
   contractedMeetings: null,
   meetingNotes: {},
   files: [],
+  organizedFinances: '',
+  selectedDebtTypes: [],
+  debts: [],
+  consultingInitialPatrimony: '',
+  consultingFinalPatrimony: '',
+  consultingFinished: false,
+  isRenewedClient: false,
 };
 
 export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
@@ -149,6 +174,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         contractEnd: client.contractEnd.toISOString().split('T')[0],
         name: client.name,
         age: client.age.toString(),
+        birthDate: client.birthDate ? new Date(client.birthDate) : null,
         email: client.email,
         phone: client.phone,
         profession: client.profession,
@@ -188,6 +214,13 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         contractedMeetings: client.contractedMeetings || null,
         meetingNotes: client.meetingNotes || {},
         files: client.files || [],
+        organizedFinances: client.organizedFinances || '',
+        selectedDebtTypes: client.debts?.map(d => d.type) || [],
+        debts: client.debts || [],
+        consultingInitialPatrimony: client.consultingResult?.initialPatrimony?.toString() || '',
+        consultingFinalPatrimony: client.consultingResult?.finalPatrimony?.toString() || '',
+        consultingFinished: client.consultingFinished || false,
+        isRenewedClient: client.isRenewedClient || false,
       });
     } else {
       setFormData(defaultFormData);
@@ -233,11 +266,21 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       };
     }
 
+    // Build consulting result
+    let consultingResult: ConsultingResult | null = null;
+    if (formData.consultingInitialPatrimony || formData.consultingFinalPatrimony) {
+      consultingResult = {
+        initialPatrimony: formData.consultingInitialPatrimony ? parseFloat(formData.consultingInitialPatrimony) : null,
+        finalPatrimony: formData.consultingFinalPatrimony ? parseFloat(formData.consultingFinalPatrimony) : null,
+      };
+    }
+
     const clientData = {
       contractStart: new Date(formData.contractStart),
       contractEnd: new Date(formData.contractEnd),
       name: formData.name,
       age: parseInt(formData.age) || 0,
+      birthDate: formData.birthDate,
       email: formData.email,
       phone: formData.phone,
       profession: formData.profession,
@@ -274,6 +317,11 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       lastActivityAt: client?.lastActivityAt || new Date(),
       scheduledMeeting: client?.scheduledMeeting || null,
       files: formData.files,
+      organizedFinances: formData.organizedFinances,
+      debts: formData.debts,
+      consultingResult: consultingResult,
+      consultingFinished: formData.consultingFinished,
+      isRenewedClient: formData.isRenewedClient,
     };
 
     if (client) {
@@ -325,6 +373,48 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     }));
   };
 
+  // Debt handling
+  const handleDebtTypeToggle = (debtType: DebtType, checked: boolean) => {
+    if (checked) {
+      // Add new debt
+      const newDebt: DebtInfo = {
+        id: generateId(),
+        type: debtType,
+        cetPercentage: null,
+        term: null,
+        termUnit: 'meses',
+        amortizationSystem: '',
+        payoffStrategy: '',
+        payoffYears: null,
+        payoffSavings: null,
+      };
+      setFormData(prev => ({
+        ...prev,
+        selectedDebtTypes: [...prev.selectedDebtTypes, debtType],
+        debts: [...prev.debts, newDebt],
+      }));
+    } else {
+      // Remove debt (keep data hidden)
+      setFormData(prev => ({
+        ...prev,
+        selectedDebtTypes: prev.selectedDebtTypes.filter(t => t !== debtType),
+      }));
+    }
+  };
+
+  const handleDebtChange = (debtType: DebtType, field: keyof DebtInfo, value: string | number | null) => {
+    setFormData(prev => ({
+      ...prev,
+      debts: prev.debts.map(d =>
+        d.type === debtType ? { ...d, [field]: value } : d
+      ),
+    }));
+  };
+
+  const getDebtByType = (type: DebtType): DebtInfo | undefined => {
+    return formData.debts.find(d => d.type === type);
+  };
+
   // Calculate portfolio total
   const portfolioTotal = 
     (parseFloat(formData.portfolioFixedIncome) || 0) +
@@ -370,8 +460,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
             </div>
 
             {/* Personal Info */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="space-y-2 col-span-2 md:col-span-1">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="space-y-2 col-span-2">
                 <Label htmlFor="name">Nome *</Label>
                 <Input
                   id="name"
@@ -403,6 +493,41 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   className="crm-input"
                 />
               </div>
+            </div>
+
+            {/* Birthday Section */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Cake className="w-4 h-4 text-pink-500" />
+                <Label htmlFor="birthDate">Data de Nascimento (Aniversário)</Label>
+              </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[280px] justify-start text-left font-normal crm-input",
+                      !formData.birthDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.birthDate ? (
+                      format(new Date(formData.birthDate), "dd/MM/yyyy", { locale: ptBR })
+                    ) : (
+                      <span>Selecione a data de nascimento</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={formData.birthDate ? new Date(formData.birthDate) : undefined}
+                    onSelect={(date) => handleChange('birthDate', date || null)}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Contact */}
@@ -688,6 +813,160 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               </div>
             </div>
 
+            {/* Organized Finances */}
+            <div className="space-y-2">
+              <Label htmlFor="organizedFinances">Finanças pessoais organizadas?</Label>
+              <Select value={formData.organizedFinances} onValueChange={(value) => handleChange('organizedFinances', value)}>
+                <SelectTrigger className="crm-input w-[200px]">
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {ORGANIZED_FINANCES_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Debts Section */}
+            <Separator />
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-primary" />
+                <Label className="text-base font-semibold">Dívidas</Label>
+              </div>
+              
+              <div className="flex flex-wrap gap-4">
+                {DEBT_TYPE_OPTIONS.map((debtType) => (
+                  <div key={debtType.value} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`debt-${debtType.value}`}
+                      checked={formData.selectedDebtTypes.includes(debtType.value)}
+                      onCheckedChange={(checked) => handleDebtTypeToggle(debtType.value, !!checked)}
+                    />
+                    <Label htmlFor={`debt-${debtType.value}`} className="cursor-pointer">
+                      {debtType.label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+
+              {formData.selectedDebtTypes.map((debtType) => {
+                const debt = getDebtByType(debtType);
+                const debtLabel = DEBT_TYPE_OPTIONS.find(d => d.value === debtType)?.label || debtType;
+                if (!debt) return null;
+                
+                return (
+                  <div key={debtType} className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
+                    <h4 className="font-medium text-foreground">{debtLabel}</h4>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="space-y-2">
+                        <Label>CET (% ao ano)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={debt.cetPercentage?.toString() || ''}
+                          onChange={(e) => handleDebtChange(debtType, 'cetPercentage', e.target.value ? parseFloat(e.target.value) : null)}
+                          placeholder="Ex: 12.5"
+                          className="crm-input"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Prazo</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            type="number"
+                            value={debt.term?.toString() || ''}
+                            onChange={(e) => handleDebtChange(debtType, 'term', e.target.value ? parseInt(e.target.value) : null)}
+                            placeholder="Ex: 24"
+                            className="crm-input flex-1"
+                          />
+                          <Select 
+                            value={debt.termUnit} 
+                            onValueChange={(value) => handleDebtChange(debtType, 'termUnit', value)}
+                          >
+                            <SelectTrigger className="crm-input w-[100px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="meses">meses</SelectItem>
+                              <SelectItem value="anos">anos</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Sistema de Amortização</Label>
+                        <Select 
+                          value={debt.amortizationSystem} 
+                          onValueChange={(value) => handleDebtChange(debtType, 'amortizationSystem', value)}
+                        >
+                          <SelectTrigger className="crm-input">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {AMORTIZATION_SYSTEM_OPTIONS.map((system) => (
+                              <SelectItem key={system} value={system}>
+                                {system}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Payoff Planning */}
+                    <div className="pt-2 border-t border-border/50">
+                      <h5 className="text-sm font-medium text-muted-foreground mb-3">Planejamento de Quitação (Consultoria)</h5>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label>Estratégia de amortização</Label>
+                          <Select 
+                            value={debt.payoffStrategy || ''} 
+                            onValueChange={(value) => handleDebtChange(debtType, 'payoffStrategy', value)}
+                          >
+                            <SelectTrigger className="crm-input">
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {AMORTIZATION_STRATEGY_OPTIONS.map((strategy) => (
+                                <SelectItem key={strategy} value={strategy}>
+                                  {strategy}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Em quantos anos a dívida termina</Label>
+                          <Input
+                            type="number"
+                            value={debt.payoffYears?.toString() || ''}
+                            onChange={(e) => handleDebtChange(debtType, 'payoffYears', e.target.value ? parseInt(e.target.value) : null)}
+                            placeholder="Ex: 3"
+                            className="crm-input"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Quanto o cliente economiza (R$)</Label>
+                          <Input
+                            type="number"
+                            value={debt.payoffSavings?.toString() || ''}
+                            onChange={(e) => handleDebtChange(debtType, 'payoffSavings', e.target.value ? parseFloat(e.target.value) : null)}
+                            placeholder="R$ 0,00"
+                            className="crm-input"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
             {/* Portfolio Distribution Section */}
             <Separator />
             <div className="space-y-4">
@@ -851,6 +1130,40 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               </div>
             </div>
 
+            {/* Consulting Result Section */}
+            <Separator />
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-primary" />
+                <Label className="text-base font-semibold">Resultado da Consultoria</Label>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="consultingInitialPatrimony">Patrimônio no início da consultoria (R$)</Label>
+                  <Input
+                    id="consultingInitialPatrimony"
+                    type="number"
+                    value={formData.consultingInitialPatrimony}
+                    onChange={(e) => handleChange('consultingInitialPatrimony', e.target.value)}
+                    placeholder="R$ 0,00"
+                    className="crm-input"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="consultingFinalPatrimony">Patrimônio ao final do período (R$)</Label>
+                  <Input
+                    id="consultingFinalPatrimony"
+                    type="number"
+                    value={formData.consultingFinalPatrimony}
+                    onChange={(e) => handleChange('consultingFinalPatrimony', e.target.value)}
+                    placeholder="R$ 0,00"
+                    className="crm-input"
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Objectives */}
             <Separator />
             <div className="grid grid-cols-2 gap-4">
@@ -980,6 +1293,55 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               </div>
             </div>
 
+            {/* Client Status Section */}
+            <Separator />
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-primary" />
+                <Label className="text-base font-semibold">Status do Cliente</Label>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="consultingFinished">Consultoria finalizada?</Label>
+                  <Select value={formData.consultingFinished ? 'sim' : 'não'} onValueChange={(value) => handleChange('consultingFinished', value === 'sim')}>
+                    <SelectTrigger className={`crm-input ${formData.consultingFinished ? 'border-muted-foreground bg-muted/50' : ''}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sim">Sim</SelectItem>
+                      <SelectItem value="não">Não</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {formData.consultingFinished && (
+                    <p className="text-xs text-muted-foreground">
+                      Este cliente não será contado no total de clientes ativos
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="isRenewedClient" className="flex items-center gap-2">
+                    <Award className="w-4 h-4 text-amber-500" />
+                    Cliente renovado?
+                  </Label>
+                  <Select value={formData.isRenewedClient ? 'sim' : 'não'} onValueChange={(value) => handleChange('isRenewedClient', value === 'sim')}>
+                    <SelectTrigger className={`crm-input ${formData.isRenewedClient ? 'border-amber-500/50 bg-amber-500/10' : ''}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sim">Sim</SelectItem>
+                      <SelectItem value="não">Não</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {formData.isRenewedClient && (
+                    <p className="text-xs text-amber-600">
+                      Identificado como cliente premium renovado
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* Contracted Meetings Section */}
             <Separator />
             <div className="space-y-4">
@@ -1000,7 +1362,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   <SelectContent>
                     {CONTRACTED_MEETINGS_OPTIONS.map((num) => (
                       <SelectItem key={num} value={num.toString()}>
-                        {num} reunião{num > 1 ? 's' : ''}
+                        {num} {num === 1 ? 'reunião' : 'reuniões'}
                       </SelectItem>
                     ))}
                   </SelectContent>
