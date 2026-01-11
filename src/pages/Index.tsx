@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react';
-import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2 } from 'lucide-react';
+import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp } from 'lucide-react';
 import { ClientProvider, useClients } from '@/contexts/ClientContext';
-import { useAuth } from '@/hooks/useAuth';
 import { Client } from '@/types/client';
 import { CRMHeader } from '@/components/crm/CRMHeader';
 import { StatsCards } from '@/components/crm/StatsCards';
@@ -17,15 +16,13 @@ import { InactivityAlerts } from '@/components/crm/InactivityAlerts';
 import { BirthdayAlerts } from '@/components/crm/BirthdayAlerts';
 import { FinancialAssetsModal } from '@/components/crm/FinancialAssetsModal';
 import { DashboardExecutive } from '@/components/crm/DashboardExecutive';
+import { DashboardMarket } from '@/components/crm/DashboardMarket';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
 
 function CRMDashboard() {
-  const { clients, isLoading } = useClients();
-  const { user, signOut } = useAuth();
+  const { clients } = useClients();
   const [view, setView] = useState<'table' | 'kanban'>('table');
-  const [dashboardTab, setDashboardTab] = useState<'operacional' | 'executivo'>('operacional');
+  const [dashboardTab, setDashboardTab] = useState<'operacional' | 'executivo' | 'mercado'>('operacional');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>();
   const [pendingScheduleModalOpen, setPendingScheduleModalOpen] = useState(false);
@@ -54,11 +51,6 @@ function CRMDashboard() {
   const handleEditClient = (client: Client) => {
     setEditingClient(client);
     setModalOpen(true);
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
-    toast.success('Sessão encerrada');
   };
 
   const handleExportCSV = () => {
@@ -101,18 +93,6 @@ function CRMDashboard() {
     link.click();
   };
 
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Carregando dados...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header with Date/Time and Search */}
@@ -122,19 +102,6 @@ function CRMDashboard() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
       />
-
-      {/* User bar with logout */}
-      <div className="bg-muted/30 border-b border-border">
-        <div className="container mx-auto px-4 py-2 flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
-            Logado como: <span className="font-medium text-foreground">{user?.email}</span>
-          </span>
-          <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground hover:text-foreground">
-            <LogOut className="w-4 h-4 mr-2" />
-            Sair
-          </Button>
-        </div>
-      </div>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 space-y-6">
@@ -154,6 +121,13 @@ function CRMDashboard() {
             >
               <TrendingUp className="w-4 h-4 mr-2" />
               Executivo
+            </TabsTrigger>
+            <TabsTrigger 
+              value="mercado"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Mercado
             </TabsTrigger>
           </TabsList>
 
@@ -209,6 +183,11 @@ function CRMDashboard() {
           {/* DASHBOARD EXECUTIVO - New strategic dashboard */}
           <TabsContent value="executivo" className="animate-fade-in">
             <DashboardExecutive onEditClient={handleEditClient} />
+          </TabsContent>
+
+          {/* DASHBOARD MERCADO - Market information */}
+          <TabsContent value="mercado" className="animate-fade-in">
+            <DashboardMarket />
           </TabsContent>
         </Tabs>
       </main>

@@ -1,153 +1,451 @@
-import React, { createContext, useContext, ReactNode, useMemo, useCallback } from 'react';
-import { Client, Task, FunnelStage, ClientFile, ScheduledMeeting } from '@/types/client';
-import { useSupabaseClients } from '@/hooks/useSupabaseClients';
-import { useSupabaseTasks } from '@/hooks/useSupabaseTasks';
+import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { Client, Task, FunnelStage, ClientFile, ChildInfo, ScheduledMeeting, DebtInfo } from '@/types/client';
 
 interface ClientContextType {
   clients: Client[];
-  isLoading: boolean;
-  addClient: (client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Client | void>;
-  updateClient: (id: string, updates: Partial<Client>) => Promise<Client | void>;
-  deleteClient: (id: string) => Promise<void>;
-  moveClientToStage: (clientId: string, stage: FunnelStage) => Promise<void>;
-  addTask: (clientId: string, description: string) => Promise<void>;
-  toggleTask: (clientId: string, taskId: string) => Promise<void>;
-  deleteTask: (clientId: string, taskId: string) => Promise<void>;
-  updateClientFiles: (clientId: string, files: ClientFile[]) => Promise<void>;
-  scheduleClientMeeting: (clientId: string, meeting: ScheduledMeeting) => Promise<void>;
-  refetch: () => void;
+  addClient: (client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateClient: (id: string, updates: Partial<Client>) => void;
+  deleteClient: (id: string) => void;
+  moveClientToStage: (clientId: string, stage: FunnelStage) => void;
+  addTask: (clientId: string, description: string) => void;
+  toggleTask: (clientId: string, taskId: string) => void;
+  deleteTask: (clientId: string, taskId: string) => void;
+  updateClientFiles: (clientId: string, files: ClientFile[]) => void;
+  scheduleClientMeeting: (clientId: string, meeting: ScheduledMeeting) => void;
 }
 
 const ClientContext = createContext<ClientContextType | undefined>(undefined);
 
+const generateId = () => Math.random().toString(36).substring(2, 15);
+
+// Default values for new fields
+const defaultClientFields = {
+  hasChildren: false,
+  children: [] as ChildInfo[],
+  portfolioDistribution: null,
+  privatePensionStatus: '' as const,
+  privatePensionType: '' as const,
+  retirementGoal: null,
+  contractedMeetings: null,
+  meetingNotes: {},
+  lastActivityAt: new Date(),
+  scheduledMeeting: null,
+  birthDate: null,
+  organizedFinances: '' as const,
+  debts: [] as DebtInfo[],
+  consultingResult: null,
+  consultingFinished: false,
+  isRenewedClient: false,
+};
+
+// Sample data for demonstration
+const sampleClients: Client[] = [
+  {
+    id: generateId(),
+    contractStart: new Date('2024-01-15'),
+    contractEnd: new Date('2025-01-15'),
+    name: 'João Silva',
+    age: 35,
+    birthDate: new Date('1989-01-10'), // Birthday today for demo
+    email: 'joao.silva@email.com',
+    phone: '(11) 99999-1234',
+    profession: 'Engenheiro',
+    objective: 'Aposentadoria antecipada',
+    investmentTerm: '15 anos',
+    financialAssets: 250000,
+    materialAssets: 800000,
+    emergencyReserve: 50000,
+    investorProfile: 'Moderado',
+    monthlyRevenue: 18000,
+    monthlyContribution: 3000,
+    workDone: 'Planejamento inicial, alocação de carteira',
+    tasks: [
+      { id: generateId(), description: 'Revisar carteira de investimentos', completed: false, createdAt: new Date() },
+      { id: generateId(), description: 'Enviar relatório mensal', completed: true, createdAt: new Date() },
+    ],
+    observations: 'Cliente interessado em investimentos sustentáveis',
+    city: 'São Paulo',
+    state: 'SP',
+    funnelStage: 'Em atendimento',
+    renewed: false,
+    renewalPotential: true,
+    pendingSchedule: true,
+    residence: 'Mora no Brasil',
+    renewalStatus: 'Potencial Renovação',
+    renewalDate: new Date('2025-01-10'),
+    married: true,
+    partner: { name: 'Ana Silva', age: 33, profession: 'Arquiteta' },
+    files: [],
+    createdAt: new Date('2024-01-15'),
+    updatedAt: new Date(),
+    ...defaultClientFields,
+    hasChildren: true,
+    children: [{ id: generateId(), name: 'Lucas Silva', age: 8 }],
+    portfolioDistribution: { fixedIncome: 40, stocks: 30, realEstate: 20, international: 10 },
+    contractedMeetings: 3,
+    meetingNotes: { 1: 'Reunião inicial realizada com sucesso.' },
+    isRenewedClient: true, // Premium indicator
+  },
+  {
+    id: generateId(),
+    contractStart: new Date('2024-03-01'),
+    contractEnd: new Date('2025-03-01'),
+    name: 'Maria Santos',
+    age: 42,
+    birthDate: null,
+    email: 'maria.santos@email.com',
+    phone: '(21) 98888-5678',
+    profession: 'Médica',
+    objective: 'Diversificação de patrimônio',
+    investmentTerm: '10 anos',
+    financialAssets: 500000,
+    materialAssets: 1200000,
+    emergencyReserve: 100000,
+    investorProfile: 'Arrojado',
+    monthlyRevenue: 35000,
+    monthlyContribution: 8000,
+    workDone: 'Análise completa, realocação de ativos',
+    tasks: [
+      { id: generateId(), description: 'Agendar reunião de acompanhamento', completed: false, createdAt: new Date() },
+    ],
+    observations: 'Prefere reuniões por videoconferência',
+    city: 'Rio de Janeiro',
+    state: 'RJ',
+    funnelStage: '2ª Reunião agendada',
+    renewed: true,
+    renewalPotential: true,
+    pendingSchedule: false,
+    residence: 'Mora no Brasil',
+    renewalStatus: 'Renovação',
+    renewalDate: null,
+    married: false,
+    partner: null,
+    files: [],
+    createdAt: new Date('2024-03-01'),
+    updatedAt: new Date(),
+    ...defaultClientFields,
+    lastActivityAt: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000), // 35 days ago - inactive
+  },
+  {
+    id: generateId(),
+    contractStart: new Date('2024-06-10'),
+    contractEnd: new Date('2025-06-10'),
+    name: 'Pedro Oliveira',
+    age: 28,
+    birthDate: null,
+    email: 'pedro.oliveira@email.com',
+    phone: '(31) 97777-9012',
+    profession: 'Desenvolvedor',
+    objective: 'Primeira casa própria',
+    investmentTerm: '5 anos',
+    financialAssets: 80000,
+    materialAssets: 0,
+    emergencyReserve: 20000,
+    investorProfile: 'Conservador',
+    monthlyRevenue: 12000,
+    monthlyContribution: 2500,
+    workDone: 'Planejamento para entrada do imóvel',
+    tasks: [],
+    observations: 'Jovem profissional com alto potencial de crescimento',
+    city: 'Belo Horizonte',
+    state: 'MG',
+    funnelStage: 'Em atendimento',
+    renewed: false,
+    renewalPotential: false,
+    pendingSchedule: false,
+    residence: 'Mora no Brasil',
+    renewalStatus: 'Não aplicável',
+    renewalDate: null,
+    married: false,
+    partner: null,
+    files: [],
+    createdAt: new Date('2024-06-10'),
+    updatedAt: new Date(),
+    ...defaultClientFields,
+    scheduledMeeting: { date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000) }, // Tomorrow
+  },
+  {
+    id: generateId(),
+    contractStart: new Date('2023-12-01'),
+    contractEnd: new Date('2024-12-01'),
+    name: 'Ana Costa',
+    age: 55,
+    birthDate: null,
+    email: 'ana.costa@email.com',
+    phone: '(41) 96666-3456',
+    profession: 'Empresária',
+    objective: 'Sucessão patrimonial',
+    investmentTerm: '20 anos',
+    financialAssets: 2000000,
+    materialAssets: 5000000,
+    emergencyReserve: 300000,
+    investorProfile: 'Moderado',
+    monthlyRevenue: 80000,
+    monthlyContribution: 15000,
+    workDone: 'Estruturação de holding familiar',
+    tasks: [
+      { id: generateId(), description: 'Preparar documentação holding', completed: false, createdAt: new Date() },
+      { id: generateId(), description: 'Reunião com advogado', completed: false, createdAt: new Date() },
+    ],
+    observations: 'Cliente VIP - alta prioridade',
+    city: 'Curitiba',
+    state: 'PR',
+    funnelStage: 'Conclusão',
+    renewed: true,
+    renewalPotential: true,
+    pendingSchedule: false,
+    residence: 'Mora no exterior',
+    renewalStatus: 'Renovação',
+    renewalDate: null,
+    married: true,
+    partner: { name: 'Roberto Costa', age: 58, profession: 'Empresário' },
+    files: [],
+    createdAt: new Date('2023-12-01'),
+    updatedAt: new Date(),
+    ...defaultClientFields,
+    hasChildren: true,
+    children: [
+      { id: generateId(), name: 'Fernanda Costa', age: 28 },
+      { id: generateId(), name: 'Ricardo Costa', age: 25 },
+    ],
+    privatePensionStatus: 'Sim',
+    privatePensionType: 'PGBL',
+    retirementGoal: { desiredAge: 60, desiredMonthlyIncome: 50000 },
+    contractedMeetings: 6,
+    meetingNotes: { 
+      1: 'Reunião inicial - levantamento de patrimônio', 
+      2: 'Discussão sobre holding familiar',
+      3: 'Análise tributária detalhada'
+    },
+  },
+  {
+    id: generateId(),
+    contractStart: new Date('2024-08-15'),
+    contractEnd: new Date('2025-08-15'),
+    name: 'Carlos Ferreira',
+    age: 38,
+    birthDate: null,
+    email: 'carlos.ferreira@email.com',
+    phone: '(51) 95555-7890',
+    profession: 'Advogado',
+    objective: 'Independência financeira',
+    investmentTerm: '12 anos',
+    financialAssets: 350000,
+    materialAssets: 600000,
+    emergencyReserve: 60000,
+    investorProfile: 'Arrojado',
+    monthlyRevenue: 25000,
+    monthlyContribution: 5000,
+    workDone: 'Análise de perfil, carteira inicial montada',
+    tasks: [
+      { id: generateId(), description: 'Apresentar opções de previdência', completed: true, createdAt: new Date() },
+    ],
+    observations: '',
+    city: 'Porto Alegre',
+    state: 'RS',
+    funnelStage: '3ª Reunião agendada',
+    renewed: false,
+    renewalPotential: true,
+    pendingSchedule: true,
+    residence: 'Mora no Brasil',
+    renewalStatus: 'Potencial Renovação',
+    renewalDate: new Date('2025-02-01'),
+    married: false,
+    partner: null,
+    files: [],
+    createdAt: new Date('2024-08-15'),
+    updatedAt: new Date(),
+    ...defaultClientFields,
+  },
+  // One finalized client example
+  {
+    id: generateId(),
+    contractStart: new Date('2022-01-01'),
+    contractEnd: new Date('2023-01-01'),
+    name: 'Roberto Lima (Finalizado)',
+    age: 50,
+    birthDate: null,
+    email: 'roberto.lima@email.com',
+    phone: '(11) 91111-2222',
+    profession: 'Empresário',
+    objective: 'Aposentadoria',
+    investmentTerm: '10 anos',
+    financialAssets: 1500000,
+    materialAssets: 3000000,
+    emergencyReserve: 200000,
+    investorProfile: 'Moderado',
+    monthlyRevenue: 50000,
+    monthlyContribution: 10000,
+    workDone: 'Consultoria completa finalizada',
+    tasks: [],
+    observations: 'Consultoria finalizada com sucesso',
+    city: 'São Paulo',
+    state: 'SP',
+    funnelStage: 'Conclusão',
+    renewed: false,
+    renewalPotential: false,
+    pendingSchedule: false,
+    residence: 'Mora no Brasil',
+    renewalStatus: 'Não aplicável',
+    renewalDate: null,
+    married: true,
+    partner: { name: 'Sandra Lima', age: 48, profession: 'Médica' },
+    files: [],
+    createdAt: new Date('2022-01-01'),
+    updatedAt: new Date(),
+    ...defaultClientFields,
+    consultingFinished: true, // Finalized client
+  },
+];
+
+// Migrate any "Novo cliente" to "Em atendimento" and ensure new fields exist
+const migrateClients = (clients: Client[]): Client[] => {
+  return clients.map(client => {
+    let updatedClient = { ...client };
+    
+    if ((client.funnelStage as string) === 'Novo cliente') {
+      updatedClient.funnelStage = 'Em atendimento' as FunnelStage;
+    }
+    
+    // Ensure new fields exist
+    if (updatedClient.hasChildren === undefined) updatedClient.hasChildren = false;
+    if (!updatedClient.children) updatedClient.children = [];
+    if (updatedClient.portfolioDistribution === undefined) updatedClient.portfolioDistribution = null;
+    if (!updatedClient.privatePensionStatus) updatedClient.privatePensionStatus = '';
+    if (!updatedClient.privatePensionType) updatedClient.privatePensionType = '';
+    if (updatedClient.retirementGoal === undefined) updatedClient.retirementGoal = null;
+    if (updatedClient.contractedMeetings === undefined) updatedClient.contractedMeetings = null;
+    if (!updatedClient.meetingNotes) updatedClient.meetingNotes = {};
+    if (!updatedClient.lastActivityAt) updatedClient.lastActivityAt = updatedClient.updatedAt;
+    if (updatedClient.scheduledMeeting === undefined) updatedClient.scheduledMeeting = null;
+    
+    // New fields
+    if (updatedClient.birthDate === undefined) updatedClient.birthDate = null;
+    if (!updatedClient.organizedFinances) updatedClient.organizedFinances = '';
+    if (!updatedClient.debts) updatedClient.debts = [];
+    if (updatedClient.consultingResult === undefined) updatedClient.consultingResult = null;
+    if (updatedClient.consultingFinished === undefined) updatedClient.consultingFinished = false;
+    if (updatedClient.isRenewedClient === undefined) updatedClient.isRenewedClient = false;
+    
+    return updatedClient;
+  });
+};
+
 export function ClientProvider({ children }: { children: ReactNode }) {
-  // Use Supabase hooks for data persistence
-  const {
-    clients: dbClients,
-    isLoading: isLoadingClients,
-    addClient: addClientToDb,
-    updateClient: updateClientInDb,
-    deleteClient: deleteClientFromDb,
-    refetch: refetchClients,
-  } = useSupabaseClients();
+  const [clients, setClients] = useState<Client[]>(() => migrateClients(sampleClients));
 
-  const {
-    tasksByClient,
-    isLoading: isLoadingTasks,
-    addTask: addTaskToDb,
-    toggleTask: toggleTaskInDb,
-    deleteTask: deleteTaskFromDb,
-  } = useSupabaseTasks();
+  const addClient = useCallback((clientData: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newClient: Client = {
+      ...clientData,
+      id: generateId(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastActivityAt: new Date(),
+    };
+    setClients(prev => [...prev, newClient]);
+  }, []);
 
-  // Merge tasks from database into clients
-  const clients = useMemo(() => {
-    return dbClients.map(client => ({
-      ...client,
-      tasks: tasksByClient[client.id] || [],
-    }));
-  }, [dbClients, tasksByClient]);
+  const updateClient = useCallback((id: string, updates: Partial<Client>) => {
+    setClients(prev =>
+      prev.map(client =>
+        client.id === id
+          ? { ...client, ...updates, updatedAt: new Date() }
+          : client
+      )
+    );
+  }, []);
 
-  const isLoading = isLoadingClients || isLoadingTasks;
+  const deleteClient = useCallback((id: string) => {
+    setClients(prev => prev.filter(client => client.id !== id));
+  }, []);
 
-  const addClient = useCallback(async (clientData: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>) => {
-    try {
-      const result = await addClientToDb(clientData);
-      return result;
-    } catch (error) {
-      console.error('Error adding client:', error);
-    }
-  }, [addClientToDb]);
+  const moveClientToStage = useCallback((clientId: string, stage: FunnelStage) => {
+    setClients(prev =>
+      prev.map(client =>
+        client.id === clientId
+          ? { ...client, funnelStage: stage, updatedAt: new Date() }
+          : client
+      )
+    );
+  }, []);
 
-  const updateClient = useCallback(async (id: string, updates: Partial<Client>) => {
-    try {
-      const result = await updateClientInDb(id, updates);
-      return result;
-    } catch (error) {
-      console.error('Error updating client:', error);
-    }
-  }, [updateClientInDb]);
+  const addTask = useCallback((clientId: string, description: string) => {
+    const newTask: Task = {
+      id: generateId(),
+      description,
+      completed: false,
+      createdAt: new Date(),
+    };
+    setClients(prev =>
+      prev.map(client =>
+        client.id === clientId
+          ? { ...client, tasks: [...client.tasks, newTask], updatedAt: new Date(), lastActivityAt: new Date() }
+          : client
+      )
+    );
+  }, []);
 
-  const deleteClient = useCallback(async (id: string) => {
-    try {
-      await deleteClientFromDb(id);
-    } catch (error) {
-      console.error('Error deleting client:', error);
-    }
-  }, [deleteClientFromDb]);
+  const toggleTask = useCallback((clientId: string, taskId: string) => {
+    setClients(prev =>
+      prev.map(client =>
+        client.id === clientId
+          ? {
+              ...client,
+              tasks: client.tasks.map(task =>
+                task.id === taskId ? { ...task, completed: !task.completed } : task
+              ),
+              updatedAt: new Date(),
+              lastActivityAt: new Date(),
+            }
+          : client
+      )
+    );
+  }, []);
 
-  const moveClientToStage = useCallback(async (clientId: string, stage: FunnelStage) => {
-    try {
-      await updateClientInDb(clientId, { 
-        funnelStage: stage, 
-        updatedAt: new Date() 
-      });
-    } catch (error) {
-      console.error('Error moving client to stage:', error);
-    }
-  }, [updateClientInDb]);
+  const deleteTask = useCallback((clientId: string, taskId: string) => {
+    setClients(prev =>
+      prev.map(client =>
+        client.id === clientId
+          ? {
+              ...client,
+              tasks: client.tasks.filter(task => task.id !== taskId),
+              updatedAt: new Date(),
+            }
+          : client
+      )
+    );
+  }, []);
 
-  const addTask = useCallback(async (clientId: string, description: string) => {
-    try {
-      await addTaskToDb(clientId, description);
-    } catch (error) {
-      console.error('Error adding task:', error);
-    }
-  }, [addTaskToDb]);
+  const updateClientFiles = useCallback((clientId: string, files: ClientFile[]) => {
+    setClients(prev =>
+      prev.map(client =>
+        client.id === clientId
+          ? { ...client, files, updatedAt: new Date() }
+          : client
+      )
+    );
+  }, []);
 
-  const toggleTask = useCallback(async (clientId: string, taskId: string) => {
-    try {
-      // Find the current task to get its completed status
-      const clientTasks = tasksByClient[clientId] || [];
-      const task = clientTasks.find(t => t.id === taskId);
-      if (task) {
-        await toggleTaskInDb(taskId, clientId, task.completed);
-      }
-    } catch (error) {
-      console.error('Error toggling task:', error);
-    }
-  }, [toggleTaskInDb, tasksByClient]);
-
-  const deleteTask = useCallback(async (clientId: string, taskId: string) => {
-    try {
-      await deleteTaskFromDb(taskId);
-    } catch (error) {
-      console.error('Error deleting task:', error);
-    }
-  }, [deleteTaskFromDb]);
-
-  const updateClientFiles = useCallback(async (clientId: string, files: ClientFile[]) => {
-    try {
-      await updateClientInDb(clientId, { 
-        files, 
-        updatedAt: new Date() 
-      });
-    } catch (error) {
-      console.error('Error updating client files:', error);
-    }
-  }, [updateClientInDb]);
-
-  const scheduleClientMeeting = useCallback(async (clientId: string, meeting: ScheduledMeeting) => {
-    try {
-      await updateClientInDb(clientId, { 
-        scheduledMeeting: meeting, 
-        pendingSchedule: false,
-        updatedAt: new Date(),
-        lastActivityAt: new Date(),
-      });
-    } catch (error) {
-      console.error('Error scheduling meeting:', error);
-    }
-  }, [updateClientInDb]);
-
-  const refetch = useCallback(() => {
-    refetchClients();
-  }, [refetchClients]);
+  const scheduleClientMeeting = useCallback((clientId: string, meeting: ScheduledMeeting) => {
+    setClients(prev =>
+      prev.map(client =>
+        client.id === clientId
+          ? { 
+              ...client, 
+              scheduledMeeting: meeting, 
+              pendingSchedule: false,
+              updatedAt: new Date(),
+              lastActivityAt: new Date(),
+            }
+          : client
+      )
+    );
+  }, []);
 
   return (
     <ClientContext.Provider
       value={{
         clients,
-        isLoading,
         addClient,
         updateClient,
         deleteClient,
@@ -157,7 +455,6 @@ export function ClientProvider({ children }: { children: ReactNode }) {
         deleteTask,
         updateClientFiles,
         scheduleClientMeeting,
-        refetch,
       }}
     >
       {children}
