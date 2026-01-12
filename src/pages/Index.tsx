@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut } from 'lucide-react';
+import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2 } from 'lucide-react';
 import { ClientProvider, useClients } from '@/contexts/ClientContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Client } from '@/types/client';
@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 function CRMDashboard() {
-  const { clients } = useClients();
+  const { clients, isLoading } = useClients();
   const { user, signOut } = useAuth();
   const [view, setView] = useState<'table' | 'kanban'>('table');
   const [dashboardTab, setDashboardTab] = useState<'operacional' | 'executivo'>('operacional');
@@ -100,6 +100,18 @@ function CRMDashboard() {
     link.download = `clientes_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Carregando dados...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
