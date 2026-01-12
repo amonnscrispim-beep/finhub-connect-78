@@ -33,6 +33,7 @@ import {
 
 interface TableViewProps {
   onEditClient: (client: Client) => void;
+  searchQuery?: string;
 }
 
 type SortField = 'createdAt' | 'contractEnd' | 'monthlyRevenue' | 'name';
@@ -47,9 +48,12 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-export function TableView({ onEditClient }: TableViewProps) {
+export function TableView({ onEditClient, searchQuery = '' }: TableViewProps) {
   const { clients, deleteClient } = useClients();
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Combine global search with local search
+  const combinedSearchTerm = searchQuery || searchTerm;
   const [filterStage, setFilterStage] = useState<string>('all');
   const [filterState, setFilterState] = useState<string>('all');
   const [filterRenewed, setFilterRenewed] = useState<string>('all');
@@ -60,13 +64,17 @@ export function TableView({ onEditClient }: TableViewProps) {
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
 
   const filteredAndSortedClients = useMemo(() => {
-    return clients
+    // Filter out finalized clients
+    const activeClients = clients.filter(c => !c.consultingFinished);
+    
+    return activeClients
       .filter((client) => {
         const matchesSearch = 
-          client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          client.profession.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          client.city.toLowerCase().includes(searchTerm.toLowerCase());
+          client.name.toLowerCase().includes(combinedSearchTerm.toLowerCase()) ||
+          client.email.toLowerCase().includes(combinedSearchTerm.toLowerCase()) ||
+          client.profession.toLowerCase().includes(combinedSearchTerm.toLowerCase()) ||
+          client.objective.toLowerCase().includes(combinedSearchTerm.toLowerCase()) ||
+          client.city.toLowerCase().includes(combinedSearchTerm.toLowerCase());
         
         const matchesStage = filterStage === 'all' || client.funnelStage === filterStage;
         const matchesState = filterState === 'all' || client.state === filterState;
@@ -101,7 +109,7 @@ export function TableView({ onEditClient }: TableViewProps) {
         }
         return sortDirection === 'asc' ? comparison : -comparison;
       });
-  }, [clients, searchTerm, filterStage, filterState, filterRenewed, filterPendingSchedule, sortField, sortDirection]);
+  }, [clients, combinedSearchTerm, filterStage, filterState, filterRenewed, filterPendingSchedule, sortField, sortDirection]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {

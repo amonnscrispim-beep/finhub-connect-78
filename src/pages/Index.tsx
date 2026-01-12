@@ -1,7 +1,9 @@
-import { useState } from 'react';
-import { Plus, Download, LayoutGrid, Table as TableIcon, Briefcase } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut } from 'lucide-react';
 import { ClientProvider, useClients } from '@/contexts/ClientContext';
+import { useAuth } from '@/hooks/useAuth';
 import { Client } from '@/types/client';
+import { CRMHeader } from '@/components/crm/CRMHeader';
 import { StatsCards } from '@/components/crm/StatsCards';
 import { TableView } from '@/components/crm/TableView';
 import { KanbanView } from '@/components/crm/KanbanView';
@@ -14,18 +16,35 @@ import { MeetingAlerts } from '@/components/crm/MeetingAlerts';
 import { InactivityAlerts } from '@/components/crm/InactivityAlerts';
 import { BirthdayAlerts } from '@/components/crm/BirthdayAlerts';
 import { FinancialAssetsModal } from '@/components/crm/FinancialAssetsModal';
-import { Button } from '@/components/ui/button';
+import { DashboardExecutive } from '@/components/crm/DashboardExecutive';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 function CRMDashboard() {
   const { clients } = useClients();
+  const { user, signOut } = useAuth();
   const [view, setView] = useState<'table' | 'kanban'>('table');
+  const [dashboardTab, setDashboardTab] = useState<'operacional' | 'executivo'>('operacional');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>();
   const [pendingScheduleModalOpen, setPendingScheduleModalOpen] = useState(false);
   const [totalClientsModalOpen, setTotalClientsModalOpen] = useState(false);
   const [renewalsModalOpen, setRenewalsModalOpen] = useState(false);
   const [financialAssetsModalOpen, setFinancialAssetsModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter clients based on search query
+  const filteredClients = useMemo(() => {
+    if (!searchQuery.trim()) return clients;
+    
+    const query = searchQuery.toLowerCase();
+    return clients.filter(client => 
+      client.name.toLowerCase().includes(query) ||
+      client.profession.toLowerCase().includes(query) ||
+      client.objective.toLowerCase().includes(query)
+    );
+  }, [clients, searchQuery]);
 
   const handleNewClient = () => {
     setEditingClient(undefined);
@@ -35,6 +54,11 @@ function CRMDashboard() {
   const handleEditClient = (client: Client) => {
     setEditingClient(client);
     setModalOpen(true);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success('Sessão encerrada');
   };
 
   const handleExportCSV = () => {
@@ -79,81 +103,100 @@ function CRMDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="crm-header sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary-foreground/10 rounded-xl">
-                <Briefcase className="w-6 h-6" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">CRM Financeiro</h1>
-                <p className="text-sm text-primary-foreground/70">Gestão de Clientes</p>
-              </div>
-            </div>
+      {/* Header with Date/Time and Search */}
+      <CRMHeader
+        onExportCSV={handleExportCSV}
+        onNewClient={handleNewClient}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
 
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleExportCSV}
-                className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Exportar CSV
-              </Button>
-              <Button
-                onClick={handleNewClient}
-                className="crm-btn-accent"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Cliente
-              </Button>
-            </div>
-          </div>
+      {/* User bar with logout */}
+      <div className="bg-muted/30 border-b border-border">
+        <div className="container mx-auto px-4 py-2 flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">
+            Logado como: <span className="font-medium text-foreground">{user?.email}</span>
+          </span>
+          <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground hover:text-foreground">
+            <LogOut className="w-4 h-4 mr-2" />
+            Sair
+          </Button>
         </div>
-      </header>
+      </div>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 space-y-6">
-        {/* Alerts */}
-        <BirthdayAlerts onEditClient={handleEditClient} />
-        <RenewalAlerts onEditClient={handleEditClient} />
-        <MeetingAlerts onEditClient={handleEditClient} />
-        <InactivityAlerts onEditClient={handleEditClient} />
+        {/* Dashboard Tabs */}
+        <Tabs value={dashboardTab} onValueChange={(v) => setDashboardTab(v as typeof dashboardTab)} className="space-y-4">
+          <TabsList className="bg-card border border-border shadow-sm">
+            <TabsTrigger 
+              value="operacional" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Operacional
+            </TabsTrigger>
+            <TabsTrigger 
+              value="executivo"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Executivo
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Stats */}
-        <StatsCards 
-          onPendingScheduleClick={() => setPendingScheduleModalOpen(true)}
-          onTotalClientsClick={() => setTotalClientsModalOpen(true)}
-          onRenewalsClick={() => setRenewalsModalOpen(true)}
-          onFinancialAssetsClick={() => setFinancialAssetsModalOpen(true)}
-        />
+          {/* DASHBOARD OPERACIONAL - Existing functionality preserved */}
+          <TabsContent value="operacional" className="space-y-6 animate-fade-in">
+            {/* Alerts */}
+            <BirthdayAlerts onEditClient={handleEditClient} />
+            <RenewalAlerts onEditClient={handleEditClient} />
+            <MeetingAlerts onEditClient={handleEditClient} />
+            <InactivityAlerts onEditClient={handleEditClient} />
 
-        {/* Views */}
-        <Tabs value={view} onValueChange={(v) => setView(v as 'table' | 'kanban')} className="space-y-4">
-          <div className="flex items-center justify-between">
-            <TabsList className="bg-muted/50">
-              <TabsTrigger value="table" className="data-[state=active]:bg-card data-[state=active]:shadow-sm">
-                <TableIcon className="w-4 h-4 mr-2" />
-                Tabela
-              </TabsTrigger>
-              <TabsTrigger value="kanban" className="data-[state=active]:bg-card data-[state=active]:shadow-sm">
-                <LayoutGrid className="w-4 h-4 mr-2" />
-                Kanban
-              </TabsTrigger>
-            </TabsList>
-          </div>
+            {/* Stats */}
+            <StatsCards 
+              onPendingScheduleClick={() => setPendingScheduleModalOpen(true)}
+              onTotalClientsClick={() => setTotalClientsModalOpen(true)}
+              onRenewalsClick={() => setRenewalsModalOpen(true)}
+              onFinancialAssetsClick={() => setFinancialAssetsModalOpen(true)}
+            />
 
-          <TabsContent value="table" className="mt-4 animate-fade-in">
-            <TableView onEditClient={handleEditClient} />
+            {/* Views */}
+            <Tabs value={view} onValueChange={(v) => setView(v as 'table' | 'kanban')} className="space-y-4">
+              <div className="flex items-center justify-between">
+                <TabsList className="bg-muted/50">
+                  <TabsTrigger value="table" className="data-[state=active]:bg-card data-[state=active]:shadow-sm">
+                    <TableIcon className="w-4 h-4 mr-2" />
+                    Tabela
+                  </TabsTrigger>
+                  <TabsTrigger value="kanban" className="data-[state=active]:bg-card data-[state=active]:shadow-sm">
+                    <LayoutGrid className="w-4 h-4 mr-2" />
+                    Kanban
+                  </TabsTrigger>
+                </TabsList>
+                
+                {searchQuery && (
+                  <p className="text-sm text-muted-foreground">
+                    Mostrando {filteredClients.length} de {clients.length} clientes
+                  </p>
+                )}
+              </div>
+
+              <TabsContent value="table" className="mt-4 animate-fade-in">
+                <TableView onEditClient={handleEditClient} searchQuery={searchQuery} />
+              </TabsContent>
+
+              <TabsContent value="kanban" className="mt-4 animate-fade-in">
+                <div className="crm-card overflow-hidden">
+                  <KanbanView onEditClient={handleEditClient} searchQuery={searchQuery} />
+                </div>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
-          <TabsContent value="kanban" className="mt-4 animate-fade-in">
-            <div className="crm-card overflow-hidden">
-              <KanbanView onEditClient={handleEditClient} />
-            </div>
+          {/* DASHBOARD EXECUTIVO - New strategic dashboard */}
+          <TabsContent value="executivo" className="animate-fade-in">
+            <DashboardExecutive onEditClient={handleEditClient} />
           </TabsContent>
         </Tabs>
       </main>
