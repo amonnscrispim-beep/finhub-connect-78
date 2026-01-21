@@ -14,7 +14,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { 
   Client, 
-  FUNNEL_STAGES, 
   INVESTOR_PROFILES, 
   BRAZILIAN_STATES, 
   RESIDENCE_OPTIONS, 
@@ -36,6 +35,8 @@ import {
   DebtType,
   ConsultingResult,
 } from '@/types/client';
+import { FUNNEL_STAGE_OPTIONS } from '@/lib/funnel-utils';
+import { PGBLCalculator } from './PGBLCalculator';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
@@ -845,6 +846,11 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 )}
               </div>
 
+              {/* PGBL Tax Benefit Calculator */}
+              {formData.privatePensionStatus === 'Sim' && formData.privatePensionType === 'PGBL' && (
+                <PGBLCalculator />
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="retirementAge">Idade desejada para aposentadoria</Label>
@@ -924,7 +930,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   <Label htmlFor="funnelStage">Etapa do Funil</Label>
                   <Select value={formData.funnelStage} onValueChange={(value) => handleChange('funnelStage', value)}>
                     <SelectTrigger className="crm-input"><SelectValue /></SelectTrigger>
-                    <SelectContent>{FUNNEL_STAGES.map((stage) => (<SelectItem key={stage} value={stage}>{stage}</SelectItem>))}</SelectContent>
+                    <SelectContent>{FUNNEL_STAGE_OPTIONS.map((stage) => (<SelectItem key={stage.value} value={stage.value}>{stage.label}</SelectItem>))}</SelectContent>
                   </Select>
                 </div>
                 

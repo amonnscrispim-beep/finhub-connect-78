@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useClients } from '@/contexts/ClientContext';
 import { Client, FUNNEL_STAGES, BRAZILIAN_STATES } from '@/types/client';
+import { getStageDisplayLabel, FUNNEL_STAGE_OPTIONS } from '@/lib/funnel-utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -161,8 +162,8 @@ export function TableView({ onEditClient, searchQuery = '' }: TableViewProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as Etapas</SelectItem>
-                {FUNNEL_STAGES.map((stage) => (
-                  <SelectItem key={stage} value={stage}>{stage}</SelectItem>
+                {FUNNEL_STAGE_OPTIONS.map((stage) => (
+                  <SelectItem key={stage.value} value={stage.value}>{stage.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -289,7 +290,7 @@ export function TableView({ onEditClient, searchQuery = '' }: TableViewProps) {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className={getStageBadgeClass(client.funnelStage)}>
-                          {client.funnelStage}
+                          {getStageDisplayLabel(client.funnelStage)}
                         </Badge>
                       </TableCell>
                       <TableCell>

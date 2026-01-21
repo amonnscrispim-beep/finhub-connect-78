@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   GripVertical, 
   Check, 
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useClients } from '@/contexts/ClientContext';
 import { Client, FunnelStage, FUNNEL_STAGES } from '@/types/client';
+import { getStageDisplayLabel } from '@/lib/funnel-utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -269,6 +270,36 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
     return () => window.removeEventListener('resize', checkScrollability);
   }, []);
 
+  // Keyboard navigation (left/right arrows)
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Don't scroll if focus is on an input, textarea, or select
+    const activeElement = document.activeElement;
+    const isInputFocused = activeElement && (
+      activeElement.tagName === 'INPUT' ||
+      activeElement.tagName === 'TEXTAREA' ||
+      activeElement.tagName === 'SELECT' ||
+      activeElement.getAttribute('contenteditable') === 'true'
+    );
+
+    if (isInputFocused) return;
+
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      container.scrollBy({ left: 400, behavior: 'smooth' });
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      container.scrollBy({ left: -400, behavior: 'smooth' });
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
   const scrollLeft = () => {
     const container = scrollContainerRef.current;
     if (container) {
@@ -376,7 +407,7 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/50">
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full ${getStageColor(stage)} shadow-sm`} />
-                    <h3 className="font-semibold text-sm text-foreground">{stage}</h3>
+                    <h3 className="font-semibold text-sm text-foreground">{getStageDisplayLabel(stage)}</h3>
                   </div>
                   <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
                     {stageClients.length}
