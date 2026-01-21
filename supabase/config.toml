@@ -1,1 +1,10 @@
 project_id = "tpialtrypmhxatmlmyoe"
+
+[functions.google-calendar-connect]
+verify_jwt = false
+
+[functions.google-calendar-callback]
+verify_jwt = false
+
+[functions.create-calendar-event]
+verify_jwt = false

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2 } from 'lucide-react';
+import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2, CalendarPlus } from 'lucide-react';
 import { ClientProvider, useClients } from '@/contexts/ClientContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Client } from '@/types/client';
@@ -17,6 +17,8 @@ import { InactivityAlerts } from '@/components/crm/InactivityAlerts';
 import { BirthdayAlerts } from '@/components/crm/BirthdayAlerts';
 import { FinancialAssetsModal } from '@/components/crm/FinancialAssetsModal';
 import { DashboardExecutive } from '@/components/crm/DashboardExecutive';
+import { GoogleCalendarConnect } from '@/components/crm/GoogleCalendarConnect';
+import { ScheduleMeetingModal } from '@/components/crm/ScheduleMeetingModal';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -33,6 +35,7 @@ function CRMDashboard() {
   const [renewalsModalOpen, setRenewalsModalOpen] = useState(false);
   const [financialAssetsModalOpen, setFinancialAssetsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [scheduleMeetingModalOpen, setScheduleMeetingModalOpen] = useState(false);
 
   // Filter clients based on search query
   const filteredClients = useMemo(() => {
@@ -129,10 +132,22 @@ function CRMDashboard() {
           <span className="text-sm text-muted-foreground">
             Logado como: <span className="font-medium text-foreground">{user?.email}</span>
           </span>
-          <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground hover:text-foreground">
-            <LogOut className="w-4 h-4 mr-2" />
-            Sair
-          </Button>
+          <div className="flex items-center gap-3">
+            <GoogleCalendarConnect compact />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setScheduleMeetingModalOpen(true)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <CalendarPlus className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Agendar Reunião</span>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground hover:text-foreground">
+              <LogOut className="w-4 h-4 mr-2" />
+              Sair
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -219,6 +234,7 @@ function CRMDashboard() {
       <TotalClientsModal open={totalClientsModalOpen} onOpenChange={setTotalClientsModalOpen} />
       <RenewalsModal open={renewalsModalOpen} onOpenChange={setRenewalsModalOpen} onEditClient={handleEditClient} />
       <FinancialAssetsModal open={financialAssetsModalOpen} onOpenChange={setFinancialAssetsModalOpen} onEditClient={handleEditClient} />
+      <ScheduleMeetingModal open={scheduleMeetingModalOpen} onOpenChange={setScheduleMeetingModalOpen} />
     </div>
   );
 }
