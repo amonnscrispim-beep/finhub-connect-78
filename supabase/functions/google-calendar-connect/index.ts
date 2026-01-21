@@ -51,9 +51,14 @@ Deno.serve(async (req) => {
     const userId = claimsData.claims.sub;
     console.log('User authenticated:', userId);
 
-    // Get redirect URL from request or environment
-    const url = new URL(req.url);
-    const returnUrl = url.searchParams.get('return_url') || '/';
+    // Get full return URL from request body
+    let returnUrl = '/';
+    try {
+      const body = await req.json();
+      returnUrl = body.returnUrl || '/';
+    } catch {
+      // No body or invalid JSON, use default
+    }
     
     // Build the redirect URI for Google OAuth callback
     // The callback will be another edge function
