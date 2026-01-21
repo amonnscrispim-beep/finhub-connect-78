@@ -166,6 +166,9 @@ export interface Client {
   consultingResult: ConsultingResult | null;
   consultingFinished: boolean; // Logical deactivation
   isRenewedClient: boolean; // Premium indicator
+  // New consultant annotation fields
+  consultingReason: string | null;
+  professionalProfile: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

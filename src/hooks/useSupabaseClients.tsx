@@ -77,6 +77,8 @@ function dbToClient(row: ClientRow): Client {
     consultingResult: row.consulting_result as unknown as ConsultingResult | null,
     consultingFinished: row.consulting_finished ?? false,
     isRenewedClient: row.is_renewed_client ?? false,
+    consultingReason: (row as any).consulting_reason ?? null,
+    professionalProfile: (row as any).professional_profile ?? null,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -132,7 +134,9 @@ function clientToDbInsert(client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>
     consulting_result: client.consultingResult as any,
     consulting_finished: client.consultingFinished,
     is_renewed_client: client.isRenewedClient,
-  };
+    consulting_reason: client.consultingReason,
+    professional_profile: client.professionalProfile,
+  } as any;
 }
 
 // Convert partial Client updates to database update format
@@ -185,6 +189,8 @@ function clientToDbUpdate(updates: Partial<Client>): TablesUpdate<'clients'> {
   if (updates.consultingResult !== undefined) dbUpdates.consulting_result = updates.consultingResult as any;
   if (updates.consultingFinished !== undefined) dbUpdates.consulting_finished = updates.consultingFinished;
   if (updates.isRenewedClient !== undefined) dbUpdates.is_renewed_client = updates.isRenewedClient;
+  if (updates.consultingReason !== undefined) (dbUpdates as any).consulting_reason = updates.consultingReason;
+  if (updates.professionalProfile !== undefined) (dbUpdates as any).professional_profile = updates.professionalProfile;
   
   return dbUpdates;
 }
