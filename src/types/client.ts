@@ -169,6 +169,11 @@ export interface Client {
   // New consultant annotation fields
   consultingReason: string | null;
   professionalProfile: string | null;
+  // Strategic annotation fields for financial situation
+  financialInstitutions: string | null;
+  shortTermGoals: string | null;
+  mediumTermGoals: string | null;
+  longTermGoals: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

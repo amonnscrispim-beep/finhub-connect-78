@@ -79,6 +79,10 @@ function dbToClient(row: ClientRow): Client {
     isRenewedClient: row.is_renewed_client ?? false,
     consultingReason: (row as any).consulting_reason ?? null,
     professionalProfile: (row as any).professional_profile ?? null,
+    financialInstitutions: (row as any).financial_institutions ?? null,
+    shortTermGoals: (row as any).short_term_goals ?? null,
+    mediumTermGoals: (row as any).medium_term_goals ?? null,
+    longTermGoals: (row as any).long_term_goals ?? null,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -136,6 +140,10 @@ function clientToDbInsert(client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>
     is_renewed_client: client.isRenewedClient,
     consulting_reason: client.consultingReason,
     professional_profile: client.professionalProfile,
+    financial_institutions: client.financialInstitutions,
+    short_term_goals: client.shortTermGoals,
+    medium_term_goals: client.mediumTermGoals,
+    long_term_goals: client.longTermGoals,
   } as any;
 }
 
@@ -191,6 +199,10 @@ function clientToDbUpdate(updates: Partial<Client>): TablesUpdate<'clients'> {
   if (updates.isRenewedClient !== undefined) dbUpdates.is_renewed_client = updates.isRenewedClient;
   if (updates.consultingReason !== undefined) (dbUpdates as any).consulting_reason = updates.consultingReason;
   if (updates.professionalProfile !== undefined) (dbUpdates as any).professional_profile = updates.professionalProfile;
+  if (updates.financialInstitutions !== undefined) (dbUpdates as any).financial_institutions = updates.financialInstitutions;
+  if (updates.shortTermGoals !== undefined) (dbUpdates as any).short_term_goals = updates.shortTermGoals;
+  if (updates.mediumTermGoals !== undefined) (dbUpdates as any).medium_term_goals = updates.mediumTermGoals;
+  if (updates.longTermGoals !== undefined) (dbUpdates as any).long_term_goals = updates.longTermGoals;
   
   return dbUpdates;
 }
