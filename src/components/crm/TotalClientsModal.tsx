@@ -100,7 +100,7 @@ export function TotalClientsModal({ open, onOpenChange }: TotalClientsModalProps
                       <div>
                         <p className="font-medium text-sm">{client.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {client.city}{client.state ? `, ${client.state}` : ''}
+                          {client.city}{client.country ? `, ${client.country}` : (client.state ? `, ${client.state}` : '')}
                         </p>
                       </div>
                       <span className="text-xs px-2 py-1 bg-accent/10 text-accent rounded-full">

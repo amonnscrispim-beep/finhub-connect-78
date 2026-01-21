@@ -6,6 +6,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -682,26 +683,26 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="financialAssets">Patrimônio Financeiro</Label>
-                  <Input id="financialAssets" type="number" value={formData.financialAssets} onChange={(e) => handleChange('financialAssets', e.target.value)} placeholder="R$ 0,00" className="crm-input" />
+                  <CurrencyInput id="financialAssets" value={formData.financialAssets} onChange={(value) => handleChange('financialAssets', value)} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="materialAssets">Patrimônio Material</Label>
-                  <Input id="materialAssets" type="number" value={formData.materialAssets} onChange={(e) => handleChange('materialAssets', e.target.value)} placeholder="R$ 0,00" className="crm-input" />
+                  <CurrencyInput id="materialAssets" value={formData.materialAssets} onChange={(value) => handleChange('materialAssets', value)} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="emergencyReserve">Reserva de Emergência</Label>
-                  <Input id="emergencyReserve" type="number" value={formData.emergencyReserve} onChange={(e) => handleChange('emergencyReserve', e.target.value)} placeholder="R$ 0,00" className="crm-input" />
+                  <CurrencyInput id="emergencyReserve" value={formData.emergencyReserve} onChange={(value) => handleChange('emergencyReserve', value)} />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="monthlyRevenue">Faturamento Mensal</Label>
-                  <Input id="monthlyRevenue" type="number" value={formData.monthlyRevenue} onChange={(e) => handleChange('monthlyRevenue', e.target.value)} placeholder="R$ 0,00" className="crm-input" />
+                  <CurrencyInput id="monthlyRevenue" value={formData.monthlyRevenue} onChange={(value) => handleChange('monthlyRevenue', value)} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="monthlyContribution">Aporte Mensal</Label>
-                  <Input id="monthlyContribution" type="number" value={formData.monthlyContribution} onChange={(e) => handleChange('monthlyContribution', e.target.value)} placeholder="R$ 0,00" className="crm-input" />
+                  <CurrencyInput id="monthlyContribution" value={formData.monthlyContribution} onChange={(value) => handleChange('monthlyContribution', value)} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="investorProfile">Perfil de Investidor</Label>
@@ -778,8 +779,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                           <Input type="number" step="0.5" value={debt.payoffYears?.toString() || ''} onChange={(e) => handleDebtChange(debtType, 'payoffYears', e.target.value ? parseFloat(e.target.value) : null)} placeholder="Ex: 2.5" className="crm-input" />
                         </div>
                         <div className="space-y-2">
-                          <Label>Economia estimada (R$)</Label>
-                          <Input type="number" value={debt.payoffSavings?.toString() || ''} onChange={(e) => handleDebtChange(debtType, 'payoffSavings', e.target.value ? parseFloat(e.target.value) : null)} placeholder="R$ 0,00" className="crm-input" />
+                          <Label>Economia estimada</Label>
+                          <CurrencyInput value={debt.payoffSavings?.toString() || ''} onChange={(value) => handleDebtChange(debtType, 'payoffSavings', value ? parseFloat(value) : null)} />
                         </div>
                       </div>
                     </div>
@@ -850,8 +851,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   <Input id="retirementAge" type="number" min="0" max="120" value={formData.retirementAge} onChange={(e) => handleChange('retirementAge', e.target.value)} placeholder="Ex: 60" className="crm-input" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="retirementIncome">Renda mensal desejada (R$)</Label>
-                  <Input id="retirementIncome" type="number" value={formData.retirementIncome} onChange={(e) => handleChange('retirementIncome', e.target.value)} placeholder="R$ 0,00" className="crm-input" />
+                  <Label htmlFor="retirementIncome">Renda mensal desejada</Label>
+                  <CurrencyInput id="retirementIncome" value={formData.retirementIncome} onChange={(value) => handleChange('retirementIncome', value)} />
                 </div>
               </div>
             </CollapsibleSection>
@@ -905,12 +906,12 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
             <CollapsibleSection title="Resultado da Consultoria" icon={TrendingUp} defaultOpen={false}>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="consultingInitialPatrimony">Patrimônio no início da consultoria (R$)</Label>
-                  <Input id="consultingInitialPatrimony" type="number" value={formData.consultingInitialPatrimony} onChange={(e) => handleChange('consultingInitialPatrimony', e.target.value)} placeholder="R$ 0,00" className="crm-input" />
+                  <Label htmlFor="consultingInitialPatrimony">Patrimônio no início da consultoria</Label>
+                  <CurrencyInput id="consultingInitialPatrimony" value={formData.consultingInitialPatrimony} onChange={(value) => handleChange('consultingInitialPatrimony', value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="consultingFinalPatrimony">Patrimônio ao final do período (R$)</Label>
-                  <Input id="consultingFinalPatrimony" type="number" value={formData.consultingFinalPatrimony} onChange={(e) => handleChange('consultingFinalPatrimony', e.target.value)} placeholder="R$ 0,00" className="crm-input" />
+                  <Label htmlFor="consultingFinalPatrimony">Patrimônio ao final do período</Label>
+                  <CurrencyInput id="consultingFinalPatrimony" value={formData.consultingFinalPatrimony} onChange={(value) => handleChange('consultingFinalPatrimony', value)} />
                 </div>
               </div>
             </CollapsibleSection>
