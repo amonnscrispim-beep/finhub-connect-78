@@ -112,7 +112,6 @@ interface FormData {
   meetingNotes: MeetingNotes;
   files: ClientFile[];
   organizedFinances: OrganizedFinancesStatus;
-  selectedDebtTypes: DebtType[];
   debts: DebtInfo[];
   consultingInitialPatrimony: string;
   consultingFinalPatrimony: string;
@@ -181,7 +180,6 @@ const defaultFormData: FormData = {
   meetingNotes: {},
   files: [],
   organizedFinances: '',
-  selectedDebtTypes: [],
   debts: [],
   consultingInitialPatrimony: '',
   consultingFinalPatrimony: '',
@@ -248,7 +246,6 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         meetingNotes: client.meetingNotes || {},
         files: client.files || [],
         organizedFinances: client.organizedFinances || '',
-        selectedDebtTypes: client.debts?.map(d => d.type) || [],
         debts: client.debts || [],
         consultingInitialPatrimony: client.consultingResult?.initialPatrimony?.toString() || '',
         consultingFinalPatrimony: client.consultingResult?.finalPatrimony?.toString() || '',
@@ -474,43 +471,38 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     }));
   };
 
-  const handleDebtTypeToggle = (debtType: DebtType, checked: boolean) => {
-    if (checked) {
-      const newDebt: DebtInfo = {
-        id: generateId(),
-        type: debtType,
-        cetPercentage: null,
-        term: null,
-        termUnit: 'meses',
-        amortizationSystem: '',
-        payoffStrategy: '',
-        payoffYears: null,
-        payoffSavings: null,
-      };
-      setFormData(prev => ({
-        ...prev,
-        selectedDebtTypes: [...prev.selectedDebtTypes, debtType],
-        debts: [...prev.debts, newDebt],
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        selectedDebtTypes: prev.selectedDebtTypes.filter(t => t !== debtType),
-      }));
-    }
-  };
-
-  const handleDebtChange = (debtType: DebtType, field: keyof DebtInfo, value: string | number | null) => {
+  const handleAddDebt = () => {
+    const newDebt: DebtInfo = {
+      id: generateId(),
+      type: 'emprestimo',
+      cetPercentage: null,
+      term: null,
+      termUnit: 'meses',
+      amortizationSystem: '',
+      payoffStrategy: '',
+      payoffYears: null,
+      payoffSavings: null,
+    };
     setFormData(prev => ({
       ...prev,
-      debts: prev.debts.map(d =>
-        d.type === debtType ? { ...d, [field]: value } : d
-      ),
+      debts: [...prev.debts, newDebt],
     }));
   };
 
-  const getDebtByType = (type: DebtType): DebtInfo | undefined => {
-    return formData.debts.find(d => d.type === type);
+  const handleRemoveDebt = (debtId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      debts: prev.debts.filter(d => d.id !== debtId),
+    }));
+  };
+
+  const handleDebtChange = (debtId: string, field: keyof DebtInfo, value: string | number | null) => {
+    setFormData(prev => ({
+      ...prev,
+      debts: prev.debts.map(d =>
+        d.id === debtId ? { ...d, [field]: value } : d
+      ),
+    }));
   };
 
   // Check if client lives abroad
@@ -817,69 +809,127 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
 
             {/* SECTION 4: Dívidas e Obrigações */}
             <CollapsibleSection title="Dívidas e Obrigações" icon={CreditCard} defaultOpen={false}>
-              <div className="flex flex-wrap gap-4">
-                {DEBT_TYPE_OPTIONS.map((debtType) => (
-                  <div key={debtType.value} className="flex items-center space-x-2">
-                    <Checkbox id={`debt-${debtType.value}`} checked={formData.selectedDebtTypes.includes(debtType.value)} onCheckedChange={(checked) => handleDebtTypeToggle(debtType.value, !!checked)} />
-                    <Label htmlFor={`debt-${debtType.value}`} className="cursor-pointer">{debtType.label}</Label>
-                  </div>
-                ))}
-              </div>
+              <div className="space-y-4">
+                {formData.debts.length === 0 && (
+                  <p className="text-sm text-muted-foreground">Nenhuma dívida cadastrada. Clique no botão abaixo para adicionar.</p>
+                )}
 
-              {formData.selectedDebtTypes.map((debtType) => {
-                const debt = getDebtByType(debtType);
-                const debtLabel = DEBT_TYPE_OPTIONS.find(d => d.value === debtType)?.label || debtType;
-                if (!debt) return null;
-                
-                return (
-                  <div key={debtType} className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
-                    <h4 className="font-medium text-foreground">{debtLabel}</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="space-y-2">
-                        <Label>CET (% ao ano)</Label>
-                        <Input type="number" step="0.01" value={debt.cetPercentage?.toString() || ''} onChange={(e) => handleDebtChange(debtType, 'cetPercentage', e.target.value ? parseFloat(e.target.value) : null)} placeholder="Ex: 12.5" className="crm-input" />
+                {formData.debts.map((debt, index) => {
+                  const debtLabel = DEBT_TYPE_OPTIONS.find(d => d.value === debt.type)?.label || debt.type;
+                  
+                  return (
+                    <div key={debt.id} className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-foreground">Dívida {index + 1}</h4>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleRemoveDebt(debt.id)} 
+                          className="text-destructive hover:text-destructive h-8 w-8"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
-                      <div className="space-y-2">
-                        <Label>Prazo</Label>
-                        <div className="flex gap-2">
-                          <Input type="number" value={debt.term?.toString() || ''} onChange={(e) => handleDebtChange(debtType, 'term', e.target.value ? parseInt(e.target.value) : null)} placeholder="Ex: 24" className="crm-input flex-1" />
-                          <Select value={debt.termUnit} onValueChange={(value) => handleDebtChange(debtType, 'termUnit', value)}>
-                            <SelectTrigger className="crm-input w-24"><SelectValue /></SelectTrigger>
-                            <SelectContent><SelectItem value="meses">meses</SelectItem><SelectItem value="anos">anos</SelectItem></SelectContent>
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="space-y-2">
+                          <Label>Tipo da Dívida</Label>
+                          <Select value={debt.type} onValueChange={(value) => handleDebtChange(debt.id, 'type', value)}>
+                            <SelectTrigger className="crm-input"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {DEBT_TYPE_OPTIONS.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                              ))}
+                            </SelectContent>
                           </Select>
                         </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Sistema de Amortização</Label>
-                        <Select value={debt.amortizationSystem} onValueChange={(value) => handleDebtChange(debtType, 'amortizationSystem', value)}>
-                          <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                          <SelectContent>{AMORTIZATION_SYSTEM_OPTIONS.map((system) => (<SelectItem key={system} value={system}>{system}</SelectItem>))}</SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="p-3 bg-card rounded-lg border border-border">
-                      <h5 className="text-sm font-medium text-muted-foreground mb-3">Planejamento de Quitação (Consultoria)</h5>
-                      <div className="grid grid-cols-3 gap-4">
                         <div className="space-y-2">
-                          <Label>Estratégia de amortização</Label>
-                          <Select value={debt.payoffStrategy} onValueChange={(value) => handleDebtChange(debtType, 'payoffStrategy', value)}>
+                          <Label>CET (% ao ano)</Label>
+                          <Input 
+                            type="number" 
+                            step="0.01" 
+                            value={debt.cetPercentage?.toString() || ''} 
+                            onChange={(e) => handleDebtChange(debt.id, 'cetPercentage', e.target.value ? parseFloat(e.target.value) : null)} 
+                            placeholder="Ex: 12.5" 
+                            className="crm-input" 
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Prazo</Label>
+                          <div className="flex gap-2">
+                            <Input 
+                              type="number" 
+                              value={debt.term?.toString() || ''} 
+                              onChange={(e) => handleDebtChange(debt.id, 'term', e.target.value ? parseInt(e.target.value) : null)} 
+                              placeholder="Ex: 24" 
+                              className="crm-input flex-1" 
+                            />
+                            <Select value={debt.termUnit} onValueChange={(value) => handleDebtChange(debt.id, 'termUnit', value)}>
+                              <SelectTrigger className="crm-input w-24"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="meses">meses</SelectItem>
+                                <SelectItem value="anos">anos</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Sistema de Amortização</Label>
+                          <Select value={debt.amortizationSystem} onValueChange={(value) => handleDebtChange(debt.id, 'amortizationSystem', value)}>
                             <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                            <SelectContent>{AMORTIZATION_STRATEGY_OPTIONS.map((strategy) => (<SelectItem key={strategy} value={strategy}>{strategy}</SelectItem>))}</SelectContent>
+                            <SelectContent>
+                              {AMORTIZATION_SYSTEM_OPTIONS.map((system) => (
+                                <SelectItem key={system} value={system}>{system}</SelectItem>
+                              ))}
+                            </SelectContent>
                           </Select>
                         </div>
-                        <div className="space-y-2">
-                          <Label>Em quantos anos a dívida termina</Label>
-                          <Input type="number" step="0.5" value={debt.payoffYears?.toString() || ''} onChange={(e) => handleDebtChange(debtType, 'payoffYears', e.target.value ? parseFloat(e.target.value) : null)} placeholder="Ex: 2.5" className="crm-input" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Economia estimada</Label>
-                          <CurrencyInput value={debt.payoffSavings?.toString() || ''} onChange={(value) => handleDebtChange(debtType, 'payoffSavings', value ? parseFloat(value) : null)} />
+                      </div>
+                      
+                      <div className="p-3 bg-card rounded-lg border border-border">
+                        <h5 className="text-sm font-medium text-muted-foreground mb-3">Planejamento de Quitação (Consultoria)</h5>
+                        <div className="grid grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label>Estratégia de amortização</Label>
+                            <Select value={debt.payoffStrategy} onValueChange={(value) => handleDebtChange(debt.id, 'payoffStrategy', value)}>
+                              <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                              <SelectContent>
+                                {AMORTIZATION_STRATEGY_OPTIONS.map((strategy) => (
+                                  <SelectItem key={strategy} value={strategy}>{strategy}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Em quantos anos a dívida termina</Label>
+                            <Input 
+                              type="number" 
+                              step="0.5" 
+                              value={debt.payoffYears?.toString() || ''} 
+                              onChange={(e) => handleDebtChange(debt.id, 'payoffYears', e.target.value ? parseFloat(e.target.value) : null)} 
+                              placeholder="Ex: 2.5" 
+                              className="crm-input" 
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Economia estimada</Label>
+                            <CurrencyInput 
+                              value={debt.payoffSavings?.toString() || ''} 
+                              onChange={(value) => handleDebtChange(debt.id, 'payoffSavings', value ? parseFloat(value) : null)} 
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+
+                <Button type="button" variant="outline" size="sm" onClick={handleAddDebt} className="mt-2">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Adicionar dívida
+                </Button>
+              </div>
             </CollapsibleSection>
 
             {/* SECTION 5: Estratégia de Alocação */}
