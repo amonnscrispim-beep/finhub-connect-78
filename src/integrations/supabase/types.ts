@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_debt_simulations: {
+        Row: {
+          amortization_system: string
+          client_id: string
+          created_at: string
+          debt_type: string
+          extra_amortizations: Json | null
+          id: string
+          installments_count: number
+          interest_period: string
+          interest_rate: number
+          name: string
+          principal_value: number
+          start_month: number
+          start_year: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amortization_system?: string
+          client_id: string
+          created_at?: string
+          debt_type?: string
+          extra_amortizations?: Json | null
+          id?: string
+          installments_count?: number
+          interest_period?: string
+          interest_rate?: number
+          name?: string
+          principal_value?: number
+          start_month: number
+          start_year: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amortization_system?: string
+          client_id?: string
+          created_at?: string
+          debt_type?: string
+          extra_amortizations?: Json | null
+          id?: string
+          installments_count?: number
+          interest_period?: string
+          interest_rate?: number
+          name?: string
+          principal_value?: number
+          start_month?: number
+          start_year?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           age: number | null
