@@ -33,6 +33,7 @@ export type Database = {
           emergency_reserve: number | null
           files: Json | null
           financial_assets: number | null
+          financial_institutions: string | null
           funnel_stage: string | null
           has_children: boolean | null
           id: string
@@ -40,8 +41,10 @@ export type Database = {
           investor_profile: string | null
           is_renewed_client: boolean | null
           last_activity_at: string | null
+          long_term_goals: string | null
           married: boolean | null
           material_assets: number | null
+          medium_term_goals: string | null
           meeting_notes: Json | null
           monthly_contribution: number | null
           monthly_revenue: number | null
@@ -64,6 +67,7 @@ export type Database = {
           residence: string | null
           retirement_goal: Json | null
           scheduled_meeting: Json | null
+          short_term_goals: string | null
           state: string | null
           updated_at: string
           user_id: string
@@ -87,6 +91,7 @@ export type Database = {
           emergency_reserve?: number | null
           files?: Json | null
           financial_assets?: number | null
+          financial_institutions?: string | null
           funnel_stage?: string | null
           has_children?: boolean | null
           id?: string
@@ -94,8 +99,10 @@ export type Database = {
           investor_profile?: string | null
           is_renewed_client?: boolean | null
           last_activity_at?: string | null
+          long_term_goals?: string | null
           married?: boolean | null
           material_assets?: number | null
+          medium_term_goals?: string | null
           meeting_notes?: Json | null
           monthly_contribution?: number | null
           monthly_revenue?: number | null
@@ -118,6 +125,7 @@ export type Database = {
           residence?: string | null
           retirement_goal?: Json | null
           scheduled_meeting?: Json | null
+          short_term_goals?: string | null
           state?: string | null
           updated_at?: string
           user_id: string
@@ -141,6 +149,7 @@ export type Database = {
           emergency_reserve?: number | null
           files?: Json | null
           financial_assets?: number | null
+          financial_institutions?: string | null
           funnel_stage?: string | null
           has_children?: boolean | null
           id?: string
@@ -148,8 +157,10 @@ export type Database = {
           investor_profile?: string | null
           is_renewed_client?: boolean | null
           last_activity_at?: string | null
+          long_term_goals?: string | null
           married?: boolean | null
           material_assets?: number | null
+          medium_term_goals?: string | null
           meeting_notes?: Json | null
           monthly_contribution?: number | null
           monthly_revenue?: number | null
@@ -172,6 +183,7 @@ export type Database = {
           residence?: string | null
           retirement_goal?: Json | null
           scheduled_meeting?: Json | null
+          short_term_goals?: string | null
           state?: string | null
           updated_at?: string
           user_id?: string

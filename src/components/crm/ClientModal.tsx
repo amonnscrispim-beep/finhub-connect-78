@@ -119,6 +119,10 @@ interface FormData {
   consultingFinished: boolean;
   isRenewedClient: boolean;
   consultingReason: string;
+  financialInstitutions: string;
+  shortTermGoals: string;
+  mediumTermGoals: string;
+  longTermGoals: string;
   professionalProfile: string;
 }
 
@@ -185,6 +189,10 @@ const defaultFormData: FormData = {
   isRenewedClient: false,
   consultingReason: '',
   professionalProfile: '',
+  financialInstitutions: '',
+  shortTermGoals: '',
+  mediumTermGoals: '',
+  longTermGoals: '',
 };
 
 export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
@@ -248,6 +256,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         isRenewedClient: client.isRenewedClient || false,
         consultingReason: client.consultingReason || '',
         professionalProfile: client.professionalProfile || '',
+        financialInstitutions: client.financialInstitutions || '',
+        shortTermGoals: client.shortTermGoals || '',
+        mediumTermGoals: client.mediumTermGoals || '',
+        longTermGoals: client.longTermGoals || '',
       });
       setDraftGoals([]);
     } else {
@@ -373,6 +385,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       isRenewedClient: formData.isRenewedClient,
       consultingReason: formData.consultingReason || null,
       professionalProfile: formData.professionalProfile || null,
+      financialInstitutions: formData.financialInstitutions || null,
+      shortTermGoals: formData.shortTermGoals || null,
+      mediumTermGoals: formData.mediumTermGoals || null,
+      longTermGoals: formData.longTermGoals || null,
     };
 
     try {
@@ -743,6 +759,59 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   <SelectTrigger className="crm-input w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>{ORGANIZED_FINANCES_OPTIONS.map((option) => (<SelectItem key={option} value={option}>{option}</SelectItem>))}</SelectContent>
                 </Select>
+              </div>
+
+              {/* Instituições Financeiras */}
+              <div className="space-y-2">
+                <Label htmlFor="financialInstitutions">Instituições Financeiras</Label>
+                <Textarea 
+                  id="financialInstitutions" 
+                  value={formData.financialInstitutions} 
+                  onChange={(e) => handleChange('financialInstitutions', e.target.value)} 
+                  placeholder="Ex: Itaú, BTG Pactual, XP, Nubank, corretora internacional, previdência privada, etc."
+                  className="crm-input min-h-[80px]"
+                />
+              </div>
+
+              {/* Objetivos Financeiros */}
+              <div className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
+                <h4 className="font-medium text-foreground flex items-center gap-2">
+                  <Target className="w-4 h-4" />
+                  Objetivos Financeiros
+                </h4>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="shortTermGoals">Curto Prazo</Label>
+                  <Textarea 
+                    id="shortTermGoals" 
+                    value={formData.shortTermGoals} 
+                    onChange={(e) => handleChange('shortTermGoals', e.target.value)} 
+                    placeholder="Ex: reserva de emergência, quitar dívidas, viagem, compra de carro…"
+                    className="crm-input min-h-[70px]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="mediumTermGoals">Médio Prazo</Label>
+                  <Textarea 
+                    id="mediumTermGoals" 
+                    value={formData.mediumTermGoals} 
+                    onChange={(e) => handleChange('mediumTermGoals', e.target.value)} 
+                    placeholder="Ex: troca de imóvel, expansão profissional, renda passiva inicial…"
+                    className="crm-input min-h-[70px]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="longTermGoals">Longo Prazo</Label>
+                  <Textarea 
+                    id="longTermGoals" 
+                    value={formData.longTermGoals} 
+                    onChange={(e) => handleChange('longTermGoals', e.target.value)} 
+                    placeholder="Ex: aposentadoria, independência financeira, sucessão patrimonial…"
+                    className="crm-input min-h-[70px]"
+                  />
+                </div>
               </div>
             </CollapsibleSection>
 
