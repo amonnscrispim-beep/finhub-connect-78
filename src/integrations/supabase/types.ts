@@ -209,6 +209,62 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_meetings: {
+        Row: {
+          client_email: string | null
+          client_id: string | null
+          client_name: string
+          created_at: string
+          description: string | null
+          end_at: string
+          google_event_id: string | null
+          id: string
+          start_at: string
+          timezone: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_email?: string | null
+          client_id?: string | null
+          client_name: string
+          created_at?: string
+          description?: string | null
+          end_at: string
+          google_event_id?: string | null
+          id?: string
+          start_at: string
+          timezone?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_email?: string | null
+          client_id?: string | null
+          client_name?: string
+          created_at?: string
+          description?: string | null
+          end_at?: string
+          google_event_id?: string | null
+          id?: string
+          start_at?: string
+          timezone?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_meetings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financial_goals: {
         Row: {
           annual_interest_rate: number | null
@@ -326,6 +382,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_google_oauth: {
+        Row: {
+          created_at: string
+          google_email: string | null
+          id: string
+          refresh_token: string
+          scope: string | null
+          token_type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          google_email?: string | null
+          id?: string
+          refresh_token: string
+          scope?: string | null
+          token_type?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          google_email?: string | null
+          id?: string
+          refresh_token?: string
+          scope?: string | null
+          token_type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
