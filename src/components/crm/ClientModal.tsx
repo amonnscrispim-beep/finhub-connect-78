@@ -46,8 +46,19 @@ import { ClientFiles } from './ClientFiles';
 import { Progress } from '@/components/ui/progress';
 import { CollapsibleSection } from './CollapsibleSection';
 import { FinancialGoalsSection } from './FinancialGoalsSection';
+import { DraftFinancialGoalsSection, DraftGoal } from './DraftFinancialGoalsSection';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 import type { InvestorProfile, FunnelStage, Residence, RenewalStatus, ContractedMeetings, PrivatePensionStatus, PrivatePensionType, OrganizedFinancesStatus, AmortizationSystem, AmortizationStrategy } from '@/types/client';
+
+// List of common countries for international clients
+const COMMON_COUNTRIES = [
+  'Estados Unidos', 'Portugal', 'Espanha', 'Alemanha', 'França', 'Reino Unido', 
+  'Itália', 'Canadá', 'Austrália', 'Japão', 'Suíça', 'Holanda', 'Irlanda',
+  'Dubai (EAU)', 'Singapura', 'Argentina', 'Chile', 'México', 'Outro'
+];
 
 interface ClientModalProps {
   open: boolean;
@@ -76,6 +87,7 @@ interface FormData {
   observations: string;
   city: string;
   state: string;
+  country: string;
   funnelStage: FunnelStage;
   renewed: boolean;
   renewalPotential: boolean;
@@ -132,6 +144,7 @@ const defaultFormData: FormData = {
   observations: '',
   city: '',
   state: 'SP',
+  country: '',
   funnelStage: 'Em atendimento',
   renewed: false,
   renewalPotential: false,
@@ -167,7 +180,10 @@ const defaultFormData: FormData = {
 
 export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   const { addClient, updateClient } = useClients();
+  const { user } = useAuth();
   const [formData, setFormData] = useState(defaultFormData);
+  const [draftGoals, setDraftGoals] = useState<DraftGoal[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (client) {
@@ -192,6 +208,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         observations: client.observations,
         city: client.city,
         state: client.state,
+        country: client.country || '',
         funnelStage: client.funnelStage,
         renewed: client.renewed,
         renewalPotential: client.renewalPotential,
@@ -224,13 +241,35 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         consultingFinished: client.consultingFinished || false,
         isRenewedClient: client.isRenewedClient || false,
       });
+      setDraftGoals([]);
     } else {
       setFormData(defaultFormData);
+      setDraftGoals([]);
     }
   }, [client, open]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Handle status automation rules
+  const handleConsultingFinishedChange = (value: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      consultingFinished: value,
+      // Rule: If consultingFinished = Sim, automatically pendingSchedule = Não
+      pendingSchedule: value ? false : prev.pendingSchedule,
+    }));
+  };
+
+  const handleRenewedChange = (value: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      renewed: value,
+      // Rule: If renewed = Sim, renewalStatus changes to "Renovação"
+      renewalStatus: value ? 'Renovação' : prev.renewalStatus,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
     
     let partner: PartnerInfo | null = null;
     if (formData.married && (formData.partnerName || formData.partnerAge || formData.partnerProfession)) {
@@ -271,6 +310,11 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       };
     }
 
+    // Handle state/country based on residence
+    const isExterior = formData.residence === 'Mora no exterior';
+    const finalState = isExterior ? '' : formData.state;
+    const finalCountry = isExterior ? formData.country : '';
+
     const clientData = {
       contractStart: new Date(formData.contractStart),
       contractEnd: new Date(formData.contractEnd),
@@ -292,7 +336,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       tasks: client?.tasks || [],
       observations: formData.observations,
       city: formData.city,
-      state: formData.state,
+      state: finalState,
+      country: finalCountry,
       funnelStage: formData.funnelStage,
       renewed: formData.renewed,
       renewalPotential: formData.renewalPotential,
@@ -320,13 +365,47 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       isRenewedClient: formData.isRenewedClient,
     };
 
-    if (client) {
-      updateClient(client.id, clientData);
-    } else {
-      addClient(clientData);
+    try {
+      if (client) {
+        await updateClient(client.id, clientData);
+      } else {
+        // Add new client and save draft goals
+        const newClient = await addClient(clientData);
+        
+        // Save draft goals to database
+        if (draftGoals.length > 0 && user && newClient) {
+          const goalsToInsert = draftGoals.map(goal => ({
+            client_id: newClient.id,
+            user_id: user.id,
+            name: goal.name,
+            goal_type: goal.goal_type,
+            target_amount: goal.target_amount,
+            current_amount: goal.current_amount,
+            monthly_contribution: goal.monthly_contribution,
+            annual_interest_rate: goal.annual_interest_rate,
+            deadline_months: goal.deadline_months,
+          }));
+          
+          const { error } = await supabase
+            .from('financial_goals')
+            .insert(goalsToInsert);
+          
+          if (error) {
+            console.error('Error saving draft goals:', error);
+            toast.error('Cliente salvo, mas houve erro ao salvar as metas');
+          } else {
+            toast.success('Cliente e metas salvos com sucesso!');
+          }
+        }
+      }
+      
+      setIsSaving(false);
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error saving client:', error);
+      setIsSaving(false);
+      // Don't close modal on error - keep draft data
     }
-    
-    onOpenChange(false);
   };
 
   const handleChange = (field: string, value: string | boolean | Date | null | ContractedMeetings) => {
@@ -416,6 +495,9 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
 
   const portfolioValid = portfolioTotal === 0 || portfolioTotal === 100;
 
+  // Check if client lives abroad
+  const isExterior = formData.residence === 'Mora no exterior';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] p-0">
@@ -428,8 +510,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         <ScrollArea className="max-h-[calc(90vh-140px)]">
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
             
-            {/* SECTION 1: Informações Pessoais */}
-            <CollapsibleSection title="Informações Pessoais" icon={User} defaultOpen={true}>
+            {/* SECTION 1: Informações Pessoais - defaultOpen=false */}
+            <CollapsibleSection title="Informações Pessoais" icon={User} defaultOpen={false}>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="contractStart">Início do Contrato</Label>
@@ -485,18 +567,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 </div>
               </div>
 
+              {/* Residence and Location fields */}
               <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="city">Cidade</Label>
-                  <Input id="city" value={formData.city} onChange={(e) => handleChange('city', e.target.value)} placeholder="São Paulo" className="crm-input" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="state">UF</Label>
-                  <Select value={formData.state} onValueChange={(value) => handleChange('state', value)}>
-                    <SelectTrigger className="crm-input"><SelectValue /></SelectTrigger>
-                    <SelectContent>{BRAZILIAN_STATES.map((state) => (<SelectItem key={state} value={state}>{state}</SelectItem>))}</SelectContent>
-                  </Select>
-                </div>
                 <div className="space-y-2">
                   <Label htmlFor="residence">Residência</Label>
                   <Select value={formData.residence} onValueChange={(value) => handleChange('residence', value)}>
@@ -504,6 +576,32 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                     <SelectContent>{RESIDENCE_OPTIONS.map((option) => (<SelectItem key={option} value={option}>{option}</SelectItem>))}</SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="city">Cidade</Label>
+                  <Input id="city" value={formData.city} onChange={(e) => handleChange('city', e.target.value)} placeholder="São Paulo" className="crm-input" />
+                </div>
+                {/* Show UF for Brazil, Country for Exterior */}
+                {isExterior ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="country">País *</Label>
+                    <Select value={formData.country} onValueChange={(value) => handleChange('country', value)}>
+                      <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione o país..." /></SelectTrigger>
+                      <SelectContent>
+                        {COMMON_COUNTRIES.map((country) => (
+                          <SelectItem key={country} value={country}>{country}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="state">UF {formData.residence === 'Mora no Brasil' ? '*' : ''}</Label>
+                    <Select value={formData.state} onValueChange={(value) => handleChange('state', value)}>
+                      <SelectTrigger className="crm-input"><SelectValue /></SelectTrigger>
+                      <SelectContent>{BRAZILIAN_STATES.map((state) => (<SelectItem key={state} value={state}>{state}</SelectItem>))}</SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -758,15 +856,15 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               </div>
             </CollapsibleSection>
 
-            {/* SECTION 7: Metas Financeiras */}
-            <CollapsibleSection title="Metas Financeiras" icon={Target} defaultOpen={client ? true : false}>
+            {/* SECTION 7: Metas Financeiras - Now works before save! */}
+            <CollapsibleSection title="Metas Financeiras" icon={Target} defaultOpen={false}>
               {client ? (
                 <FinancialGoalsSection clientId={client.id} />
               ) : (
-                <div className="text-center py-6 text-muted-foreground">
-                  <Target className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                  <p>Salve o cliente primeiro para adicionar metas financeiras</p>
-                </div>
+                <DraftFinancialGoalsSection 
+                  draftGoals={draftGoals} 
+                  onGoalsChange={setDraftGoals} 
+                />
               )}
             </CollapsibleSection>
 
@@ -817,9 +915,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               </div>
             </CollapsibleSection>
 
-            {/* SECTION 10: Status do Cliente */}
+            {/* SECTION 10: Status do Cliente - SIMPLIFIED */}
             <CollapsibleSection title="Status do Cliente" icon={CheckCircle} defaultOpen={false}>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {/* Etapa do funil */}
                 <div className="space-y-2">
                   <Label htmlFor="funnelStage">Etapa do Funil</Label>
                   <Select value={formData.funnelStage} onValueChange={(value) => handleChange('funnelStage', value)}>
@@ -827,30 +926,21 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                     <SelectContent>{FUNNEL_STAGES.map((stage) => (<SelectItem key={stage} value={stage}>{stage}</SelectItem>))}</SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="renewed">Renovado?</Label>
-                  <Select value={formData.renewed ? 'sim' : 'não'} onValueChange={(value) => handleChange('renewed', value === 'sim')}>
-                    <SelectTrigger className="crm-input"><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="sim">Sim</SelectItem><SelectItem value="não">Não</SelectItem></SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="renewalPotential">Potencial Renovação?</Label>
-                  <Select value={formData.renewalPotential ? 'sim' : 'não'} onValueChange={(value) => handleChange('renewalPotential', value === 'sim')}>
-                    <SelectTrigger className="crm-input"><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="sim">Sim</SelectItem><SelectItem value="não">Não</SelectItem></SelectContent>
-                  </Select>
-                </div>
+                
+                {/* Agendamento pendente */}
                 <div className="space-y-2">
                   <Label htmlFor="pendingSchedule">Agendamento Pendente?</Label>
-                  <Select value={formData.pendingSchedule ? 'sim' : 'não'} onValueChange={(value) => handleChange('pendingSchedule', value === 'sim')}>
+                  <Select 
+                    value={formData.pendingSchedule ? 'sim' : 'não'} 
+                    onValueChange={(value) => handleChange('pendingSchedule', value === 'sim')}
+                    disabled={formData.consultingFinished}
+                  >
                     <SelectTrigger className={`crm-input ${formData.pendingSchedule ? 'border-destructive bg-destructive/10' : ''}`}><SelectValue /></SelectTrigger>
                     <SelectContent><SelectItem value="sim">Sim</SelectItem><SelectItem value="não">Não</SelectItem></SelectContent>
                   </Select>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
+                {/* Status de renovação */}
                 <div className="space-y-2">
                   <Label htmlFor="renewalStatus">Status de Renovação</Label>
                   <Select value={formData.renewalStatus} onValueChange={(value) => handleChange('renewalStatus', value)}>
@@ -858,13 +948,17 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                     <SelectContent>{RENEWAL_STATUS_OPTIONS.map((status) => (<SelectItem key={status} value={status}>{status}</SelectItem>))}</SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {/* Data de renovação */}
                 <div className="space-y-2">
                   <Label htmlFor="renewalDate">Data de Renovação</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className={cn("w-full justify-start text-left font-normal crm-input", !formData.renewalDate && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {formData.renewalDate ? format(new Date(formData.renewalDate), "dd/MM/yyyy", { locale: ptBR }) : <span>Selecione uma data</span>}
+                        {formData.renewalDate ? format(new Date(formData.renewalDate), "dd/MM/yyyy", { locale: ptBR }) : <span>Selecione</span>}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -872,24 +966,33 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                     </PopoverContent>
                   </Popover>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
+                {/* Renovado? */}
                 <div className="space-y-2">
-                  <Label htmlFor="consultingFinished">Consultoria finalizada?</Label>
-                  <Select value={formData.consultingFinished ? 'sim' : 'não'} onValueChange={(value) => handleChange('consultingFinished', value === 'sim')}>
+                  <Label htmlFor="renewed">Renovado?</Label>
+                  <Select value={formData.renewed ? 'sim' : 'não'} onValueChange={(value) => handleRenewedChange(value === 'sim')}>
+                    <SelectTrigger className="crm-input"><SelectValue /></SelectTrigger>
+                    <SelectContent><SelectItem value="sim">Sim</SelectItem><SelectItem value="não">Não</SelectItem></SelectContent>
+                  </Select>
+                </div>
+
+                {/* Potencial de renovação */}
+                <div className="space-y-2">
+                  <Label htmlFor="renewalPotential">Potencial Renovação?</Label>
+                  <Select value={formData.renewalPotential ? 'sim' : 'não'} onValueChange={(value) => handleChange('renewalPotential', value === 'sim')}>
+                    <SelectTrigger className="crm-input"><SelectValue /></SelectTrigger>
+                    <SelectContent><SelectItem value="sim">Sim</SelectItem><SelectItem value="não">Não</SelectItem></SelectContent>
+                  </Select>
+                </div>
+
+                {/* Consultoria finalizada */}
+                <div className="space-y-2">
+                  <Label htmlFor="consultingFinished">Consultoria Finalizada?</Label>
+                  <Select value={formData.consultingFinished ? 'sim' : 'não'} onValueChange={(value) => handleConsultingFinishedChange(value === 'sim')}>
                     <SelectTrigger className={`crm-input ${formData.consultingFinished ? 'border-muted-foreground bg-muted/50' : ''}`}><SelectValue /></SelectTrigger>
                     <SelectContent><SelectItem value="sim">Sim</SelectItem><SelectItem value="não">Não</SelectItem></SelectContent>
                   </Select>
-                  {formData.consultingFinished && <p className="text-xs text-muted-foreground">Este cliente não será contado no total de clientes ativos</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="isRenewedClient" className="flex items-center gap-2"><Award className="w-4 h-4 text-amber-500" />Cliente renovado?</Label>
-                  <Select value={formData.isRenewedClient ? 'sim' : 'não'} onValueChange={(value) => handleChange('isRenewedClient', value === 'sim')}>
-                    <SelectTrigger className={`crm-input ${formData.isRenewedClient ? 'border-amber-500/50 bg-amber-500/10' : ''}`}><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="sim">Sim</SelectItem><SelectItem value="não">Não</SelectItem></SelectContent>
-                  </Select>
-                  {formData.isRenewedClient && <p className="text-xs text-amber-600">Identificado como cliente premium renovado</p>}
+                  {formData.consultingFinished && <p className="text-xs text-muted-foreground">Cliente não contado no total de ativos</p>}
                 </div>
               </div>
             </CollapsibleSection>
@@ -902,7 +1005,9 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
             {/* Submit Button */}
             <div className="pt-4 flex justify-end gap-3">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button type="submit" className="crm-button-primary">{client ? 'Salvar Alterações' : 'Adicionar Cliente'}</Button>
+              <Button type="submit" className="crm-button-primary" disabled={isSaving}>
+                {isSaving ? 'Salvando...' : (client ? 'Salvar Alterações' : 'Adicionar Cliente')}
+              </Button>
             </div>
           </form>
         </ScrollArea>

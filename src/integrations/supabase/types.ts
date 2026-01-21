@@ -25,6 +25,7 @@ export type Database = {
           contract_end: string
           contract_start: string
           contracted_meetings: number | null
+          country: string
           created_at: string
           debts: Json | null
           email: string | null
@@ -76,6 +77,7 @@ export type Database = {
           contract_end?: string
           contract_start?: string
           contracted_meetings?: number | null
+          country?: string
           created_at?: string
           debts?: Json | null
           email?: string | null
@@ -127,6 +129,7 @@ export type Database = {
           contract_end?: string
           contract_start?: string
           contracted_meetings?: number | null
+          country?: string
           created_at?: string
           debts?: Json | null
           email?: string | null

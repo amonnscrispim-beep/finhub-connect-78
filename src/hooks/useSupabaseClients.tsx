@@ -51,6 +51,7 @@ function dbToClient(row: ClientRow): Client {
     observations: row.observations ?? '',
     city: row.city ?? '',
     state: row.state ?? 'SP',
+    country: (row as any).country ?? '',
     funnelStage: (row.funnel_stage as FunnelStage) ?? 'Em atendimento',
     renewed: row.renewed ?? false,
     renewalPotential: row.renewal_potential ?? false,
@@ -105,6 +106,7 @@ function clientToDbInsert(client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>
     observations: client.observations,
     city: client.city,
     state: client.state,
+    country: client.country,
     funnel_stage: client.funnelStage,
     renewed: client.renewed,
     renewal_potential: client.renewalPotential,
@@ -157,6 +159,7 @@ function clientToDbUpdate(updates: Partial<Client>): TablesUpdate<'clients'> {
   if (updates.observations !== undefined) dbUpdates.observations = updates.observations;
   if (updates.city !== undefined) dbUpdates.city = updates.city;
   if (updates.state !== undefined) dbUpdates.state = updates.state;
+  if ((updates as any).country !== undefined) (dbUpdates as any).country = (updates as any).country;
   if (updates.funnelStage !== undefined) dbUpdates.funnel_stage = updates.funnelStage;
   if (updates.renewed !== undefined) dbUpdates.renewed = updates.renewed;
   if (updates.renewalPotential !== undefined) dbUpdates.renewal_potential = updates.renewalPotential;

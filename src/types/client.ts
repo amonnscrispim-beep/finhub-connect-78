@@ -127,6 +127,7 @@ export interface Client {
   observations: string;
   city: string;
   state: string;
+  country: string; // For international clients (residence = Mora no exterior)
   funnelStage: FunnelStage;
   renewed: boolean;
   renewalPotential: boolean;
