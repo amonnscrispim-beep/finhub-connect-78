@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { 
   Heart, Users, PieChart, Landmark, Target, Calendar, Cake, CreditCard, 
-  TrendingUp, Award, CheckCircle, User, DollarSign, FileText, Briefcase, ClipboardList
+  TrendingUp, Award, CheckCircle, User, DollarSign, FileText, Briefcase, ClipboardList,
+  Calculator
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -50,6 +51,7 @@ import { CollapsibleSection } from './CollapsibleSection';
 import { FinancialGoalsSection } from './FinancialGoalsSection';
 import { DraftFinancialGoalsSection, DraftGoal } from './DraftFinancialGoalsSection';
 import { EmergencyReserveModule, EmergencyReserveData } from './EmergencyReserveModule';
+import { DebtSimulatorModule } from './DebtSimulatorModule';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -1183,7 +1185,14 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               </div>
             </CollapsibleSection>
 
-            {/* SECTION 11: Arquivos do Cliente */}
+            {/* SECTION 11: Simulador de Amortização - only show for existing clients */}
+            {client && (
+              <CollapsibleSection title="Simulador de Amortização" icon={Calculator} defaultOpen={false}>
+                <DebtSimulatorModule clientId={client.id} />
+              </CollapsibleSection>
+            )}
+
+            {/* SECTION 12: Arquivos do Cliente */}
             <CollapsibleSection title="Arquivos do Cliente" icon={FileText} defaultOpen={false}>
               <ClientFiles files={formData.files} onFilesChange={handleFilesChange} />
             </CollapsibleSection>
