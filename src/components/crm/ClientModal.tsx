@@ -49,6 +49,7 @@ import { Progress } from '@/components/ui/progress';
 import { CollapsibleSection } from './CollapsibleSection';
 import { FinancialGoalsSection } from './FinancialGoalsSection';
 import { DraftFinancialGoalsSection, DraftGoal } from './DraftFinancialGoalsSection';
+import { EmergencyReserveModule, EmergencyReserveData } from './EmergencyReserveModule';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -123,6 +124,12 @@ interface FormData {
   mediumTermGoals: string;
   longTermGoals: string;
   professionalProfile: string;
+  currentWealthNotes: string;
+  emergencyStartMonth: number | null;
+  emergencyStartYear: number | null;
+  monthlyLivingCost: string;
+  emergencyCoverageMonths: string;
+  emergencyContributionsCount: string;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
@@ -191,6 +198,12 @@ const defaultFormData: FormData = {
   shortTermGoals: '',
   mediumTermGoals: '',
   longTermGoals: '',
+  currentWealthNotes: '',
+  emergencyStartMonth: null,
+  emergencyStartYear: null,
+  monthlyLivingCost: '',
+  emergencyCoverageMonths: '6',
+  emergencyContributionsCount: '12',
 };
 
 export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
@@ -257,6 +270,12 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         shortTermGoals: client.shortTermGoals || '',
         mediumTermGoals: client.mediumTermGoals || '',
         longTermGoals: client.longTermGoals || '',
+        currentWealthNotes: client.currentWealthNotes || '',
+        emergencyStartMonth: client.emergencyStartMonth,
+        emergencyStartYear: client.emergencyStartYear,
+        monthlyLivingCost: client.monthlyLivingCost?.toString() || '',
+        emergencyCoverageMonths: client.emergencyCoverageMonths?.toString() || '6',
+        emergencyContributionsCount: client.emergencyContributionsCount?.toString() || '12',
       });
       setDraftGoals([]);
     } else {
@@ -386,6 +405,12 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       shortTermGoals: formData.shortTermGoals || null,
       mediumTermGoals: formData.mediumTermGoals || null,
       longTermGoals: formData.longTermGoals || null,
+      currentWealthNotes: formData.currentWealthNotes || null,
+      emergencyStartMonth: formData.emergencyStartMonth,
+      emergencyStartYear: formData.emergencyStartYear,
+      monthlyLivingCost: formData.monthlyLivingCost ? parseFloat(formData.monthlyLivingCost) : null,
+      emergencyCoverageMonths: formData.emergencyCoverageMonths ? parseInt(formData.emergencyCoverageMonths) : 6,
+      emergencyContributionsCount: formData.emergencyContributionsCount ? parseInt(formData.emergencyContributionsCount) : 12,
     };
 
     try {
@@ -753,6 +778,18 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 </Select>
               </div>
 
+              {/* Patrimônio Atual */}
+              <div className="space-y-2">
+                <Label htmlFor="currentWealthNotes">Patrimônio Atual</Label>
+                <Textarea 
+                  id="currentWealthNotes" 
+                  value={formData.currentWealthNotes} 
+                  onChange={(e) => handleChange('currentWealthNotes', e.target.value)} 
+                  placeholder="• Imóvel residencial em fase final de construção (valor ainda não estimado)&#10;• Veículo próprio avaliado em aproximadamente R$ 30.000&#10;• Veículo da esposa avaliado entre R$ 15.000 e R$ 20.000"
+                  className="crm-input min-h-[100px]"
+                />
+              </div>
+
               {/* Instituições Financeiras */}
               <div className="space-y-2">
                 <Label htmlFor="financialInstitutions">Instituições Financeiras</Label>
@@ -764,6 +801,31 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   className="crm-input min-h-[80px]"
                 />
               </div>
+
+              {/* Módulo de Reserva de Emergência */}
+              <EmergencyReserveModule
+                data={{
+                  startMonth: formData.emergencyStartMonth,
+                  startYear: formData.emergencyStartYear,
+                  monthlyLivingCost: formData.monthlyLivingCost ? parseFloat(formData.monthlyLivingCost) : null,
+                  coverageMonths: formData.emergencyCoverageMonths ? parseInt(formData.emergencyCoverageMonths) : 6,
+                  contributionsCount: formData.emergencyContributionsCount ? parseInt(formData.emergencyContributionsCount) : 12,
+                  currentReserve: formData.emergencyReserve ? parseFloat(formData.emergencyReserve) : 0,
+                }}
+                onChange={(field, value) => {
+                  if (field === 'startMonth') {
+                    setFormData(prev => ({ ...prev, emergencyStartMonth: value }));
+                  } else if (field === 'startYear') {
+                    setFormData(prev => ({ ...prev, emergencyStartYear: value }));
+                  } else if (field === 'monthlyLivingCost') {
+                    setFormData(prev => ({ ...prev, monthlyLivingCost: value?.toString() || '' }));
+                  } else if (field === 'coverageMonths') {
+                    setFormData(prev => ({ ...prev, emergencyCoverageMonths: value?.toString() || '6' }));
+                  } else if (field === 'contributionsCount') {
+                    setFormData(prev => ({ ...prev, emergencyContributionsCount: value?.toString() || '12' }));
+                  }
+                }}
+              />
 
               {/* Objetivos Financeiros */}
               <div className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">

@@ -174,6 +174,14 @@ export interface Client {
   shortTermGoals: string | null;
   mediumTermGoals: string | null;
   longTermGoals: string | null;
+  // Wealth notes field
+  currentWealthNotes: string | null;
+  // Emergency reserve calculation module
+  emergencyStartMonth: number | null;
+  emergencyStartYear: number | null;
+  monthlyLivingCost: number | null;
+  emergencyCoverageMonths: number | null;
+  emergencyContributionsCount: number | null;
   createdAt: Date;
   updatedAt: Date;
 }

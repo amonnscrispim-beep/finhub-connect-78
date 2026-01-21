@@ -83,6 +83,12 @@ function dbToClient(row: ClientRow): Client {
     shortTermGoals: (row as any).short_term_goals ?? null,
     mediumTermGoals: (row as any).medium_term_goals ?? null,
     longTermGoals: (row as any).long_term_goals ?? null,
+    currentWealthNotes: (row as any).current_wealth_notes ?? null,
+    emergencyStartMonth: (row as any).emergency_start_month ?? null,
+    emergencyStartYear: (row as any).emergency_start_year ?? null,
+    monthlyLivingCost: Number((row as any).monthly_living_cost) || null,
+    emergencyCoverageMonths: (row as any).emergency_coverage_months ?? 6,
+    emergencyContributionsCount: (row as any).emergency_contributions_count ?? 12,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -144,6 +150,12 @@ function clientToDbInsert(client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>
     short_term_goals: client.shortTermGoals,
     medium_term_goals: client.mediumTermGoals,
     long_term_goals: client.longTermGoals,
+    current_wealth_notes: client.currentWealthNotes,
+    emergency_start_month: client.emergencyStartMonth,
+    emergency_start_year: client.emergencyStartYear,
+    monthly_living_cost: client.monthlyLivingCost,
+    emergency_coverage_months: client.emergencyCoverageMonths,
+    emergency_contributions_count: client.emergencyContributionsCount,
   } as any;
 }
 
@@ -203,6 +215,12 @@ function clientToDbUpdate(updates: Partial<Client>): TablesUpdate<'clients'> {
   if (updates.shortTermGoals !== undefined) (dbUpdates as any).short_term_goals = updates.shortTermGoals;
   if (updates.mediumTermGoals !== undefined) (dbUpdates as any).medium_term_goals = updates.mediumTermGoals;
   if (updates.longTermGoals !== undefined) (dbUpdates as any).long_term_goals = updates.longTermGoals;
+  if (updates.currentWealthNotes !== undefined) (dbUpdates as any).current_wealth_notes = updates.currentWealthNotes;
+  if (updates.emergencyStartMonth !== undefined) (dbUpdates as any).emergency_start_month = updates.emergencyStartMonth;
+  if (updates.emergencyStartYear !== undefined) (dbUpdates as any).emergency_start_year = updates.emergencyStartYear;
+  if (updates.monthlyLivingCost !== undefined) (dbUpdates as any).monthly_living_cost = updates.monthlyLivingCost;
+  if (updates.emergencyCoverageMonths !== undefined) (dbUpdates as any).emergency_coverage_months = updates.emergencyCoverageMonths;
+  if (updates.emergencyContributionsCount !== undefined) (dbUpdates as any).emergency_contributions_count = updates.emergencyContributionsCount;
   
   return dbUpdates;
 }

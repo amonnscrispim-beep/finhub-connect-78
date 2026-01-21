@@ -28,9 +28,14 @@ export type Database = {
           contracted_meetings: number | null
           country: string
           created_at: string
+          current_wealth_notes: string | null
           debts: Json | null
           email: string | null
+          emergency_contributions_count: number | null
+          emergency_coverage_months: number | null
           emergency_reserve: number | null
+          emergency_start_month: number | null
+          emergency_start_year: number | null
           files: Json | null
           financial_assets: number | null
           financial_institutions: string | null
@@ -47,6 +52,7 @@ export type Database = {
           medium_term_goals: string | null
           meeting_notes: Json | null
           monthly_contribution: number | null
+          monthly_living_cost: number | null
           monthly_revenue: number | null
           name: string
           objective: string | null
@@ -86,9 +92,14 @@ export type Database = {
           contracted_meetings?: number | null
           country?: string
           created_at?: string
+          current_wealth_notes?: string | null
           debts?: Json | null
           email?: string | null
+          emergency_contributions_count?: number | null
+          emergency_coverage_months?: number | null
           emergency_reserve?: number | null
+          emergency_start_month?: number | null
+          emergency_start_year?: number | null
           files?: Json | null
           financial_assets?: number | null
           financial_institutions?: string | null
@@ -105,6 +116,7 @@ export type Database = {
           medium_term_goals?: string | null
           meeting_notes?: Json | null
           monthly_contribution?: number | null
+          monthly_living_cost?: number | null
           monthly_revenue?: number | null
           name: string
           objective?: string | null
@@ -144,9 +156,14 @@ export type Database = {
           contracted_meetings?: number | null
           country?: string
           created_at?: string
+          current_wealth_notes?: string | null
           debts?: Json | null
           email?: string | null
+          emergency_contributions_count?: number | null
+          emergency_coverage_months?: number | null
           emergency_reserve?: number | null
+          emergency_start_month?: number | null
+          emergency_start_year?: number | null
           files?: Json | null
           financial_assets?: number | null
           financial_institutions?: string | null
@@ -163,6 +180,7 @@ export type Database = {
           medium_term_goals?: string | null
           meeting_notes?: Json | null
           monthly_contribution?: number | null
+          monthly_living_cost?: number | null
           monthly_revenue?: number | null
           name?: string
           objective?: string | null
