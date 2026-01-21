@@ -21,7 +21,6 @@ import {
   ClientFile, 
   PartnerInfo,
   ChildInfo,
-  PortfolioDistribution,
   RetirementGoal,
   MeetingNotes,
   CONTRACTED_MEETINGS_OPTIONS,
@@ -37,6 +36,7 @@ import {
 } from '@/types/client';
 import { FUNNEL_STAGE_OPTIONS } from '@/lib/funnel-utils';
 import { PGBLCalculator } from './PGBLCalculator';
+import { AllocationStrategySection, AllocationData, migratePortfolioToAllocation, allocationToPortfolio } from './AllocationStrategySection';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
@@ -103,10 +103,7 @@ interface FormData {
   partnerProfession: string;
   hasChildren: boolean;
   children: ChildInfo[];
-  portfolioFixedIncome: string;
-  portfolioStocks: string;
-  portfolioRealEstate: string;
-  portfolioInternational: string;
+  allocation: AllocationData;
   privatePensionStatus: PrivatePensionStatus;
   privatePensionType: PrivatePensionType;
   retirementAge: string;
@@ -160,10 +157,16 @@ const defaultFormData: FormData = {
   partnerProfession: '',
   hasChildren: false,
   children: [],
-  portfolioFixedIncome: '',
-  portfolioStocks: '',
-  portfolioRealEstate: '',
-  portfolioInternational: '',
+  allocation: {
+    postFixed: 0,
+    preFixed: 0,
+    inflationIndexed: 0,
+    stocks: 0,
+    realEstate: 0,
+    international: 0,
+    objective: '',
+    horizon: ''
+  },
   privatePensionStatus: '',
   privatePensionType: '',
   retirementAge: '',
@@ -224,10 +227,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         partnerProfession: client.partner?.profession || '',
         hasChildren: client.hasChildren || false,
         children: client.children || [],
-        portfolioFixedIncome: client.portfolioDistribution?.fixedIncome?.toString() || '',
-        portfolioStocks: client.portfolioDistribution?.stocks?.toString() || '',
-        portfolioRealEstate: client.portfolioDistribution?.realEstate?.toString() || '',
-        portfolioInternational: client.portfolioDistribution?.international?.toString() || '',
+        allocation: migratePortfolioToAllocation(client.portfolioDistribution),
         privatePensionStatus: client.privatePensionStatus || '',
         privatePensionType: client.privatePensionType || '',
         retirementAge: client.retirementGoal?.desiredAge?.toString() || '',
@@ -286,15 +286,15 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
 
     let children: ChildInfo[] = formData.hasChildren ? formData.children : (client?.children || []);
 
-    let portfolioDistribution: PortfolioDistribution | null = null;
-    if (formData.portfolioFixedIncome || formData.portfolioStocks || formData.portfolioRealEstate || formData.portfolioInternational) {
-      portfolioDistribution = {
-        fixedIncome: parseFloat(formData.portfolioFixedIncome) || 0,
-        stocks: parseFloat(formData.portfolioStocks) || 0,
-        realEstate: parseFloat(formData.portfolioRealEstate) || 0,
-        international: parseFloat(formData.portfolioInternational) || 0,
-      };
-    }
+    // Convert allocation to portfolio distribution format
+    const hasAllocation = formData.allocation.postFixed > 0 || 
+      formData.allocation.preFixed > 0 || 
+      formData.allocation.inflationIndexed > 0 || 
+      formData.allocation.stocks > 0 || 
+      formData.allocation.realEstate > 0 || 
+      formData.allocation.international > 0;
+    
+    const portfolioDistribution = hasAllocation ? allocationToPortfolio(formData.allocation) : null;
 
     let retirementGoal: RetirementGoal | null = null;
     if (formData.retirementAge || formData.retirementIncome) {
@@ -410,7 +410,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     }
   };
 
-  const handleChange = (field: string, value: string | boolean | Date | null | ContractedMeetings) => {
+  const handleChange = (field: string, value: string | boolean | Date | null | ContractedMeetings | AllocationData) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -488,14 +488,6 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   const getDebtByType = (type: DebtType): DebtInfo | undefined => {
     return formData.debts.find(d => d.type === type);
   };
-
-  const portfolioTotal = 
-    (parseFloat(formData.portfolioFixedIncome) || 0) +
-    (parseFloat(formData.portfolioStocks) || 0) +
-    (parseFloat(formData.portfolioRealEstate) || 0) +
-    (parseFloat(formData.portfolioInternational) || 0);
-
-  const portfolioValid = portfolioTotal === 0 || portfolioTotal === 100;
 
   // Check if client lives abroad
   const isExterior = formData.residence === 'Mora no exterior';
@@ -790,38 +782,13 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               })}
             </CollapsibleSection>
 
-            {/* SECTION 5: Carteira de Investimentos */}
-            <CollapsibleSection title="Carteira de Investimentos" icon={PieChart} defaultOpen={false}>
-              <p className="text-sm text-muted-foreground mb-3">Distribuição atual da carteira do cliente (soma deve ser 100%)</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="portfolioFixedIncome">% Renda Fixa</Label>
-                  <Input id="portfolioFixedIncome" type="number" min="0" max="100" value={formData.portfolioFixedIncome} onChange={(e) => handleChange('portfolioFixedIncome', e.target.value)} placeholder="0" className="crm-input" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="portfolioStocks">% Ações</Label>
-                  <Input id="portfolioStocks" type="number" min="0" max="100" value={formData.portfolioStocks} onChange={(e) => handleChange('portfolioStocks', e.target.value)} placeholder="0" className="crm-input" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="portfolioRealEstate">% Fundos Imob.</Label>
-                  <Input id="portfolioRealEstate" type="number" min="0" max="100" value={formData.portfolioRealEstate} onChange={(e) => handleChange('portfolioRealEstate', e.target.value)} placeholder="0" className="crm-input" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="portfolioInternational">% Exterior</Label>
-                  <Input id="portfolioInternational" type="number" min="0" max="100" value={formData.portfolioInternational} onChange={(e) => handleChange('portfolioInternational', e.target.value)} placeholder="0" className="crm-input" />
-                </div>
-              </div>
-              
-              {portfolioTotal > 0 && (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Total:</span>
-                    <span className={portfolioValid ? 'text-green-600 font-medium' : 'text-destructive font-medium'}>{portfolioTotal}%</span>
-                  </div>
-                  <Progress value={Math.min(portfolioTotal, 100)} className={`h-2 ${!portfolioValid ? '[&>div]:bg-destructive' : ''}`} />
-                  {!portfolioValid && <p className="text-xs text-destructive">A soma deve ser igual a 100%</p>}
-                </div>
-              )}
+            {/* SECTION 5: Estratégia de Alocação */}
+            <CollapsibleSection title="Estratégia de Alocação" icon={PieChart} defaultOpen={false}>
+              <AllocationStrategySection 
+                value={formData.allocation}
+                onChange={(allocation) => handleChange('allocation', allocation)}
+                investorProfile={formData.investorProfile}
+              />
             </CollapsibleSection>
 
             {/* SECTION 6: Previdência e Aposentadoria */}
