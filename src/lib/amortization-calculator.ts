@@ -7,6 +7,9 @@ import {
   AmortizationType
 } from '@/types/debt-simulation';
 
+// Re-export types for convenience
+export type { InstallmentRow, SimulationSummary, ExtraAmortization, AmortizationType } from '@/types/debt-simulation';
+
 // Convert annual rate to monthly effective rate
 export function annualToMonthlyRate(annualRate: number): number {
   return Math.pow(1 + annualRate / 100, 1 / 12) - 1;
