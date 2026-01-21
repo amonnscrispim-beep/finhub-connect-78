@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { CurrencyInput, formatCurrencyBR } from '@/components/ui/currency-input';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -15,7 +16,6 @@ import {
   GOAL_TYPE_OPTIONS,
   calculateFutureValue,
   calculateRequiredContribution,
-  formatCurrency,
   getMonthlyRateEquivalent,
 } from '@/types/financial-goal';
 
@@ -246,33 +246,24 @@ export function FinancialGoalsSection({ clientId }: FinancialGoalsSectionProps) 
               {/* Values */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="space-y-2">
-                  <Label>Saldo Inicial (R$)</Label>
-                  <Input
-                    type="number"
-                    value={goal.current_amount || ''}
-                    onChange={(e) => handleUpdateGoal(goal.id, 'current_amount', parseFloat(e.target.value) || 0)}
-                    placeholder="0,00"
-                    className="crm-input"
+                  <Label>Saldo Inicial</Label>
+                  <CurrencyInput
+                    value={goal.current_amount}
+                    onChange={(value) => handleUpdateGoal(goal.id, 'current_amount', parseFloat(value) || 0)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Valor Total (R$)</Label>
-                  <Input
-                    type="number"
-                    value={goal.target_amount || ''}
-                    onChange={(e) => handleUpdateGoal(goal.id, 'target_amount', parseFloat(e.target.value) || 0)}
-                    placeholder="0,00"
-                    className="crm-input"
+                  <Label>Valor Total</Label>
+                  <CurrencyInput
+                    value={goal.target_amount}
+                    onChange={(value) => handleUpdateGoal(goal.id, 'target_amount', parseFloat(value) || 0)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Aporte Mensal (R$)</Label>
-                  <Input
-                    type="number"
-                    value={goal.monthly_contribution || ''}
-                    onChange={(e) => handleUpdateGoal(goal.id, 'monthly_contribution', parseFloat(e.target.value) || 0)}
-                    placeholder="0,00"
-                    className="crm-input"
+                  <Label>Aporte Mensal</Label>
+                  <CurrencyInput
+                    value={goal.monthly_contribution}
+                    onChange={(value) => handleUpdateGoal(goal.id, 'monthly_contribution', parseFloat(value) || 0)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -337,7 +328,7 @@ export function FinancialGoalsSection({ clientId }: FinancialGoalsSectionProps) 
                       Valor Projetado
                     </div>
                     <p className={`text-lg font-bold ${willReachGoal ? 'text-green-600' : 'text-foreground'}`}>
-                      {formatCurrency(projectedValue)}
+                      {formatCurrencyBR(projectedValue)}
                     </p>
                     {willReachGoal && (
                       <p className="text-xs text-green-600 mt-1">✓ Meta será atingida!</p>
@@ -351,7 +342,7 @@ export function FinancialGoalsSection({ clientId }: FinancialGoalsSectionProps) 
                       Aporte Necessário
                     </div>
                     <p className="text-lg font-bold text-primary">
-                      {formatCurrency(requiredContribution)}
+                      {formatCurrencyBR(requiredContribution)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       para atingir a meta
@@ -362,7 +353,7 @@ export function FinancialGoalsSection({ clientId }: FinancialGoalsSectionProps) 
                 {!willReachGoal && goal.target_amount > 0 && (
                   <p className="text-sm text-yellow-700 bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-300 p-2 rounded-lg">
                     ⚠️ Com os aportes atuais, a meta não será atingida no prazo. 
-                    Considere aumentar o aporte para {formatCurrency(requiredContribution)}/mês.
+                    Considere aumentar o aporte para {formatCurrencyBR(requiredContribution)}/mês.
                   </p>
                 )}
               </div>
@@ -417,33 +408,27 @@ export function FinancialGoalsSection({ clientId }: FinancialGoalsSectionProps) 
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>Valor Total (R$)</Label>
-                <Input
-                  type="number"
-                  value={newGoal.target_amount || ''}
-                  onChange={(e) => setNewGoal({ ...newGoal, target_amount: parseFloat(e.target.value) || 0 })}
-                  placeholder="100000"
+                <Label>Valor Total</Label>
+                <CurrencyInput
+                  value={newGoal.target_amount}
+                  onChange={(value) => setNewGoal({ ...newGoal, target_amount: parseFloat(value) || 0 })}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Saldo Inicial (R$)</Label>
-                <Input
-                  type="number"
-                  value={newGoal.current_amount || ''}
-                  onChange={(e) => setNewGoal({ ...newGoal, current_amount: parseFloat(e.target.value) || 0 })}
-                  placeholder="5000"
+                <Label>Saldo Inicial</Label>
+                <CurrencyInput
+                  value={newGoal.current_amount}
+                  onChange={(value) => setNewGoal({ ...newGoal, current_amount: parseFloat(value) || 0 })}
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2">
-                <Label>Aporte Mensal (R$)</Label>
-                <Input
-                  type="number"
-                  value={newGoal.monthly_contribution || ''}
-                  onChange={(e) => setNewGoal({ ...newGoal, monthly_contribution: parseFloat(e.target.value) || 0 })}
-                  placeholder="1000"
+                <Label>Aporte Mensal</Label>
+                <CurrencyInput
+                  value={newGoal.monthly_contribution}
+                  onChange={(value) => setNewGoal({ ...newGoal, monthly_contribution: parseFloat(value) || 0 })}
                 />
               </div>
               <div className="space-y-2">
@@ -473,10 +458,8 @@ export function FinancialGoalsSection({ clientId }: FinancialGoalsSectionProps) 
               </Button>
               <Button type="button" onClick={handleAddGoal} disabled={saving === 'new'}>
                 {saving === 'new' ? (
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                ) : (
-                  <Plus className="w-4 h-4 mr-2" />
-                )}
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : null}
                 Adicionar Meta
               </Button>
             </div>

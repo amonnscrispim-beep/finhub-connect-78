@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Target, Plus, Trash2, TrendingUp, Calculator, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CurrencyInput, formatCurrencyBR } from '@/components/ui/currency-input';
+import { Input } from '@/components/ui/input';
 
 export interface FinancialGoal {
   id: string;
@@ -99,12 +100,7 @@ export function FinancialGoals({ goals, onGoalsChange }: FinancialGoalsProps) {
     ));
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
-  };
+  const formatCurrency = formatCurrencyBR;
 
   return (
     <div className="space-y-4">
@@ -165,33 +161,24 @@ export function FinancialGoals({ goals, onGoalsChange }: FinancialGoalsProps) {
               {/* Values */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="space-y-2">
-                  <Label>Valor Atual (R$)</Label>
-                  <Input
-                    type="number"
-                    value={goal.currentAmount || ''}
-                    onChange={(e) => updateGoal(goal.id, 'currentAmount', parseFloat(e.target.value) || 0)}
-                    placeholder="0,00"
-                    className="crm-input"
+                  <Label>Valor Atual</Label>
+                  <CurrencyInput
+                    value={goal.currentAmount}
+                    onChange={(value) => updateGoal(goal.id, 'currentAmount', parseFloat(value) || 0)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Meta (R$)</Label>
-                  <Input
-                    type="number"
-                    value={goal.targetAmount || ''}
-                    onChange={(e) => updateGoal(goal.id, 'targetAmount', parseFloat(e.target.value) || 0)}
-                    placeholder="0,00"
-                    className="crm-input"
+                  <Label>Meta</Label>
+                  <CurrencyInput
+                    value={goal.targetAmount}
+                    onChange={(value) => updateGoal(goal.id, 'targetAmount', parseFloat(value) || 0)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Aporte Mensal (R$)</Label>
-                  <Input
-                    type="number"
-                    value={goal.monthlyContribution || ''}
-                    onChange={(e) => updateGoal(goal.id, 'monthlyContribution', parseFloat(e.target.value) || 0)}
-                    placeholder="0,00"
-                    className="crm-input"
+                  <Label>Aporte Mensal</Label>
+                  <CurrencyInput
+                    value={goal.monthlyContribution}
+                    onChange={(value) => updateGoal(goal.id, 'monthlyContribution', parseFloat(value) || 0)}
                   />
                 </div>
                 <div className="space-y-2">
