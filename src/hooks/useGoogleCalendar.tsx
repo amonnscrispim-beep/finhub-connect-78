@@ -103,10 +103,11 @@ export function useGoogleCalendar() {
     }
 
     try {
-      const returnUrl = window.location.pathname + window.location.search;
+      // Pass the full URL so callback can redirect properly
+      const returnUrl = window.location.origin + window.location.pathname + window.location.search;
       
       const { data, error } = await supabase.functions.invoke('google-calendar-connect', {
-        body: {},
+        body: { returnUrl },
         headers: {
           Authorization: `Bearer ${session.access_token}`
         }

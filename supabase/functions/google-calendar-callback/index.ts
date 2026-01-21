@@ -127,8 +127,20 @@ Deno.serve(async (req) => {
 
     console.log('OAuth tokens saved successfully');
 
-    // Redirect back to the app
-    const successUrl = (returnUrl || '/') + (returnUrl?.includes('?') ? '&' : '?') + 'google=connected';
+    // Redirect back to the app - returnUrl should be a full URL
+    // If it's just a path, we need a fallback
+    let successUrl = returnUrl || '/';
+    
+    // If returnUrl is just a path (starts with /), we can't redirect to it from edge function
+    // We need to use a known frontend URL
+    if (successUrl.startsWith('/')) {
+      // Use the preview or published URL based on environment
+      const frontendUrl = 'https://finhub-connect-78.lovable.app';
+      successUrl = frontendUrl + successUrl;
+    }
+    
+    // Add success parameter
+    successUrl = successUrl + (successUrl.includes('?') ? '&' : '?') + 'google=connected';
     
     return new Response(null, {
       status: 302,
