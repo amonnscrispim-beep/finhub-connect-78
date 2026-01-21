@@ -21,6 +21,7 @@ export type Database = {
           children: Json | null
           city: string | null
           consulting_finished: boolean | null
+          consulting_reason: string | null
           consulting_result: Json | null
           contract_end: string
           contract_start: string
@@ -55,6 +56,7 @@ export type Database = {
           private_pension_status: string | null
           private_pension_type: string | null
           profession: string | null
+          professional_profile: string | null
           renewal_date: string | null
           renewal_potential: boolean | null
           renewal_status: string | null
@@ -73,6 +75,7 @@ export type Database = {
           children?: Json | null
           city?: string | null
           consulting_finished?: boolean | null
+          consulting_reason?: string | null
           consulting_result?: Json | null
           contract_end?: string
           contract_start?: string
@@ -107,6 +110,7 @@ export type Database = {
           private_pension_status?: string | null
           private_pension_type?: string | null
           profession?: string | null
+          professional_profile?: string | null
           renewal_date?: string | null
           renewal_potential?: boolean | null
           renewal_status?: string | null
@@ -125,6 +129,7 @@ export type Database = {
           children?: Json | null
           city?: string | null
           consulting_finished?: boolean | null
+          consulting_reason?: string | null
           consulting_result?: Json | null
           contract_end?: string
           contract_start?: string
@@ -159,6 +164,7 @@ export type Database = {
           private_pension_status?: string | null
           private_pension_type?: string | null
           profession?: string | null
+          professional_profile?: string | null
           renewal_date?: string | null
           renewal_potential?: boolean | null
           renewal_status?: string | null
