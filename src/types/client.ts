@@ -36,6 +36,27 @@ export type AmortizationSystem = 'PRICE' | 'SAC' | '';
 
 export type AmortizationStrategy = 'Redução de prazo' | 'Redução de parcela' | '';
 
+export type InterestPeriod = 'a.m.' | 'a.a.';
+
+export type ExtraAmortizationType = 'prazo' | 'parcela';
+
+export interface DebtExtraAmortization {
+  id: string;
+  afterInstallments: number[];
+  amount: number;
+  type: ExtraAmortizationType;
+}
+
+export interface DebtSimulationData {
+  principalValue: number;
+  startMonth: number;
+  startYear: number;
+  interestRate: number;
+  interestPeriod: InterestPeriod;
+  installmentsCount: number;
+  extraAmortizations: DebtExtraAmortization[];
+}
+
 export interface DebtInfo {
   id: string;
   type: DebtType;
@@ -47,6 +68,8 @@ export interface DebtInfo {
   payoffStrategy: AmortizationStrategy;
   payoffYears: number | null;
   payoffSavings: number | null; // R$
+  // Simulation fields (integrated)
+  simulation?: DebtSimulationData;
 }
 
 export interface ConsultingResult {
