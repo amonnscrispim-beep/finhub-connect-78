@@ -31,6 +31,7 @@ export type Database = {
           created_at: string
           current_wealth_notes: string | null
           debts: Json | null
+          debts_comments: string | null
           email: string | null
           emergency_contributions_count: number | null
           emergency_coverage_months: number | null
@@ -100,6 +101,7 @@ export type Database = {
           created_at?: string
           current_wealth_notes?: string | null
           debts?: Json | null
+          debts_comments?: string | null
           email?: string | null
           emergency_contributions_count?: number | null
           emergency_coverage_months?: number | null
@@ -169,6 +171,7 @@ export type Database = {
           created_at?: string
           current_wealth_notes?: string | null
           debts?: Json | null
+          debts_comments?: string | null
           email?: string | null
           emergency_contributions_count?: number | null
           emergency_coverage_months?: number | null

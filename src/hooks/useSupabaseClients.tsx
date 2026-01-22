@@ -97,6 +97,7 @@ function dbToClient(row: ClientRow): Client {
     emergencyReserveNote: (row as any).emergency_reserve_note ?? null,
     alreadyInvests: (row as any).already_invests ?? false,
     investingOrigin: (row as any).investing_origin ?? null,
+    debtsComments: (row as any).debts_comments ?? null,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -169,6 +170,7 @@ function clientToDbInsert(client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>
     emergency_reserve_note: client.emergencyReserveNote,
     already_invests: client.alreadyInvests,
     investing_origin: client.investingOrigin,
+    debts_comments: client.debtsComments,
   } as any;
 }
 
@@ -241,6 +243,7 @@ function clientToDbUpdate(updates: Partial<Client>): TablesUpdate<'clients'> {
   if (updates.emergencyReserveNote !== undefined) (dbUpdates as any).emergency_reserve_note = updates.emergencyReserveNote;
   if (updates.alreadyInvests !== undefined) (dbUpdates as any).already_invests = updates.alreadyInvests;
   if (updates.investingOrigin !== undefined) (dbUpdates as any).investing_origin = updates.investingOrigin;
+  if (updates.debtsComments !== undefined) (dbUpdates as any).debts_comments = updates.debtsComments;
   
   return dbUpdates;
 }

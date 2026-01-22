@@ -214,6 +214,8 @@ export interface Client {
   // Investment history fields
   alreadyInvests: boolean;
   investingOrigin: string | null;
+  // Debts comments field
+  debtsComments: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
