@@ -1080,16 +1080,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               </div>
             </CollapsibleSection>
 
-            {/* SECTION 5: Estratégia de Alocação */}
-            <CollapsibleSection title="Estratégia de Alocação" icon={PieChart} defaultOpen={false}>
-              <AllocationStrategySection 
-                value={formData.allocation}
-                onChange={(allocation) => handleChange('allocation', allocation)}
-                investorProfile={formData.investorProfile}
-              />
-            </CollapsibleSection>
-
-            {/* SECTION 6: Previdência e Aposentadoria */}
+            {/* SECTION 5: Previdência e Aposentadoria */}
             <CollapsibleSection title="Previdência e Aposentadoria" icon={Landmark} defaultOpen={false}>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -1128,7 +1119,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               </div>
             </CollapsibleSection>
 
-            {/* SECTION 7: Metas Financeiras - Now works before save! */}
+            {/* SECTION 6: Metas Financeiras */}
             <CollapsibleSection title="Metas Financeiras" icon={Target} defaultOpen={false}>
               {client ? (
                 <FinancialGoalsSection clientId={client.id} />
@@ -1138,6 +1129,15 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   onGoalsChange={setDraftGoals} 
                 />
               )}
+            </CollapsibleSection>
+
+            {/* SECTION 7: Estratégia de Alocação */}
+            <CollapsibleSection title="Estratégia de Alocação" icon={PieChart} defaultOpen={false}>
+              <AllocationStrategySection 
+                value={formData.allocation}
+                onChange={(allocation) => handleChange('allocation', allocation)}
+                investorProfile={formData.investorProfile}
+              />
             </CollapsibleSection>
 
             {/* SECTION 8: Contrato, Reuniões e Entregas */}
@@ -1173,21 +1173,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               </div>
             </CollapsibleSection>
 
-            {/* SECTION 9: Resultado da Consultoria */}
-            <CollapsibleSection title="Resultado da Consultoria" icon={TrendingUp} defaultOpen={false}>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="consultingInitialPatrimony">Patrimônio no início da consultoria</Label>
-                  <CurrencyInput id="consultingInitialPatrimony" value={formData.consultingInitialPatrimony} onChange={(value) => handleChange('consultingInitialPatrimony', value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="consultingFinalPatrimony">Patrimônio ao final do período</Label>
-                  <CurrencyInput id="consultingFinalPatrimony" value={formData.consultingFinalPatrimony} onChange={(value) => handleChange('consultingFinalPatrimony', value)} />
-                </div>
-              </div>
-            </CollapsibleSection>
-
-            {/* SECTION 10: Status do Cliente - SIMPLIFIED */}
+            {/* SECTION 9: Status do Cliente */}
             <CollapsibleSection title="Status do Cliente" icon={CheckCircle} defaultOpen={false}>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {/* Etapa do funil */}
@@ -1269,11 +1255,24 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               </div>
             </CollapsibleSection>
 
-
-            {/* SECTION 11: Tarefas do Cliente (somente para clientes existentes) */}
+            {/* SECTION 10: Tarefas do Cliente (somente para clientes existentes) */}
             {client && (
               <ClientTasksSection client={client} />
             )}
+
+            {/* SECTION 11: Resultado da Consultoria */}
+            <CollapsibleSection title="Resultado da Consultoria" icon={TrendingUp} defaultOpen={false}>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="consultingInitialPatrimony">Patrimônio no início da consultoria</Label>
+                  <CurrencyInput id="consultingInitialPatrimony" value={formData.consultingInitialPatrimony} onChange={(value) => handleChange('consultingInitialPatrimony', value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="consultingFinalPatrimony">Patrimônio ao final do período</Label>
+                  <CurrencyInput id="consultingFinalPatrimony" value={formData.consultingFinalPatrimony} onChange={(value) => handleChange('consultingFinalPatrimony', value)} />
+                </div>
+              </div>
+            </CollapsibleSection>
 
             {/* SECTION 12: Arquivos do Cliente */}
             <CollapsibleSection title="Arquivos do Cliente" icon={FileText} defaultOpen={false}>
