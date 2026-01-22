@@ -45,7 +45,7 @@ export function ClientTasksSection({ client }: ClientTasksSectionProps) {
     <CollapsibleSection
       title="Tarefas do Cliente"
       icon={CheckCircle2}
-      defaultOpen={true}
+      defaultOpen={false}
     >
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'pending' | 'completed')} className="w-full">
         <TabsList className="w-full grid grid-cols-2 mb-4">
