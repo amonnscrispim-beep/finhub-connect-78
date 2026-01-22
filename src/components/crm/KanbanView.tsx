@@ -76,6 +76,7 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
   const [newTask, setNewTask] = useState('');
   const [showAddTask, setShowAddTask] = useState(false);
   const [tasksModalOpen, setTasksModalOpen] = useState(false);
+  const [tasksModalTab, setTasksModalTab] = useState<'pending' | 'completed'>('pending');
 
   const handleAddTask = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -97,6 +98,14 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
   const handleHeaderClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onEdit();
+  };
+
+  // Open tasks modal with specific tab
+  const openTasksModal = (e: React.MouseEvent, tab: 'pending' | 'completed') => {
+    e.stopPropagation();
+    e.preventDefault();
+    setTasksModalTab(tab);
+    setTasksModalOpen(true);
   };
 
   return (
@@ -190,13 +199,19 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
       {pendingTasks.length > 0 && (
         <div className="mb-3" data-interactive="true">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-muted-foreground">
+            <button
+              onClick={(e) => openTasksModal(e, 'pending')}
+              className="text-xs font-medium text-muted-foreground hover:text-primary hover:underline transition-colors"
+            >
               Tarefas pendentes ({pendingTasks.length})
-            </span>
+            </button>
             {completedTasksCount > 0 && (
-              <span className="text-xs text-success">
+              <button
+                onClick={(e) => openTasksModal(e, 'completed')}
+                className="text-xs text-success hover:text-success/80 hover:underline transition-colors"
+              >
                 {completedTasksCount} concluída{completedTasksCount > 1 ? 's' : ''}
-              </span>
+              </button>
             )}
           </div>
           <div className="space-y-1.5">
@@ -227,10 +242,7 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
             ))}
             {pendingTasks.length > 3 && (
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setTasksModalOpen(true);
-                }}
+                onClick={(e) => openTasksModal(e, 'pending')}
                 className="w-full text-left px-1.5 py-1 text-xs text-primary hover:text-primary/80 hover:underline flex items-center gap-1"
               >
                 <ListTodo className="w-3 h-3" />
@@ -245,10 +257,7 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
       {pendingTasks.length === 0 && completedTasksCount > 0 && (
         <div className="mb-3" data-interactive="true">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setTasksModalOpen(true);
-            }}
+            onClick={(e) => openTasksModal(e, 'completed')}
             className="w-full text-left px-2 py-1.5 text-xs text-success bg-success/10 rounded-md hover:bg-success/20 transition-colors flex items-center gap-1.5"
           >
             <ListTodo className="w-3.5 h-3.5" />
@@ -307,6 +316,7 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
         open={tasksModalOpen}
         onOpenChange={setTasksModalOpen}
         client={client}
+        defaultTab={tasksModalTab}
       />
     </div>
   );

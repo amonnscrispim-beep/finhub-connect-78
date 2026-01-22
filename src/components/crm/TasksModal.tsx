@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
@@ -27,12 +27,20 @@ interface TasksModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   client: Client;
+  defaultTab?: 'pending' | 'completed';
 }
 
-export function TasksModal({ open, onOpenChange, client }: TasksModalProps) {
+export function TasksModal({ open, onOpenChange, client, defaultTab = 'pending' }: TasksModalProps) {
   const { toggleTask, addTask, deleteTask } = useClients();
   const [newTask, setNewTask] = useState('');
-  const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
+  const [activeTab, setActiveTab] = useState<'pending' | 'completed'>(defaultTab);
+
+  // Update activeTab when defaultTab or open changes
+  useEffect(() => {
+    if (open) {
+      setActiveTab(defaultTab);
+    }
+  }, [open, defaultTab]);
 
   const pendingTasks = client.tasks.filter(t => !t.completed);
   const completedTasks = client.tasks.filter(t => t.completed);
