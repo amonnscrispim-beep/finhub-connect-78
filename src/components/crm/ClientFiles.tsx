@@ -236,7 +236,12 @@ export function ClientFiles({ files, onFilesChange }: ClientFilesProps) {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(file)}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleDelete(file);
+                          }}
                           title="Excluir"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -252,7 +257,10 @@ export function ClientFiles({ files, onFilesChange }: ClientFilesProps) {
       </Tabs>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Arquivo</AlertDialogTitle>
             <AlertDialogDescription>
@@ -260,8 +268,17 @@ export function ClientFiles({ files, onFilesChange }: ClientFilesProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogCancel onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                confirmDelete();
+              }} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
