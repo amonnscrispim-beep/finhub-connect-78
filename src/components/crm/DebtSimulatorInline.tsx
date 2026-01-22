@@ -30,7 +30,7 @@ import {
   formatCurrencyBRL,
   formatPercentage
 } from '@/lib/amortization-calculator';
-import type { InstallmentRow, SimulationSummary } from '@/types/debt-simulation';
+import type { InstallmentRow, SimulationSummary } from '@/lib/amortization-calculator';
 
 const MONTHS = [
   { value: 1, label: 'Jan' },
@@ -166,12 +166,25 @@ export function DebtSimulatorInline({ debt, onSimulationChange }: DebtSimulatorI
 
   const savings = useMemo(() => {
     if (!summaryWithoutExtras || !summaryWithExtras) return null;
+    
+    // Determine primary mode from amortizations
+    const primaryMode = simData.extraAmortizations.length > 0 
+      ? simData.extraAmortizations[0].type 
+      : 'prazo';
+    
+    // Calculate payment reduction for "parcela" mode
+    const paymentReduction = summaryWithExtras.firstInstallmentValue < summaryWithoutExtras.firstInstallmentValue
+      ? summaryWithoutExtras.firstInstallmentValue - summaryWithExtras.firstInstallmentValue
+      : 0;
+    
     return {
       totalSaved: summaryWithoutExtras.totalPayment - summaryWithExtras.totalPayment,
       interestSaved: summaryWithoutExtras.totalInterest - summaryWithExtras.totalInterest,
-      installmentsReduced: summaryWithoutExtras.installmentsCount - summaryWithExtras.installmentsCount
+      installmentsReduced: summaryWithoutExtras.installmentsCount - summaryWithExtras.installmentsCount,
+      paymentReduction,
+      mode: primaryMode
     };
-  }, [summaryWithoutExtras, summaryWithExtras]);
+  }, [summaryWithoutExtras, summaryWithExtras, simData.extraAmortizations]);
 
   // Pie chart data
   const pieDataWithoutExtras = useMemo(() => {
@@ -396,9 +409,14 @@ export function DebtSimulatorInline({ debt, onSimulationChange }: DebtSimulatorI
             <Label className="text-xs">Amortizações Extras:</Label>
             {simData.extraAmortizations.map(a => (
               <div key={a.id} className="flex items-center justify-between text-xs bg-muted/50 rounded p-2">
-                <span>
-                  Após parcela(s) <strong>{a.afterInstallments.join(', ')}</strong>: {formatCurrencyBRL(a.amount)} ({a.type === 'prazo' ? 'prazo' : 'parcela'})
-                </span>
+                <div className="flex items-center gap-2">
+                  <Badge variant={a.type === 'prazo' ? 'default' : 'secondary'} className="text-[10px]">
+                    {a.type === 'prazo' ? 'Reduz Prazo' : 'Reduz Parcela'}
+                  </Badge>
+                  <span>
+                    Após parcela(s) <strong>{a.afterInstallments.join(', ')}</strong>: {formatCurrencyBRL(a.amount)}
+                  </span>
+                </div>
                 <Button 
                   type="button" 
                   variant="ghost" 
@@ -423,18 +441,33 @@ export function DebtSimulatorInline({ debt, onSimulationChange }: DebtSimulatorI
             </div>
 
             {/* Savings */}
-            {savings && savings.totalSaved > 0 && (
+            {savings && (savings.totalSaved > 0 || savings.interestSaved > 0) && (
               <div className="p-3 bg-primary/5 border border-primary/30 rounded-lg">
-                <div className="flex items-center gap-2 text-primary mb-2">
-                  <TrendingDown className="h-4 w-4" />
-                  <span className="font-semibold text-sm">Economia com Amortização Extra</span>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-primary">
+                    <TrendingDown className="h-4 w-4" />
+                    <span className="font-semibold text-sm">Economia com Amortização Extra</span>
+                  </div>
+                  <Badge variant="secondary" className="text-[10px]">
+                    {savings.mode === 'prazo' ? 'Reduz Prazo' : 'Reduz Parcela'}
+                  </Badge>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Financiamento quitado em <strong>{summaryWithExtras?.lastInstallmentDate}</strong>, 
-                  eliminando <strong>{savings.installmentsReduced} parcelas</strong>, 
-                  economia de <strong className="text-primary">{formatCurrencyBRL(savings.totalSaved)}</strong>.
-                </p>
-                <div className="grid grid-cols-3 gap-2 mt-2">
+                
+                {savings.mode === 'prazo' ? (
+                  <p className="text-xs text-muted-foreground">
+                    Financiamento quitado em <strong>{summaryWithExtras?.lastInstallmentDate}</strong>, 
+                    eliminando <strong>{savings.installmentsReduced} parcelas</strong>, 
+                    economia de <strong className="text-primary">{formatCurrencyBRL(savings.totalSaved)}</strong>.
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Prazo mantido até <strong>{summaryWithExtras?.lastInstallmentDate}</strong>, 
+                    parcela reduzida em <strong>{formatCurrencyBRL(savings.paymentReduction)}</strong>/mês, 
+                    economia de juros de <strong className="text-primary">{formatCurrencyBRL(savings.interestSaved)}</strong>.
+                  </p>
+                )}
+                
+                <div className="grid grid-cols-4 gap-2 mt-2">
                   <div className="text-center">
                     <p className="text-sm font-bold text-primary">{formatCurrencyBRL(savings.totalSaved)}</p>
                     <p className="text-[10px] text-muted-foreground">Total</p>
@@ -446,6 +479,12 @@ export function DebtSimulatorInline({ debt, onSimulationChange }: DebtSimulatorI
                   <div className="text-center">
                     <p className="text-sm font-bold text-primary">{savings.installmentsReduced}</p>
                     <p className="text-[10px] text-muted-foreground">Parcelas</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-bold text-primary">
+                      {savings.paymentReduction > 0 ? formatCurrencyBRL(savings.paymentReduction) : '-'}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">Redução/mês</p>
                   </div>
                 </div>
               </div>
@@ -568,16 +607,21 @@ export function DebtSimulatorInline({ debt, onSimulationChange }: DebtSimulatorI
                 />
               </div>
               <div className="space-y-2">
-                <Label>Tipo de amortização</Label>
+                <Label>Modo de amortização</Label>
                 <Select value={amortType} onValueChange={(v) => setAmortType(v as ExtraAmortizationType)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="prazo">Por prazo (reduz parcelas)</SelectItem>
-                    <SelectItem value="parcela">Por parcela (reduz valor)</SelectItem>
+                    <SelectItem value="prazo">Reduzir PRAZO (mantém parcela, quita antes)</SelectItem>
+                    <SelectItem value="parcela">Reduzir PARCELA (mantém prazo, parcela menor)</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  {amortType === 'prazo' 
+                    ? 'Mantém o valor das parcelas e encurta o prazo do financiamento.'
+                    : 'Mantém o prazo total e reduz o valor de cada parcela.'}
+                </p>
               </div>
             </div>
             <DialogFooter>
