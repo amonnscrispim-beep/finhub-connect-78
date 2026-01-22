@@ -51,6 +51,7 @@ import { FinancialGoalsSection } from './FinancialGoalsSection';
 import { DraftFinancialGoalsSection, DraftGoal } from './DraftFinancialGoalsSection';
 import { EmergencyReserveModule, EmergencyReserveData } from './EmergencyReserveModule';
 import { DebtSimulatorInline } from './DebtSimulatorInline';
+import { ClientTasksSection } from './ClientTasksSection';
 import type { DebtSimulationData } from '@/types/client';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -1203,7 +1204,12 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
             </CollapsibleSection>
 
 
-            {/* SECTION 11: Arquivos do Cliente */}
+            {/* SECTION 11: Tarefas do Cliente (somente para clientes existentes) */}
+            {client && (
+              <ClientTasksSection client={client} />
+            )}
+
+            {/* SECTION 12: Arquivos do Cliente */}
             <CollapsibleSection title="Arquivos do Cliente" icon={FileText} defaultOpen={false}>
               <ClientFiles files={formData.files} onFilesChange={handleFilesChange} />
             </CollapsibleSection>

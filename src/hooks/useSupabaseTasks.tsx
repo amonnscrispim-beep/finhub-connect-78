@@ -8,12 +8,13 @@ import type { Tables } from '@/integrations/supabase/types';
 type TaskRow = Tables<'tasks'>;
 
 // Convert database row to Task type
-function dbToTask(row: TaskRow): Task {
+function dbToTask(row: TaskRow & { completed_at?: string | null }): Task {
   return {
     id: row.id,
     description: row.description,
     completed: row.completed ?? false,
     createdAt: new Date(row.created_at),
+    completedAt: row.completed_at ? new Date(row.completed_at) : null,
   };
 }
 
@@ -125,9 +126,15 @@ export function useSupabaseTasks(clientId?: string) {
     mutationFn: async ({ taskId, clientId, completed }: { taskId: string; clientId: string; completed: boolean }) => {
       if (!user) throw new Error('User not authenticated');
       
+      const newCompleted = !completed;
+      const updateData: Record<string, unknown> = {
+        completed: newCompleted,
+        completed_at: newCompleted ? new Date().toISOString() : null,
+      };
+      
       const { data, error } = await supabase
         .from('tasks')
-        .update({ completed: !completed })
+        .update(updateData)
         .eq('id', taskId)
         .eq('user_id', user.id)
         .select()

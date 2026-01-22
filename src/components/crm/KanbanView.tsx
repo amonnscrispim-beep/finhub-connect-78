@@ -8,13 +8,13 @@ import {
   MoreHorizontal,
   Edit2,
   Trash2,
-  CheckCircle2,
   Circle,
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
   Award,
-  Cake
+  Cake,
+  ListTodo
 } from 'lucide-react';
 import { useClients } from '@/contexts/ClientContext';
 import { Client, FunnelStage, FUNNEL_STAGES } from '@/types/client';
@@ -27,6 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { TasksModal } from './TasksModal';
 
 interface KanbanViewProps {
   onEditClient: (client: Client) => void;
@@ -47,15 +48,17 @@ const DRAG_DELAY = 150;
 // All funnel stages are valid for Kanban (Novo cliente was removed from the type)
 const KANBAN_STAGES = FUNNEL_STAGES;
 
-// Get card border color based on state
+// Get card border color based on state (only pending tasks count)
 const getCardBorderColor = (client: Client) => {
   if (client.pendingSchedule) return 'border-l-destructive';
   
-  const completedTasks = client.tasks.filter(t => t.completed).length;
-  const totalTasks = client.tasks.length;
+  const pendingTasks = client.tasks.filter(t => !t.completed);
+  const completedTasks = client.tasks.filter(t => t.completed);
   
-  if (totalTasks > 0 && completedTasks === totalTasks) return 'border-l-success';
-  if (totalTasks > 0 && completedTasks < totalTasks) return 'border-l-warning';
+  // All tasks completed
+  if (client.tasks.length > 0 && pendingTasks.length === 0) return 'border-l-success';
+  // Has pending tasks
+  if (pendingTasks.length > 0) return 'border-l-warning';
   
   return 'border-l-primary';
 };
@@ -72,6 +75,7 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
   const { toggleTask, addTask, deleteClient, deleteTask } = useClients();
   const [newTask, setNewTask] = useState('');
   const [showAddTask, setShowAddTask] = useState(false);
+  const [tasksModalOpen, setTasksModalOpen] = useState(false);
   
   // State for click vs drag detection
   const [isDragging, setIsDragging] = useState(false);
@@ -88,7 +92,9 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
     }
   };
 
-  const completedTasks = client.tasks.filter(t => t.completed).length;
+  // Only show pending tasks in the card
+  const pendingTasks = client.tasks.filter(t => !t.completed);
+  const completedTasksCount = client.tasks.filter(t => t.completed).length;
   const totalTasks = client.tasks.length;
   const borderColor = getCardBorderColor(client);
   const hasBirthday = isBirthdayToday(client.birthDate);
@@ -296,16 +302,21 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
         </div>
       )}
 
-      {/* Tasks */}
-      {client.tasks.length > 0 && (
+      {/* Tasks - Only show pending tasks */}
+      {pendingTasks.length > 0 && (
         <div className="mb-3" data-interactive="true">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-muted-foreground">
-              Tarefas ({completedTasks}/{totalTasks})
+              Tarefas pendentes ({pendingTasks.length})
             </span>
+            {completedTasksCount > 0 && (
+              <span className="text-xs text-success">
+                {completedTasksCount} concluída{completedTasksCount > 1 ? 's' : ''}
+              </span>
+            )}
           </div>
           <div className="space-y-1.5">
-            {client.tasks.slice(0, 3).map((task) => (
+            {pendingTasks.slice(0, 3).map((task) => (
               <div key={task.id} className="flex items-center gap-2 group/task p-1.5 rounded-md hover:bg-muted/50 transition-colors">
                 <button
                   onClick={(e) => {
@@ -314,13 +325,9 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
                   }}
                   className="flex-shrink-0"
                 >
-                  {task.completed ? (
-                    <CheckCircle2 className="w-4 h-4 text-success" />
-                  ) : (
-                    <Circle className="w-4 h-4 text-muted-foreground hover:text-primary" />
-                  )}
+                  <Circle className="w-4 h-4 text-muted-foreground hover:text-primary" />
                 </button>
-                <span className={`text-xs flex-1 ${task.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                <span className="text-xs flex-1 text-foreground">
                   {task.description}
                 </span>
                 <button
@@ -334,12 +341,35 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
                 </button>
               </div>
             ))}
-            {client.tasks.length > 3 && (
-              <p className="text-xs text-muted-foreground pl-6">
-                +{client.tasks.length - 3} mais
-              </p>
+            {pendingTasks.length > 3 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setTasksModalOpen(true);
+                }}
+                className="w-full text-left px-1.5 py-1 text-xs text-primary hover:text-primary/80 hover:underline flex items-center gap-1"
+              >
+                <ListTodo className="w-3 h-3" />
+                +{pendingTasks.length - 3} mais tarefas
+              </button>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Show completed count when no pending tasks */}
+      {pendingTasks.length === 0 && completedTasksCount > 0 && (
+        <div className="mb-3" data-interactive="true">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setTasksModalOpen(true);
+            }}
+            className="w-full text-left px-2 py-1.5 text-xs text-success bg-success/10 rounded-md hover:bg-success/20 transition-colors flex items-center gap-1.5"
+          >
+            <ListTodo className="w-3.5 h-3.5" />
+            {completedTasksCount} tarefa{completedTasksCount > 1 ? 's' : ''} concluída{completedTasksCount > 1 ? 's' : ''}
+          </button>
         </div>
       )}
 
@@ -380,10 +410,17 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
         <div className="mt-3 h-1.5 bg-muted rounded-full overflow-hidden">
           <div 
             className="h-full bg-success transition-all duration-300 rounded-full"
-            style={{ width: `${(completedTasks / totalTasks) * 100}%` }}
+            style={{ width: `${(completedTasksCount / totalTasks) * 100}%` }}
           />
         </div>
       )}
+
+      {/* Tasks Modal */}
+      <TasksModal
+        open={tasksModalOpen}
+        onOpenChange={setTasksModalOpen}
+        client={client}
+      />
     </div>
   );
 }
