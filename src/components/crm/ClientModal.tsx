@@ -133,6 +133,8 @@ interface FormData {
   monthlyLivingCost: string;
   emergencyCoverageMonths: string;
   emergencyContributionsCount: string;
+  alreadyInvests: boolean;
+  investingOrigin: string;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
@@ -207,6 +209,8 @@ const defaultFormData: FormData = {
   monthlyLivingCost: '',
   emergencyCoverageMonths: '6',
   emergencyContributionsCount: '12',
+  alreadyInvests: false,
+  investingOrigin: '',
 };
 
 export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
@@ -279,6 +283,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         monthlyLivingCost: client.monthlyLivingCost?.toString() || '',
         emergencyCoverageMonths: client.emergencyCoverageMonths?.toString() || '6',
         emergencyContributionsCount: client.emergencyContributionsCount?.toString() || '12',
+        alreadyInvests: client.alreadyInvests || false,
+        investingOrigin: client.investingOrigin || '',
       });
       setDraftGoals([]);
     } else {
@@ -414,6 +420,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       monthlyLivingCost: formData.monthlyLivingCost ? parseFloat(formData.monthlyLivingCost) : null,
       emergencyCoverageMonths: formData.emergencyCoverageMonths ? parseInt(formData.emergencyCoverageMonths) : 6,
       emergencyContributionsCount: formData.emergencyContributionsCount ? parseInt(formData.emergencyContributionsCount) : 12,
+      alreadyInvests: formData.alreadyInvests,
+      investingOrigin: formData.investingOrigin || null,
     };
 
     try {
@@ -684,6 +692,38 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   className="crm-input min-h-[80px]"
                 />
               </div>
+
+              {/* Investment History fields */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="alreadyInvests">Cliente já investe?</Label>
+                  <Select 
+                    value={formData.alreadyInvests ? 'sim' : 'não'} 
+                    onValueChange={(value) => handleChange('alreadyInvests', value === 'sim')}
+                  >
+                    <SelectTrigger className="crm-input w-[200px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sim">Sim</SelectItem>
+                      <SelectItem value="não">Não</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {formData.alreadyInvests && (
+                <div className="space-y-2">
+                  <Label htmlFor="investingOrigin">Como começou a investir?</Label>
+                  <Textarea 
+                    id="investingOrigin" 
+                    value={formData.investingOrigin} 
+                    onChange={(e) => handleChange('investingOrigin', e.target.value)} 
+                    placeholder="Ex: comecei no Nubank com fundo, depois ações/FIIs, indicação de gerente, YouTube, etc."
+                    className="crm-input min-h-[80px]"
+                  />
+                </div>
+              )}
             </CollapsibleSection>
 
             {/* SECTION 2: Estrutura Familiar */}

@@ -206,6 +206,9 @@ export interface Client {
   monthlyLivingCost: number | null;
   emergencyCoverageMonths: number | null;
   emergencyContributionsCount: number | null;
+  // Investment history fields
+  alreadyInvests: boolean;
+  investingOrigin: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

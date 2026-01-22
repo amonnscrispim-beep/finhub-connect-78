@@ -17,6 +17,7 @@ export type Database = {
       clients: {
         Row: {
           age: number | null
+          already_invests: boolean | null
           birth_date: string | null
           children: Json | null
           city: string | null
@@ -42,6 +43,7 @@ export type Database = {
           funnel_stage: string | null
           has_children: boolean | null
           id: string
+          investing_origin: string | null
           investment_term: string | null
           investor_profile: string | null
           is_renewed_client: boolean | null
@@ -81,6 +83,7 @@ export type Database = {
         }
         Insert: {
           age?: number | null
+          already_invests?: boolean | null
           birth_date?: string | null
           children?: Json | null
           city?: string | null
@@ -106,6 +109,7 @@ export type Database = {
           funnel_stage?: string | null
           has_children?: boolean | null
           id?: string
+          investing_origin?: string | null
           investment_term?: string | null
           investor_profile?: string | null
           is_renewed_client?: boolean | null
@@ -145,6 +149,7 @@ export type Database = {
         }
         Update: {
           age?: number | null
+          already_invests?: boolean | null
           birth_date?: string | null
           children?: Json | null
           city?: string | null
@@ -170,6 +175,7 @@ export type Database = {
           funnel_stage?: string | null
           has_children?: boolean | null
           id?: string
+          investing_origin?: string | null
           investment_term?: string | null
           investor_profile?: string | null
           is_renewed_client?: boolean | null
