@@ -179,6 +179,7 @@ const defaultFormData: FormData = {
   hasChildren: false,
   children: [],
   allocation: {
+    reserve: 0,
     postFixed: 0,
     preFixed: 0,
     inflationIndexed: 0,

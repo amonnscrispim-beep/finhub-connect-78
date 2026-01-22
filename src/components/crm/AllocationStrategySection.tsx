@@ -1,25 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, TrendingUp, Shield, Clock, Lock } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { AlertTriangle, TrendingUp, Shield, Clock } from 'lucide-react';
 import type { InvestorProfile } from '@/types/client';
 
 export type AllocationObjective = 'Preservação' | 'Renda' | 'Crescimento' | 'Balanceado' | 'Aposentadoria' | '';
 export type PortfolioHorizon = 'Curto prazo' | 'Médio prazo' | 'Longo prazo' | '';
-export type AllocationProfile = 'Conservador' | 'Moderado' | 'Arrojado' | 'Personalizado' | '';
+export type AllocationProfile = 'Superconservador' | 'Conservador' | 'Moderado' | 'Arrojado' | '';
 
 export const ALLOCATION_OBJECTIVES: AllocationObjective[] = [
   'Preservação',
@@ -36,48 +26,70 @@ export const PORTFOLIO_HORIZONS: PortfolioHorizon[] = [
 ];
 
 export const ALLOCATION_PROFILES: AllocationProfile[] = [
+  'Superconservador',
   'Conservador',
   'Moderado',
-  'Arrojado',
-  'Personalizado'
+  'Arrojado'
 ];
 
-// Predefined profile allocations
-export const PROFILE_PRESETS: Record<Exclude<AllocationProfile, '' | 'Personalizado'>, {
+// Predefined profile allocations with fixed income breakdown
+export const PROFILE_PRESETS: Record<Exclude<AllocationProfile, ''>, {
   stocks: number;
   international: number;
   realEstate: number;
-  fixedIncomeTotal: number;
+  reserve: number;
+  postFixed: number;
+  preFixed: number;
+  inflationIndexed: number;
 }> = {
+  'Superconservador': {
+    stocks: 0,
+    international: 0,
+    realEstate: 0,
+    reserve: 20,
+    postFixed: 20,
+    preFixed: 30,
+    inflationIndexed: 30
+  },
   'Conservador': {
-    stocks: 7,
+    stocks: 5,
     international: 5,
-    realEstate: 8,
-    fixedIncomeTotal: 80
+    realEstate: 5,
+    reserve: 25,
+    postFixed: 10,
+    preFixed: 25,
+    inflationIndexed: 25
   },
   'Moderado': {
-    stocks: 14,
-    international: 11,
-    realEstate: 15,
-    fixedIncomeTotal: 60
+    stocks: 10,
+    international: 10,
+    realEstate: 10,
+    reserve: 15,
+    postFixed: 15,
+    preFixed: 20,
+    inflationIndexed: 20
   },
   'Arrojado': {
-    stocks: 21.5,
-    international: 16,
-    realEstate: 22.5,
-    fixedIncomeTotal: 40
+    stocks: 20,
+    international: 15,
+    realEstate: 20,
+    reserve: 8,
+    postFixed: 7,
+    preFixed: 15,
+    inflationIndexed: 15
   }
 };
 
 export interface AllocationData {
   // Fixed Income breakdown
+  reserve: number; // % Reserva (caixa / liquidez)
   postFixed: number; // % Pós-fixado
   preFixed: number; // % Prefixado
   inflationIndexed: number; // % Indexado à inflação
   // Other assets
   stocks: number; // % Ações Brasileiras
   realEstate: number; // % Fundos Imobiliários
-  international: number; // % Ações Internacionais
+  international: number; // % Ações Internacionais (Exterior)
   // Auxiliary fields
   objective: AllocationObjective;
   horizon: PortfolioHorizon;
@@ -91,28 +103,17 @@ interface AllocationStrategySectionProps {
 }
 
 export function AllocationStrategySection({ value, onChange, investorProfile }: AllocationStrategySectionProps) {
-  const [showProfileConfirm, setShowProfileConfirm] = useState(false);
-  const [pendingProfile, setPendingProfile] = useState<AllocationProfile | null>(null);
-
-  const isPresetProfile = value.allocationProfile === 'Conservador' || 
-    value.allocationProfile === 'Moderado' || 
-    value.allocationProfile === 'Arrojado';
-  const isFieldsLocked = isPresetProfile;
-
   const handleFieldChange = (field: keyof AllocationData, newValue: string | number) => {
-    if (isFieldsLocked && ['postFixed', 'preFixed', 'inflationIndexed', 'stocks', 'realEstate', 'international'].includes(field)) {
-      return; // Block changes when using preset
-    }
     onChange({
       ...value,
-      [field]: typeof newValue === 'string' && ['postFixed', 'preFixed', 'inflationIndexed', 'stocks', 'realEstate', 'international'].includes(field)
+      [field]: typeof newValue === 'string' && ['reserve', 'postFixed', 'preFixed', 'inflationIndexed', 'stocks', 'realEstate', 'international'].includes(field)
         ? parseFloat(newValue) || 0
         : newValue
     });
   };
 
   const applyProfilePreset = (profile: AllocationProfile) => {
-    if (profile === 'Personalizado' || profile === '') {
+    if (profile === '') {
       onChange({
         ...value,
         allocationProfile: profile
@@ -125,38 +126,22 @@ export function AllocationStrategySection({ value, onChange, investorProfile }: 
         stocks: preset.stocks,
         international: preset.international,
         realEstate: preset.realEstate,
-        postFixed: preset.fixedIncomeTotal,
-        preFixed: 0,
-        inflationIndexed: 0
+        reserve: preset.reserve,
+        postFixed: preset.postFixed,
+        preFixed: preset.preFixed,
+        inflationIndexed: preset.inflationIndexed
       });
     }
   };
 
   const handleProfileChange = (newProfile: AllocationProfile) => {
-    // Check if there are existing values that would be overwritten
-    const hasExistingValues = value.stocks > 0 || value.international > 0 || 
-      value.realEstate > 0 || value.postFixed > 0 || value.preFixed > 0 || value.inflationIndexed > 0;
-    
-    if (hasExistingValues && newProfile !== '' && newProfile !== 'Personalizado') {
-      setPendingProfile(newProfile);
-      setShowProfileConfirm(true);
-    } else {
-      applyProfilePreset(newProfile);
-    }
-  };
-
-  const confirmProfileChange = () => {
-    if (pendingProfile) {
-      applyProfilePreset(pendingProfile);
-    }
-    setShowProfileConfirm(false);
-    setPendingProfile(null);
+    applyProfilePreset(newProfile);
   };
 
   // Calculate fixed income subtotal
   const fixedIncomeSubtotal = useMemo(() => {
-    return (value.postFixed || 0) + (value.preFixed || 0) + (value.inflationIndexed || 0);
-  }, [value.postFixed, value.preFixed, value.inflationIndexed]);
+    return (value.reserve || 0) + (value.postFixed || 0) + (value.preFixed || 0) + (value.inflationIndexed || 0);
+  }, [value.reserve, value.postFixed, value.preFixed, value.inflationIndexed]);
 
   // Calculate total allocation
   const totalAllocation = useMemo(() => {
@@ -225,24 +210,8 @@ export function AllocationStrategySection({ value, onChange, investorProfile }: 
 
   return (
     <div className="space-y-6">
-      {/* Profile Change Confirmation Dialog */}
-      <AlertDialog open={showProfileConfirm} onOpenChange={setShowProfileConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Alterar perfil de alocação?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Ao selecionar o perfil "{pendingProfile}", os valores atuais serão substituídos pelos percentuais predefinidos. Deseja continuar?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPendingProfile(null)}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmProfileChange}>Confirmar</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       <p className="text-sm text-muted-foreground">
-        Defina a estratégia de alocação da carteira do cliente. Selecione um perfil predefinido ou personalize manualmente.
+        Defina a estratégia de alocação da carteira do cliente. Selecione um perfil para preencher automaticamente ou ajuste os valores manualmente.
       </p>
 
       {/* Profile Selection */}
@@ -261,12 +230,9 @@ export function AllocationStrategySection({ value, onChange, investorProfile }: 
             ))}
           </SelectContent>
         </Select>
-        {isPresetProfile && (
-          <p className="text-xs text-muted-foreground flex items-center gap-1">
-            <Lock className="h-3 w-3" />
-            Perfil predefinido – campos bloqueados. Escolha "Personalizado" para editar livremente.
-          </p>
-        )}
+        <p className="text-xs text-muted-foreground">
+          Ao selecionar um perfil, os campos são preenchidos automaticamente mas permanecem editáveis.
+        </p>
       </div>
 
       {/* Auxiliary Fields */}
@@ -307,10 +273,7 @@ export function AllocationStrategySection({ value, onChange, investorProfile }: 
 
       {/* Variable Income Assets */}
       <div className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
-        <div className="flex items-center justify-between">
-          <h4 className="font-medium text-foreground">Renda Variável</h4>
-          {isFieldsLocked && <Lock className="h-4 w-4 text-muted-foreground" />}
-        </div>
+        <h4 className="font-medium text-foreground">Renda Variável</h4>
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="portfolioStocks">% Ações Brasileiras</Label>
@@ -324,11 +287,10 @@ export function AllocationStrategySection({ value, onChange, investorProfile }: 
               onChange={(e) => handleFieldChange('stocks', e.target.value)}
               placeholder="0"
               className="crm-input"
-              disabled={isFieldsLocked}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="portfolioInternational">% Ações Internacionais</Label>
+            <Label htmlFor="portfolioInternational">% Exterior</Label>
             <Input
               id="portfolioInternational"
               type="number"
@@ -339,7 +301,6 @@ export function AllocationStrategySection({ value, onChange, investorProfile }: 
               onChange={(e) => handleFieldChange('international', e.target.value)}
               placeholder="0"
               className="crm-input"
-              disabled={isFieldsLocked}
             />
           </div>
           <div className="space-y-2">
@@ -354,7 +315,6 @@ export function AllocationStrategySection({ value, onChange, investorProfile }: 
               onChange={(e) => handleFieldChange('realEstate', e.target.value)}
               placeholder="0"
               className="crm-input"
-              disabled={isFieldsLocked}
             />
           </div>
         </div>
@@ -364,14 +324,25 @@ export function AllocationStrategySection({ value, onChange, investorProfile }: 
       <div className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
         <div className="flex items-center justify-between">
           <h4 className="font-medium text-foreground">Renda Fixa</h4>
-          <div className="flex items-center gap-2">
-            <span className={`text-sm font-medium ${fixedIncomeSubtotal > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
-              Subtotal: {fixedIncomeSubtotal.toFixed(1)}%
-            </span>
-            {isFieldsLocked && <Lock className="h-4 w-4 text-muted-foreground" />}
-          </div>
+          <span className={`text-sm font-medium ${fixedIncomeSubtotal > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
+            Subtotal: {fixedIncomeSubtotal.toFixed(1)}%
+          </span>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="reserve">% Reserva (caixa / liquidez)</Label>
+            <Input
+              id="reserve"
+              type="number"
+              min="0"
+              max="100"
+              step="0.5"
+              value={value.reserve || ''}
+              onChange={(e) => handleFieldChange('reserve', e.target.value)}
+              placeholder="0"
+              className="crm-input"
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="postFixed">% Pós-fixado</Label>
             <Input
@@ -384,7 +355,6 @@ export function AllocationStrategySection({ value, onChange, investorProfile }: 
               onChange={(e) => handleFieldChange('postFixed', e.target.value)}
               placeholder="0"
               className="crm-input"
-              disabled={isFieldsLocked}
             />
           </div>
           <div className="space-y-2">
@@ -399,7 +369,6 @@ export function AllocationStrategySection({ value, onChange, investorProfile }: 
               onChange={(e) => handleFieldChange('preFixed', e.target.value)}
               placeholder="0"
               className="crm-input"
-              disabled={isFieldsLocked}
             />
           </div>
           <div className="space-y-2">
@@ -414,7 +383,6 @@ export function AllocationStrategySection({ value, onChange, investorProfile }: 
               onChange={(e) => handleFieldChange('inflationIndexed', e.target.value)}
               placeholder="0"
               className="crm-input"
-              disabled={isFieldsLocked}
             />
           </div>
         </div>
@@ -468,6 +436,7 @@ export function migratePortfolioToAllocation(old: {
   realEstate?: number; 
   international?: number;
   // New fields (if already migrated)
+  reserve?: number;
   postFixed?: number;
   preFixed?: number;
   inflationIndexed?: number;
@@ -477,6 +446,7 @@ export function migratePortfolioToAllocation(old: {
 } | null): AllocationData {
   if (!old) {
     return {
+      reserve: 0,
       postFixed: 0,
       preFixed: 0,
       inflationIndexed: 0,
@@ -489,9 +459,10 @@ export function migratePortfolioToAllocation(old: {
     };
   }
 
-  // Check if already migrated (has postFixed field)
-  if ('postFixed' in old && typeof old.postFixed === 'number') {
+  // Check if already migrated (has reserve or postFixed field)
+  if ('reserve' in old || ('postFixed' in old && typeof old.postFixed === 'number')) {
     return {
+      reserve: old.reserve || 0,
       postFixed: old.postFixed || 0,
       preFixed: old.preFixed || 0,
       inflationIndexed: old.inflationIndexed || 0,
@@ -506,6 +477,7 @@ export function migratePortfolioToAllocation(old: {
 
   // Migrate old format: fixedIncome becomes 100% postFixed (safe default)
   return {
+    reserve: 0,
     postFixed: old.fixedIncome || 0,
     preFixed: 0,
     inflationIndexed: 0,
@@ -519,6 +491,7 @@ export function migratePortfolioToAllocation(old: {
 }
 
 export function allocationToPortfolio(data: AllocationData): {
+  reserve: number;
   postFixed: number;
   preFixed: number;
   inflationIndexed: number;
@@ -531,8 +504,9 @@ export function allocationToPortfolio(data: AllocationData): {
   // Keep legacy field for compatibility
   fixedIncome: number;
 } {
-  const fixedIncome = (data.postFixed || 0) + (data.preFixed || 0) + (data.inflationIndexed || 0);
+  const fixedIncome = (data.reserve || 0) + (data.postFixed || 0) + (data.preFixed || 0) + (data.inflationIndexed || 0);
   return {
+    reserve: data.reserve || 0,
     postFixed: data.postFixed || 0,
     preFixed: data.preFixed || 0,
     inflationIndexed: data.inflationIndexed || 0,
