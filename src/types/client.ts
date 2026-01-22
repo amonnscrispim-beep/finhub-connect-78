@@ -92,6 +92,7 @@ export interface Task {
   description: string;
   completed: boolean;
   createdAt: Date;
+  completedAt: Date | null;
 }
 
 export interface PartnerInfo {
