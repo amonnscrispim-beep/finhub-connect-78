@@ -32,7 +32,7 @@ export interface SimulationSummary {
   totalPayment: number;
   totalInterest: number;
   totalFees: number;
-  totalCorrection: number; // Reserved for future inflation correction
+  totalCorrection: number;
   interestRate: number;
   interestPeriod: InterestPeriod;
   installmentsCount: number;
@@ -42,16 +42,37 @@ export interface SimulationSummary {
   system: AmortizationSystem;
 }
 
+export interface AuditLog {
+  monthlyRate: number;
+  monthlyRatePercent: string;
+  rateConversionMethod: string;
+  installmentDetails: AuditInstallmentDetail[];
+}
+
+export interface AuditInstallmentDetail {
+  number: number;
+  balanceBefore: number;
+  interest: number;
+  amortization: number;
+  payment: number;
+  balanceAfter: number;
+  extraAmortization?: number;
+  balanceAfterExtra?: number;
+  note?: string;
+}
+
 // ============================================
-// RATE CONVERSION (Banking Standard)
+// RATE CONVERSION (Banking Standard - Compound Interest ONLY)
 // ============================================
 
 /**
- * Convert annual rate to monthly effective rate using compound interest
+ * Convert annual rate to monthly effective rate using compound interest equivalence
  * Formula: i_m = (1 + i_a)^(1/12) - 1
+ * NEVER use i_a/12 (simple division)
  */
 export function annualToMonthlyRate(annualRate: number): number {
-  return Math.pow(1 + annualRate / 100, 1 / 12) - 1;
+  const annualDecimal = annualRate / 100;
+  return Math.pow(1 + annualDecimal, 1 / 12) - 1;
 }
 
 /**
@@ -61,6 +82,7 @@ export function getMonthlyRate(rate: number, period: InterestPeriod): number {
   if (period === 'a.m.') {
     return rate / 100;
   }
+  // a.a. -> convert using compound interest
   return annualToMonthlyRate(rate);
 }
 
@@ -95,19 +117,8 @@ export function calculatePMT(pv: number, rate: number, n: number): number {
   return pv * (rate * factor) / (factor - 1);
 }
 
-/**
- * Calculate remaining installments given balance and PMT for PRICE
- * Solving for n: n = ln(PMT / (PMT - balance * rate)) / ln(1 + rate)
- */
-function calculateRemainingInstallmentsPRICE(balance: number, pmt: number, rate: number): number {
-  if (rate === 0) return Math.ceil(balance / pmt);
-  const numerator = pmt / (pmt - balance * rate);
-  if (numerator <= 0) return 1;
-  return Math.ceil(Math.log(numerator) / Math.log(1 + rate));
-}
-
 // ============================================
-// SCHEDULE GENERATION WITHOUT EXTRAS
+// SCHEDULE GENERATION WITHOUT EXTRAS (Clean baseline)
 // ============================================
 
 export function generateSchedule(
@@ -130,8 +141,8 @@ export function generateSchedule(
       const interest = balance * monthlyRate;
       let amortization = pmt - interest;
       
-      // Last installment adjustment
-      if (i === installmentsCount) {
+      // Last installment: adjust to zero balance exactly
+      if (i === installmentsCount || amortization >= balance) {
         amortization = balance;
       }
       
@@ -150,6 +161,7 @@ export function generateSchedule(
       });
       
       balance = newBalance;
+      if (balance <= 0.01) break;
     }
   } else {
     // SAC: Constant amortization
@@ -160,8 +172,8 @@ export function generateSchedule(
       const interest = balance * monthlyRate;
       let amortization = constantAmortization;
       
-      // Last installment adjustment
-      if (i === installmentsCount) {
+      // Last installment: adjust to zero balance exactly
+      if (i === installmentsCount || amortization >= balance) {
         amortization = balance;
       }
       
@@ -180,6 +192,7 @@ export function generateSchedule(
       });
       
       balance = newBalance;
+      if (balance <= 0.01) break;
     }
   }
 
@@ -187,9 +200,14 @@ export function generateSchedule(
 }
 
 // ============================================
-// SCHEDULE GENERATION WITH EXTRA AMORTIZATIONS
-// Banking Standard Implementation
+// SCHEDULE WITH EXTRA AMORTIZATIONS
+// Completely separate logic for PRAZO vs PARCELA modes
 // ============================================
+
+export interface GenerateScheduleWithExtrasResult {
+  schedule: InstallmentRow[];
+  audit: AuditLog;
+}
 
 export function generateScheduleWithExtras(
   principalValue: number,
@@ -201,61 +219,102 @@ export function generateScheduleWithExtras(
   extraAmortizations: ExtraAmortization[],
   monthlyFees: number = 0
 ): InstallmentRow[] {
-  const schedule: InstallmentRow[] = [];
-  let balance = principalValue;
-  
-  // Original values (important for PRAZO mode)
-  const originalAmortizationSAC = principalValue / installmentsCount;
-  let currentPMT = system === 'PRICE' ? calculatePMT(principalValue, monthlyRate, installmentsCount) : 0;
-  let remainingInstallments = installmentsCount;
+  const result = generateScheduleWithExtrasAndAudit(
+    principalValue,
+    monthlyRate,
+    installmentsCount,
+    startMonth,
+    startYear,
+    system,
+    extraAmortizations,
+    monthlyFees
+  );
+  return result.schedule;
+}
 
-  // Create a map of extra amortizations by installment number
+export function generateScheduleWithExtrasAndAudit(
+  principalValue: number,
+  monthlyRate: number,
+  installmentsCount: number,
+  startMonth: number,
+  startYear: number,
+  system: AmortizationSystem,
+  extraAmortizations: ExtraAmortization[],
+  monthlyFees: number = 0
+): GenerateScheduleWithExtrasResult {
+  const schedule: InstallmentRow[] = [];
+  const auditDetails: AuditInstallmentDetail[] = [];
+  
+  // Original values - CRITICAL for PRAZO mode
+  const originalAmortizationSAC = principalValue / installmentsCount;
+  const originalPMT = system === 'PRICE' ? calculatePMT(principalValue, monthlyRate, installmentsCount) : 0;
+  
+  // Create audit log
+  const audit: AuditLog = {
+    monthlyRate,
+    monthlyRatePercent: (monthlyRate * 100).toFixed(6) + '%',
+    rateConversionMethod: 'Compound: i_m = (1 + i_a)^(1/12) - 1',
+    installmentDetails: auditDetails
+  };
+
+  // Build map of extras by installment number
   const extraMap = new Map<number, { amount: number; type: ExtraAmortizationType }>();
   extraAmortizations.forEach(extra => {
     extra.afterInstallments.forEach(num => {
       const existing = extraMap.get(num);
       if (existing) {
         existing.amount += extra.amount;
-        // If mixed types, prioritize the current one (last wins)
-        existing.type = extra.type;
+        existing.type = extra.type; // Last type wins if mixed
       } else {
         extraMap.set(num, { amount: extra.amount, type: extra.type });
       }
     });
   });
 
+  let balance = principalValue;
   let installmentNumber = 0;
-  let currentAmortizationSAC = originalAmortizationSAC;
   
-  // Safety limit to prevent infinite loops
+  // Current values (may change in PARCELA mode)
+  let currentAmortizationSAC = originalAmortizationSAC;
+  let currentPMT = originalPMT;
+  
+  // Track remaining installments for PARCELA mode
+  let targetTotalInstallments = installmentsCount; // For PARCELA, this stays fixed
+  
   const maxIterations = 1000;
   
   while (balance > 0.01 && installmentNumber < maxIterations) {
     installmentNumber++;
-    remainingInstallments = Math.max(1, remainingInstallments);
     
     const { month, year } = addMonths(startMonth, startYear, installmentNumber);
     
+    // Step 1: Calculate interest on current balance
     const interest = balance * monthlyRate;
+    
+    // Step 2: Calculate amortization based on system and current values
     let amortization: number;
     let payment: number;
 
     if (system === 'PRICE') {
-      // PRICE: Use current PMT
       amortization = currentPMT - interest;
-      // Ensure we don't amortize more than balance
       if (amortization > balance) {
         amortization = balance;
       }
+      if (amortization < 0) {
+        // Edge case: interest exceeds PMT (shouldn't happen normally)
+        amortization = 0;
+      }
       payment = amortization + interest + monthlyFees;
     } else {
-      // SAC: Use current constant amortization
+      // SAC
       amortization = Math.min(currentAmortizationSAC, balance);
       payment = amortization + interest + monthlyFees;
     }
 
-    let newBalance = Math.max(0, balance - amortization);
+    // Step 3: Calculate balance after paying this installment
+    let balanceAfterPayment = Math.max(0, balance - amortization);
     
+    // Create the row
     const row: InstallmentRow = {
       number: installmentNumber,
       date: formatMonthYear(month, year),
@@ -263,67 +322,79 @@ export function generateScheduleWithExtras(
       payment,
       interest,
       amortization,
-      finalBalance: newBalance,
+      finalBalance: balanceAfterPayment,
       monthlyFees: monthlyFees > 0 ? monthlyFees : undefined
     };
 
-    // Check for extra amortization AFTER paying this installment
+    // Audit entry
+    const auditEntry: AuditInstallmentDetail = {
+      number: installmentNumber,
+      balanceBefore: balance,
+      interest,
+      amortization,
+      payment,
+      balanceAfter: balanceAfterPayment
+    };
+
+    // Step 4: Check for extra amortization AFTER paying this installment
     const extra = extraMap.get(installmentNumber);
-    if (extra && newBalance > 0) {
-      const extraAmount = Math.min(extra.amount, newBalance);
+    if (extra && balanceAfterPayment > 0.01) {
+      const extraAmount = Math.min(extra.amount, balanceAfterPayment);
       row.extraAmortization = extraAmount;
-      const balanceAfterExtra = Math.max(0, newBalance - extraAmount);
+      
+      const balanceAfterExtra = Math.max(0, balanceAfterPayment - extraAmount);
       row.finalBalance = balanceAfterExtra;
       
-      // Recalculate based on amortization type
+      auditEntry.extraAmortization = extraAmount;
+      auditEntry.balanceAfterExtra = balanceAfterExtra;
+      
+      // Step 5: Recalculate based on MODE
       if (extra.type === 'prazo') {
-        // MODE A: REDUCE TERM - Keep original amortization/PMT pattern
+        // ===== MODE PRAZO: Keep original amortization/PMT, schedule ends earlier =====
+        auditEntry.note = 'PRAZO: Mantendo amortização/PMT original, prazo reduz naturalmente';
+        
         // For SAC: Keep using originalAmortizationSAC
-        // For PRICE: Keep using currentPMT
-        // The schedule naturally ends earlier
+        // For PRICE: Keep using originalPMT
+        // Just let the loop continue with original values until balance zeros out
         
         if (system === 'SAC') {
-          // Keep original amortization, installments reduce naturally
           currentAmortizationSAC = originalAmortizationSAC;
-          // Calculate new remaining installments based on balance
-          remainingInstallments = Math.ceil(balanceAfterExtra / originalAmortizationSAC);
-        } else {
-          // PRICE: Keep same PMT, calculate new N
-          if (balanceAfterExtra > 0) {
-            remainingInstallments = calculateRemainingInstallmentsPRICE(balanceAfterExtra, currentPMT, monthlyRate);
-          }
         }
-      } else {
-        // MODE B: REDUCE PAYMENT - Keep same number of remaining installments
-        // Recalculate new amortization/PMT for remaining balance
+        // For PRICE, currentPMT is already set to originalPMT
         
+      } else {
+        // ===== MODE PARCELA: Keep same number of remaining installments, recalculate payment =====
         const installmentsPaid = installmentNumber;
-        const originalRemaining = installmentsCount - installmentsPaid;
-        const newRemaining = Math.max(1, originalRemaining);
-        remainingInstallments = newRemaining;
+        const remainingInstallments = Math.max(1, targetTotalInstallments - installmentsPaid);
+        
+        auditEntry.note = `PARCELA: Recalculando para ${remainingInstallments} parcelas restantes`;
         
         if (system === 'SAC') {
-          // New constant amortization for remaining balance
-          currentAmortizationSAC = balanceAfterExtra / newRemaining;
+          // New constant amortization for remaining balance over remaining installments
+          const newAmortization = balanceAfterExtra / remainingInstallments;
+          currentAmortizationSAC = newAmortization;
+          auditEntry.note += ` | Nova amortização base: R$ ${newAmortization.toFixed(2)}`;
         } else {
           // PRICE: Recalculate PMT for new balance and remaining installments
-          if (balanceAfterExtra > 0 && newRemaining > 0) {
-            currentPMT = calculatePMT(balanceAfterExtra, monthlyRate, newRemaining);
+          if (balanceAfterExtra > 0 && remainingInstallments > 0) {
+            const newPMT = calculatePMT(balanceAfterExtra, monthlyRate, remainingInstallments);
+            currentPMT = newPMT;
+            auditEntry.note += ` | Novo PMT: R$ ${newPMT.toFixed(2)}`;
           }
         }
       }
       
-      newBalance = balanceAfterExtra;
+      balanceAfterPayment = balanceAfterExtra;
     }
 
+    auditDetails.push(auditEntry);
     schedule.push(row);
-    balance = newBalance;
-    remainingInstallments--;
+    balance = balanceAfterPayment;
     
     if (balance <= 0.01) break;
   }
 
-  // Adjust last installment for rounding
+  // Adjust last installment for rounding (ensure exactly zero)
   if (schedule.length > 0) {
     const lastRow = schedule[schedule.length - 1];
     if (lastRow.finalBalance > 0 && lastRow.finalBalance < 1) {
@@ -333,7 +404,7 @@ export function generateScheduleWithExtras(
     }
   }
 
-  return schedule;
+  return { schedule, audit };
 }
 
 // ============================================
@@ -362,7 +433,7 @@ export function calculateSummary(
     totalPayment,
     totalInterest,
     totalFees,
-    totalCorrection: 0, // Reserved for future inflation correction feature
+    totalCorrection: 0,
     interestRate,
     interestPeriod,
     installmentsCount: schedule.length,
@@ -377,9 +448,6 @@ export function calculateSummary(
 // UTILITY FUNCTIONS
 // ============================================
 
-/**
- * Parse installment sequence string (e.g., "5,8,12,20-30")
- */
 export function parseInstallmentSequence(input: string, maxInstallment: number): number[] {
   const result: Set<number> = new Set();
   
@@ -406,9 +474,6 @@ export function parseInstallmentSequence(input: string, maxInstallment: number):
   return Array.from(result).sort((a, b) => a - b);
 }
 
-/**
- * Format currency in Brazilian Real
- */
 export function formatCurrencyBRL(value: number): string {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
@@ -416,9 +481,6 @@ export function formatCurrencyBRL(value: number): string {
   }).format(value);
 }
 
-/**
- * Format percentage
- */
 export function formatPercentage(value: number, decimals: number = 2): string {
   return new Intl.NumberFormat('pt-BR', {
     minimumFractionDigits: decimals,
@@ -427,11 +489,15 @@ export function formatPercentage(value: number, decimals: number = 2): string {
 }
 
 // ============================================
-// TEST CASE VALIDATION (Development only)
+// TEST CASE WITH DETAILED AUDIT
 // Case: PV 200.000 | SAC | 60 parcelas | 15% a.a. | amortização 20.000 após parcela 5
 // ============================================
 
-export function runTestCase(): void {
+export function runTestCase(): { 
+  base: { schedule: InstallmentRow[]; summary: SimulationSummary }; 
+  prazo: { schedule: InstallmentRow[]; summary: SimulationSummary; audit: AuditLog }; 
+  parcela: { schedule: InstallmentRow[]; summary: SimulationSummary; audit: AuditLog };
+} {
   const pv = 200000;
   const annualRate = 15;
   const monthlyRate = annualToMonthlyRate(annualRate);
@@ -440,7 +506,8 @@ export function runTestCase(): void {
   const startYear = 2025;
   
   console.log('=== TEST CASE: PV 200.000 | SAC | 60 parcelas | 15% a.a. ===');
-  console.log('Monthly rate:', (monthlyRate * 100).toFixed(4) + '%');
+  console.log('Monthly rate (compound):', (monthlyRate * 100).toFixed(6) + '%');
+  console.log('Formula: i_m = (1 + 0.15)^(1/12) - 1 =', monthlyRate);
   
   // Without extras
   const scheduleBase = generateSchedule(pv, monthlyRate, n, startMonth, startYear, 'SAC');
@@ -452,6 +519,8 @@ export function runTestCase(): void {
   console.log('Total juros:', formatCurrencyBRL(summaryBase.totalInterest));
   console.log('1ª parcela:', formatCurrencyBRL(summaryBase.firstInstallmentValue));
   console.log('Última parcela:', formatCurrencyBRL(summaryBase.lastInstallmentValue));
+  console.log('Parcela 5:', formatCurrencyBRL(scheduleBase[4]?.payment || 0));
+  console.log('Parcela 6:', formatCurrencyBRL(scheduleBase[5]?.payment || 0));
   
   // With PRAZO mode
   const extrasPrazo: ExtraAmortization[] = [{
@@ -461,15 +530,30 @@ export function runTestCase(): void {
     type: 'prazo'
   }];
   
-  const schedulePrazo = generateScheduleWithExtras(pv, monthlyRate, n, startMonth, startYear, 'SAC', extrasPrazo);
-  const summaryPrazo = calculateSummary(schedulePrazo, pv, annualRate, 'a.a.', 'SAC');
+  const resultPrazo = generateScheduleWithExtrasAndAudit(pv, monthlyRate, n, startMonth, startYear, 'SAC', extrasPrazo);
+  const summaryPrazo = calculateSummary(resultPrazo.schedule, pv, annualRate, 'a.a.', 'SAC');
   
-  console.log('\n--- MODO PRAZO (reduz parcelas) ---');
+  console.log('\n--- MODO PRAZO (reduz parcelas, mantém amortização) ---');
   console.log('Parcelas:', summaryPrazo.installmentsCount);
   console.log('Total a pagar:', formatCurrencyBRL(summaryPrazo.totalPayment));
   console.log('Total juros:', formatCurrencyBRL(summaryPrazo.totalInterest));
   console.log('Economia juros:', formatCurrencyBRL(summaryBase.totalInterest - summaryPrazo.totalInterest));
   console.log('Parcelas eliminadas:', summaryBase.installmentsCount - summaryPrazo.installmentsCount);
+  console.log('Parcela 6 (após extra):', formatCurrencyBRL(resultPrazo.schedule[5]?.payment || 0));
+  
+  // Audit parcela 5
+  const audit5Prazo = resultPrazo.audit.installmentDetails.find(a => a.number === 5);
+  if (audit5Prazo) {
+    console.log('\n  AUDIT Parcela 5 (PRAZO):');
+    console.log('    Saldo antes:', formatCurrencyBRL(audit5Prazo.balanceBefore));
+    console.log('    Juros:', formatCurrencyBRL(audit5Prazo.interest));
+    console.log('    Amortização:', formatCurrencyBRL(audit5Prazo.amortization));
+    console.log('    Parcela:', formatCurrencyBRL(audit5Prazo.payment));
+    console.log('    Saldo após pagamento:', formatCurrencyBRL(audit5Prazo.balanceAfter));
+    console.log('    Amortização extra:', formatCurrencyBRL(audit5Prazo.extraAmortization || 0));
+    console.log('    Saldo após extra:', formatCurrencyBRL(audit5Prazo.balanceAfterExtra || 0));
+    console.log('    Nota:', audit5Prazo.note);
+  }
   
   // With PARCELA mode
   const extrasParcela: ExtraAmortization[] = [{
@@ -479,13 +563,44 @@ export function runTestCase(): void {
     type: 'parcela'
   }];
   
-  const scheduleParcela = generateScheduleWithExtras(pv, monthlyRate, n, startMonth, startYear, 'SAC', extrasParcela);
-  const summaryParcela = calculateSummary(scheduleParcela, pv, annualRate, 'a.a.', 'SAC');
+  const resultParcela = generateScheduleWithExtrasAndAudit(pv, monthlyRate, n, startMonth, startYear, 'SAC', extrasParcela);
+  const summaryParcela = calculateSummary(resultParcela.schedule, pv, annualRate, 'a.a.', 'SAC');
   
-  console.log('\n--- MODO PARCELA (reduz valor) ---');
+  console.log('\n--- MODO PARCELA (mantém prazo, reduz valor) ---');
   console.log('Parcelas:', summaryParcela.installmentsCount);
   console.log('Total a pagar:', formatCurrencyBRL(summaryParcela.totalPayment));
   console.log('Total juros:', formatCurrencyBRL(summaryParcela.totalInterest));
   console.log('Economia juros:', formatCurrencyBRL(summaryBase.totalInterest - summaryParcela.totalInterest));
-  console.log('Nova 6ª parcela:', formatCurrencyBRL(scheduleParcela[5]?.payment || 0));
+  console.log('Parcela 6 SEM extra:', formatCurrencyBRL(scheduleBase[5]?.payment || 0));
+  console.log('Parcela 6 COM extra (modo parcela):', formatCurrencyBRL(resultParcela.schedule[5]?.payment || 0));
+  console.log('Redução da parcela 6:', formatCurrencyBRL((scheduleBase[5]?.payment || 0) - (resultParcela.schedule[5]?.payment || 0)));
+  
+  // Audit parcela 5
+  const audit5Parcela = resultParcela.audit.installmentDetails.find(a => a.number === 5);
+  if (audit5Parcela) {
+    console.log('\n  AUDIT Parcela 5 (PARCELA):');
+    console.log('    Saldo antes:', formatCurrencyBRL(audit5Parcela.balanceBefore));
+    console.log('    Juros:', formatCurrencyBRL(audit5Parcela.interest));
+    console.log('    Amortização:', formatCurrencyBRL(audit5Parcela.amortization));
+    console.log('    Parcela:', formatCurrencyBRL(audit5Parcela.payment));
+    console.log('    Saldo após pagamento:', formatCurrencyBRL(audit5Parcela.balanceAfter));
+    console.log('    Amortização extra:', formatCurrencyBRL(audit5Parcela.extraAmortization || 0));
+    console.log('    Saldo após extra:', formatCurrencyBRL(audit5Parcela.balanceAfterExtra || 0));
+    console.log('    Nota:', audit5Parcela.note);
+  }
+  
+  // Audit parcelas 6,7,8 for PARCELA mode
+  console.log('\n  AUDIT Parcelas 6,7,8 (PARCELA mode):');
+  for (let i = 6; i <= 8; i++) {
+    const audit = resultParcela.audit.installmentDetails.find(a => a.number === i);
+    if (audit) {
+      console.log(`    Parcela ${i}: Saldo=${formatCurrencyBRL(audit.balanceBefore)}, Juros=${formatCurrencyBRL(audit.interest)}, Amort=${formatCurrencyBRL(audit.amortization)}, Pmt=${formatCurrencyBRL(audit.payment)}, SaldoFinal=${formatCurrencyBRL(audit.balanceAfter)}`);
+    }
+  }
+
+  return {
+    base: { schedule: scheduleBase, summary: summaryBase },
+    prazo: { schedule: resultPrazo.schedule, summary: summaryPrazo, audit: resultPrazo.audit },
+    parcela: { schedule: resultParcela.schedule, summary: summaryParcela, audit: resultParcela.audit }
+  };
 }
