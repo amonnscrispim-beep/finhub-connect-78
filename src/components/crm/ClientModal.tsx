@@ -133,6 +133,8 @@ interface FormData {
   monthlyLivingCost: string;
   emergencyCoverageMonths: string;
   emergencyContributionsCount: string;
+  emergencyReserveStatus: string;
+  emergencyReserveNote: string;
   alreadyInvests: boolean;
   investingOrigin: string;
 }
@@ -209,6 +211,8 @@ const defaultFormData: FormData = {
   monthlyLivingCost: '',
   emergencyCoverageMonths: '6',
   emergencyContributionsCount: '12',
+  emergencyReserveStatus: '',
+  emergencyReserveNote: '',
   alreadyInvests: false,
   investingOrigin: '',
 };
@@ -283,6 +287,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         monthlyLivingCost: client.monthlyLivingCost?.toString() || '',
         emergencyCoverageMonths: client.emergencyCoverageMonths?.toString() || '6',
         emergencyContributionsCount: client.emergencyContributionsCount?.toString() || '12',
+        emergencyReserveStatus: client.emergencyReserveStatus || '',
+        emergencyReserveNote: client.emergencyReserveNote || '',
         alreadyInvests: client.alreadyInvests || false,
         investingOrigin: client.investingOrigin || '',
       });
@@ -420,6 +426,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       monthlyLivingCost: formData.monthlyLivingCost ? parseFloat(formData.monthlyLivingCost) : null,
       emergencyCoverageMonths: formData.emergencyCoverageMonths ? parseInt(formData.emergencyCoverageMonths) : 6,
       emergencyContributionsCount: formData.emergencyContributionsCount ? parseInt(formData.emergencyContributionsCount) : 12,
+      emergencyReserveStatus: (formData.emergencyReserveStatus as any) || '',
+      emergencyReserveNote: formData.emergencyReserveNote || null,
       alreadyInvests: formData.alreadyInvests,
       investingOrigin: formData.investingOrigin || null,
     };
@@ -857,6 +865,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               {/* Módulo de Reserva de Emergência */}
               <EmergencyReserveModule
                 data={{
+                  status: formData.emergencyReserveStatus,
+                  note: formData.emergencyReserveNote,
                   startMonth: formData.emergencyStartMonth,
                   startYear: formData.emergencyStartYear,
                   monthlyLivingCost: formData.monthlyLivingCost ? parseFloat(formData.monthlyLivingCost) : null,
@@ -865,16 +875,22 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   currentReserve: formData.emergencyReserve ? parseFloat(formData.emergencyReserve) : 0,
                 }}
                 onChange={(field, value) => {
-                  if (field === 'startMonth') {
-                    setFormData(prev => ({ ...prev, emergencyStartMonth: value }));
+                  if (field === 'status') {
+                    setFormData(prev => ({ ...prev, emergencyReserveStatus: value as string }));
+                  } else if (field === 'note') {
+                    setFormData(prev => ({ ...prev, emergencyReserveNote: value as string }));
+                  } else if (field === 'startMonth') {
+                    setFormData(prev => ({ ...prev, emergencyStartMonth: value as number | null }));
                   } else if (field === 'startYear') {
-                    setFormData(prev => ({ ...prev, emergencyStartYear: value }));
+                    setFormData(prev => ({ ...prev, emergencyStartYear: value as number | null }));
                   } else if (field === 'monthlyLivingCost') {
                     setFormData(prev => ({ ...prev, monthlyLivingCost: value?.toString() || '' }));
                   } else if (field === 'coverageMonths') {
                     setFormData(prev => ({ ...prev, emergencyCoverageMonths: value?.toString() || '6' }));
                   } else if (field === 'contributionsCount') {
                     setFormData(prev => ({ ...prev, emergencyContributionsCount: value?.toString() || '12' }));
+                  } else if (field === 'currentReserve') {
+                    setFormData(prev => ({ ...prev, emergencyReserve: value?.toString() || '0' }));
                   }
                 }}
               />
