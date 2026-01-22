@@ -121,7 +121,7 @@ export function useSupabaseTasks(clientId?: string) {
     },
   });
 
-  // Toggle task mutation
+  // Toggle task mutation with optimistic updates
   const toggleTaskMutation = useMutation({
     mutationFn: async ({ taskId, clientId, completed }: { taskId: string; clientId: string; completed: boolean }) => {
       if (!user) throw new Error('User not authenticated');
@@ -142,23 +142,75 @@ export function useSupabaseTasks(clientId?: string) {
       
       if (error) throw error;
       
-      // Update client's last_activity_at
-      await supabase
+      // Update client's last_activity_at in background
+      supabase
         .from('clients')
         .update({ last_activity_at: new Date().toISOString() })
         .eq('id', clientId)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .then(() => {
+          queryClient.invalidateQueries({ queryKey: ['clients'] });
+        });
       
       return dbToTask(data);
     },
-    onSuccess: () => {
+    // Optimistic update
+    onMutate: async ({ taskId, clientId, completed }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['tasks'] });
+      await queryClient.cancelQueries({ queryKey: ['tasks-by-client'] });
+      
+      // Snapshot previous values
+      const previousTasks = queryClient.getQueryData<Task[]>(['tasks', clientId, user?.id]);
+      const previousTasksByClient = queryClient.getQueryData<Record<string, Task[]>>(['tasks-by-client', user?.id]);
+      
+      const newCompleted = !completed;
+      const now = new Date();
+      
+      // Optimistically update tasks for specific client
+      if (previousTasks) {
+        queryClient.setQueryData<Task[]>(['tasks', clientId, user?.id], old =>
+          old?.map(task =>
+            task.id === taskId
+              ? { ...task, completed: newCompleted, completedAt: newCompleted ? now : null }
+              : task
+          ) ?? []
+        );
+      }
+      
+      // Optimistically update tasks-by-client
+      if (previousTasksByClient) {
+        queryClient.setQueryData<Record<string, Task[]>>(['tasks-by-client', user?.id], old => {
+          if (!old) return {};
+          const updated = { ...old };
+          if (updated[clientId]) {
+            updated[clientId] = updated[clientId].map(task =>
+              task.id === taskId
+                ? { ...task, completed: newCompleted, completedAt: newCompleted ? now : null }
+                : task
+            );
+          }
+          return updated;
+        });
+      }
+      
+      return { previousTasks, previousTasksByClient, clientId };
+    },
+    onError: (error, variables, context) => {
+      // Rollback on error
+      if (context?.previousTasks) {
+        queryClient.setQueryData(['tasks', context.clientId, user?.id], context.previousTasks);
+      }
+      if (context?.previousTasksByClient) {
+        queryClient.setQueryData(['tasks-by-client', user?.id], context.previousTasksByClient);
+      }
+      console.error('Error toggling task:', error);
+      toast.error('Erro ao atualizar tarefa. Alteração revertida.');
+    },
+    onSettled: () => {
+      // Sync with server after mutation settles
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['tasks-by-client'] });
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
-    },
-    onError: (error) => {
-      console.error('Error toggling task:', error);
-      toast.error('Erro ao atualizar tarefa');
     },
   });
 
