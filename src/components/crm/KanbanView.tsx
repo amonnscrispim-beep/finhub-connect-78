@@ -39,6 +39,11 @@ interface KanbanCardProps {
   onDragStart: (e: React.DragEvent) => void;
 }
 
+// Threshold for detecting drag movement (in pixels)
+const DRAG_THRESHOLD = 6;
+// Delay before allowing drag (in ms)
+const DRAG_DELAY = 150;
+
 // All funnel stages are valid for Kanban (Novo cliente was removed from the type)
 const KANBAN_STAGES = FUNNEL_STAGES;
 
@@ -67,6 +72,13 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
   const { toggleTask, addTask, deleteClient, deleteTask } = useClients();
   const [newTask, setNewTask] = useState('');
   const [showAddTask, setShowAddTask] = useState(false);
+  
+  // State for click vs drag detection
+  const [isDragging, setIsDragging] = useState(false);
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+  const dragTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const canDragRef = useRef(false);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const handleAddTask = () => {
     if (newTask.trim()) {
@@ -81,11 +93,130 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
   const borderColor = getCardBorderColor(client);
   const hasBirthday = isBirthdayToday(client.birthDate);
 
+  // Check if an element is interactive (should not trigger card click)
+  const isInteractiveElement = (target: EventTarget | null): boolean => {
+    if (!target || !(target instanceof HTMLElement)) return false;
+    
+    const interactiveTags = ['BUTTON', 'INPUT', 'TEXTAREA', 'SELECT', 'A'];
+    const interactiveRoles = ['button', 'menuitem', 'checkbox'];
+    
+    let element: HTMLElement | null = target;
+    while (element && element !== cardRef.current) {
+      // Check tag name
+      if (interactiveTags.includes(element.tagName)) return true;
+      // Check role
+      if (interactiveRoles.includes(element.getAttribute('role') || '')) return true;
+      // Check data attribute for interactive zones
+      if (element.dataset.interactive === 'true') return true;
+      // Check if part of dropdown
+      if (element.closest('[data-radix-collection-item]')) return true;
+      element = element.parentElement;
+    }
+    return false;
+  };
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    // Ignore if clicking on interactive elements
+    if (isInteractiveElement(e.target)) return;
+    
+    pointerStartRef.current = { x: e.clientX, y: e.clientY };
+    canDragRef.current = false;
+    setIsDragging(false);
+    
+    // Start timer to enable dragging after delay
+    dragTimerRef.current = setTimeout(() => {
+      canDragRef.current = true;
+    }, DRAG_DELAY);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!pointerStartRef.current) return;
+    
+    const dx = Math.abs(e.clientX - pointerStartRef.current.x);
+    const dy = Math.abs(e.clientY - pointerStartRef.current.y);
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    // If moved beyond threshold, mark as dragging
+    if (distance > DRAG_THRESHOLD) {
+      setIsDragging(true);
+      // Clear the timer if movement detected early
+      if (dragTimerRef.current) {
+        clearTimeout(dragTimerRef.current);
+        dragTimerRef.current = null;
+      }
+      canDragRef.current = true;
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    // Clear timer
+    if (dragTimerRef.current) {
+      clearTimeout(dragTimerRef.current);
+      dragTimerRef.current = null;
+    }
+    
+    // Ignore if clicking on interactive elements
+    if (isInteractiveElement(e.target)) {
+      pointerStartRef.current = null;
+      setIsDragging(false);
+      return;
+    }
+    
+    // If not dragging, open edit modal
+    if (!isDragging && pointerStartRef.current) {
+      const dx = Math.abs(e.clientX - pointerStartRef.current.x);
+      const dy = Math.abs(e.clientY - pointerStartRef.current.y);
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      // Only trigger click if minimal movement
+      if (distance <= DRAG_THRESHOLD) {
+        onEdit();
+      }
+    }
+    
+    pointerStartRef.current = null;
+    setIsDragging(false);
+  };
+
+  const handlePointerCancel = () => {
+    if (dragTimerRef.current) {
+      clearTimeout(dragTimerRef.current);
+      dragTimerRef.current = null;
+    }
+    pointerStartRef.current = null;
+    setIsDragging(false);
+  };
+
+  // Handle native drag start - only allow if canDrag is true
+  const handleDragStart = (e: React.DragEvent) => {
+    if (!canDragRef.current && !isDragging) {
+      e.preventDefault();
+      return;
+    }
+    onDragStart(e);
+  };
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (dragTimerRef.current) {
+        clearTimeout(dragTimerRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div
+      ref={cardRef}
       draggable
-      onDragStart={onDragStart}
-      className={`group bg-card rounded-xl p-4 shadow-card border border-border/50 border-l-4 ${borderColor} cursor-grab active:cursor-grabbing transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 ${client.pendingSchedule ? 'ring-2 ring-destructive/20' : ''}`}
+      onDragStart={handleDragStart}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
+      onPointerLeave={handlePointerCancel}
+      className={`group bg-card rounded-xl p-4 shadow-card border border-border/50 border-l-4 ${borderColor} cursor-pointer active:cursor-grabbing transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 ${client.pendingSchedule ? 'ring-2 ring-destructive/20' : ''} ${isDragging ? 'opacity-50 cursor-grabbing' : ''}`}
+      style={{ touchAction: 'none' }}
     >
       {/* Birthday Alert */}
       {hasBirthday && (
@@ -106,7 +237,7 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
-          <GripVertical className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-grab" />
+          <GripVertical className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
           <div>
             <div className="flex items-center gap-1.5">
               <h4 className="font-semibold text-foreground leading-tight">{client.name}</h4>
@@ -121,7 +252,7 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
           </div>
         </div>
         
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1" data-interactive="true">
           {client.renewed && (
             <div className="p-1 rounded-full bg-success/10" title="Renovado">
               <RefreshCw className="w-3 h-3 text-success" />
@@ -167,7 +298,7 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
 
       {/* Tasks */}
       {client.tasks.length > 0 && (
-        <div className="mb-3">
+        <div className="mb-3" data-interactive="true">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-muted-foreground">
               Tarefas ({completedTasks}/{totalTasks})
@@ -177,7 +308,10 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
             {client.tasks.slice(0, 3).map((task) => (
               <div key={task.id} className="flex items-center gap-2 group/task p-1.5 rounded-md hover:bg-muted/50 transition-colors">
                 <button
-                  onClick={() => toggleTask(client.id, task.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleTask(client.id, task.id);
+                  }}
                   className="flex-shrink-0"
                 >
                   {task.completed ? (
@@ -190,7 +324,10 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
                   {task.description}
                 </span>
                 <button
-                  onClick={() => deleteTask(client.id, task.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteTask(client.id, task.id);
+                  }}
                   className="opacity-0 group-hover/task:opacity-100 transition-opacity"
                 >
                   <Trash2 className="w-3 h-3 text-muted-foreground hover:text-destructive" />
@@ -207,31 +344,36 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
       )}
 
       {/* Add Task */}
-      {showAddTask ? (
-        <div className="flex gap-2">
-          <Input
-            value={newTask}
-            onChange={(e) => setNewTask(e.target.value)}
-            placeholder="Nova tarefa..."
-            className="h-8 text-xs"
-            onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
-            autoFocus
-          />
-          <Button size="sm" className="h-8 px-2" onClick={handleAddTask}>
-            <Check className="w-3 h-3" />
+      <div data-interactive="true">
+        {showAddTask ? (
+          <div className="flex gap-2">
+            <Input
+              value={newTask}
+              onChange={(e) => setNewTask(e.target.value)}
+              placeholder="Nova tarefa..."
+              className="h-8 text-xs"
+              onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
+              autoFocus
+            />
+            <Button size="sm" className="h-8 px-2" onClick={handleAddTask}>
+              <Check className="w-3 h-3" />
+            </Button>
+          </div>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full h-8 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowAddTask(true);
+            }}
+          >
+            <Plus className="w-3 h-3 mr-1" />
+            Adicionar tarefa
           </Button>
-        </div>
-      ) : (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full h-8 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50"
-          onClick={() => setShowAddTask(true)}
-        >
-          <Plus className="w-3 h-3 mr-1" />
-          Adicionar tarefa
-        </Button>
-      )}
+        )}
+      </div>
 
       {/* Progress bar for tasks */}
       {totalTasks > 0 && (
