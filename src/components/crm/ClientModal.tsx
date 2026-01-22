@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   Heart, Users, PieChart, Landmark, Target, Calendar, Cake, CreditCard, 
-  TrendingUp, Award, CheckCircle, User, DollarSign, FileText, Briefcase, ClipboardList,
-  MessageSquare, ChevronDown, ChevronUp
+  TrendingUp, Award, CheckCircle, User, DollarSign, FileText, Briefcase, ClipboardList
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -32,6 +31,7 @@ import {
   AMORTIZATION_SYSTEM_OPTIONS,
   AMORTIZATION_STRATEGY_OPTIONS,
   DebtInfo,
+  ModuleNotes,
   DebtType,
   ConsultingResult,
 } from '@/types/client';
@@ -53,6 +53,7 @@ import { DraftFinancialGoalsSection, DraftGoal } from './DraftFinancialGoalsSect
 import { EmergencyReserveModule, EmergencyReserveData } from './EmergencyReserveModule';
 import { DebtSimulatorInline } from './DebtSimulatorInline';
 import { ClientTasksSection } from './ClientTasksSection';
+import { CollapsibleComments } from './CollapsibleComments';
 import type { DebtSimulationData } from '@/types/client';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -140,6 +141,7 @@ interface FormData {
   alreadyInvests: boolean;
   investingOrigin: string;
   debtsComments: string;
+  moduleNotes: ModuleNotes;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
@@ -222,6 +224,7 @@ const defaultFormData: FormData = {
   alreadyInvests: false,
   investingOrigin: '',
   debtsComments: '',
+  moduleNotes: {},
 };
 
 export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
@@ -230,7 +233,6 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   const [formData, setFormData] = useState(defaultFormData);
   const [draftGoals, setDraftGoals] = useState<DraftGoal[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [debtsCommentsOpen, setDebtsCommentsOpen] = useState(false);
 
   useEffect(() => {
     if (client) {
@@ -301,6 +303,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         alreadyInvests: client.alreadyInvests || false,
         investingOrigin: client.investingOrigin || '',
         debtsComments: client.debtsComments || '',
+        moduleNotes: client.moduleNotes || {},
       });
       setDraftGoals([]);
     } else {
@@ -442,6 +445,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       alreadyInvests: formData.alreadyInvests,
       investingOrigin: formData.investingOrigin || null,
       debtsComments: formData.debtsComments || null,
+      moduleNotes: formData.moduleNotes,
     };
 
     try {
@@ -744,6 +748,15 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   />
                 </div>
               )}
+
+              {/* Collapsible Comments */}
+              <CollapsibleComments
+                value={formData.moduleNotes.personalInfo || ''}
+                onChange={(value) => setFormData(prev => ({
+                  ...prev,
+                  moduleNotes: { ...prev.moduleNotes, personalInfo: value }
+                }))}
+              />
             </CollapsibleSection>
 
             {/* SECTION 2: Estrutura Familiar */}
@@ -809,6 +822,15 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   <Button type="button" variant="outline" size="sm" onClick={handleAddChild} className="mt-2"><Plus className="w-4 h-4 mr-2" />Adicionar outro filho</Button>
                 </div>
               )}
+
+              {/* Collapsible Comments */}
+              <CollapsibleComments
+                value={formData.moduleNotes.family || ''}
+                onChange={(value) => setFormData(prev => ({
+                  ...prev,
+                  moduleNotes: { ...prev.moduleNotes, family: value }
+                }))}
+              />
             </CollapsibleSection>
 
             {/* SECTION 3: Situação Financeira Atual */}
@@ -951,6 +973,15 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   />
                 </div>
               </div>
+
+              {/* Collapsible Comments */}
+              <CollapsibleComments
+                value={formData.moduleNotes.financial || ''}
+                onChange={(value) => setFormData(prev => ({
+                  ...prev,
+                  moduleNotes: { ...prev.moduleNotes, financial: value }
+                }))}
+              />
             </CollapsibleSection>
 
             {/* SECTION 4: Dívidas e Obrigações */}
@@ -1084,35 +1115,15 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   Adicionar dívida
                 </Button>
 
-                {/* Collapsible Comments Section */}
-                <div className="mt-4 pt-4 border-t border-border">
-                  <button
-                    type="button"
-                    onClick={() => setDebtsCommentsOpen(!debtsCommentsOpen)}
-                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    <span>{formData.debtsComments ? 'Ver comentários' : 'Adicionar comentários'}</span>
-                    {debtsCommentsOpen ? (
-                      <ChevronUp className="w-4 h-4" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4" />
-                    )}
-                  </button>
-                  
-                  {debtsCommentsOpen && (
-                    <div className="mt-3 space-y-2">
-                      <Label htmlFor="debtsComments">Comentários</Label>
-                      <Textarea 
-                        id="debtsComments" 
-                        value={formData.debtsComments} 
-                        onChange={(e) => handleChange('debtsComments', e.target.value)} 
-                        placeholder="Ex: observações gerais sobre dívidas, contexto do cliente, acordos informais, renegociações futuras…"
-                        className="crm-input min-h-[100px]"
-                      />
-                    </div>
-                  )}
-                </div>
+                {/* Collapsible Comments Section using module notes */}
+                <CollapsibleComments
+                  value={formData.moduleNotes.debts || ''}
+                  onChange={(value) => setFormData(prev => ({
+                    ...prev,
+                    moduleNotes: { ...prev.moduleNotes, debts: value }
+                  }))}
+                  placeholder="Ex: observações gerais sobre dívidas, contexto do cliente, acordos informais, renegociações futuras…"
+                />
               </div>
             </CollapsibleSection>
 
@@ -1153,6 +1164,15 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   <CurrencyInput id="retirementIncome" value={formData.retirementIncome} onChange={(value) => handleChange('retirementIncome', value)} />
                 </div>
               </div>
+
+              {/* Collapsible Comments */}
+              <CollapsibleComments
+                value={formData.moduleNotes.retirement || ''}
+                onChange={(value) => setFormData(prev => ({
+                  ...prev,
+                  moduleNotes: { ...prev.moduleNotes, retirement: value }
+                }))}
+              />
             </CollapsibleSection>
 
             {/* SECTION 6: Metas Financeiras */}
@@ -1165,6 +1185,15 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   onGoalsChange={setDraftGoals} 
                 />
               )}
+
+              {/* Collapsible Comments */}
+              <CollapsibleComments
+                value={formData.moduleNotes.goals || ''}
+                onChange={(value) => setFormData(prev => ({
+                  ...prev,
+                  moduleNotes: { ...prev.moduleNotes, goals: value }
+                }))}
+              />
             </CollapsibleSection>
 
             {/* SECTION 7: Estratégia de Alocação */}
@@ -1173,6 +1202,15 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 value={formData.allocation}
                 onChange={(allocation) => handleChange('allocation', allocation)}
                 investorProfile={formData.investorProfile}
+              />
+
+              {/* Collapsible Comments */}
+              <CollapsibleComments
+                value={formData.moduleNotes.allocation || ''}
+                onChange={(value) => setFormData(prev => ({
+                  ...prev,
+                  moduleNotes: { ...prev.moduleNotes, allocation: value }
+                }))}
               />
             </CollapsibleSection>
 
@@ -1207,6 +1245,15 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 <Label htmlFor="observations">Observações</Label>
                 <Textarea id="observations" value={formData.observations} onChange={(e) => handleChange('observations', e.target.value)} placeholder="Observações gerais..." className="crm-input min-h-[80px]" />
               </div>
+
+              {/* Collapsible Comments */}
+              <CollapsibleComments
+                value={formData.moduleNotes.contract || ''}
+                onChange={(value) => setFormData(prev => ({
+                  ...prev,
+                  moduleNotes: { ...prev.moduleNotes, contract: value }
+                }))}
+              />
             </CollapsibleSection>
 
             {/* SECTION 9: Status do Cliente */}
@@ -1289,11 +1336,24 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   {formData.consultingFinished && <p className="text-xs text-muted-foreground">Cliente não contado no total de ativos</p>}
                 </div>
               </div>
+
+              {/* Collapsible Comments */}
+              <CollapsibleComments
+                value={formData.moduleNotes.status || ''}
+                onChange={(value) => setFormData(prev => ({
+                  ...prev,
+                  moduleNotes: { ...prev.moduleNotes, status: value }
+                }))}
+              />
             </CollapsibleSection>
 
             {/* SECTION 10: Tarefas do Cliente (somente para clientes existentes) */}
             {client && (
-              <ClientTasksSection client={client} />
+              <ClientTasksSection 
+                client={client} 
+                moduleNotes={formData.moduleNotes}
+                onModuleNotesChange={(notes) => setFormData(prev => ({ ...prev, moduleNotes: notes }))}
+              />
             )}
 
             {/* SECTION 11: Resultado da Consultoria */}
@@ -1308,11 +1368,30 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   <CurrencyInput id="consultingFinalPatrimony" value={formData.consultingFinalPatrimony} onChange={(value) => handleChange('consultingFinalPatrimony', value)} />
                 </div>
               </div>
+
+              {/* Collapsible Comments */}
+              <CollapsibleComments
+                value={formData.moduleNotes.result || ''}
+                onChange={(value) => setFormData(prev => ({
+                  ...prev,
+                  moduleNotes: { ...prev.moduleNotes, result: value }
+                }))}
+              />
             </CollapsibleSection>
 
             {/* SECTION 12: Arquivos do Cliente */}
             <CollapsibleSection title="Arquivos do Cliente" icon={FileText} defaultOpen={false}>
               <ClientFiles files={formData.files} onFilesChange={handleFilesChange} />
+
+              {/* Collapsible Comments */}
+              <CollapsibleComments
+                value={formData.moduleNotes.files || ''}
+                onChange={(value) => setFormData(prev => ({
+                  ...prev,
+                  moduleNotes: { ...prev.moduleNotes, files: value }
+                }))}
+                placeholder="Comentários sobre documentos, pendências, envios…"
+              />
             </CollapsibleSection>
 
             {/* Submit Button */}

@@ -10,18 +10,21 @@ import {
   Clock,
   Check
 } from 'lucide-react';
-import { Client, Task } from '@/types/client';
+import { Client, Task, ModuleNotes } from '@/types/client';
 import { useClients } from '@/contexts/ClientContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CollapsibleSection } from './CollapsibleSection';
+import { CollapsibleComments } from './CollapsibleComments';
 
 interface ClientTasksSectionProps {
   client: Client;
+  moduleNotes: ModuleNotes;
+  onModuleNotesChange: (notes: ModuleNotes) => void;
 }
 
-export function ClientTasksSection({ client }: ClientTasksSectionProps) {
+export function ClientTasksSection({ client, moduleNotes, onModuleNotesChange }: ClientTasksSectionProps) {
   const { toggleTask, addTask, deleteTask } = useClients();
   const [newTask, setNewTask] = useState('');
   const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
@@ -152,6 +155,12 @@ export function ClientTasksSection({ client }: ClientTasksSectionProps) {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Collapsible Comments */}
+      <CollapsibleComments
+        value={moduleNotes.tasks || ''}
+        onChange={(value) => onModuleNotesChange({ ...moduleNotes, tasks: value })}
+      />
     </CollapsibleSection>
   );
 }

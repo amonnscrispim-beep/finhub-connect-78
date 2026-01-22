@@ -20,7 +20,8 @@ import type {
   PrivatePensionStatus,
   PrivatePensionType,
   OrganizedFinancesStatus,
-  EmergencyReserveStatus
+  EmergencyReserveStatus,
+  ModuleNotes
 } from '@/types/client';
 import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
@@ -98,6 +99,7 @@ function dbToClient(row: ClientRow): Client {
     alreadyInvests: (row as any).already_invests ?? false,
     investingOrigin: (row as any).investing_origin ?? null,
     debtsComments: (row as any).debts_comments ?? null,
+    moduleNotes: ((row as any).module_notes as ModuleNotes) ?? {},
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -171,6 +173,7 @@ function clientToDbInsert(client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>
     already_invests: client.alreadyInvests,
     investing_origin: client.investingOrigin,
     debts_comments: client.debtsComments,
+    module_notes: client.moduleNotes ?? {},
   } as any;
 }
 
@@ -244,6 +247,7 @@ function clientToDbUpdate(updates: Partial<Client>): TablesUpdate<'clients'> {
   if (updates.alreadyInvests !== undefined) (dbUpdates as any).already_invests = updates.alreadyInvests;
   if (updates.investingOrigin !== undefined) (dbUpdates as any).investing_origin = updates.investingOrigin;
   if (updates.debtsComments !== undefined) (dbUpdates as any).debts_comments = updates.debtsComments;
+  if (updates.moduleNotes !== undefined) (dbUpdates as any).module_notes = updates.moduleNotes;
   
   return dbUpdates;
 }

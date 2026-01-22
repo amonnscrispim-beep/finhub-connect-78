@@ -56,6 +56,7 @@ export type Database = {
           material_assets: number | null
           medium_term_goals: string | null
           meeting_notes: Json | null
+          module_notes: Json | null
           monthly_contribution: number | null
           monthly_living_cost: number | null
           monthly_revenue: number | null
@@ -126,6 +127,7 @@ export type Database = {
           material_assets?: number | null
           medium_term_goals?: string | null
           meeting_notes?: Json | null
+          module_notes?: Json | null
           monthly_contribution?: number | null
           monthly_living_cost?: number | null
           monthly_revenue?: number | null
@@ -196,6 +198,7 @@ export type Database = {
           material_assets?: number | null
           medium_term_goals?: string | null
           meeting_notes?: Json | null
+          module_notes?: Json | null
           monthly_contribution?: number | null
           monthly_living_cost?: number | null
           monthly_revenue?: number | null
