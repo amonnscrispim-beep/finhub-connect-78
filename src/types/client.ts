@@ -216,8 +216,27 @@ export interface Client {
   investingOrigin: string | null;
   // Debts comments field
   debtsComments: string | null;
+  // Module notes (comments per section)
+  moduleNotes: ModuleNotes;
   createdAt: Date;
   updatedAt: Date;
+}
+
+// Module notes interface for comments per section
+export interface ModuleNotes {
+  personalInfo?: string;
+  family?: string;
+  financial?: string;
+  emergencyReserve?: string;
+  debts?: string;
+  allocation?: string;
+  retirement?: string;
+  goals?: string;
+  contract?: string;
+  status?: string;
+  tasks?: string;
+  result?: string;
+  files?: string;
 }
 
 export const FUNNEL_STAGES: FunnelStage[] = [
