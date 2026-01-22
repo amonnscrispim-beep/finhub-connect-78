@@ -40,6 +40,7 @@ import { PGBLCalculator } from './PGBLCalculator';
 import { AllocationStrategySection, AllocationData, migratePortfolioToAllocation, allocationToPortfolio } from './AllocationStrategySection';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { BirthDatePicker } from '@/components/ui/birth-date-picker';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CalendarIcon, Plus, Trash2 } from 'lucide-react';
@@ -622,17 +623,12 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   <Cake className="w-4 h-4 text-pink-500" />
                   <Label htmlFor="birthDate">Data de Nascimento (Aniversário)</Label>
                 </div>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-[280px] justify-start text-left font-normal crm-input", !formData.birthDate && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.birthDate ? format(new Date(formData.birthDate), "dd/MM/yyyy", { locale: ptBR }) : <span>Selecione a data de nascimento</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <CalendarComponent mode="single" selected={formData.birthDate ? new Date(formData.birthDate) : undefined} onSelect={(date) => handleChange('birthDate', date || null)} initialFocus className={cn("p-3 pointer-events-auto")} />
-                  </PopoverContent>
-                </Popover>
+                <BirthDatePicker
+                  value={formData.birthDate}
+                  onChange={(date) => handleChange('birthDate', date)}
+                  placeholder="Selecione a data de nascimento"
+                  className="crm-input"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
