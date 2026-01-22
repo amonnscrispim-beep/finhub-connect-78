@@ -61,7 +61,10 @@ function dbToClient(row: ClientRow): Client {
     renewalStatus: (row.renewal_status as RenewalStatus) ?? '',
     renewalDate: row.renewal_date ? new Date(row.renewal_date) : null,
     married: row.married ?? false,
-    partner: row.partner as unknown as PartnerInfo | null,
+    partner: row.partner ? {
+      ...(row.partner as unknown as PartnerInfo),
+      monthlyRevenue: (row as any).partner_monthly_revenue ?? (row.partner as any)?.monthlyRevenue ?? null,
+    } : null,
     hasChildren: row.has_children ?? false,
     children: (row.children as unknown as ChildInfo[]) ?? [],
     portfolioDistribution: row.portfolio_distribution as unknown as PortfolioDistribution | null,
@@ -133,6 +136,7 @@ function clientToDbInsert(client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>
     renewal_date: client.renewalDate?.toISOString().split('T')[0] ?? null,
     married: client.married,
     partner: client.partner as any,
+    partner_monthly_revenue: client.partner?.monthlyRevenue ?? null,
     has_children: client.hasChildren,
     children: client.children as any,
     portfolio_distribution: client.portfolioDistribution as any,
@@ -201,7 +205,10 @@ function clientToDbUpdate(updates: Partial<Client>): TablesUpdate<'clients'> {
   if (updates.renewalStatus !== undefined) dbUpdates.renewal_status = updates.renewalStatus;
   if (updates.renewalDate !== undefined) dbUpdates.renewal_date = updates.renewalDate?.toISOString().split('T')[0] ?? null;
   if (updates.married !== undefined) dbUpdates.married = updates.married;
-  if (updates.partner !== undefined) dbUpdates.partner = updates.partner as any;
+  if (updates.partner !== undefined) {
+    dbUpdates.partner = updates.partner as any;
+    (dbUpdates as any).partner_monthly_revenue = updates.partner?.monthlyRevenue ?? null;
+  }
   if (updates.hasChildren !== undefined) dbUpdates.has_children = updates.hasChildren;
   if (updates.children !== undefined) dbUpdates.children = updates.children as any;
   if (updates.portfolioDistribution !== undefined) dbUpdates.portfolio_distribution = updates.portfolioDistribution as any;

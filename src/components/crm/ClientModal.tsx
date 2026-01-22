@@ -105,6 +105,7 @@ interface FormData {
   partnerName: string;
   partnerAge: string;
   partnerProfession: string;
+  partnerMonthlyRevenue: string;
   hasChildren: boolean;
   children: ChildInfo[];
   allocation: AllocationData;
@@ -174,6 +175,7 @@ const defaultFormData: FormData = {
   partnerName: '',
   partnerAge: '',
   partnerProfession: '',
+  partnerMonthlyRevenue: '',
   hasChildren: false,
   children: [],
   allocation: {
@@ -259,6 +261,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         partnerName: client.partner?.name || '',
         partnerAge: client.partner?.age?.toString() || '',
         partnerProfession: client.partner?.profession || '',
+        partnerMonthlyRevenue: client.partner?.monthlyRevenue?.toString() || '',
         hasChildren: client.hasChildren || false,
         children: client.children || [],
         allocation: migratePortfolioToAllocation(client.portfolioDistribution),
@@ -323,11 +326,12 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     setIsSaving(true);
     
     let partner: PartnerInfo | null = null;
-    if (formData.married && (formData.partnerName || formData.partnerAge || formData.partnerProfession)) {
+    if (formData.married && (formData.partnerName || formData.partnerAge || formData.partnerProfession || formData.partnerMonthlyRevenue)) {
       partner = {
         name: formData.partnerName,
         age: formData.partnerAge ? parseInt(formData.partnerAge) : null,
         profession: formData.partnerProfession,
+        monthlyRevenue: formData.partnerMonthlyRevenue ? parseFloat(formData.partnerMonthlyRevenue) : null,
       };
     } else if (!formData.married && client?.partner) {
       partner = client.partner;
@@ -747,7 +751,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               {formData.married && (
                 <div className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
                   <h4 className="font-medium text-foreground">Dados do Parceiro(a)</h4>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="partnerName">Nome</Label>
                       <Input id="partnerName" value={formData.partnerName} onChange={(e) => handleChange('partnerName', e.target.value)} placeholder="Nome completo" className="crm-input" />
@@ -759,6 +763,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                     <div className="space-y-2">
                       <Label htmlFor="partnerProfession">Profissão</Label>
                       <Input id="partnerProfession" value={formData.partnerProfession} onChange={(e) => handleChange('partnerProfession', e.target.value)} placeholder="Ex: Advogada" className="crm-input" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="partnerMonthlyRevenue">Faturamento mensal do parceiro(a)</Label>
+                      <CurrencyInput id="partnerMonthlyRevenue" value={formData.partnerMonthlyRevenue} onChange={(value) => handleChange('partnerMonthlyRevenue', value)} placeholder="R$ 0,00" />
                     </div>
                   </div>
                 </div>
