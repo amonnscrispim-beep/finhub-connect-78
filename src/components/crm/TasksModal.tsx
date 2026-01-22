@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 interface TasksModalProps {
   open: boolean;
@@ -34,6 +35,7 @@ export function TasksModal({ open, onOpenChange, client, defaultTab = 'pending' 
   const { toggleTask, addTask, deleteTask } = useClients();
   const [newTask, setNewTask] = useState('');
   const [activeTab, setActiveTab] = useState<'pending' | 'completed'>(defaultTab);
+  const [animatingTasks, setAnimatingTasks] = useState<Set<string>>(new Set());
 
   // Update activeTab when defaultTab or open changes
   useEffect(() => {
@@ -50,6 +52,21 @@ export function TasksModal({ open, onOpenChange, client, defaultTab = 'pending' 
       addTask(client.id, newTask.trim());
       setNewTask('');
     }
+  };
+
+  const handleToggleTask = (taskId: string) => {
+    // Start animation immediately
+    setAnimatingTasks(prev => new Set(prev).add(taskId));
+    // Toggle task (optimistic update)
+    toggleTask(client.id, taskId);
+    // Clean up animation state after transition
+    setTimeout(() => {
+      setAnimatingTasks(prev => {
+        const next = new Set(prev);
+        next.delete(taskId);
+        return next;
+      });
+    }, 150);
   };
 
   const formatCompletedAt = (date: Date | null) => {
@@ -98,15 +115,32 @@ export function TasksModal({ open, onOpenChange, client, defaultTab = 'pending' 
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {pendingTasks.map((task) => (
-                    <TaskItem
-                      key={task.id}
-                      task={task}
-                      clientId={client.id}
-                      onToggle={() => toggleTask(client.id, task.id)}
-                      onDelete={() => deleteTask(client.id, task.id)}
-                    />
-                  ))}
+                  {pendingTasks.map((task) => {
+                    const isAnimating = animatingTasks.has(task.id);
+                    return (
+                      <div
+                        key={task.id}
+                        className={cn(
+                          "flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted transition-all duration-150 group",
+                          isAnimating && "opacity-0 scale-95 -translate-x-2"
+                        )}
+                      >
+                        <button 
+                          onClick={() => handleToggleTask(task.id)} 
+                          className="flex-shrink-0 transition-transform duration-100 hover:scale-110"
+                        >
+                          <Circle className="w-5 h-5 text-muted-foreground hover:text-primary transition-colors" />
+                        </button>
+                        <span className="text-sm flex-1">{task.description}</span>
+                        <button
+                          onClick={() => deleteTask(client.id, task.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </ScrollArea>
@@ -121,40 +155,46 @@ export function TasksModal({ open, onOpenChange, client, defaultTab = 'pending' 
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {completedTasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className="flex items-start gap-3 p-3 rounded-lg bg-success/5 border border-success/20"
-                    >
-                      <button
-                        onClick={() => toggleTask(client.id, task.id)}
-                        className="flex-shrink-0 mt-0.5"
-                        title="Restaurar tarefa"
-                      >
-                        <CheckCircle2 className="w-5 h-5 text-success" />
-                      </button>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm line-through text-muted-foreground">
-                          {task.description}
-                        </p>
-                        {task.completedAt && (
-                          <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                            <Clock className="w-3 h-3" />
-                            <span>Concluída em {formatCompletedAt(task.completedAt)}</span>
-                          </div>
+                  {completedTasks.map((task) => {
+                    const isAnimating = animatingTasks.has(task.id);
+                    return (
+                      <div
+                        key={task.id}
+                        className={cn(
+                          "flex items-start gap-3 p-3 rounded-lg bg-success/5 border border-success/20 transition-all duration-150",
+                          isAnimating && "opacity-0 scale-95 translate-x-2"
                         )}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-muted-foreground hover:text-primary"
-                        onClick={() => toggleTask(client.id, task.id)}
-                        title="Restaurar tarefa"
                       >
-                        <RotateCcw className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
+                        <button
+                          onClick={() => handleToggleTask(task.id)}
+                          className="flex-shrink-0 mt-0.5 transition-transform duration-100 hover:scale-110"
+                          title="Restaurar tarefa"
+                        >
+                          <CheckCircle2 className="w-5 h-5 text-success" />
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm line-through text-muted-foreground">
+                            {task.description}
+                          </p>
+                          {task.completedAt && (
+                            <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                              <Clock className="w-3 h-3" />
+                              <span>Concluída em {formatCompletedAt(task.completedAt)}</span>
+                            </div>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-primary"
+                          onClick={() => handleToggleTask(task.id)}
+                          title="Restaurar tarefa"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </ScrollArea>
@@ -162,29 +202,5 @@ export function TasksModal({ open, onOpenChange, client, defaultTab = 'pending' 
         </Tabs>
       </DialogContent>
     </Dialog>
-  );
-}
-
-interface TaskItemProps {
-  task: Task;
-  clientId: string;
-  onToggle: () => void;
-  onDelete: () => void;
-}
-
-function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
-  return (
-    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted transition-colors group">
-      <button onClick={onToggle} className="flex-shrink-0">
-        <Circle className="w-5 h-5 text-muted-foreground hover:text-primary transition-colors" />
-      </button>
-      <span className="text-sm flex-1">{task.description}</span>
-      <button
-        onClick={onDelete}
-        className="opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
-      </button>
-    </div>
   );
 }

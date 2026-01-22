@@ -14,10 +14,11 @@ import {
   ChevronRight,
   Award,
   Cake,
-  ListTodo
+  ListTodo,
+  CheckCircle2
 } from 'lucide-react';
 import { useClients } from '@/contexts/ClientContext';
-import { Client, FunnelStage, FUNNEL_STAGES } from '@/types/client';
+import { Client, FunnelStage, FUNNEL_STAGES, Task } from '@/types/client';
 import { getStageDisplayLabel } from '@/lib/funnel-utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { TasksModal } from './TasksModal';
+import { cn } from '@/lib/utils';
 
 interface KanbanViewProps {
   onEditClient: (client: Client) => void;
@@ -77,6 +79,7 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
   const [showAddTask, setShowAddTask] = useState(false);
   const [tasksModalOpen, setTasksModalOpen] = useState(false);
   const [tasksModalTab, setTasksModalTab] = useState<'pending' | 'completed'>('pending');
+  const [animatingTasks, setAnimatingTasks] = useState<Set<string>>(new Set());
 
   const handleAddTask = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -215,31 +218,51 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
             )}
           </div>
           <div className="space-y-1.5">
-            {pendingTasks.slice(0, 3).map((task) => (
-              <div key={task.id} className="flex items-center gap-2 group/task p-1.5 rounded-md hover:bg-muted/50 transition-colors">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleTask(client.id, task.id);
-                  }}
-                  className="flex-shrink-0"
+            {pendingTasks.slice(0, 3).map((task) => {
+              const isAnimating = animatingTasks.has(task.id);
+              return (
+                <div 
+                  key={task.id} 
+                  className={cn(
+                    "flex items-center gap-2 group/task p-1.5 rounded-md hover:bg-muted/50 transition-all duration-150",
+                    isAnimating && "opacity-0 scale-95 -translate-x-2"
+                  )}
                 >
-                  <Circle className="w-4 h-4 text-muted-foreground hover:text-primary" />
-                </button>
-                <span className="text-xs flex-1 text-foreground">
-                  {task.description}
-                </span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteTask(client.id, task.id);
-                  }}
-                  className="opacity-0 group-hover/task:opacity-100 transition-opacity"
-                >
-                  <Trash2 className="w-3 h-3 text-muted-foreground hover:text-destructive" />
-                </button>
-              </div>
-            ))}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Start animation immediately
+                      setAnimatingTasks(prev => new Set(prev).add(task.id));
+                      // Toggle task (optimistic update handles the rest)
+                      toggleTask(client.id, task.id);
+                      // Clean up animation state after transition
+                      setTimeout(() => {
+                        setAnimatingTasks(prev => {
+                          const next = new Set(prev);
+                          next.delete(task.id);
+                          return next;
+                        });
+                      }, 150);
+                    }}
+                    className="flex-shrink-0 transition-transform duration-100 hover:scale-110"
+                  >
+                    <Circle className="w-4 h-4 text-muted-foreground hover:text-primary" />
+                  </button>
+                  <span className="text-xs flex-1 text-foreground">
+                    {task.description}
+                  </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteTask(client.id, task.id);
+                    }}
+                    className="opacity-0 group-hover/task:opacity-100 transition-opacity"
+                  >
+                    <Trash2 className="w-3 h-3 text-muted-foreground hover:text-destructive" />
+                  </button>
+                </div>
+              );
+            })}
             {pendingTasks.length > 3 && (
               <button
                 onClick={(e) => openTasksModal(e, 'pending')}
