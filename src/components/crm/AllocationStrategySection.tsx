@@ -1,14 +1,25 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, TrendingUp, Shield, Clock } from 'lucide-react';
+import { AlertTriangle, TrendingUp, Shield, Clock, Lock } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import type { InvestorProfile } from '@/types/client';
 
 export type AllocationObjective = 'Preservação' | 'Renda' | 'Crescimento' | 'Balanceado' | 'Aposentadoria' | '';
 export type PortfolioHorizon = 'Curto prazo' | 'Médio prazo' | 'Longo prazo' | '';
+export type AllocationProfile = 'Conservador' | 'Moderado' | 'Arrojado' | 'Personalizado' | '';
 
 export const ALLOCATION_OBJECTIVES: AllocationObjective[] = [
   'Preservação',
@@ -24,18 +35,53 @@ export const PORTFOLIO_HORIZONS: PortfolioHorizon[] = [
   'Longo prazo'
 ];
 
+export const ALLOCATION_PROFILES: AllocationProfile[] = [
+  'Conservador',
+  'Moderado',
+  'Arrojado',
+  'Personalizado'
+];
+
+// Predefined profile allocations
+export const PROFILE_PRESETS: Record<Exclude<AllocationProfile, '' | 'Personalizado'>, {
+  stocks: number;
+  international: number;
+  realEstate: number;
+  fixedIncomeTotal: number;
+}> = {
+  'Conservador': {
+    stocks: 7,
+    international: 5,
+    realEstate: 8,
+    fixedIncomeTotal: 80
+  },
+  'Moderado': {
+    stocks: 14,
+    international: 11,
+    realEstate: 15,
+    fixedIncomeTotal: 60
+  },
+  'Arrojado': {
+    stocks: 21.5,
+    international: 16,
+    realEstate: 22.5,
+    fixedIncomeTotal: 40
+  }
+};
+
 export interface AllocationData {
   // Fixed Income breakdown
   postFixed: number; // % Pós-fixado
   preFixed: number; // % Prefixado
   inflationIndexed: number; // % Indexado à inflação
   // Other assets
-  stocks: number; // % Ações
+  stocks: number; // % Ações Brasileiras
   realEstate: number; // % Fundos Imobiliários
-  international: number; // % Exterior
+  international: number; // % Ações Internacionais
   // Auxiliary fields
   objective: AllocationObjective;
   horizon: PortfolioHorizon;
+  allocationProfile: AllocationProfile;
 }
 
 interface AllocationStrategySectionProps {
@@ -45,13 +91,66 @@ interface AllocationStrategySectionProps {
 }
 
 export function AllocationStrategySection({ value, onChange, investorProfile }: AllocationStrategySectionProps) {
+  const [showProfileConfirm, setShowProfileConfirm] = useState(false);
+  const [pendingProfile, setPendingProfile] = useState<AllocationProfile | null>(null);
+
+  const isPresetProfile = value.allocationProfile === 'Conservador' || 
+    value.allocationProfile === 'Moderado' || 
+    value.allocationProfile === 'Arrojado';
+  const isFieldsLocked = isPresetProfile;
+
   const handleFieldChange = (field: keyof AllocationData, newValue: string | number) => {
+    if (isFieldsLocked && ['postFixed', 'preFixed', 'inflationIndexed', 'stocks', 'realEstate', 'international'].includes(field)) {
+      return; // Block changes when using preset
+    }
     onChange({
       ...value,
       [field]: typeof newValue === 'string' && ['postFixed', 'preFixed', 'inflationIndexed', 'stocks', 'realEstate', 'international'].includes(field)
         ? parseFloat(newValue) || 0
         : newValue
     });
+  };
+
+  const applyProfilePreset = (profile: AllocationProfile) => {
+    if (profile === 'Personalizado' || profile === '') {
+      onChange({
+        ...value,
+        allocationProfile: profile
+      });
+    } else {
+      const preset = PROFILE_PRESETS[profile];
+      onChange({
+        ...value,
+        allocationProfile: profile,
+        stocks: preset.stocks,
+        international: preset.international,
+        realEstate: preset.realEstate,
+        postFixed: preset.fixedIncomeTotal,
+        preFixed: 0,
+        inflationIndexed: 0
+      });
+    }
+  };
+
+  const handleProfileChange = (newProfile: AllocationProfile) => {
+    // Check if there are existing values that would be overwritten
+    const hasExistingValues = value.stocks > 0 || value.international > 0 || 
+      value.realEstate > 0 || value.postFixed > 0 || value.preFixed > 0 || value.inflationIndexed > 0;
+    
+    if (hasExistingValues && newProfile !== '' && newProfile !== 'Personalizado') {
+      setPendingProfile(newProfile);
+      setShowProfileConfirm(true);
+    } else {
+      applyProfilePreset(newProfile);
+    }
+  };
+
+  const confirmProfileChange = () => {
+    if (pendingProfile) {
+      applyProfilePreset(pendingProfile);
+    }
+    setShowProfileConfirm(false);
+    setPendingProfile(null);
   };
 
   // Calculate fixed income subtotal
@@ -126,9 +225,49 @@ export function AllocationStrategySection({ value, onChange, investorProfile }: 
 
   return (
     <div className="space-y-6">
+      {/* Profile Change Confirmation Dialog */}
+      <AlertDialog open={showProfileConfirm} onOpenChange={setShowProfileConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Alterar perfil de alocação?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ao selecionar o perfil "{pendingProfile}", os valores atuais serão substituídos pelos percentuais predefinidos. Deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingProfile(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmProfileChange}>Confirmar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <p className="text-sm text-muted-foreground">
-        Defina a estratégia de alocação da carteira do cliente. A soma total deve ser 100%.
+        Defina a estratégia de alocação da carteira do cliente. Selecione um perfil predefinido ou personalize manualmente.
       </p>
+
+      {/* Profile Selection */}
+      <div className="space-y-2">
+        <Label htmlFor="allocationProfile">Perfil de Alocação</Label>
+        <Select 
+          value={value.allocationProfile || ''} 
+          onValueChange={(v) => handleProfileChange(v as AllocationProfile)}
+        >
+          <SelectTrigger className="crm-input">
+            <SelectValue placeholder="Selecione um perfil..." />
+          </SelectTrigger>
+          <SelectContent>
+            {ALLOCATION_PROFILES.map((profile) => (
+              <SelectItem key={profile} value={profile}>{profile}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {isPresetProfile && (
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <Lock className="h-3 w-3" />
+            Perfil predefinido – campos bloqueados. Escolha "Personalizado" para editar livremente.
+          </p>
+        )}
+      </div>
 
       {/* Auxiliary Fields */}
       <div className="grid grid-cols-2 gap-4">
@@ -166,13 +305,71 @@ export function AllocationStrategySection({ value, onChange, investorProfile }: 
         </div>
       </div>
 
+      {/* Variable Income Assets */}
+      <div className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
+        <div className="flex items-center justify-between">
+          <h4 className="font-medium text-foreground">Renda Variável</h4>
+          {isFieldsLocked && <Lock className="h-4 w-4 text-muted-foreground" />}
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="portfolioStocks">% Ações Brasileiras</Label>
+            <Input
+              id="portfolioStocks"
+              type="number"
+              min="0"
+              max="100"
+              step="0.5"
+              value={value.stocks || ''}
+              onChange={(e) => handleFieldChange('stocks', e.target.value)}
+              placeholder="0"
+              className="crm-input"
+              disabled={isFieldsLocked}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="portfolioInternational">% Ações Internacionais</Label>
+            <Input
+              id="portfolioInternational"
+              type="number"
+              min="0"
+              max="100"
+              step="0.5"
+              value={value.international || ''}
+              onChange={(e) => handleFieldChange('international', e.target.value)}
+              placeholder="0"
+              className="crm-input"
+              disabled={isFieldsLocked}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="portfolioRealEstate">% Fundos Imobiliários</Label>
+            <Input
+              id="portfolioRealEstate"
+              type="number"
+              min="0"
+              max="100"
+              step="0.5"
+              value={value.realEstate || ''}
+              onChange={(e) => handleFieldChange('realEstate', e.target.value)}
+              placeholder="0"
+              className="crm-input"
+              disabled={isFieldsLocked}
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Fixed Income Section */}
       <div className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
         <div className="flex items-center justify-between">
           <h4 className="font-medium text-foreground">Renda Fixa</h4>
-          <span className={`text-sm font-medium ${fixedIncomeSubtotal > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
-            Subtotal: {fixedIncomeSubtotal.toFixed(1)}%
-          </span>
+          <div className="flex items-center gap-2">
+            <span className={`text-sm font-medium ${fixedIncomeSubtotal > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
+              Subtotal: {fixedIncomeSubtotal.toFixed(1)}%
+            </span>
+            {isFieldsLocked && <Lock className="h-4 w-4 text-muted-foreground" />}
+          </div>
         </div>
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-2">
@@ -187,6 +384,7 @@ export function AllocationStrategySection({ value, onChange, investorProfile }: 
               onChange={(e) => handleFieldChange('postFixed', e.target.value)}
               placeholder="0"
               className="crm-input"
+              disabled={isFieldsLocked}
             />
           </div>
           <div className="space-y-2">
@@ -201,6 +399,7 @@ export function AllocationStrategySection({ value, onChange, investorProfile }: 
               onChange={(e) => handleFieldChange('preFixed', e.target.value)}
               placeholder="0"
               className="crm-input"
+              disabled={isFieldsLocked}
             />
           </div>
           <div className="space-y-2">
@@ -215,54 +414,9 @@ export function AllocationStrategySection({ value, onChange, investorProfile }: 
               onChange={(e) => handleFieldChange('inflationIndexed', e.target.value)}
               placeholder="0"
               className="crm-input"
+              disabled={isFieldsLocked}
             />
           </div>
-        </div>
-      </div>
-
-      {/* Other Assets */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="portfolioStocks">% Ações</Label>
-          <Input
-            id="portfolioStocks"
-            type="number"
-            min="0"
-            max="100"
-            step="0.5"
-            value={value.stocks || ''}
-            onChange={(e) => handleFieldChange('stocks', e.target.value)}
-            placeholder="0"
-            className="crm-input"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="portfolioRealEstate">% Fundos Imobiliários</Label>
-          <Input
-            id="portfolioRealEstate"
-            type="number"
-            min="0"
-            max="100"
-            step="0.5"
-            value={value.realEstate || ''}
-            onChange={(e) => handleFieldChange('realEstate', e.target.value)}
-            placeholder="0"
-            className="crm-input"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="portfolioInternational">% Exterior</Label>
-          <Input
-            id="portfolioInternational"
-            type="number"
-            min="0"
-            max="100"
-            step="0.5"
-            value={value.international || ''}
-            onChange={(e) => handleFieldChange('international', e.target.value)}
-            placeholder="0"
-            className="crm-input"
-          />
         </div>
       </div>
 
@@ -319,6 +473,7 @@ export function migratePortfolioToAllocation(old: {
   inflationIndexed?: number;
   objective?: AllocationObjective;
   horizon?: PortfolioHorizon;
+  allocationProfile?: AllocationProfile;
 } | null): AllocationData {
   if (!old) {
     return {
@@ -329,7 +484,8 @@ export function migratePortfolioToAllocation(old: {
       realEstate: 0,
       international: 0,
       objective: '',
-      horizon: ''
+      horizon: '',
+      allocationProfile: ''
     };
   }
 
@@ -343,7 +499,8 @@ export function migratePortfolioToAllocation(old: {
       realEstate: old.realEstate || 0,
       international: old.international || 0,
       objective: old.objective || '',
-      horizon: old.horizon || ''
+      horizon: old.horizon || '',
+      allocationProfile: old.allocationProfile || ''
     };
   }
 
@@ -356,7 +513,8 @@ export function migratePortfolioToAllocation(old: {
     realEstate: old.realEstate || 0,
     international: old.international || 0,
     objective: '',
-    horizon: ''
+    horizon: '',
+    allocationProfile: ''
   };
 }
 
@@ -369,6 +527,7 @@ export function allocationToPortfolio(data: AllocationData): {
   international: number;
   objective: AllocationObjective;
   horizon: PortfolioHorizon;
+  allocationProfile: AllocationProfile;
   // Keep legacy field for compatibility
   fixedIncome: number;
 } {
@@ -382,6 +541,7 @@ export function allocationToPortfolio(data: AllocationData): {
     international: data.international || 0,
     objective: data.objective || '',
     horizon: data.horizon || '',
+    allocationProfile: data.allocationProfile || '',
     fixedIncome // Legacy field
   };
 }

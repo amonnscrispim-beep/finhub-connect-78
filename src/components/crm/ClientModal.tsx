@@ -186,7 +186,8 @@ const defaultFormData: FormData = {
     realEstate: 0,
     international: 0,
     objective: '',
-    horizon: ''
+    horizon: '',
+    allocationProfile: ''
   },
   privatePensionStatus: '',
   privatePensionType: '',
