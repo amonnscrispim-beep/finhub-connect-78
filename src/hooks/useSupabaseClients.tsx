@@ -19,7 +19,8 @@ import type {
   RenewalStatus,
   PrivatePensionStatus,
   PrivatePensionType,
-  OrganizedFinancesStatus
+  OrganizedFinancesStatus,
+  EmergencyReserveStatus
 } from '@/types/client';
 import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
@@ -89,6 +90,8 @@ function dbToClient(row: ClientRow): Client {
     monthlyLivingCost: Number((row as any).monthly_living_cost) || null,
     emergencyCoverageMonths: (row as any).emergency_coverage_months ?? 6,
     emergencyContributionsCount: (row as any).emergency_contributions_count ?? 12,
+    emergencyReserveStatus: ((row as any).emergency_reserve_status as EmergencyReserveStatus) ?? '',
+    emergencyReserveNote: (row as any).emergency_reserve_note ?? null,
     alreadyInvests: (row as any).already_invests ?? false,
     investingOrigin: (row as any).investing_origin ?? null,
     createdAt: new Date(row.created_at),
@@ -158,6 +161,8 @@ function clientToDbInsert(client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>
     monthly_living_cost: client.monthlyLivingCost,
     emergency_coverage_months: client.emergencyCoverageMonths,
     emergency_contributions_count: client.emergencyContributionsCount,
+    emergency_reserve_status: client.emergencyReserveStatus || null,
+    emergency_reserve_note: client.emergencyReserveNote,
     already_invests: client.alreadyInvests,
     investing_origin: client.investingOrigin,
   } as any;
@@ -225,6 +230,8 @@ function clientToDbUpdate(updates: Partial<Client>): TablesUpdate<'clients'> {
   if (updates.monthlyLivingCost !== undefined) (dbUpdates as any).monthly_living_cost = updates.monthlyLivingCost;
   if (updates.emergencyCoverageMonths !== undefined) (dbUpdates as any).emergency_coverage_months = updates.emergencyCoverageMonths;
   if (updates.emergencyContributionsCount !== undefined) (dbUpdates as any).emergency_contributions_count = updates.emergencyContributionsCount;
+  if (updates.emergencyReserveStatus !== undefined) (dbUpdates as any).emergency_reserve_status = updates.emergencyReserveStatus || null;
+  if (updates.emergencyReserveNote !== undefined) (dbUpdates as any).emergency_reserve_note = updates.emergencyReserveNote;
   if (updates.alreadyInvests !== undefined) (dbUpdates as any).already_invests = updates.alreadyInvests;
   if (updates.investingOrigin !== undefined) (dbUpdates as any).investing_origin = updates.investingOrigin;
   

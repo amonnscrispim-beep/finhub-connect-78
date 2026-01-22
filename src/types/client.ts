@@ -28,6 +28,8 @@ export type PrivatePensionType = 'PGBL' | 'VGBL' | '';
 
 export type OrganizedFinancesStatus = 'Sim' | 'Não' | 'Não precisa' | '';
 
+export type EmergencyReserveStatus = 'HAS' | 'NONE' | 'NOT_PRIORITY' | '';
+
 export type DebtType = 'emprestimo' | 'financiamento' | 'consorcio';
 
 export type AmortizationPeriodUnit = 'meses' | 'anos';
@@ -206,6 +208,8 @@ export interface Client {
   monthlyLivingCost: number | null;
   emergencyCoverageMonths: number | null;
   emergencyContributionsCount: number | null;
+  emergencyReserveStatus: EmergencyReserveStatus;
+  emergencyReserveNote: string | null;
   // Investment history fields
   alreadyInvests: boolean;
   investingOrigin: string | null;
@@ -265,6 +269,12 @@ export const ORGANIZED_FINANCES_OPTIONS: OrganizedFinancesStatus[] = [
   'Sim',
   'Não',
   'Não precisa',
+];
+
+export const EMERGENCY_RESERVE_STATUS_OPTIONS: { value: EmergencyReserveStatus; label: string }[] = [
+  { value: 'HAS', label: 'Cliente já tem reserva' },
+  { value: 'NONE', label: 'Cliente não tem reserva' },
+  { value: 'NOT_PRIORITY', label: 'Não quer / não prioriza agora' },
 ];
 
 export const DEBT_TYPE_OPTIONS: { value: DebtType; label: string }[] = [

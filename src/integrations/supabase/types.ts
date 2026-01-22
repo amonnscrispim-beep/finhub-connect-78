@@ -35,6 +35,8 @@ export type Database = {
           emergency_contributions_count: number | null
           emergency_coverage_months: number | null
           emergency_reserve: number | null
+          emergency_reserve_note: string | null
+          emergency_reserve_status: string | null
           emergency_start_month: number | null
           emergency_start_year: number | null
           files: Json | null
@@ -101,6 +103,8 @@ export type Database = {
           emergency_contributions_count?: number | null
           emergency_coverage_months?: number | null
           emergency_reserve?: number | null
+          emergency_reserve_note?: string | null
+          emergency_reserve_status?: string | null
           emergency_start_month?: number | null
           emergency_start_year?: number | null
           files?: Json | null
@@ -167,6 +171,8 @@ export type Database = {
           emergency_contributions_count?: number | null
           emergency_coverage_months?: number | null
           emergency_reserve?: number | null
+          emergency_reserve_note?: string | null
+          emergency_reserve_status?: string | null
           emergency_start_month?: number | null
           emergency_start_year?: number | null
           files?: Json | null
