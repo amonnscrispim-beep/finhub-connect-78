@@ -101,6 +101,7 @@ export interface PartnerInfo {
   name: string;
   age: number | null;
   profession: string;
+  monthlyRevenue: number | null;
 }
 
 export interface ChildInfo {

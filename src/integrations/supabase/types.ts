@@ -63,6 +63,7 @@ export type Database = {
           observations: string | null
           organized_finances: string | null
           partner: Json | null
+          partner_monthly_revenue: number | null
           pending_schedule: boolean | null
           phone: string | null
           portfolio_distribution: Json | null
@@ -131,6 +132,7 @@ export type Database = {
           observations?: string | null
           organized_finances?: string | null
           partner?: Json | null
+          partner_monthly_revenue?: number | null
           pending_schedule?: boolean | null
           phone?: string | null
           portfolio_distribution?: Json | null
@@ -199,6 +201,7 @@ export type Database = {
           observations?: string | null
           organized_finances?: string | null
           partner?: Json | null
+          partner_monthly_revenue?: number | null
           pending_schedule?: boolean | null
           phone?: string | null
           portfolio_distribution?: Json | null
