@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { 
   Heart, Users, PieChart, Landmark, Target, Calendar, Cake, CreditCard, 
-  TrendingUp, Award, CheckCircle, User, DollarSign, FileText, Briefcase, ClipboardList
+  TrendingUp, Award, CheckCircle, User, DollarSign, FileText, Briefcase, ClipboardList,
+  MessageSquare, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -138,6 +139,7 @@ interface FormData {
   emergencyReserveNote: string;
   alreadyInvests: boolean;
   investingOrigin: string;
+  debtsComments: string;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
@@ -219,6 +221,7 @@ const defaultFormData: FormData = {
   emergencyReserveNote: '',
   alreadyInvests: false,
   investingOrigin: '',
+  debtsComments: '',
 };
 
 export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
@@ -227,6 +230,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   const [formData, setFormData] = useState(defaultFormData);
   const [draftGoals, setDraftGoals] = useState<DraftGoal[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [debtsCommentsOpen, setDebtsCommentsOpen] = useState(false);
 
   useEffect(() => {
     if (client) {
@@ -296,6 +300,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         emergencyReserveNote: client.emergencyReserveNote || '',
         alreadyInvests: client.alreadyInvests || false,
         investingOrigin: client.investingOrigin || '',
+        debtsComments: client.debtsComments || '',
       });
       setDraftGoals([]);
     } else {
@@ -436,6 +441,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       emergencyReserveNote: formData.emergencyReserveNote || null,
       alreadyInvests: formData.alreadyInvests,
       investingOrigin: formData.investingOrigin || null,
+      debtsComments: formData.debtsComments || null,
     };
 
     try {
@@ -1077,6 +1083,36 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   <Plus className="w-4 h-4 mr-2" />
                   Adicionar dívida
                 </Button>
+
+                {/* Collapsible Comments Section */}
+                <div className="mt-4 pt-4 border-t border-border">
+                  <button
+                    type="button"
+                    onClick={() => setDebtsCommentsOpen(!debtsCommentsOpen)}
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    <span>{formData.debtsComments ? 'Ver comentários' : 'Adicionar comentários'}</span>
+                    {debtsCommentsOpen ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    )}
+                  </button>
+                  
+                  {debtsCommentsOpen && (
+                    <div className="mt-3 space-y-2">
+                      <Label htmlFor="debtsComments">Comentários</Label>
+                      <Textarea 
+                        id="debtsComments" 
+                        value={formData.debtsComments} 
+                        onChange={(e) => handleChange('debtsComments', e.target.value)} 
+                        placeholder="Ex: observações gerais sobre dívidas, contexto do cliente, acordos informais, renegociações futuras…"
+                        className="crm-input min-h-[100px]"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             </CollapsibleSection>
 
