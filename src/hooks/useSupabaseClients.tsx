@@ -305,7 +305,7 @@ export function useSupabaseClients() {
     },
   });
 
-  // Update client mutation
+  // Update client mutation with optimistic updates for stage changes
   const updateClientMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Client> }) => {
       if (!user) throw new Error('User not authenticated');
@@ -323,12 +323,38 @@ export function useSupabaseClients() {
       if (error) throw error;
       return dbToClient(data);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
+    // Optimistic update for instant UI feedback
+    onMutate: async ({ id, updates }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['clients', user?.id] });
+      
+      // Snapshot previous value
+      const previousClients = queryClient.getQueryData<Client[]>(['clients', user?.id]);
+      
+      // Optimistically update the cache
+      if (previousClients) {
+        queryClient.setQueryData<Client[]>(['clients', user?.id], old =>
+          old?.map(client =>
+            client.id === id
+              ? { ...client, ...updates, updatedAt: new Date() }
+              : client
+          ) ?? []
+        );
+      }
+      
+      return { previousClients };
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback on error
+      if (context?.previousClients) {
+        queryClient.setQueryData(['clients', user?.id], context.previousClients);
+      }
       console.error('Error updating client:', error);
-      toast.error('Erro ao atualizar cliente');
+      toast.error('Erro ao atualizar cliente. Alteração revertida.');
+    },
+    onSettled: () => {
+      // Sync with server after mutation settles
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
     },
   });
 
