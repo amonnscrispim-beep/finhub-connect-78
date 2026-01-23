@@ -494,6 +494,14 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
         // Neither has kanbanOrder - sort by createdAt
         return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       });
+      
+      // Log sorted order for debugging
+      if (grouped[stage].length > 0) {
+        console.log(`[Kanban] Stage "${stage}" order:`, grouped[stage].map(c => ({
+          name: c.name,
+          kanbanOrder: c.kanbanOrder
+        })));
+      }
     });
     
     return grouped;
