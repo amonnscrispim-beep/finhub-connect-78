@@ -109,7 +109,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
 
   const deleteTask = useCallback(async (clientId: string, taskId: string) => {
     try {
-      await deleteTaskFromDb(taskId);
+      await deleteTaskFromDb(taskId, clientId);
     } catch (error) {
       console.error('Error deleting task:', error);
     }

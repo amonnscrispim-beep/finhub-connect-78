@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, memo } from 'react';
+import React from 'react';
 import { 
   GripVertical, 
   Check, 
@@ -73,7 +74,7 @@ const isBirthdayToday = (birthDate: Date | null): boolean => {
   return today.getMonth() === birth.getMonth() && today.getDate() === birth.getDate();
 };
 
-function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
+const KanbanCardComponent = memo(function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
   const { toggleTask, addTask, deleteClient, deleteTask } = useClients();
   const [newTask, setNewTask] = useState('');
   const [showAddTask, setShowAddTask] = useState(false);
@@ -343,7 +344,29 @@ function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
       />
     </div>
   );
-}
+});
+
+// Memoized card with stable comparison
+const KanbanCard = memo(KanbanCardComponent, (prevProps, nextProps) => {
+  // Only re-render if these specific things change
+  return (
+    prevProps.client.id === nextProps.client.id &&
+    prevProps.client.funnelStage === nextProps.client.funnelStage &&
+    prevProps.client.name === nextProps.client.name &&
+    prevProps.client.profession === nextProps.client.profession &&
+    prevProps.client.objective === nextProps.client.objective &&
+    prevProps.client.pendingSchedule === nextProps.client.pendingSchedule &&
+    prevProps.client.renewed === nextProps.client.renewed &&
+    prevProps.client.renewalPotential === nextProps.client.renewalPotential &&
+    prevProps.client.isRenewedClient === nextProps.client.isRenewedClient &&
+    prevProps.client.birthDate?.getTime() === nextProps.client.birthDate?.getTime() &&
+    prevProps.client.tasks.length === nextProps.client.tasks.length &&
+    prevProps.client.tasks.filter(t => t.completed).length === nextProps.client.tasks.filter(t => t.completed).length &&
+    // Check if task IDs and completion status are the same
+    JSON.stringify(prevProps.client.tasks.map(t => ({ id: t.id, completed: t.completed }))) ===
+    JSON.stringify(nextProps.client.tasks.map(t => ({ id: t.id, completed: t.completed })))
+  );
+});
 
 export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) {
   const { clients, moveClientToStage } = useClients();
@@ -413,51 +436,66 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
     }
   };
 
-  const getClientsByStage = (stage: FunnelStage) => {
-    // Only show active clients (not finalized) in Kanban
-    let filtered = clients.filter(client => client.funnelStage === stage && !client.consultingFinished);
+  // Memoize clients grouped by stage for performance
+  const clientsByStage = useMemo(() => {
+    const grouped: Record<FunnelStage, Client[]> = {} as Record<FunnelStage, Client[]>;
+    const query = searchQuery.trim().toLowerCase();
     
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(client =>
-        client.name.toLowerCase().includes(query) ||
-        client.profession.toLowerCase().includes(query) ||
-        client.objective.toLowerCase().includes(query)
-      );
-    }
+    KANBAN_STAGES.forEach(stage => {
+      grouped[stage] = [];
+    });
     
-    return filtered;
-  };
+    clients.forEach(client => {
+      // Only show active clients (not finalized) in Kanban
+      if (client.consultingFinished) return;
+      
+      // Apply search filter
+      if (query) {
+        const matches = 
+          client.name.toLowerCase().includes(query) ||
+          client.profession.toLowerCase().includes(query) ||
+          client.objective.toLowerCase().includes(query);
+        if (!matches) return;
+      }
+      
+      if (grouped[client.funnelStage]) {
+        grouped[client.funnelStage].push(client);
+      }
+    });
+    
+    return grouped;
+  }, [clients, searchQuery]);
 
-  const handleDragStart = (e: React.DragEvent, client: Client) => {
+  // Memoize handlers to prevent unnecessary re-renders
+  const handleDragStart = useCallback((e: React.DragEvent, client: Client) => {
     setDraggedClient(client);
     e.dataTransfer.effectAllowed = 'move';
-  };
+  }, []);
 
-  const handleDragOver = (e: React.DragEvent, stage: FunnelStage) => {
+  const handleDragOver = useCallback((e: React.DragEvent, stage: FunnelStage) => {
     e.preventDefault();
     setDragOverStage(stage);
-  };
+  }, []);
 
-  const handleDragLeave = () => {
+  const handleDragLeave = useCallback(() => {
     setDragOverStage(null);
-  };
+  }, []);
 
-  const handleDrop = (e: React.DragEvent, stage: FunnelStage) => {
+  const handleDrop = useCallback((e: React.DragEvent, stage: FunnelStage) => {
     e.preventDefault();
     if (draggedClient && draggedClient.funnelStage !== stage) {
+      // Optimistic update happens in the hook - no await needed
       moveClientToStage(draggedClient.id, stage);
     }
     setDraggedClient(null);
     setDragOverStage(null);
-  };
+  }, [draggedClient, moveClientToStage]);
 
-  const getStageColor = (stage: FunnelStage) => {
+  const getStageColor = useCallback((stage: FunnelStage) => {
     if (stage === 'Em atendimento') return 'bg-warning';
     if (stage === 'Conclusão') return 'bg-success';
     return 'bg-primary';
-  };
+  }, []);
 
   return (
     <div className="relative">
@@ -489,7 +527,7 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
       >
         <div className="flex gap-4 p-4 min-w-max">
           {KANBAN_STAGES.map((stage) => {
-            const stageClients = getClientsByStage(stage);
+            const stageClients = clientsByStage[stage] || [];
             const isOver = dragOverStage === stage;
             
             return (

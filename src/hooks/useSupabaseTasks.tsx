@@ -214,9 +214,9 @@ export function useSupabaseTasks(clientId?: string) {
     },
   });
 
-  // Delete task mutation
+  // Delete task mutation with optimistic updates
   const deleteTaskMutation = useMutation({
-    mutationFn: async ({ taskId }: { taskId: string }) => {
+    mutationFn: async ({ taskId, clientId }: { taskId: string; clientId: string }) => {
       if (!user) throw new Error('User not authenticated');
       
       const { error } = await supabase
@@ -226,14 +226,53 @@ export function useSupabaseTasks(clientId?: string) {
         .eq('user_id', user.id);
       
       if (error) throw error;
+      return { taskId, clientId };
     },
-    onSuccess: () => {
+    // Optimistic update for instant deletion
+    onMutate: async ({ taskId, clientId }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['tasks'] });
+      await queryClient.cancelQueries({ queryKey: ['tasks-by-client'] });
+      
+      // Snapshot previous values
+      const previousTasks = queryClient.getQueryData<Task[]>(['tasks', clientId, user?.id]);
+      const previousTasksByClient = queryClient.getQueryData<Record<string, Task[]>>(['tasks-by-client', user?.id]);
+      
+      // Optimistically remove from tasks for specific client
+      if (previousTasks) {
+        queryClient.setQueryData<Task[]>(['tasks', clientId, user?.id], old =>
+          old?.filter(task => task.id !== taskId) ?? []
+        );
+      }
+      
+      // Optimistically remove from tasks-by-client
+      if (previousTasksByClient) {
+        queryClient.setQueryData<Record<string, Task[]>>(['tasks-by-client', user?.id], old => {
+          if (!old) return {};
+          const updated = { ...old };
+          if (updated[clientId]) {
+            updated[clientId] = updated[clientId].filter(task => task.id !== taskId);
+          }
+          return updated;
+        });
+      }
+      
+      return { previousTasks, previousTasksByClient, clientId };
+    },
+    onError: (error, variables, context) => {
+      // Rollback on error
+      if (context?.previousTasks) {
+        queryClient.setQueryData(['tasks', context.clientId, user?.id], context.previousTasks);
+      }
+      if (context?.previousTasksByClient) {
+        queryClient.setQueryData(['tasks-by-client', user?.id], context.previousTasksByClient);
+      }
+      console.error('Error deleting task:', error);
+      toast.error('Erro ao remover tarefa. Alteração revertida.');
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['tasks-by-client'] });
-    },
-    onError: (error) => {
-      console.error('Error deleting task:', error);
-      toast.error('Erro ao remover tarefa');
     },
   });
 
@@ -245,7 +284,7 @@ export function useSupabaseTasks(clientId?: string) {
     refetch,
     addTask: (clientId: string, description: string) => addTaskMutation.mutateAsync({ clientId, description }),
     toggleTask: (taskId: string, clientId: string, completed: boolean) => toggleTaskMutation.mutateAsync({ taskId, clientId, completed }),
-    deleteTask: (taskId: string) => deleteTaskMutation.mutateAsync({ taskId }),
+    deleteTask: (taskId: string, clientId: string) => deleteTaskMutation.mutateAsync({ taskId, clientId }),
     isAdding: addTaskMutation.isPending,
     isToggling: toggleTaskMutation.isPending,
     isDeleting: deleteTaskMutation.isPending,
