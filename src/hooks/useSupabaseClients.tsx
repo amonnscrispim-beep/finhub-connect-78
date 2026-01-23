@@ -269,7 +269,9 @@ export function useSupabaseClients() {
         .from('clients')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('funnel_stage', { ascending: true })
+        .order('kanban_order', { ascending: true, nullsFirst: false })
+        .order('created_at', { ascending: true });
       
       if (error) {
         console.error('Error fetching clients:', error);
@@ -353,7 +355,12 @@ export function useSupabaseClients() {
         queryClient.setQueryData(['clients', user?.id], context.previousClients);
       }
       console.error('Error updating client:', error);
-      toast.error('Erro ao atualizar cliente. Alteração revertida.');
+      // More specific error message for kanban reorder
+      if (variables.updates.kanbanOrder !== undefined || variables.updates.funnelStage !== undefined) {
+        toast.error('Não foi possível salvar a ordem. Tente novamente.');
+      } else {
+        toast.error('Erro ao atualizar cliente. Alteração revertida.');
+      }
     },
     onSettled: () => {
       // Sync with server after mutation settles
