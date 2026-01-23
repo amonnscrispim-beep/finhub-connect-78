@@ -50,6 +50,7 @@ export type Database = {
           investment_term: string | null
           investor_profile: string | null
           is_renewed_client: boolean | null
+          kanban_order: number | null
           last_activity_at: string | null
           long_term_goals: string | null
           married: boolean | null
@@ -121,6 +122,7 @@ export type Database = {
           investment_term?: string | null
           investor_profile?: string | null
           is_renewed_client?: boolean | null
+          kanban_order?: number | null
           last_activity_at?: string | null
           long_term_goals?: string | null
           married?: boolean | null
@@ -192,6 +194,7 @@ export type Database = {
           investment_term?: string | null
           investor_profile?: string | null
           is_renewed_client?: boolean | null
+          kanban_order?: number | null
           last_activity_at?: string | null
           long_term_goals?: string | null
           married?: boolean | null

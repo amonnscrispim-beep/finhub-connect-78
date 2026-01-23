@@ -9,7 +9,8 @@ interface ClientContextType {
   addClient: (client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Client | void>;
   updateClient: (id: string, updates: Partial<Client>) => Promise<Client | void>;
   deleteClient: (id: string) => Promise<void>;
-  moveClientToStage: (clientId: string, stage: FunnelStage) => Promise<void>;
+  moveClientToStage: (clientId: string, stage: FunnelStage, kanbanOrder?: number) => Promise<void>;
+  reorderClientInStage: (clientId: string, newOrder: number) => Promise<void>;
   addTask: (clientId: string, description: string) => Promise<void>;
   toggleTask: (clientId: string, taskId: string) => Promise<void>;
   deleteTask: (clientId: string, taskId: string) => Promise<void>;
@@ -75,14 +76,29 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     }
   }, [deleteClientFromDb]);
 
-  const moveClientToStage = useCallback(async (clientId: string, stage: FunnelStage) => {
+  const moveClientToStage = useCallback(async (clientId: string, stage: FunnelStage, kanbanOrder?: number) => {
     try {
-      await updateClientInDb(clientId, { 
+      const updates: Partial<Client> = { 
         funnelStage: stage, 
         updatedAt: new Date() 
-      });
+      };
+      if (kanbanOrder !== undefined) {
+        (updates as any).kanbanOrder = kanbanOrder;
+      }
+      await updateClientInDb(clientId, updates);
     } catch (error) {
       console.error('Error moving client to stage:', error);
+    }
+  }, [updateClientInDb]);
+
+  const reorderClientInStage = useCallback(async (clientId: string, newOrder: number) => {
+    try {
+      await updateClientInDb(clientId, { 
+        kanbanOrder: newOrder,
+        updatedAt: new Date() 
+      } as any);
+    } catch (error) {
+      console.error('Error reordering client:', error);
     }
   }, [updateClientInDb]);
 
@@ -152,6 +168,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
         updateClient,
         deleteClient,
         moveClientToStage,
+        reorderClientInStage,
         addTask,
         toggleTask,
         deleteTask,

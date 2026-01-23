@@ -218,6 +218,8 @@ export interface Client {
   debtsComments: string | null;
   // Module notes (comments per section)
   moduleNotes: ModuleNotes;
+  // Kanban ordering within funnel stage
+  kanbanOrder: number | null;
   createdAt: Date;
   updatedAt: Date;
 }

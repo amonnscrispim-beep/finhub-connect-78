@@ -100,6 +100,7 @@ function dbToClient(row: ClientRow): Client {
     investingOrigin: (row as any).investing_origin ?? null,
     debtsComments: (row as any).debts_comments ?? null,
     moduleNotes: ((row as any).module_notes as ModuleNotes) ?? {},
+    kanbanOrder: (row as any).kanban_order ?? null,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -174,6 +175,7 @@ function clientToDbInsert(client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>
     investing_origin: client.investingOrigin,
     debts_comments: client.debtsComments,
     module_notes: client.moduleNotes ?? {},
+    kanban_order: client.kanbanOrder ?? null,
   } as any;
 }
 
@@ -248,6 +250,7 @@ function clientToDbUpdate(updates: Partial<Client>): TablesUpdate<'clients'> {
   if (updates.investingOrigin !== undefined) (dbUpdates as any).investing_origin = updates.investingOrigin;
   if (updates.debtsComments !== undefined) (dbUpdates as any).debts_comments = updates.debtsComments;
   if (updates.moduleNotes !== undefined) (dbUpdates as any).module_notes = updates.moduleNotes;
+  if ((updates as any).kanbanOrder !== undefined) (dbUpdates as any).kanban_order = (updates as any).kanbanOrder;
   
   return dbUpdates;
 }

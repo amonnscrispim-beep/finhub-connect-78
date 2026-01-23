@@ -447,6 +447,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       investingOrigin: formData.investingOrigin || null,
       debtsComments: formData.debtsComments || null,
       moduleNotes: formData.moduleNotes,
+      kanbanOrder: client?.kanbanOrder || null,
     };
 
     try {

@@ -41,6 +41,9 @@ interface KanbanCardProps {
   client: Client;
   onEdit: () => void;
   onDragStart: (e: React.DragEvent) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent) => void;
+  isDragTarget?: boolean;
 }
 
 // Threshold for detecting drag movement (in pixels)
@@ -74,7 +77,7 @@ const isBirthdayToday = (birthDate: Date | null): boolean => {
   return today.getMonth() === birth.getMonth() && today.getDate() === birth.getDate();
 };
 
-const KanbanCardComponent = memo(function KanbanCard({ client, onEdit, onDragStart }: KanbanCardProps) {
+const KanbanCardComponent = memo(function KanbanCard({ client, onEdit, onDragStart, onDragOver, onDrop, isDragTarget }: KanbanCardProps) {
   const { toggleTask, addTask, deleteClient, deleteTask } = useClients();
   const [newTask, setNewTask] = useState('');
   const [showAddTask, setShowAddTask] = useState(false);
@@ -116,7 +119,14 @@ const KanbanCardComponent = memo(function KanbanCard({ client, onEdit, onDragSta
     <div
       draggable
       onDragStart={onDragStart}
-      className={`group bg-card rounded-xl p-4 shadow-card border border-border/50 border-l-4 ${borderColor} transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 ${client.pendingSchedule ? 'ring-2 ring-destructive/20' : ''}`}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      className={cn(
+        "group bg-card rounded-xl p-4 shadow-card border border-border/50 border-l-4 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5",
+        borderColor,
+        client.pendingSchedule && "ring-2 ring-destructive/20",
+        isDragTarget && "ring-2 ring-primary border-t-primary pt-6"
+      )}
     >
       {/* Birthday Alert */}
       {hasBirthday && (
@@ -352,6 +362,7 @@ const KanbanCard = memo(KanbanCardComponent, (prevProps, nextProps) => {
   return (
     prevProps.client.id === nextProps.client.id &&
     prevProps.client.funnelStage === nextProps.client.funnelStage &&
+    prevProps.client.kanbanOrder === nextProps.client.kanbanOrder &&
     prevProps.client.name === nextProps.client.name &&
     prevProps.client.profession === nextProps.client.profession &&
     prevProps.client.objective === nextProps.client.objective &&
@@ -362,6 +373,7 @@ const KanbanCard = memo(KanbanCardComponent, (prevProps, nextProps) => {
     prevProps.client.birthDate?.getTime() === nextProps.client.birthDate?.getTime() &&
     prevProps.client.tasks.length === nextProps.client.tasks.length &&
     prevProps.client.tasks.filter(t => t.completed).length === nextProps.client.tasks.filter(t => t.completed).length &&
+    prevProps.isDragTarget === nextProps.isDragTarget &&
     // Check if task IDs and completion status are the same
     JSON.stringify(prevProps.client.tasks.map(t => ({ id: t.id, completed: t.completed }))) ===
     JSON.stringify(nextProps.client.tasks.map(t => ({ id: t.id, completed: t.completed })))
@@ -369,9 +381,10 @@ const KanbanCard = memo(KanbanCardComponent, (prevProps, nextProps) => {
 });
 
 export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) {
-  const { clients, moveClientToStage } = useClients();
+  const { clients, moveClientToStage, reorderClientInStage } = useClients();
   const [draggedClient, setDraggedClient] = useState<Client | null>(null);
   const [dragOverStage, setDragOverStage] = useState<FunnelStage | null>(null);
+  const [dragOverClientId, setDragOverClientId] = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -436,7 +449,7 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
     }
   };
 
-  // Memoize clients grouped by stage for performance
+  // Memoize clients grouped by stage for performance, sorted by kanbanOrder
   const clientsByStage = useMemo(() => {
     const grouped: Record<FunnelStage, Client[]> = {} as Record<FunnelStage, Client[]>;
     const query = searchQuery.trim().toLowerCase();
@@ -462,6 +475,15 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
         grouped[client.funnelStage].push(client);
       }
     });
+
+    // Sort each stage by kanbanOrder (fallback to createdAt if null)
+    KANBAN_STAGES.forEach(stage => {
+      grouped[stage].sort((a, b) => {
+        const orderA = a.kanbanOrder ?? new Date(a.createdAt).getTime();
+        const orderB = b.kanbanOrder ?? new Date(b.createdAt).getTime();
+        return orderA - orderB;
+      });
+    });
     
     return grouped;
   }, [clients, searchQuery]);
@@ -481,15 +503,72 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
     setDragOverStage(null);
   }, []);
 
+  // Handle drop on a column (for moving to different stage)
   const handleDrop = useCallback((e: React.DragEvent, stage: FunnelStage) => {
     e.preventDefault();
     if (draggedClient && draggedClient.funnelStage !== stage) {
-      // Optimistic update happens in the hook - no await needed
-      moveClientToStage(draggedClient.id, stage);
+      // Move to new stage at the end
+      const stageClients = clientsByStage[stage] || [];
+      const lastOrder = stageClients.length > 0 
+        ? Math.max(...stageClients.map(c => c.kanbanOrder ?? 0)) 
+        : 0;
+      moveClientToStage(draggedClient.id, stage, lastOrder + 1000);
     }
     setDraggedClient(null);
     setDragOverStage(null);
-  }, [draggedClient, moveClientToStage]);
+    setDragOverClientId(null);
+  }, [draggedClient, moveClientToStage, clientsByStage]);
+
+  // Handle drag over a specific card (for reordering within same column)
+  const handleCardDragOver = useCallback((e: React.DragEvent, targetClient: Client) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (draggedClient && draggedClient.id !== targetClient.id) {
+      setDragOverClientId(targetClient.id);
+    }
+  }, [draggedClient]);
+
+  // Handle drop on a specific card (reorder within same column or move to position in different column)
+  const handleCardDrop = useCallback((e: React.DragEvent, targetClient: Client) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!draggedClient || draggedClient.id === targetClient.id) {
+      setDraggedClient(null);
+      setDragOverStage(null);
+      setDragOverClientId(null);
+      return;
+    }
+
+    const targetStage = targetClient.funnelStage;
+    const stageClients = clientsByStage[targetStage] || [];
+    const targetIndex = stageClients.findIndex(c => c.id === targetClient.id);
+    
+    // Calculate new kanbanOrder (insert before target)
+    let newOrder: number;
+    if (targetIndex === 0) {
+      // Insert at beginning
+      newOrder = (targetClient.kanbanOrder ?? 1000) - 1000;
+    } else {
+      // Insert between previous and target
+      const prevClient = stageClients[targetIndex - 1];
+      const prevOrder = prevClient.kanbanOrder ?? 0;
+      const targetOrder = targetClient.kanbanOrder ?? 1000;
+      newOrder = (prevOrder + targetOrder) / 2;
+    }
+
+    if (draggedClient.funnelStage === targetStage) {
+      // Same column reorder
+      reorderClientInStage(draggedClient.id, newOrder);
+    } else {
+      // Move to different stage at specific position
+      moveClientToStage(draggedClient.id, targetStage, newOrder);
+    }
+    
+    setDraggedClient(null);
+    setDragOverStage(null);
+    setDragOverClientId(null);
+  }, [draggedClient, clientsByStage, reorderClientInStage, moveClientToStage]);
 
   const getStageColor = useCallback((stage: FunnelStage) => {
     if (stage === 'Em atendimento') return 'bg-warning';
@@ -559,6 +638,9 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
                       client={client}
                       onEdit={() => onEditClient(client)}
                       onDragStart={(e) => handleDragStart(e, client)}
+                      onDragOver={(e) => handleCardDragOver(e, client)}
+                      onDrop={(e) => handleCardDrop(e, client)}
+                      isDragTarget={dragOverClientId === client.id && draggedClient?.id !== client.id}
                     />
                   ))}
                   
