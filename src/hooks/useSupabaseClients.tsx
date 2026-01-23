@@ -250,7 +250,15 @@ function clientToDbUpdate(updates: Partial<Client>): TablesUpdate<'clients'> {
   if (updates.investingOrigin !== undefined) (dbUpdates as any).investing_origin = updates.investingOrigin;
   if (updates.debtsComments !== undefined) (dbUpdates as any).debts_comments = updates.debtsComments;
   if (updates.moduleNotes !== undefined) (dbUpdates as any).module_notes = updates.moduleNotes;
-  if ((updates as any).kanbanOrder !== undefined) (dbUpdates as any).kanban_order = (updates as any).kanbanOrder;
+  
+  // Handle kanbanOrder - explicitly extract and log for debugging
+  const kanbanOrderValue = (updates as any).kanbanOrder;
+  if (kanbanOrderValue !== undefined) {
+    (dbUpdates as any).kanban_order = kanbanOrderValue;
+    console.log('[Kanban] Preparing update - kanban_order:', kanbanOrderValue);
+  }
+  
+  console.log('[Kanban] dbUpdates being sent:', JSON.stringify(dbUpdates));
   
   return dbUpdates;
 }
@@ -265,6 +273,8 @@ export function useSupabaseClients() {
     queryFn: async () => {
       if (!user) return [];
       
+      console.log('[Kanban] Fetching clients from Supabase...');
+      
       const { data, error } = await supabase
         .from('clients')
         .select('*')
@@ -274,11 +284,27 @@ export function useSupabaseClients() {
         .order('created_at', { ascending: true });
       
       if (error) {
-        console.error('Error fetching clients:', error);
+        console.error('[Kanban] Error fetching clients:', error);
         throw error;
       }
       
-      return data.map(dbToClient);
+      // Log first few clients to verify kanban_order is coming from DB
+      console.log('[Kanban] Raw data from DB (first 3):', data.slice(0, 3).map(c => ({
+        name: c.name,
+        funnel_stage: c.funnel_stage,
+        kanban_order: c.kanban_order
+      })));
+      
+      const clients = data.map(dbToClient);
+      
+      // Log converted clients
+      console.log('[Kanban] Converted clients (first 3):', clients.slice(0, 3).map(c => ({
+        name: c.name,
+        funnelStage: c.funnelStage,
+        kanbanOrder: c.kanbanOrder
+      })));
+      
+      return clients;
     },
     enabled: !!user,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -315,7 +341,11 @@ export function useSupabaseClients() {
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Client> }) => {
       if (!user) throw new Error('User not authenticated');
       
+      console.log('[Kanban] updateClientMutation called with id:', id, 'updates:', updates);
+      
       const dbUpdates = clientToDbUpdate(updates);
+      
+      console.log('[Kanban] Sending update to Supabase:', { id, dbUpdates });
       
       const { data, error } = await supabase
         .from('clients')
@@ -325,7 +355,12 @@ export function useSupabaseClients() {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('[Kanban] Supabase update error:', error);
+        throw error;
+      }
+      
+      console.log('[Kanban] Supabase update success, returned data kanban_order:', data.kanban_order);
       return dbToClient(data);
     },
     // Optimistic update for instant UI feedback
@@ -356,7 +391,7 @@ export function useSupabaseClients() {
       }
       console.error('Error updating client:', error);
       // More specific error message for kanban reorder
-      if (variables.updates.kanbanOrder !== undefined || variables.updates.funnelStage !== undefined) {
+      if ((variables.updates as any).kanbanOrder !== undefined || variables.updates.funnelStage !== undefined) {
         toast.error('Não foi possível salvar a ordem. Tente novamente.');
       } else {
         toast.error('Erro ao atualizar cliente. Alteração revertida.');
