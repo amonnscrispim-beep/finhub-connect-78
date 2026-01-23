@@ -476,12 +476,23 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
       }
     });
 
-    // Sort each stage by kanbanOrder (fallback to createdAt if null)
+    // Sort each stage by kanbanOrder (clients without kanbanOrder go to end, sorted by createdAt)
     KANBAN_STAGES.forEach(stage => {
       grouped[stage].sort((a, b) => {
-        const orderA = a.kanbanOrder ?? new Date(a.createdAt).getTime();
-        const orderB = b.kanbanOrder ?? new Date(b.createdAt).getTime();
-        return orderA - orderB;
+        // Both have kanbanOrder - compare them directly
+        if (a.kanbanOrder !== null && b.kanbanOrder !== null) {
+          return a.kanbanOrder - b.kanbanOrder;
+        }
+        // Only a has kanbanOrder - a comes first
+        if (a.kanbanOrder !== null && b.kanbanOrder === null) {
+          return -1;
+        }
+        // Only b has kanbanOrder - b comes first
+        if (a.kanbanOrder === null && b.kanbanOrder !== null) {
+          return 1;
+        }
+        // Neither has kanbanOrder - sort by createdAt
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       });
     });
     
