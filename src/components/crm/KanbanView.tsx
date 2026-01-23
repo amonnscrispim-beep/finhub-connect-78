@@ -16,7 +16,9 @@ import {
   Award,
   Cake,
   ListTodo,
-  CheckCircle2
+  CheckCircle2,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 import { useClients } from '@/contexts/ClientContext';
 import { Client, FunnelStage, FUNNEL_STAGES, Task } from '@/types/client';
@@ -44,6 +46,10 @@ interface KanbanCardProps {
   onDragOver?: (e: React.DragEvent) => void;
   onDrop?: (e: React.DragEvent) => void;
   isDragTarget?: boolean;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
 }
 
 // Threshold for detecting drag movement (in pixels)
@@ -77,7 +83,18 @@ const isBirthdayToday = (birthDate: Date | null): boolean => {
   return today.getMonth() === birth.getMonth() && today.getDate() === birth.getDate();
 };
 
-const KanbanCardComponent = memo(function KanbanCard({ client, onEdit, onDragStart, onDragOver, onDrop, isDragTarget }: KanbanCardProps) {
+const KanbanCardComponent = memo(function KanbanCard({ 
+  client, 
+  onEdit, 
+  onDragStart, 
+  onDragOver, 
+  onDrop, 
+  isDragTarget,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp,
+  canMoveDown 
+}: KanbanCardProps) {
   const { toggleTask, addTask, deleteClient, deleteTask } = useClients();
   const [newTask, setNewTask] = useState('');
   const [showAddTask, setShowAddTask] = useState(false);
@@ -107,6 +124,19 @@ const KanbanCardComponent = memo(function KanbanCard({ client, onEdit, onDragSta
     onEdit();
   };
 
+  // Handle arrow clicks (move up/down)
+  const handleMoveUp = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (onMoveUp && canMoveUp) onMoveUp();
+  };
+
+  const handleMoveDown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (onMoveDown && canMoveDown) onMoveDown();
+  };
+
   // Open tasks modal with specific tab
   const openTasksModal = (e: React.MouseEvent, tab: 'pending' | 'completed') => {
     e.stopPropagation();
@@ -127,6 +157,7 @@ const KanbanCardComponent = memo(function KanbanCard({ client, onEdit, onDragSta
         client.pendingSchedule && "ring-2 ring-destructive/20",
         isDragTarget && "ring-2 ring-primary border-t-primary pt-6"
       )}
+      style={{ touchAction: 'none' }}
     >
       {/* Birthday Alert */}
       {hasBirthday && (
@@ -146,11 +177,39 @@ const KanbanCardComponent = memo(function KanbanCard({ client, onEdit, onDragSta
       
       {/* Header - Clickable area to open client modal */}
       <div className="flex items-start justify-between mb-3">
+        {/* Drag handle and reorder arrows */}
+        <div className="flex items-center gap-1 mr-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" data-interactive="true">
+          <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" style={{ touchAction: 'none' }} />
+          <div className="flex flex-col gap-0.5">
+            <button
+              onClick={handleMoveUp}
+              disabled={!canMoveUp}
+              className={cn(
+                "p-0.5 rounded hover:bg-muted transition-colors",
+                canMoveUp ? "text-muted-foreground hover:text-foreground" : "text-muted-foreground/30 cursor-not-allowed"
+              )}
+              title="Mover para cima"
+            >
+              <ChevronUp className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={handleMoveDown}
+              disabled={!canMoveDown}
+              className={cn(
+                "p-0.5 rounded hover:bg-muted transition-colors",
+                canMoveDown ? "text-muted-foreground hover:text-foreground" : "text-muted-foreground/30 cursor-not-allowed"
+              )}
+              title="Mover para baixo"
+            >
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+        
         <div 
           className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity flex-1 min-w-0"
           onClick={handleHeaderClick}
         >
-          <GripVertical className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <h4 className="font-semibold text-foreground leading-tight truncate">{client.name}</h4>
@@ -374,6 +433,8 @@ const KanbanCard = memo(KanbanCardComponent, (prevProps, nextProps) => {
     prevProps.client.tasks.length === nextProps.client.tasks.length &&
     prevProps.client.tasks.filter(t => t.completed).length === nextProps.client.tasks.filter(t => t.completed).length &&
     prevProps.isDragTarget === nextProps.isDragTarget &&
+    prevProps.canMoveUp === nextProps.canMoveUp &&
+    prevProps.canMoveDown === nextProps.canMoveDown &&
     // Check if task IDs and completion status are the same
     JSON.stringify(prevProps.client.tasks.map(t => ({ id: t.id, completed: t.completed }))) ===
     JSON.stringify(nextProps.client.tasks.map(t => ({ id: t.id, completed: t.completed })))
@@ -589,6 +650,54 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
     setDragOverClientId(null);
   }, [draggedClient, clientsByStage, reorderClientInStage, moveClientToStage]);
 
+  // Handle move up/down via arrow buttons
+  const handleMoveClient = useCallback((clientId: string, direction: 'up' | 'down') => {
+    // Find the client and its stage
+    const client = clients.find(c => c.id === clientId);
+    if (!client) return;
+    
+    const stageClients = clientsByStage[client.funnelStage] || [];
+    const currentIndex = stageClients.findIndex(c => c.id === clientId);
+    
+    if (currentIndex === -1) return;
+    
+    // Calculate target index
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    
+    // Bounds check
+    if (targetIndex < 0 || targetIndex >= stageClients.length) return;
+    
+    const targetClient = stageClients[targetIndex];
+    
+    // Calculate new order for the moved client
+    let newOrder: number;
+    
+    if (direction === 'up') {
+      // Moving up: insert before the target
+      if (targetIndex === 0) {
+        // Becoming first
+        newOrder = (targetClient.kanbanOrder ?? 1000) - 1000;
+      } else {
+        // Insert between prev and target
+        const prevClient = stageClients[targetIndex - 1];
+        newOrder = ((prevClient.kanbanOrder ?? 0) + (targetClient.kanbanOrder ?? 1000)) / 2;
+      }
+    } else {
+      // Moving down: insert after the target
+      if (targetIndex === stageClients.length - 1) {
+        // Becoming last
+        newOrder = (targetClient.kanbanOrder ?? 0) + 1000;
+      } else {
+        // Insert between target and next
+        const nextClient = stageClients[targetIndex + 1];
+        newOrder = ((targetClient.kanbanOrder ?? 0) + (nextClient.kanbanOrder ?? 2000)) / 2;
+      }
+    }
+    
+    console.log(`[Kanban] Moving ${client.name} ${direction}, newOrder:`, newOrder);
+    reorderClientInStage(clientId, newOrder);
+  }, [clients, clientsByStage, reorderClientInStage]);
+
   const getStageColor = useCallback((stage: FunnelStage) => {
     if (stage === 'Em atendimento') return 'bg-warning';
     if (stage === 'Conclusão') return 'bg-success';
@@ -651,7 +760,7 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
 
                 {/* Cards */}
                 <div className="space-y-3">
-                  {stageClients.map((client) => (
+                  {stageClients.map((client, index) => (
                     <KanbanCard
                       key={client.id}
                       client={client}
@@ -660,6 +769,10 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
                       onDragOver={(e) => handleCardDragOver(e, client)}
                       onDrop={(e) => handleCardDrop(e, client)}
                       isDragTarget={dragOverClientId === client.id && draggedClient?.id !== client.id}
+                      onMoveUp={() => handleMoveClient(client.id, 'up')}
+                      onMoveDown={() => handleMoveClient(client.id, 'down')}
+                      canMoveUp={index > 0}
+                      canMoveDown={index < stageClients.length - 1}
                     />
                   ))}
                   
