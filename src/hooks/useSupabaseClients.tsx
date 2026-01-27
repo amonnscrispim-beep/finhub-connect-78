@@ -265,10 +265,51 @@ function clientToDbUpdate(updates: Partial<Client>): TablesUpdate<'clients'> {
 
 // Flag to prevent refetch during reorder operations
 let isReorderingInProgress = false;
+let reorderTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
 export function useSupabaseClients() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  // Atomic swap using database RPC function
+  const swapKanbanOrder = async (clientAId: string, clientBId: string): Promise<boolean> => {
+    console.log('[Kanban] Calling RPC swap_kanban_order:', { clientAId, clientBId });
+    
+    const { data, error } = await supabase.rpc('swap_kanban_order', {
+      p_client_a: clientAId,
+      p_client_b: clientBId
+    });
+    
+    if (error) {
+      console.error('[Kanban] RPC swap_kanban_order error:', error);
+      return false;
+    }
+    
+    const result = data as { success: boolean; error?: string } | null;
+    console.log('[Kanban] RPC swap_kanban_order result:', result);
+    return result?.success === true;
+  };
+
+  // Normalize column using database RPC function
+  const normalizeColumn = async (stage: string): Promise<boolean> => {
+    if (!user) return false;
+    
+    console.log('[Kanban] Calling RPC normalize_kanban_order:', { userId: user.id, stage });
+    
+    const { data, error } = await supabase.rpc('normalize_kanban_order', {
+      p_user_id: user.id,
+      p_stage: stage
+    });
+    
+    if (error) {
+      console.error('[Kanban] RPC normalize_kanban_order error:', error);
+      return false;
+    }
+    
+    const result = data as { success: boolean; normalized_count?: number } | null;
+    console.log('[Kanban] RPC normalize_kanban_order result:', result);
+    return result?.success === true;
+  };
 
   // Fetch all clients for current user
   const { data: clients = [], isLoading, error, refetch } = useQuery({
@@ -279,7 +320,6 @@ export function useSupabaseClients() {
       // Block refetch if reordering is in progress
       if (isReorderingInProgress) {
         console.log('[Kanban] Blocking refetch - reorder in progress');
-        // Return cached data instead
         const cached = queryClient.getQueryData<Client[]>(['clients', user?.id]);
         if (cached) return cached;
       }
@@ -292,27 +332,20 @@ export function useSupabaseClients() {
         .eq('user_id', user.id)
         .order('funnel_stage', { ascending: true })
         .order('kanban_order', { ascending: true, nullsFirst: false })
-        .order('id', { ascending: true }); // Use id as stable fallback, NOT created_at
+        .order('id', { ascending: true }); // Stable fallback by id
       
       if (error) {
         console.error('[Kanban] Error fetching clients:', error);
         throw error;
       }
       
-      // Log first few clients to verify kanban_order is coming from DB
-      console.log('[Kanban] Raw data from DB (first 3):', data.slice(0, 3).map(c => ({
-        name: c.name,
-        funnel_stage: c.funnel_stage,
-        kanban_order: c.kanban_order
-      })));
+      console.log('[Kanban] Fetched', data.length, 'clients');
       
       const clients = data.map(dbToClient);
-      
       return clients;
     },
     enabled: !!user,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    // Prevent background refetches that could cause "revert"
+    staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
@@ -474,6 +507,22 @@ export function useSupabaseClients() {
     addClient: addClientMutation.mutateAsync,
     updateClient: (id: string, updates: Partial<Client>) => updateClientMutation.mutateAsync({ id, updates }),
     deleteClient: deleteClientMutation.mutateAsync,
+    swapKanbanOrder,
+    normalizeColumn,
+    setReorderingFlag: (value: boolean) => {
+      isReorderingInProgress = value;
+      // Clear any existing timeout
+      if (reorderTimeoutId) {
+        clearTimeout(reorderTimeoutId);
+        reorderTimeoutId = null;
+      }
+      // If turning off, delay the refetch
+      if (!value) {
+        reorderTimeoutId = setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['clients'] });
+        }, 300);
+      }
+    },
     isAdding: addClientMutation.isPending,
     isUpdating: updateClientMutation.isPending,
     isDeleting: deleteClientMutation.isPending,
