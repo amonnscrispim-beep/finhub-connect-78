@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { StudySubmodule, StudySlide } from '@/types/study';
 import { useStudySlides } from '@/hooks/useStudyModules';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   ChevronLeft, ChevronRight, Plus, Pencil, Trash2, 
-  Check, X, FileSliders, Image
+  FileSliders, Upload, X, FileText, ImageIcon
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -28,6 +30,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 
 interface SlideViewerProps {
   submodule: StudySubmodule;
@@ -35,6 +38,7 @@ interface SlideViewerProps {
 }
 
 export function SlideViewer({ submodule, onBack }: SlideViewerProps) {
+  const { user } = useAuth();
   const { slides, slidesLoading, createSlide, updateSlide, deleteSlide } = useStudySlides(submodule.id);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -44,7 +48,12 @@ export function SlideViewer({ submodule, onBack }: SlideViewerProps) {
   // Editor form state
   const [formTitle, setFormTitle] = useState('');
   const [formContent, setFormContent] = useState('');
-  const [formImageUrl, setFormImageUrl] = useState('');
+  const [formFileUrl, setFormFileUrl] = useState('');
+  const [formFileType, setFormFileType] = useState<'pdf' | 'image' | null>(null);
+  const [formFileName, setFormFileName] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentSlide = slides[currentIndex];
   const hasSlides = slides.length > 0;
@@ -64,14 +73,83 @@ export function SlideViewer({ submodule, onBack }: SlideViewerProps) {
       setEditingSlide(slide);
       setFormTitle(slide.title);
       setFormContent(slide.content || '');
-      setFormImageUrl(slide.imageUrl || '');
+      setFormFileUrl(slide.imageUrl || '');
+      setFormFileType(slide.fileType);
+      // Extract filename from URL if exists
+      if (slide.imageUrl) {
+        const parts = slide.imageUrl.split('/');
+        setFormFileName(parts[parts.length - 1] || '');
+      } else {
+        setFormFileName('');
+      }
     } else {
       setEditingSlide(null);
       setFormTitle('');
       setFormContent('');
-      setFormImageUrl('');
+      setFormFileUrl('');
+      setFormFileType(null);
+      setFormFileName('');
     }
     setIsEditorOpen(true);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    const isPdf = file.type === 'application/pdf';
+    const isImage = file.type.startsWith('image/');
+    
+    if (!isPdf && !isImage) {
+      toast.error('Apenas arquivos PDF ou imagens são permitidos.');
+      return;
+    }
+
+    // Max 10MB
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Arquivo muito grande. Máximo: 10MB');
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // Create unique filename with user folder for RLS
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from('slide-files')
+        .upload(fileName, file, { upsert: true });
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('slide-files')
+        .getPublicUrl(data.path);
+
+      setFormFileUrl(urlData.publicUrl);
+      setFormFileType(isPdf ? 'pdf' : 'image');
+      setFormFileName(file.name);
+      toast.success('Arquivo enviado com sucesso!');
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      toast.error('Erro ao enviar arquivo: ' + error.message);
+    } finally {
+      setIsUploading(false);
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setFormFileUrl('');
+    setFormFileType(null);
+    setFormFileName('');
   };
 
   const handleSave = () => {
@@ -82,7 +160,8 @@ export function SlideViewer({ submodule, onBack }: SlideViewerProps) {
         id: editingSlide.id,
         title: formTitle.trim(),
         content: formContent.trim() || undefined,
-        imageUrl: formImageUrl.trim() || undefined,
+        imageUrl: formFileUrl.trim() || undefined,
+        fileType: formFileType,
       }, {
         onSuccess: () => setIsEditorOpen(false)
       });
@@ -90,11 +169,12 @@ export function SlideViewer({ submodule, onBack }: SlideViewerProps) {
       createSlide.mutate({
         title: formTitle.trim(),
         content: formContent.trim() || undefined,
-        imageUrl: formImageUrl.trim() || undefined,
+        imageUrl: formFileUrl.trim() || undefined,
+        fileType: formFileType,
       }, {
         onSuccess: () => {
           setIsEditorOpen(false);
-          setCurrentIndex(slides.length); // Go to new slide
+          setCurrentIndex(slides.length);
         }
       });
     }
@@ -129,9 +209,7 @@ export function SlideViewer({ submodule, onBack }: SlideViewerProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           {hasSlides && (
-            <>
-              <span>Slide {currentIndex + 1} de {slides.length}</span>
-            </>
+            <span>Slide {currentIndex + 1} de {slides.length}</span>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -173,14 +251,26 @@ export function SlideViewer({ submodule, onBack }: SlideViewerProps) {
             <CardTitle className="text-xl">{currentSlide.title}</CardTitle>
           </CardHeader>
           <CardContent className="p-8">
-            {/* Image */}
+            {/* File (PDF or Image) */}
             {currentSlide.imageUrl && (
-              <div className="mb-6 flex justify-center">
-                <img 
-                  src={currentSlide.imageUrl} 
-                  alt={currentSlide.title}
-                  className="max-h-64 rounded-lg shadow-md"
-                />
+              <div className="mb-6">
+                {currentSlide.fileType === 'pdf' ? (
+                  <div className="w-full border rounded-lg overflow-hidden bg-muted/20">
+                    <iframe 
+                      src={`${currentSlide.imageUrl}#view=FitH`}
+                      className="w-full h-[600px]"
+                      title={currentSlide.title}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex justify-center">
+                    <img 
+                      src={currentSlide.imageUrl} 
+                      alt={currentSlide.title}
+                      className="max-h-64 rounded-lg shadow-md"
+                    />
+                  </div>
+                )}
               </div>
             )}
             
@@ -265,16 +355,66 @@ export function SlideViewer({ submodule, onBack }: SlideViewerProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="slide-image" className="flex items-center gap-2">
-                <Image className="w-4 h-4" />
-                URL da Imagem (opcional)
+              <Label className="flex items-center gap-2">
+                <Upload className="w-4 h-4" />
+                Arquivo do Slide (PDF ou Imagem)
               </Label>
-              <Input
-                id="slide-image"
-                value={formImageUrl}
-                onChange={(e) => setFormImageUrl(e.target.value)}
-                placeholder="https://exemplo.com/imagem.jpg"
-              />
+              
+              {formFileUrl ? (
+                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
+                  {formFileType === 'pdf' ? (
+                    <FileText className="w-8 h-8 text-red-500 flex-shrink-0" />
+                  ) : (
+                    <ImageIcon className="w-8 h-8 text-blue-500 flex-shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{formFileName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formFileType === 'pdf' ? 'Documento PDF' : 'Imagem'}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRemoveFile}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,image/*"
+                    onChange={handleFileSelect}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    disabled={isUploading}
+                  />
+                  <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                    isUploading ? 'border-primary bg-primary/5' : 'border-muted-foreground/30 hover:border-primary/50'
+                  }`}>
+                    {isUploading ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                        <p className="text-sm text-muted-foreground">Enviando arquivo...</p>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="w-8 h-8 mx-auto text-muted-foreground/50 mb-2" />
+                        <p className="text-sm text-muted-foreground">
+                          Clique ou arraste para enviar
+                        </p>
+                        <p className="text-xs text-muted-foreground/70 mt-1">
+                          PDF ou imagem (máx. 10MB)
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
@@ -283,7 +423,7 @@ export function SlideViewer({ submodule, onBack }: SlideViewerProps) {
             </Button>
             <Button 
               onClick={handleSave} 
-              disabled={!formTitle.trim() || createSlide.isPending || updateSlide.isPending}
+              disabled={!formTitle.trim() || createSlide.isPending || updateSlide.isPending || isUploading}
             >
               {createSlide.isPending || updateSlide.isPending ? 'Salvando...' : 'Salvar'}
             </Button>
