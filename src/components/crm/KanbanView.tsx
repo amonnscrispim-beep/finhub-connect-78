@@ -455,7 +455,7 @@ const KanbanCard = memo(KanbanCardComponent, (prevProps, nextProps) => {
 });
 
 export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) {
-  const { clients, moveClientToStage, swapClientOrder, normalizeStageOrder } = useClients();
+  const { clients, moveClientToStage, swapClientOrder } = useClients();
   const [draggedClient, setDraggedClient] = useState<Client | null>(null);
   const [dragOverStage, setDragOverStage] = useState<FunnelStage | null>(null);
   const [dragOverClientId, setDragOverClientId] = useState<string | null>(null);
@@ -659,28 +659,8 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
     setDragOverClientId(null);
   }, [draggedClient, clientsByStage, swapClientOrder, moveClientToStage]);
 
-  // Check if column needs normalization (has nulls or duplicates)
-  const columnNeedsNormalization = useCallback((stage: FunnelStage): boolean => {
-    const stageClients = clientsByStage[stage] || [];
-    if (stageClients.length === 0) return false;
-    
-    const orders = stageClients.map(c => c.kanbanOrder);
-    
-    // Check for nulls
-    if (orders.some(o => o === null || o === undefined)) {
-      return true;
-    }
-    
-    // Check for duplicates
-    const uniqueOrders = new Set(orders);
-    if (uniqueOrders.size !== orders.length) {
-      return true;
-    }
-    
-    return false;
-  }, [clientsByStage]);
-
   // Handle move up/down via arrow buttons - INSTANT with optimistic UI
+  // NO await, NO blocking, NO normalization check on hot path
   const handleMoveClient = useCallback((clientId: string, direction: 'up' | 'down') => {
     // Find the client and its stage
     const client = clients.find(c => c.id === clientId);
@@ -709,21 +689,10 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
     
     console.log(`[Kanban] INSTANT SWAP: "${client.name}" <-> "${targetClient.name}"`);
     
-    // Check if normalization is needed first (rare case)
-    if (columnNeedsNormalization(client.funnelStage)) {
-      console.log(`[Kanban] Column needs normalization, running in background`);
-      // Normalize in background, then retry
-      normalizeStageOrder(client.funnelStage).then(() => {
-        // Retry after normalization completes
-        setTimeout(() => handleMoveClient(clientId, direction), 150);
-      });
-      return;
-    }
-    
-    // INSTANT: swapClientOrder now updates cache immediately and persists in background
-    // No await, no blocking - UI updates in <50ms
+    // INSTANT: swapClientOrder updates cache immediately and persists in background
+    // No await, no blocking, no normalization - UI updates in <50ms
     swapClientOrder(client.id, targetClient.id);
-  }, [clients, clientsByStage, swapClientOrder, normalizeStageOrder, columnNeedsNormalization]);
+  }, [clients, clientsByStage, swapClientOrder]);
 
   const getStageColor = useCallback((stage: FunnelStage) => {
     if (stage === 'Em atendimento') return 'bg-warning';
