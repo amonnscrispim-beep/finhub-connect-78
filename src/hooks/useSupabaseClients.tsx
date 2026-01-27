@@ -266,28 +266,87 @@ function clientToDbUpdate(updates: Partial<Client>): TablesUpdate<'clients'> {
 // Flag to prevent refetch during reorder operations
 let isReorderingInProgress = false;
 let reorderTimeoutId: ReturnType<typeof setTimeout> | null = null;
+// Queue for pending swap operations (per-stage debounce)
+const pendingSwaps: Map<string, { clientAId: string; clientBId: string; orderA: number; orderB: number }[]> = new Map();
 
 export function useSupabaseClients() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Atomic swap using database RPC function
+  // INSTANT optimistic swap in React Query cache (no await, no blocking)
+  const optimisticSwapInCache = (clientAId: string, clientBId: string) => {
+    const previousClients = queryClient.getQueryData<Client[]>(['clients', user?.id]);
+    if (!previousClients) return null;
+    
+    const clientA = previousClients.find(c => c.id === clientAId);
+    const clientB = previousClients.find(c => c.id === clientBId);
+    
+    if (!clientA || !clientB) return null;
+    
+    const orderA = clientA.kanbanOrder ?? 0;
+    const orderB = clientB.kanbanOrder ?? 0;
+    
+    // Swap orders in cache IMMEDIATELY
+    queryClient.setQueryData<Client[]>(['clients', user?.id], old =>
+      old?.map(client => {
+        if (client.id === clientAId) {
+          return { ...client, kanbanOrder: orderB };
+        }
+        if (client.id === clientBId) {
+          return { ...client, kanbanOrder: orderA };
+        }
+        return client;
+      }) ?? []
+    );
+    
+    return { previousClients, orderA, orderB };
+  };
+
+  // Atomic swap using database RPC function (fire-and-forget with rollback)
   const swapKanbanOrder = async (clientAId: string, clientBId: string): Promise<boolean> => {
-    console.log('[Kanban] Calling RPC swap_kanban_order:', { clientAId, clientBId });
+    // INSTANT: Update cache first, don't wait for DB
+    const snapshot = optimisticSwapInCache(clientAId, clientBId);
     
-    const { data, error } = await supabase.rpc('swap_kanban_order', {
-      p_client_a: clientAId,
-      p_client_b: clientBId
-    });
+    // Persist in background (fire-and-forget style)
+    console.log('[Kanban] RPC swap_kanban_order (background):', { clientAId, clientBId });
     
-    if (error) {
-      console.error('[Kanban] RPC swap_kanban_order error:', error);
+    try {
+      const { data, error } = await supabase.rpc('swap_kanban_order', {
+        p_client_a: clientAId,
+        p_client_b: clientBId
+      });
+      
+      if (error) {
+        console.error('[Kanban] RPC swap_kanban_order error:', error);
+        // Rollback on error
+        if (snapshot?.previousClients) {
+          queryClient.setQueryData(['clients', user?.id], snapshot.previousClients);
+          toast.error('Não foi possível salvar a ordem. Tente novamente.');
+        }
+        return false;
+      }
+      
+      const result = data as { success: boolean; error?: string } | null;
+      console.log('[Kanban] RPC swap_kanban_order result:', result);
+      
+      if (!result?.success) {
+        // Rollback on failure
+        if (snapshot?.previousClients) {
+          queryClient.setQueryData(['clients', user?.id], snapshot.previousClients);
+          toast.error('Não foi possível salvar a ordem.');
+        }
+        return false;
+      }
+      
+      return true;
+    } catch (err) {
+      console.error('[Kanban] RPC swap error:', err);
+      if (snapshot?.previousClients) {
+        queryClient.setQueryData(['clients', user?.id], snapshot.previousClients);
+        toast.error('Erro ao reordenar. Tente novamente.');
+      }
       return false;
     }
-    
-    const result = data as { success: boolean; error?: string } | null;
-    console.log('[Kanban] RPC swap_kanban_order result:', result);
-    return result?.success === true;
   };
 
   // Normalize column using database RPC function
@@ -308,6 +367,14 @@ export function useSupabaseClients() {
     
     const result = data as { success: boolean; normalized_count?: number } | null;
     console.log('[Kanban] RPC normalize_kanban_order result:', result);
+    
+    // After normalization, invalidate cache to get fresh orders (in background)
+    if (result?.success) {
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['clients'], refetchType: 'inactive' });
+      }, 100);
+    }
+    
     return result?.success === true;
   };
 

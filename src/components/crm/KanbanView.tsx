@@ -454,7 +454,7 @@ const KanbanCard = memo(KanbanCardComponent, (prevProps, nextProps) => {
 });
 
 export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) {
-  const { clients, moveClientToStage, swapClientOrder, normalizeStageOrder, setReorderingFlag, refetch } = useClients();
+  const { clients, moveClientToStage, swapClientOrder, normalizeStageOrder } = useClients();
   const [draggedClient, setDraggedClient] = useState<Client | null>(null);
   const [dragOverStage, setDragOverStage] = useState<FunnelStage | null>(null);
   const [dragOverClientId, setDragOverClientId] = useState<string | null>(null);
@@ -610,7 +610,7 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
   }, [draggedClient]);
 
   // Handle drop on a specific card (reorder within same column or move to position in different column)
-  const handleCardDrop = useCallback(async (e: React.DragEvent, targetClient: Client) => {
+  const handleCardDrop = useCallback((e: React.DragEvent, targetClient: Client) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -624,15 +624,9 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
     const targetStage = targetClient.funnelStage;
     
     if (draggedClient.funnelStage === targetStage) {
-      // Same column - use atomic swap via RPC
-      setReorderingFlag(true);
-      const success = await swapClientOrder(draggedClient.id, targetClient.id);
-      if (!success) {
-        console.log('[Kanban] Swap failed, normalizing column');
-        await normalizeStageOrder(targetStage);
-      }
-      setReorderingFlag(false);
-      refetch();
+      // Same column - INSTANT swap via optimistic cache update (no await!)
+      // The RPC runs in background and handles rollback if needed
+      swapClientOrder(draggedClient.id, targetClient.id);
     } else {
       // Move to different stage at specific position
       const stageClients = clientsByStage[targetStage] || [];
@@ -652,7 +646,7 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
     setDraggedClient(null);
     setDragOverStage(null);
     setDragOverClientId(null);
-  }, [draggedClient, clientsByStage, swapClientOrder, normalizeStageOrder, moveClientToStage, setReorderingFlag, refetch]);
+  }, [draggedClient, clientsByStage, swapClientOrder, moveClientToStage]);
 
   // Check if column needs normalization (has nulls or duplicates)
   const columnNeedsNormalization = useCallback((stage: FunnelStage): boolean => {
@@ -675,8 +669,8 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
     return false;
   }, [clientsByStage]);
 
-  // Handle move up/down via arrow buttons - uses atomic RPC swap
-  const handleMoveClient = useCallback(async (clientId: string, direction: 'up' | 'down') => {
+  // Handle move up/down via arrow buttons - INSTANT with optimistic UI
+  const handleMoveClient = useCallback((clientId: string, direction: 'up' | 'down') => {
     // Find the client and its stage
     const client = clients.find(c => c.id === clientId);
     if (!client) {
@@ -702,35 +696,23 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
     
     const targetClient = stageClients[targetIndex];
     
-    console.log(`[Kanban] SWAP via RPC: "${client.name}" <-> "${targetClient.name}"`);
+    console.log(`[Kanban] INSTANT SWAP: "${client.name}" <-> "${targetClient.name}"`);
     
-    // Block refetch during operation
-    setReorderingFlag(true);
-    
-    // Check if normalization is needed before moving
+    // Check if normalization is needed first (rare case)
     if (columnNeedsNormalization(client.funnelStage)) {
-      console.log(`[Kanban] Normalizing column before move`);
-      await normalizeStageOrder(client.funnelStage);
-      setReorderingFlag(false);
-      refetch();
-      // After normalization, retry the move with a small delay
-      setTimeout(() => handleMoveClient(clientId, direction), 200);
+      console.log(`[Kanban] Column needs normalization, running in background`);
+      // Normalize in background, then retry
+      normalizeStageOrder(client.funnelStage).then(() => {
+        // Retry after normalization completes
+        setTimeout(() => handleMoveClient(clientId, direction), 150);
+      });
       return;
     }
     
-    // Use atomic swap RPC
-    const success = await swapClientOrder(client.id, targetClient.id);
-    
-    if (success) {
-      console.log('[Kanban] SWAP completed successfully');
-    } else {
-      console.log('[Kanban] SWAP failed, normalizing column');
-      await normalizeStageOrder(client.funnelStage);
-    }
-    
-    setReorderingFlag(false);
-    refetch();
-  }, [clients, clientsByStage, swapClientOrder, normalizeStageOrder, columnNeedsNormalization, setReorderingFlag, refetch]);
+    // INSTANT: swapClientOrder now updates cache immediately and persists in background
+    // No await, no blocking - UI updates in <50ms
+    swapClientOrder(client.id, targetClient.id);
+  }, [clients, clientsByStage, swapClientOrder, normalizeStageOrder, columnNeedsNormalization]);
 
   const getStageColor = useCallback((stage: FunnelStage) => {
     if (stage === 'Em atendimento') return 'bg-warning';
