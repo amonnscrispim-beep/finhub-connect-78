@@ -33,6 +33,7 @@ const transformSlide = (row: any): StudySlide => ({
   title: row.title,
   content: row.content,
   imageUrl: row.image_url,
+  fileType: row.file_type as 'pdf' | 'image' | null,
   displayOrder: row.display_order,
   createdAt: new Date(row.created_at),
   updatedAt: new Date(row.updated_at),
@@ -285,7 +286,7 @@ export function useStudySlides(submoduleId: string | null) {
   });
 
   const createSlide = useMutation({
-    mutationFn: async (data: { title: string; content?: string; imageUrl?: string }) => {
+    mutationFn: async (data: { title: string; content?: string; imageUrl?: string; fileType?: 'pdf' | 'image' | null }) => {
       if (!userId || !submoduleId) throw new Error('Not authenticated or no submodule selected');
       
       const maxOrder = slides.length > 0 ? Math.max(...slides.map(s => s.displayOrder)) : 0;
@@ -298,6 +299,7 @@ export function useStudySlides(submoduleId: string | null) {
           title: data.title,
           content: data.content || null,
           image_url: data.imageUrl || null,
+          file_type: data.fileType || null,
           display_order: maxOrder + 1,
         });
 
@@ -313,11 +315,12 @@ export function useStudySlides(submoduleId: string | null) {
   });
 
   const updateSlide = useMutation({
-    mutationFn: async ({ id, ...data }: { id: string; title?: string; content?: string; imageUrl?: string }) => {
+    mutationFn: async ({ id, ...data }: { id: string; title?: string; content?: string; imageUrl?: string; fileType?: 'pdf' | 'image' | null }) => {
       const updateData: any = {};
       if (data.title !== undefined) updateData.title = data.title;
       if (data.content !== undefined) updateData.content = data.content;
       if (data.imageUrl !== undefined) updateData.image_url = data.imageUrl;
+      if (data.fileType !== undefined) updateData.file_type = data.fileType;
 
       const { error } = await supabase
         .from('study_slides')

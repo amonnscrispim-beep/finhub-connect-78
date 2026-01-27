@@ -407,6 +407,7 @@ export type Database = {
           content: string | null
           created_at: string
           display_order: number
+          file_type: string | null
           id: string
           image_url: string | null
           submodule_id: string
@@ -418,6 +419,7 @@ export type Database = {
           content?: string | null
           created_at?: string
           display_order?: number
+          file_type?: string | null
           id?: string
           image_url?: string | null
           submodule_id: string
@@ -429,6 +431,7 @@ export type Database = {
           content?: string | null
           created_at?: string
           display_order?: number
+          file_type?: string | null
           id?: string
           image_url?: string | null
           submodule_id?: string
