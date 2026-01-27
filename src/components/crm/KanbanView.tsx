@@ -177,51 +177,63 @@ const KanbanCardComponent = memo(function KanbanCard({
       
       {/* Header - Clickable area to open client modal */}
       <div className="flex items-start justify-between mb-3">
-        {/* Drag handle and reorder arrows */}
-        <div className="flex items-center gap-1 mr-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" data-interactive="true">
+        {/* Drag handle only */}
+        <div className="flex items-center mr-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" data-interactive="true">
           <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" style={{ touchAction: 'none' }} />
-          <div className="flex flex-col gap-0.5">
-            <button
-              onClick={handleMoveUp}
-              disabled={!canMoveUp}
-              className={cn(
-                "p-0.5 rounded hover:bg-muted transition-colors",
-                canMoveUp ? "text-muted-foreground hover:text-foreground" : "text-muted-foreground/30 cursor-not-allowed"
-              )}
-              title="Mover para cima"
-            >
-              <ChevronUp className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={handleMoveDown}
-              disabled={!canMoveDown}
-              className={cn(
-                "p-0.5 rounded hover:bg-muted transition-colors",
-                canMoveDown ? "text-muted-foreground hover:text-foreground" : "text-muted-foreground/30 cursor-not-allowed"
-              )}
-              title="Mover para baixo"
-            >
-              <ChevronDown className="w-3.5 h-3.5" />
-            </button>
-          </div>
         </div>
         
-        <div 
-          className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity flex-1 min-w-0"
-          onClick={handleHeaderClick}
-        >
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <h4 className="font-semibold text-foreground leading-tight truncate">{client.name}</h4>
-              {/* Premium Renewed Client Badge */}
-              {client.isRenewedClient && (
-                <div className="p-0.5 rounded-full bg-amber-500/20 flex-shrink-0" title="Cliente Renovado">
-                  <Award className="w-3.5 h-3.5 text-amber-500" />
-                </div>
-              )}
+        {/* Name area - clicking opens modal */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            {/* Client name - clickable */}
+            <h4 
+              className="font-semibold text-foreground leading-tight truncate cursor-pointer hover:text-primary transition-colors"
+              onClick={handleHeaderClick}
+            >
+              {client.name}
+            </h4>
+            
+            {/* Reorder arrows - immediately after name, same line */}
+            <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" data-interactive="true">
+              <button
+                onClick={handleMoveUp}
+                onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                disabled={!canMoveUp}
+                className={cn(
+                  "p-0.5 rounded hover:bg-muted transition-colors",
+                  canMoveUp ? "text-muted-foreground hover:text-foreground" : "text-muted-foreground/30 cursor-not-allowed"
+                )}
+                title="Mover para cima"
+              >
+                <ChevronUp className="w-3 h-3" />
+              </button>
+              <button
+                onClick={handleMoveDown}
+                onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                disabled={!canMoveDown}
+                className={cn(
+                  "p-0.5 rounded hover:bg-muted transition-colors",
+                  canMoveDown ? "text-muted-foreground hover:text-foreground" : "text-muted-foreground/30 cursor-not-allowed"
+                )}
+                title="Mover para baixo"
+              >
+                <ChevronDown className="w-3 h-3" />
+              </button>
             </div>
-            <p className="text-xs text-muted-foreground truncate">{client.profession}</p>
+            
+            {/* Premium Renewed Client Badge */}
+            {client.isRenewedClient && (
+              <div className="p-0.5 rounded-full bg-amber-500/20 flex-shrink-0" title="Cliente Renovado">
+                <Award className="w-3.5 h-3.5 text-amber-500" />
+              </div>
+            )}
           </div>
+          <p 
+            className="text-xs text-muted-foreground truncate cursor-pointer hover:text-muted-foreground/80"
+            onClick={handleHeaderClick}
+          >
+            {client.profession}
+          </p>
         </div>
         
         <div className="flex items-center gap-1" data-interactive="true">
@@ -650,8 +662,54 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
     setDragOverClientId(null);
   }, [draggedClient, clientsByStage, reorderClientInStage, moveClientToStage]);
 
-  // Handle move up/down via arrow buttons
-  const handleMoveClient = useCallback((clientId: string, direction: 'up' | 'down') => {
+  // Normalize column order - ensures all cards have valid, sequential kanban_order
+  const normalizeColumnOrder = useCallback(async (stage: FunnelStage) => {
+    const stageClients = clientsByStage[stage] || [];
+    if (stageClients.length === 0) return;
+    
+    console.log(`[Kanban] Normalizing column "${stage}" with ${stageClients.length} clients`);
+    
+    // Assign sequential orders: 1000, 2000, 3000...
+    const updates: Promise<void>[] = [];
+    stageClients.forEach((client, index) => {
+      const newOrder = (index + 1) * 1000;
+      if (client.kanbanOrder !== newOrder) {
+        console.log(`[Kanban] Normalizing ${client.name}: ${client.kanbanOrder} -> ${newOrder}`);
+        updates.push(reorderClientInStage(client.id, newOrder));
+      }
+    });
+    
+    if (updates.length > 0) {
+      await Promise.all(updates);
+      console.log(`[Kanban] Normalized ${updates.length} clients in "${stage}"`);
+    }
+  }, [clientsByStage, reorderClientInStage]);
+
+  // Check if column needs normalization (has nulls or duplicates)
+  const columnNeedsNormalization = useCallback((stage: FunnelStage): boolean => {
+    const stageClients = clientsByStage[stage] || [];
+    if (stageClients.length === 0) return false;
+    
+    const orders = stageClients.map(c => c.kanbanOrder);
+    
+    // Check for nulls
+    if (orders.some(o => o === null || o === undefined)) {
+      console.log(`[Kanban] Column "${stage}" has null kanban_order values`);
+      return true;
+    }
+    
+    // Check for duplicates
+    const uniqueOrders = new Set(orders);
+    if (uniqueOrders.size !== orders.length) {
+      console.log(`[Kanban] Column "${stage}" has duplicate kanban_order values`);
+      return true;
+    }
+    
+    return false;
+  }, [clientsByStage]);
+
+  // Handle move up/down via arrow buttons - SWAP-based approach for reliability
+  const handleMoveClient = useCallback(async (clientId: string, direction: 'up' | 'down') => {
     // Find the client and its stage
     const client = clients.find(c => c.id === clientId);
     if (!client) return;
@@ -667,36 +725,33 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
     // Bounds check
     if (targetIndex < 0 || targetIndex >= stageClients.length) return;
     
-    const targetClient = stageClients[targetIndex];
-    
-    // Calculate new order for the moved client
-    let newOrder: number;
-    
-    if (direction === 'up') {
-      // Moving up: insert before the target
-      if (targetIndex === 0) {
-        // Becoming first
-        newOrder = (targetClient.kanbanOrder ?? 1000) - 1000;
-      } else {
-        // Insert between prev and target
-        const prevClient = stageClients[targetIndex - 1];
-        newOrder = ((prevClient.kanbanOrder ?? 0) + (targetClient.kanbanOrder ?? 1000)) / 2;
-      }
-    } else {
-      // Moving down: insert after the target
-      if (targetIndex === stageClients.length - 1) {
-        // Becoming last
-        newOrder = (targetClient.kanbanOrder ?? 0) + 1000;
-      } else {
-        // Insert between target and next
-        const nextClient = stageClients[targetIndex + 1];
-        newOrder = ((targetClient.kanbanOrder ?? 0) + (nextClient.kanbanOrder ?? 2000)) / 2;
-      }
+    // Check if normalization is needed before moving
+    if (columnNeedsNormalization(client.funnelStage)) {
+      console.log(`[Kanban] Normalizing column before move`);
+      await normalizeColumnOrder(client.funnelStage);
+      // After normalization, retry the move
+      setTimeout(() => handleMoveClient(clientId, direction), 100);
+      return;
     }
     
-    console.log(`[Kanban] Moving ${client.name} ${direction}, newOrder:`, newOrder);
-    reorderClientInStage(clientId, newOrder);
-  }, [clients, clientsByStage, reorderClientInStage]);
+    const targetClient = stageClients[targetIndex];
+    const currentOrder = client.kanbanOrder ?? (currentIndex + 1) * 1000;
+    const targetOrder = targetClient.kanbanOrder ?? (targetIndex + 1) * 1000;
+    
+    console.log(`[Kanban] SWAP: ${client.name} (order: ${currentOrder}) <-> ${targetClient.name} (order: ${targetOrder})`);
+    
+    // SWAP orders between the two clients
+    try {
+      await Promise.all([
+        reorderClientInStage(client.id, targetOrder),
+        reorderClientInStage(targetClient.id, currentOrder)
+      ]);
+      console.log(`[Kanban] SWAP completed successfully`);
+    } catch (error) {
+      console.error(`[Kanban] SWAP failed, normalizing column`, error);
+      await normalizeColumnOrder(client.funnelStage);
+    }
+  }, [clients, clientsByStage, reorderClientInStage, columnNeedsNormalization, normalizeColumnOrder]);
 
   const getStageColor = useCallback((stage: FunnelStage) => {
     if (stage === 'Em atendimento') return 'bg-warning';
