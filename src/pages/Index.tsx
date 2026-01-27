@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2, CalendarPlus } from 'lucide-react';
+import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2, CalendarPlus, GraduationCap } from 'lucide-react';
 import { ClientProvider, useClients } from '@/contexts/ClientContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Client } from '@/types/client';
@@ -19,6 +19,7 @@ import { FinancialAssetsModal } from '@/components/crm/FinancialAssetsModal';
 import { DashboardExecutive } from '@/components/crm/DashboardExecutive';
 import { GoogleCalendarConnect } from '@/components/crm/GoogleCalendarConnect';
 import { ScheduleMeetingModal } from '@/components/crm/ScheduleMeetingModal';
+import { StudiesArea } from '@/components/studies/StudiesArea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -27,7 +28,7 @@ function CRMDashboard() {
   const { clients, isLoading } = useClients();
   const { user, signOut } = useAuth();
   const [view, setView] = useState<'table' | 'kanban'>('table');
-  const [dashboardTab, setDashboardTab] = useState<'operacional' | 'executivo'>('operacional');
+  const [dashboardTab, setDashboardTab] = useState<'operacional' | 'executivo' | 'estudos'>('operacional');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>();
   const [pendingScheduleModalOpen, setPendingScheduleModalOpen] = useState(false);
@@ -170,6 +171,13 @@ function CRMDashboard() {
               <TrendingUp className="w-4 h-4 mr-2" />
               Executivo
             </TabsTrigger>
+            <TabsTrigger 
+              value="estudos"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <GraduationCap className="w-4 h-4 mr-2" />
+              Estudos
+            </TabsTrigger>
           </TabsList>
 
           {/* DASHBOARD OPERACIONAL - Existing functionality preserved */}
@@ -224,6 +232,11 @@ function CRMDashboard() {
           {/* DASHBOARD EXECUTIVO - New strategic dashboard */}
           <TabsContent value="executivo" className="animate-fade-in">
             <DashboardExecutive onEditClient={handleEditClient} />
+          </TabsContent>
+
+          {/* ÁREA DE ESTUDOS - Educational content */}
+          <TabsContent value="estudos" className="animate-fade-in">
+            <StudiesArea />
           </TabsContent>
         </Tabs>
       </main>
