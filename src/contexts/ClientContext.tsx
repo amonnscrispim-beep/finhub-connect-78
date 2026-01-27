@@ -11,6 +11,9 @@ interface ClientContextType {
   deleteClient: (id: string) => Promise<void>;
   moveClientToStage: (clientId: string, stage: FunnelStage, kanbanOrder?: number) => Promise<void>;
   reorderClientInStage: (clientId: string, newOrder: number) => Promise<void>;
+  swapClientOrder: (clientAId: string, clientBId: string) => Promise<boolean>;
+  normalizeStageOrder: (stage: string) => Promise<boolean>;
+  setReorderingFlag: (value: boolean) => void;
   addTask: (clientId: string, description: string) => Promise<void>;
   toggleTask: (clientId: string, taskId: string) => Promise<void>;
   deleteTask: (clientId: string, taskId: string) => Promise<void>;
@@ -29,6 +32,9 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     addClient: addClientToDb,
     updateClient: updateClientInDb,
     deleteClient: deleteClientFromDb,
+    swapKanbanOrder,
+    normalizeColumn,
+    setReorderingFlag,
     refetch: refetchClients,
   } = useSupabaseClients();
 
@@ -102,6 +108,14 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     }
   }, [updateClientInDb]);
 
+  const swapClientOrder = useCallback(async (clientAId: string, clientBId: string): Promise<boolean> => {
+    return await swapKanbanOrder(clientAId, clientBId);
+  }, [swapKanbanOrder]);
+
+  const normalizeStageOrder = useCallback(async (stage: string): Promise<boolean> => {
+    return await normalizeColumn(stage);
+  }, [normalizeColumn]);
+
   const addTask = useCallback(async (clientId: string, description: string) => {
     try {
       await addTaskToDb(clientId, description);
@@ -169,6 +183,9 @@ export function ClientProvider({ children }: { children: ReactNode }) {
         deleteClient,
         moveClientToStage,
         reorderClientInStage,
+        swapClientOrder,
+        normalizeStageOrder,
+        setReorderingFlag,
         addTask,
         toggleTask,
         deleteTask,

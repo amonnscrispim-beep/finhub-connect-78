@@ -448,7 +448,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      normalize_kanban_order: {
+        Args: { p_stage: string; p_user_id: string }
+        Returns: Json
+      }
+      swap_kanban_order: {
+        Args: { p_client_a: string; p_client_b: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
