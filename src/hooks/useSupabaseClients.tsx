@@ -263,6 +263,9 @@ function clientToDbUpdate(updates: Partial<Client>): TablesUpdate<'clients'> {
   return dbUpdates;
 }
 
+// Flag to prevent refetch during reorder operations
+let isReorderingInProgress = false;
+
 export function useSupabaseClients() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -273,6 +276,14 @@ export function useSupabaseClients() {
     queryFn: async () => {
       if (!user) return [];
       
+      // Block refetch if reordering is in progress
+      if (isReorderingInProgress) {
+        console.log('[Kanban] Blocking refetch - reorder in progress');
+        // Return cached data instead
+        const cached = queryClient.getQueryData<Client[]>(['clients', user?.id]);
+        if (cached) return cached;
+      }
+      
       console.log('[Kanban] Fetching clients from Supabase...');
       
       const { data, error } = await supabase
@@ -281,7 +292,7 @@ export function useSupabaseClients() {
         .eq('user_id', user.id)
         .order('funnel_stage', { ascending: true })
         .order('kanban_order', { ascending: true, nullsFirst: false })
-        .order('created_at', { ascending: true });
+        .order('id', { ascending: true }); // Use id as stable fallback, NOT created_at
       
       if (error) {
         console.error('[Kanban] Error fetching clients:', error);
@@ -297,17 +308,13 @@ export function useSupabaseClients() {
       
       const clients = data.map(dbToClient);
       
-      // Log converted clients
-      console.log('[Kanban] Converted clients (first 3):', clients.slice(0, 3).map(c => ({
-        name: c.name,
-        funnelStage: c.funnelStage,
-        kanbanOrder: c.kanbanOrder
-      })));
-      
       return clients;
     },
     enabled: !!user,
     staleTime: 1000 * 60 * 5, // 5 minutes
+    // Prevent background refetches that could cause "revert"
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   // Add client mutation
@@ -365,6 +372,12 @@ export function useSupabaseClients() {
     },
     // Optimistic update for instant UI feedback
     onMutate: async ({ id, updates }) => {
+      // Set reordering flag to prevent refetch interference
+      const isKanbanUpdate = (updates as any).kanbanOrder !== undefined;
+      if (isKanbanUpdate) {
+        isReorderingInProgress = true;
+      }
+      
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['clients', user?.id] });
       
@@ -382,7 +395,7 @@ export function useSupabaseClients() {
         );
       }
       
-      return { previousClients };
+      return { previousClients, isKanbanUpdate };
     },
     onError: (error, variables, context) => {
       // Rollback on error
@@ -397,9 +410,19 @@ export function useSupabaseClients() {
         toast.error('Erro ao atualizar cliente. Alteração revertida.');
       }
     },
-    onSettled: () => {
-      // Sync with server after mutation settles
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
+    onSettled: (data, error, variables, context) => {
+      // Clear reordering flag after a delay to let all updates complete
+      if (context?.isKanbanUpdate) {
+        setTimeout(() => {
+          isReorderingInProgress = false;
+          console.log('[Kanban] Reorder complete, refetch allowed');
+          // Only invalidate after flag is cleared and delay
+          queryClient.invalidateQueries({ queryKey: ['clients'] });
+        }, 500);
+      } else {
+        // Non-kanban updates can refetch immediately
+        queryClient.invalidateQueries({ queryKey: ['clients'] });
+      }
     },
   });
 
