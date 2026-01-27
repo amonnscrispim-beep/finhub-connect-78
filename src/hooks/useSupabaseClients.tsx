@@ -303,7 +303,12 @@ export function useSupabaseClients() {
   };
 
   // Atomic swap using database RPC function (fire-and-forget with rollback)
+  // CRITICAL: This function updates cache INSTANTLY and persists in background
+  // NO refetch after success - optimistic state IS the source of truth
   const swapKanbanOrder = async (clientAId: string, clientBId: string): Promise<boolean> => {
+    // Block any refetch during this operation
+    isReorderingInProgress = true;
+    
     // INSTANT: Update cache first, don't wait for DB
     const snapshot = optimisticSwapInCache(clientAId, clientBId);
     
@@ -323,6 +328,7 @@ export function useSupabaseClients() {
           queryClient.setQueryData(['clients', user?.id], snapshot.previousClients);
           toast.error('Não foi possível salvar a ordem. Tente novamente.');
         }
+        isReorderingInProgress = false;
         return false;
       }
       
@@ -335,8 +341,15 @@ export function useSupabaseClients() {
           queryClient.setQueryData(['clients', user?.id], snapshot.previousClients);
           toast.error('Não foi possível salvar a ordem.');
         }
+        isReorderingInProgress = false;
         return false;
       }
+      
+      // SUCCESS: Do NOT refetch! The optimistic cache is correct.
+      // Just release the lock after a short delay to prevent race conditions
+      setTimeout(() => {
+        isReorderingInProgress = false;
+      }, 200);
       
       return true;
     } catch (err) {
@@ -345,11 +358,13 @@ export function useSupabaseClients() {
         queryClient.setQueryData(['clients', user?.id], snapshot.previousClients);
         toast.error('Erro ao reordenar. Tente novamente.');
       }
+      isReorderingInProgress = false;
       return false;
     }
   };
 
   // Normalize column using database RPC function
+  // This is only called when there are null/duplicate orders - rare case
   const normalizeColumn = async (stage: string): Promise<boolean> => {
     if (!user) return false;
     
@@ -368,11 +383,15 @@ export function useSupabaseClients() {
     const result = data as { success: boolean; normalized_count?: number } | null;
     console.log('[Kanban] RPC normalize_kanban_order result:', result);
     
-    // After normalization, invalidate cache to get fresh orders (in background)
-    if (result?.success) {
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['clients'], refetchType: 'inactive' });
-      }, 100);
+    // After normalization, we need to fetch fresh data to get the new orders
+    // This is the ONLY case where we should refetch after a kanban operation
+    if (result?.success && result.normalized_count && result.normalized_count > 0) {
+      // Small delay to ensure DB transaction is committed
+      setTimeout(async () => {
+        isReorderingInProgress = true; // Block during refetch
+        await queryClient.refetchQueries({ queryKey: ['clients', user.id] });
+        isReorderingInProgress = false;
+      }, 150);
     }
     
     return result?.success === true;
@@ -511,14 +530,14 @@ export function useSupabaseClients() {
       }
     },
     onSettled: (data, error, variables, context) => {
-      // Clear reordering flag after a delay to let all updates complete
+      // For kanban updates, do NOT invalidate - optimistic cache is source of truth
       if (context?.isKanbanUpdate) {
         setTimeout(() => {
           isReorderingInProgress = false;
-          console.log('[Kanban] Reorder complete, refetch allowed');
-          // Only invalidate after flag is cleared and delay
-          queryClient.invalidateQueries({ queryKey: ['clients'] });
-        }, 500);
+          console.log('[Kanban] Reorder complete, refetch allowed but NOT triggered');
+          // DO NOT invalidate queries here - this causes the "bounce back" bug
+          // The optimistic update is the correct state
+        }, 300);
       } else {
         // Non-kanban updates can refetch immediately
         queryClient.invalidateQueries({ queryKey: ['clients'] });
@@ -583,12 +602,8 @@ export function useSupabaseClients() {
         clearTimeout(reorderTimeoutId);
         reorderTimeoutId = null;
       }
-      // If turning off, delay the refetch
-      if (!value) {
-        reorderTimeoutId = setTimeout(() => {
-          queryClient.invalidateQueries({ queryKey: ['clients'] });
-        }, 300);
-      }
+      // Do NOT invalidate queries when turning off - this causes bounce back
+      // The optimistic cache is the source of truth
     },
     isAdding: addClientMutation.isPending,
     isUpdating: updateClientMutation.isPending,
