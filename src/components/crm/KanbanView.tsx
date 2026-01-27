@@ -32,6 +32,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { TasksModal } from './TasksModal';
+import { StageQuickViewDrawer } from './StageQuickViewDrawer';
 import { cn } from '@/lib/utils';
 
 interface KanbanViewProps {
@@ -461,6 +462,16 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  
+  // Stage Quick View Drawer state
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerStage, setDrawerStage] = useState<FunnelStage | null>(null);
+  
+  // Handle column header click to open drawer
+  const handleColumnHeaderClick = useCallback((stage: FunnelStage) => {
+    setDrawerStage(stage);
+    setDrawerOpen(true);
+  }, []);
 
   const checkScrollability = () => {
     const container = scrollContainerRef.current;
@@ -763,16 +774,19 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, stage)}
               >
-                {/* Column Header */}
-                <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/50">
+                {/* Column Header - Clickable to open drawer */}
+                <button
+                  onClick={() => handleColumnHeaderClick(stage)}
+                  className="w-full flex items-center justify-between mb-4 pb-3 border-b border-border/50 hover:bg-muted/50 -mx-4 px-4 pt-1 -mt-1 rounded-t-xl transition-colors cursor-pointer"
+                >
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full ${getStageColor(stage)} shadow-sm`} />
                     <h3 className="font-semibold text-sm text-foreground">{getStageDisplayLabel(stage)}</h3>
                   </div>
-                  <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                  <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full hover:bg-primary/10 hover:text-primary transition-colors">
                     {stageClients.length}
                   </span>
-                </div>
+                </button>
 
                 {/* Cards */}
                 <div className="space-y-3">
@@ -800,9 +814,18 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
                 </div>
               </div>
             );
-          })}
+        })}
         </div>
       </div>
+      
+      {/* Stage Quick View Drawer */}
+      <StageQuickViewDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        stage={drawerStage}
+        clientsInStage={drawerStage ? (clientsByStage[drawerStage] || []) : []}
+        onOpenClient={onEditClient}
+      />
     </div>
   );
 }
