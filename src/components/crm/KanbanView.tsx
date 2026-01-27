@@ -522,7 +522,7 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
     }
   };
 
-  // Memoize clients grouped by stage for performance, sorted by kanbanOrder
+  // Memoize clients grouped by stage for performance, sorted ONLY by kanbanOrder
   const clientsByStage = useMemo(() => {
     const grouped: Record<FunnelStage, Client[]> = {} as Record<FunnelStage, Client[]>;
     const query = searchQuery.trim().toLowerCase();
@@ -549,32 +549,21 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
       }
     });
 
-    // Sort each stage by kanbanOrder (clients without kanbanOrder go to end, sorted by createdAt)
+    // Sort each stage ONLY by kanbanOrder ASC, with id as stable fallback (NOT createdAt)
+    // This prevents the "revert" bug caused by inconsistent sorting
     KANBAN_STAGES.forEach(stage => {
       grouped[stage].sort((a, b) => {
-        // Both have kanbanOrder - compare them directly
-        if (a.kanbanOrder !== null && b.kanbanOrder !== null) {
-          return a.kanbanOrder - b.kanbanOrder;
+        const orderA = a.kanbanOrder ?? Number.MAX_SAFE_INTEGER;
+        const orderB = b.kanbanOrder ?? Number.MAX_SAFE_INTEGER;
+        
+        // Primary sort: kanbanOrder
+        if (orderA !== orderB) {
+          return orderA - orderB;
         }
-        // Only a has kanbanOrder - a comes first
-        if (a.kanbanOrder !== null && b.kanbanOrder === null) {
-          return -1;
-        }
-        // Only b has kanbanOrder - b comes first
-        if (a.kanbanOrder === null && b.kanbanOrder !== null) {
-          return 1;
-        }
-        // Neither has kanbanOrder - sort by createdAt
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        
+        // Fallback: stable sort by id (immutable, deterministic)
+        return a.id.localeCompare(b.id);
       });
-      
-      // Log sorted order for debugging
-      if (grouped[stage].length > 0) {
-        console.log(`[Kanban] Stage "${stage}" order:`, grouped[stage].map(c => ({
-          name: c.name,
-          kanbanOrder: c.kanbanOrder
-        })));
-      }
     });
     
     return grouped;
@@ -708,29 +697,38 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
     return false;
   }, [clientsByStage]);
 
-  // Handle move up/down via arrow buttons - SWAP-based approach for reliability
+  // Handle move up/down via arrow buttons - atomic SWAP approach
   const handleMoveClient = useCallback(async (clientId: string, direction: 'up' | 'down') => {
     // Find the client and its stage
     const client = clients.find(c => c.id === clientId);
-    if (!client) return;
+    if (!client) {
+      console.log('[Kanban] Client not found:', clientId);
+      return;
+    }
     
     const stageClients = clientsByStage[client.funnelStage] || [];
     const currentIndex = stageClients.findIndex(c => c.id === clientId);
     
-    if (currentIndex === -1) return;
+    if (currentIndex === -1) {
+      console.log('[Kanban] Client not found in stage');
+      return;
+    }
     
     // Calculate target index
     const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
     
     // Bounds check
-    if (targetIndex < 0 || targetIndex >= stageClients.length) return;
+    if (targetIndex < 0 || targetIndex >= stageClients.length) {
+      console.log('[Kanban] Out of bounds:', { currentIndex, targetIndex, direction });
+      return;
+    }
     
     // Check if normalization is needed before moving
     if (columnNeedsNormalization(client.funnelStage)) {
       console.log(`[Kanban] Normalizing column before move`);
       await normalizeColumnOrder(client.funnelStage);
-      // After normalization, retry the move
-      setTimeout(() => handleMoveClient(clientId, direction), 100);
+      // After normalization, retry the move with a small delay
+      setTimeout(() => handleMoveClient(clientId, direction), 150);
       return;
     }
     
@@ -738,17 +736,25 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
     const currentOrder = client.kanbanOrder ?? (currentIndex + 1) * 1000;
     const targetOrder = targetClient.kanbanOrder ?? (targetIndex + 1) * 1000;
     
-    console.log(`[Kanban] SWAP: ${client.name} (order: ${currentOrder}) <-> ${targetClient.name} (order: ${targetOrder})`);
+    console.log(`[Kanban] SWAP: "${client.name}" (order: ${currentOrder}) <-> "${targetClient.name}" (order: ${targetOrder})`);
     
-    // SWAP orders between the two clients
+    // ATOMIC SWAP: Update both clients' orders simultaneously
+    // This ensures both updates are sent together, preventing race conditions
     try {
-      await Promise.all([
+      // Execute both updates in parallel and wait for both to complete
+      const [result1, result2] = await Promise.all([
         reorderClientInStage(client.id, targetOrder),
         reorderClientInStage(targetClient.id, currentOrder)
       ]);
-      console.log(`[Kanban] SWAP completed successfully`);
+      
+      console.log('[Kanban] SWAP completed - both clients updated');
+      console.log(`[Kanban] ${client.name} now has order: ${targetOrder}`);
+      console.log(`[Kanban] ${targetClient.name} now has order: ${currentOrder}`);
+      
     } catch (error) {
-      console.error(`[Kanban] SWAP failed, normalizing column`, error);
+      console.error(`[Kanban] SWAP failed:`, error);
+      // If swap fails, try to normalize the column to fix any inconsistencies
+      console.log('[Kanban] Attempting recovery via normalization...');
       await normalizeColumnOrder(client.funnelStage);
     }
   }, [clients, clientsByStage, reorderClientInStage, columnNeedsNormalization, normalizeColumnOrder]);
