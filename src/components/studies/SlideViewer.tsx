@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PDFViewer } from './PDFViewer';
 import { 
   ChevronLeft, ChevronRight, Plus, Pencil, Trash2, 
   FileSliders, Upload, X, FileText, ImageIcon
@@ -255,13 +256,10 @@ export function SlideViewer({ submodule, onBack }: SlideViewerProps) {
             {currentSlide.imageUrl && (
               <div className="mb-6">
                 {currentSlide.fileType === 'pdf' ? (
-                  <div className="w-full border rounded-lg overflow-hidden bg-muted/20">
-                    <iframe 
-                      src={`${currentSlide.imageUrl}#view=FitH`}
-                      className="w-full h-[600px]"
-                      title={currentSlide.title}
-                    />
-                  </div>
+                  <PDFViewer 
+                    pdfUrl={currentSlide.imageUrl} 
+                    title={currentSlide.title}
+                  />
                 ) : (
                   <div className="flex justify-center">
                     <img 
