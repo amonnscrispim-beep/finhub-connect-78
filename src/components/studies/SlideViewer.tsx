@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   ChevronLeft, ChevronRight, Plus, Pencil, Trash2, 
-  FileSliders, Upload, X, FileText, ImageIcon, ExternalLink
+  FileSliders, Upload, X, FileText, ImageIcon, Download
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -276,30 +276,28 @@ export function SlideViewer({ submodule, onBack }: SlideViewerProps) {
             <CardTitle className="text-xl">{currentSlide.title}</CardTitle>
           </CardHeader>
           <CardContent className="p-8">
-            {/* PDF as clickable link */}
+            {/* PDF as download link */}
             {currentSlide.imageUrl && currentSlide.fileType === 'pdf' && (
               <div className="mb-6">
-                <a 
-                  href={currentSlide.imageUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  download
-                  className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg border hover:bg-muted/50 transition-colors group no-underline"
-                >
+                <div className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg border">
                   <FileText className="w-12 h-12 text-red-500 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-foreground truncate">
                       {currentSlide.fileName || 'Documento PDF'}
                     </p>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1">
-                      <ExternalLink className="w-3 h-3" />
-                      Clique para abrir ou baixar PDF
+                    <p className="text-sm text-muted-foreground">
+                      Material de apoio em PDF
                     </p>
                   </div>
-                  <span className="px-3 py-1.5 text-sm border rounded-md bg-background opacity-0 group-hover:opacity-100 transition-opacity">
-                    Abrir PDF
-                  </span>
-                </a>
+                  <a 
+                    href={currentSlide.imageUrl}
+                    download={currentSlide.fileName || 'documento.pdf'}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    Baixar PDF
+                  </a>
+                </div>
                 
                 {/* Rename button */}
                 <div className="mt-2 flex justify-end">
