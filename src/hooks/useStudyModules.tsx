@@ -34,6 +34,7 @@ const transformSlide = (row: any): StudySlide => ({
   content: row.content,
   imageUrl: row.image_url,
   fileType: row.file_type as 'pdf' | 'image' | null,
+  fileName: row.file_name,
   displayOrder: row.display_order,
   createdAt: new Date(row.created_at),
   updatedAt: new Date(row.updated_at),
@@ -286,7 +287,7 @@ export function useStudySlides(submoduleId: string | null) {
   });
 
   const createSlide = useMutation({
-    mutationFn: async (data: { title: string; content?: string; imageUrl?: string; fileType?: 'pdf' | 'image' | null }) => {
+    mutationFn: async (data: { title: string; content?: string; imageUrl?: string; fileType?: 'pdf' | 'image' | null; fileName?: string }) => {
       if (!userId || !submoduleId) throw new Error('Not authenticated or no submodule selected');
       
       const maxOrder = slides.length > 0 ? Math.max(...slides.map(s => s.displayOrder)) : 0;
@@ -300,6 +301,7 @@ export function useStudySlides(submoduleId: string | null) {
           content: data.content || null,
           image_url: data.imageUrl || null,
           file_type: data.fileType || null,
+          file_name: data.fileName || null,
           display_order: maxOrder + 1,
         });
 
@@ -315,12 +317,13 @@ export function useStudySlides(submoduleId: string | null) {
   });
 
   const updateSlide = useMutation({
-    mutationFn: async ({ id, ...data }: { id: string; title?: string; content?: string; imageUrl?: string; fileType?: 'pdf' | 'image' | null }) => {
+    mutationFn: async ({ id, ...data }: { id: string; title?: string; content?: string; imageUrl?: string; fileType?: 'pdf' | 'image' | null; fileName?: string }) => {
       const updateData: any = {};
       if (data.title !== undefined) updateData.title = data.title;
       if (data.content !== undefined) updateData.content = data.content;
       if (data.imageUrl !== undefined) updateData.image_url = data.imageUrl;
       if (data.fileType !== undefined) updateData.file_type = data.fileType;
+      if (data.fileName !== undefined) updateData.file_name = data.fileName;
 
       const { error } = await supabase
         .from('study_slides')

@@ -27,6 +27,7 @@ export interface StudySlide {
   content: string | null;
   imageUrl: string | null;
   fileType: 'pdf' | 'image' | null;
+  fileName: string | null;
   displayOrder: number;
   createdAt: Date;
   updatedAt: Date;
