@@ -279,9 +279,12 @@ export function SlideViewer({ submodule, onBack }: SlideViewerProps) {
             {/* PDF as clickable link */}
             {currentSlide.imageUrl && currentSlide.fileType === 'pdf' && (
               <div className="mb-6">
-                <div 
-                  className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors group"
-                  onClick={() => openPdfInNewTab(currentSlide.imageUrl!)}
+                <a 
+                  href={currentSlide.imageUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                  className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg border hover:bg-muted/50 transition-colors group no-underline"
                 >
                   <FileText className="w-12 h-12 text-red-500 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
@@ -290,23 +293,20 @@ export function SlideViewer({ submodule, onBack }: SlideViewerProps) {
                     </p>
                     <p className="text-sm text-muted-foreground flex items-center gap-1">
                       <ExternalLink className="w-3 h-3" />
-                      Clique para abrir PDF em nova aba
+                      Clique para abrir ou baixar PDF
                     </p>
                   </div>
-                  <Button variant="outline" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="px-3 py-1.5 text-sm border rounded-md bg-background opacity-0 group-hover:opacity-100 transition-opacity">
                     Abrir PDF
-                  </Button>
-                </div>
+                  </span>
+                </a>
                 
                 {/* Rename button */}
                 <div className="mt-2 flex justify-end">
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      startRename();
-                    }}
+                    onClick={startRename}
                   >
                     <Pencil className="w-3 h-3 mr-1" />
                     Renomear
