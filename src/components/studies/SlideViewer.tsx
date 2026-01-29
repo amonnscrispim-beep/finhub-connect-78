@@ -8,10 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PDFViewer } from './PDFViewer';
 import { 
   ChevronLeft, ChevronRight, Plus, Pencil, Trash2, 
-  FileSliders, Upload, X, FileText, ImageIcon
+  FileSliders, Upload, X, FileText, ImageIcon, ExternalLink
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -54,6 +53,10 @@ export function SlideViewer({ submodule, onBack }: SlideViewerProps) {
   const [formFileName, setFormFileName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   
+  // Rename state
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentSlide = slides[currentIndex];
@@ -76,13 +79,7 @@ export function SlideViewer({ submodule, onBack }: SlideViewerProps) {
       setFormContent(slide.content || '');
       setFormFileUrl(slide.imageUrl || '');
       setFormFileType(slide.fileType);
-      // Extract filename from URL if exists
-      if (slide.imageUrl) {
-        const parts = slide.imageUrl.split('/');
-        setFormFileName(parts[parts.length - 1] || '');
-      } else {
-        setFormFileName('');
-      }
+      setFormFileName(slide.fileName || '');
     } else {
       setEditingSlide(null);
       setFormTitle('');
@@ -163,6 +160,7 @@ export function SlideViewer({ submodule, onBack }: SlideViewerProps) {
         content: formContent.trim() || undefined,
         imageUrl: formFileUrl.trim() || undefined,
         fileType: formFileType,
+        fileName: formFileName || undefined,
       }, {
         onSuccess: () => setIsEditorOpen(false)
       });
@@ -172,6 +170,7 @@ export function SlideViewer({ submodule, onBack }: SlideViewerProps) {
         content: formContent.trim() || undefined,
         imageUrl: formFileUrl.trim() || undefined,
         fileType: formFileType,
+        fileName: formFileName || undefined,
       }, {
         onSuccess: () => {
           setIsEditorOpen(false);
@@ -189,6 +188,31 @@ export function SlideViewer({ submodule, onBack }: SlideViewerProps) {
         if (currentIndex >= slides.length - 1 && currentIndex > 0) {
           setCurrentIndex(i => i - 1);
         }
+      }
+    });
+  };
+
+  const openPdfInNewTab = (url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const startRename = () => {
+    if (currentSlide?.fileName) {
+      setRenameValue(currentSlide.fileName);
+      setIsRenaming(true);
+    }
+  };
+
+  const handleRename = () => {
+    if (!currentSlide || !renameValue.trim()) return;
+    
+    updateSlide.mutate({
+      id: currentSlide.id,
+      fileName: renameValue.trim(),
+    }, {
+      onSuccess: () => {
+        setIsRenaming(false);
+        toast.success('Nome do arquivo atualizado!');
       }
     });
   };
@@ -252,23 +276,53 @@ export function SlideViewer({ submodule, onBack }: SlideViewerProps) {
             <CardTitle className="text-xl">{currentSlide.title}</CardTitle>
           </CardHeader>
           <CardContent className="p-8">
-            {/* File (PDF or Image) */}
-            {currentSlide.imageUrl && (
+            {/* PDF as clickable link */}
+            {currentSlide.imageUrl && currentSlide.fileType === 'pdf' && (
               <div className="mb-6">
-                {currentSlide.fileType === 'pdf' ? (
-                  <PDFViewer 
-                    pdfUrl={currentSlide.imageUrl} 
-                    title={currentSlide.title}
-                  />
-                ) : (
-                  <div className="flex justify-center">
-                    <img 
-                      src={currentSlide.imageUrl} 
-                      alt={currentSlide.title}
-                      className="max-h-64 rounded-lg shadow-md"
-                    />
+                <div 
+                  className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors group"
+                  onClick={() => openPdfInNewTab(currentSlide.imageUrl!)}
+                >
+                  <FileText className="w-12 h-12 text-red-500 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground truncate">
+                      {currentSlide.fileName || 'Documento PDF'}
+                    </p>
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <ExternalLink className="w-3 h-3" />
+                      Clique para abrir PDF em nova aba
+                    </p>
                   </div>
-                )}
+                  <Button variant="outline" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    Abrir PDF
+                  </Button>
+                </div>
+                
+                {/* Rename button */}
+                <div className="mt-2 flex justify-end">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      startRename();
+                    }}
+                  >
+                    <Pencil className="w-3 h-3 mr-1" />
+                    Renomear
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Image display (unchanged) */}
+            {currentSlide.imageUrl && currentSlide.fileType !== 'pdf' && (
+              <div className="mb-6 flex justify-center">
+                <img 
+                  src={currentSlide.imageUrl} 
+                  alt={currentSlide.title}
+                  className="max-h-64 rounded-lg shadow-md"
+                />
               </div>
             )}
             
@@ -366,9 +420,14 @@ export function SlideViewer({ submodule, onBack }: SlideViewerProps) {
                     <ImageIcon className="w-8 h-8 text-blue-500 flex-shrink-0" />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{formFileName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formFileType === 'pdf' ? 'Documento PDF' : 'Imagem'}
+                    <Input
+                      value={formFileName}
+                      onChange={(e) => setFormFileName(e.target.value)}
+                      placeholder="Nome do arquivo..."
+                      className="h-8 text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {formFileType === 'pdf' ? 'Documento PDF - Abrirá em nova aba' : 'Imagem'}
                     </p>
                   </div>
                   <Button
@@ -424,6 +483,36 @@ export function SlideViewer({ submodule, onBack }: SlideViewerProps) {
               disabled={!formTitle.trim() || createSlide.isPending || updateSlide.isPending || isUploading}
             >
               {createSlide.isPending || updateSlide.isPending ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename dialog */}
+      <Dialog open={isRenaming} onOpenChange={setIsRenaming}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Renomear arquivo</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="rename-input">Nome do arquivo</Label>
+            <Input
+              id="rename-input"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              placeholder="Digite o novo nome..."
+              className="mt-2"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRenaming(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleRename} 
+              disabled={!renameValue.trim() || updateSlide.isPending}
+            >
+              {updateSlide.isPending ? 'Salvando...' : 'Salvar'}
             </Button>
           </DialogFooter>
         </DialogContent>
