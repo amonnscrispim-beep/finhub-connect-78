@@ -2,9 +2,14 @@ import React, { createContext, useContext, useState, useCallback, useRef } from 
 import {
   DndContext,
   DragOverlay,
-  closestCorners,
+  closestCenter,
+  pointerWithin,
+  rectIntersection,
+  getFirstCollision,
   KeyboardSensor,
   PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragStartEvent,
@@ -12,6 +17,7 @@ import {
   DragOverEvent,
   MeasuringStrategy,
   UniqueIdentifier,
+  CollisionDetection,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -20,13 +26,13 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Client, FunnelStage, FUNNEL_STAGES } from '@/types/client';
-import { useClients } from '@/contexts/ClientContext';
 
 interface KanbanDndContextType {
   activeId: UniqueIdentifier | null;
   activeClient: Client | null;
   overId: UniqueIdentifier | null;
   overStage: FunnelStage | null;
+  isDragging: boolean;
 }
 
 const KanbanDndCtx = createContext<KanbanDndContextType>({
@@ -34,6 +40,7 @@ const KanbanDndCtx = createContext<KanbanDndContextType>({
   activeClient: null,
   overId: null,
   overStage: null,
+  isDragging: false,
 });
 
 export function useKanbanDnd() {
@@ -61,17 +68,50 @@ export function KanbanDndProvider({
   // Track if drag is in progress to prevent interference
   const isDraggingRef = useRef(false);
 
-  // Configure sensors for better cross-browser support
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8, // Require 8px movement before drag starts
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
+  // Configure sensors for maximum cross-browser support (Opera, Chrome, Edge, etc.)
+  const pointerSensor = useSensor(PointerSensor, {
+    activationConstraint: {
+      distance: 5, // Reduced for more responsive feel
+    },
+  });
+  
+  const mouseSensor = useSensor(MouseSensor, {
+    activationConstraint: {
+      distance: 5,
+    },
+  });
+  
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: {
+      delay: 150,
+      tolerance: 5,
+    },
+  });
+  
+  const keyboardSensor = useSensor(KeyboardSensor, {
+    coordinateGetter: sortableKeyboardCoordinates,
+  });
+
+  const sensors = useSensors(pointerSensor, mouseSensor, touchSensor, keyboardSensor);
+
+  // Custom collision detection that prioritizes cards over columns
+  const collisionDetection: CollisionDetection = useCallback((args) => {
+    // First check for collisions with sortable items (cards)
+    const pointerCollisions = pointerWithin(args);
+    if (pointerCollisions.length > 0) {
+      // Filter out stage columns, prefer card collisions
+      const cardCollisions = pointerCollisions.filter(
+        collision => !FUNNEL_STAGES.includes(collision.id as FunnelStage)
+      );
+      if (cardCollisions.length > 0) {
+        return cardCollisions;
+      }
+    }
+    
+    // Fall back to rect intersection for column drops
+    const rectCollisions = rectIntersection(args);
+    return rectCollisions;
+  }, []);
 
   // Find client by ID
   const findClient = useCallback((id: UniqueIdentifier): Client | null => {
@@ -183,10 +223,10 @@ export function KanbanDndProvider({
   }, []);
 
   return (
-    <KanbanDndCtx.Provider value={{ activeId, activeClient, overId, overStage }}>
+    <KanbanDndCtx.Provider value={{ activeId, activeClient, overId, overStage, isDragging: isDraggingRef.current }}>
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={collisionDetection}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}

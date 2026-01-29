@@ -142,8 +142,13 @@ const KanbanCardComponent = memo(function KanbanCard({
       <div className="flex items-start justify-between mb-3">
         {/* Drag handle - ONLY this initiates drag */}
         <div 
-          {...dragHandleProps}
-          className="flex items-center mr-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing touch-none"
+          {...(dragHandleProps || {})}
+          className={cn(
+            "flex items-center mr-2 flex-shrink-0 transition-opacity cursor-grab active:cursor-grabbing select-none",
+            "opacity-40 group-hover:opacity-100",
+            isDragging && "cursor-grabbing"
+          )}
+          style={{ touchAction: 'none' }}
         >
           <GripVertical className="w-4 h-4 text-muted-foreground" />
         </div>
