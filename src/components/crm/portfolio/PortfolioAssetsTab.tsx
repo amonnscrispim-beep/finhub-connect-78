@@ -57,7 +57,7 @@ export function PortfolioAssetsTab({
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div className="relative flex-1 max-w-sm">
@@ -89,7 +89,7 @@ export function PortfolioAssetsTab({
       )}
 
       {/* Assets table */}
-      <div className="rounded-lg border border-border min-w-0 overflow-x-auto overflow-y-auto max-h-[400px] w-full" style={{ WebkitOverflowScrolling: 'touch', display: 'block' }}>
+      <div className="portfolio-table-scroll rounded-lg border border-border max-h-[400px] scrollbar-thin">
           <table className="w-max min-w-[1100px] text-sm" style={{ tableLayout: 'auto' }}>
             <thead className="bg-muted/80">
               <tr>
