@@ -44,6 +44,7 @@ export function useClientPortfolio(clientId: string | undefined) {
   const [performance, setPerformance] = useState<PortfolioPerformance[]>([]);
   const [reports, setReports] = useState<PortfolioReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasManualWeights, setHasManualWeights] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const loadAll = useCallback(async () => {
@@ -59,7 +60,7 @@ export function useClientPortfolio(clientId: string | undefined) {
       ]);
 
       if (assetsRes.data) {
-        setAssets(assetsRes.data.map((a: any) => ({
+        const mapped = assetsRes.data.map((a: any) => ({
           id: a.id,
           ticker: a.ticker,
           name: a.name,
@@ -73,7 +74,11 @@ export function useClientPortfolio(clientId: string | undefined) {
           tir_pct: a.tir_pct != null ? Number(a.tir_pct) : null,
           notes: a.notes,
           display_order: a.display_order,
-        })));
+        }));
+        setAssets(mapped);
+        // Detect if weights were manually set
+        const totalW = mapped.reduce((s: number, x: any) => s + x.target_weight, 0);
+        if (totalW > 0) setHasManualWeights(true);
       }
       if (simRes.data && simRes.data.length > 0) {
         setAporte(Number((simRes.data[0] as any).aporte));
@@ -120,6 +125,25 @@ export function useClientPortfolio(clientId: string | undefined) {
     if (error) { console.error(error); toast.error('Erro ao salvar ativo'); }
   }, [clientId, user]);
 
+  // --- WEIGHT DISTRIBUTION ---
+  const distributeWeightsEvenly = useCallback((assetList: PortfolioAsset[]) => {
+    if (assetList.length === 0) return assetList;
+    const n = assetList.length;
+    const base = Math.floor(10000 / n) / 100;
+    const remainder = Math.round((100 - base * n) * 100) / 100;
+    return assetList.map((a, i) => ({
+      ...a,
+      target_weight: i === n - 1 ? Math.round((base + remainder) * 100) / 100 : base,
+    }));
+  }, []);
+
+  const redistributeWeights = useCallback(async () => {
+    const updated = distributeWeightsEvenly(assets);
+    setAssets(updated);
+    setHasManualWeights(false);
+    for (const a of updated) { await saveAsset(a); }
+  }, [assets, distributeWeightsEvenly, saveAsset]);
+
   const addAsset = useCallback(async () => {
     if (!clientId || !user) return;
     const newAsset = {
@@ -131,20 +155,36 @@ export function useClientPortfolio(clientId: string | undefined) {
     const { data, error } = await supabase.from('client_portfolio_assets').insert(newAsset).select().single();
     if (error) { toast.error('Erro ao adicionar ativo'); return; }
     if (data) {
-      setAssets(prev => [...prev, {
+      const newItem: PortfolioAsset = {
         id: data.id, ticker: '', name: '', asset_class: 'Ações', target_weight: 0,
         recommendation: 'MANTER', recommendation_date: newAsset.recommendation_date,
         fair_price: 0, current_price: null, upside_pct: null, tir_pct: null,
         notes: null, display_order: assets.length,
-      }]);
+      };
+      const newList = [...assets, newItem];
+      // Auto-distribute if no manual weights
+      if (!hasManualWeights) {
+        const distributed = distributeWeightsEvenly(newList);
+        setAssets(distributed);
+        for (const a of distributed) { saveAsset(a); }
+      } else {
+        setAssets(newList);
+      }
     }
-  }, [clientId, user, assets.length]);
+  }, [clientId, user, assets, hasManualWeights, distributeWeightsEvenly, saveAsset]);
 
   const deleteAsset = useCallback(async (id: string) => {
-    setAssets(prev => prev.filter(a => a.id !== id));
+    const newList = assets.filter(a => a.id !== id);
+    if (!hasManualWeights && newList.length > 0) {
+      const distributed = distributeWeightsEvenly(newList);
+      setAssets(distributed);
+      for (const a of distributed) { saveAsset(a); }
+    } else {
+      setAssets(newList);
+    }
     const { error } = await supabase.from('client_portfolio_assets').delete().eq('id', id);
     if (error) { toast.error('Erro ao remover ativo'); loadAll(); }
-  }, [loadAll]);
+  }, [assets, hasManualWeights, distributeWeightsEvenly, saveAsset, loadAll]);
 
   const updateAssetLocal = useCallback((id: string, field: keyof PortfolioAsset, value: any) => {
     setAssets(prev => prev.map(a => a.id === id ? { ...a, [field]: value } : a));
@@ -224,7 +264,9 @@ export function useClientPortfolio(clientId: string | undefined) {
 
   return {
     assets, aporte, previousValues, performance, reports, isLoading,
+    hasManualWeights, setHasManualWeights,
     addAsset, deleteAsset, updateAssetLocal, debouncedSaveAsset, saveAsset,
+    redistributeWeights,
     saveAporte, savePreviousValue,
     savePerformance, deletePerformance,
     saveReport, deleteReport,

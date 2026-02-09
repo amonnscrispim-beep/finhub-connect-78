@@ -1,10 +1,9 @@
-import { useState, useMemo } from 'react';
-import { Plus, Trash2, Search } from 'lucide-react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { Plus, Trash2, Search, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { PortfolioAsset } from '@/hooks/useClientPortfolio';
 import { PortfolioSimulator } from './PortfolioSimulator';
 
@@ -15,18 +14,21 @@ interface Props {
   assets: PortfolioAsset[];
   aporte: number;
   previousValues: Record<string, number>;
+  hasManualWeights: boolean;
   onAddAsset: () => void;
   onDeleteAsset: (id: string) => void;
   onUpdateAsset: (id: string, field: keyof PortfolioAsset, value: any) => void;
   onSaveAsset: (asset: PortfolioAsset) => void;
   onSaveAporte: (val: number) => void;
   onSavePreviousValue: (ticker: string, value: number) => void;
+  onRedistributeWeights: () => void;
+  onSetManualWeights: (val: boolean) => void;
 }
 
 export function PortfolioAssetsTab({
-  assets, aporte, previousValues,
+  assets, aporte, previousValues, hasManualWeights,
   onAddAsset, onDeleteAsset, onUpdateAsset, onSaveAsset,
-  onSaveAporte, onSavePreviousValue,
+  onSaveAporte, onSavePreviousValue, onRedistributeWeights, onSetManualWeights,
 }: Props) {
   const [search, setSearch] = useState('');
 
@@ -44,6 +46,9 @@ export function PortfolioAssetsTab({
   const weightValid = totalWeight >= 99.99 && totalWeight <= 100.01;
 
   const handleFieldChange = (asset: PortfolioAsset, field: keyof PortfolioAsset, value: any) => {
+    if (field === 'target_weight') {
+      onSetManualWeights(true);
+    }
     onUpdateAsset(asset.id, field, value);
     onSaveAsset({ ...asset, [field]: value });
   };
@@ -64,10 +69,13 @@ export function PortfolioAssetsTab({
             className="pl-9 bg-muted/50"
           />
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <span className={`text-sm font-medium ${weightValid ? 'text-green-500' : 'text-red-500'}`}>
             Peso total: {totalWeight.toFixed(2)}%
           </span>
+          <Button size="sm" variant="outline" onClick={onRedistributeWeights} className="gap-1 text-xs">
+            <RotateCcw className="w-3 h-3" /> Redistribuir
+          </Button>
           <Button size="sm" onClick={onAddAsset} className="gap-1">
             <Plus className="w-4 h-4" /> Ativo
           </Button>
@@ -81,9 +89,8 @@ export function PortfolioAssetsTab({
       )}
 
       {/* Assets table */}
-      <ScrollArea className="max-h-[400px]">
-        <div className="rounded-lg border border-border overflow-hidden">
-          <table className="w-full text-sm">
+      <div className="rounded-lg border border-border overflow-x-auto min-w-0 max-h-[400px] overflow-y-auto">
+          <table className="min-w-[1000px] w-full text-sm">
             <thead className="bg-muted/80">
               <tr>
                 <th className="px-3 py-2 text-left font-medium">Ticker</th>
@@ -206,8 +213,7 @@ export function PortfolioAssetsTab({
               )}
             </tbody>
           </table>
-        </div>
-      </ScrollArea>
+      </div>
 
       {/* Simulator */}
       <PortfolioSimulator
