@@ -591,7 +591,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         </DialogHeader>
         
         <ScrollArea className="max-h-[calc(90vh-140px)]">
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <form onSubmit={handleSubmit} className="p-6 space-y-4 min-w-0">
             
             {/* SECTION 1: Informações Pessoais - defaultOpen=false */}
             <CollapsibleSection title="Informações Pessoais" icon={User} defaultOpen={false}>
