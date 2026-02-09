@@ -14,6 +14,235 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_portfolio_assets: {
+        Row: {
+          asset_class: string
+          client_id: string
+          created_at: string
+          current_price: number | null
+          display_order: number
+          fair_price: number | null
+          id: string
+          name: string
+          notes: string | null
+          recommendation: string
+          recommendation_date: string | null
+          target_weight: number
+          ticker: string
+          tir_pct: number | null
+          updated_at: string
+          upside_pct: number | null
+          user_id: string
+        }
+        Insert: {
+          asset_class?: string
+          client_id: string
+          created_at?: string
+          current_price?: number | null
+          display_order?: number
+          fair_price?: number | null
+          id?: string
+          name?: string
+          notes?: string | null
+          recommendation?: string
+          recommendation_date?: string | null
+          target_weight?: number
+          ticker: string
+          tir_pct?: number | null
+          updated_at?: string
+          upside_pct?: number | null
+          user_id: string
+        }
+        Update: {
+          asset_class?: string
+          client_id?: string
+          created_at?: string
+          current_price?: number | null
+          display_order?: number
+          fair_price?: number | null
+          id?: string
+          name?: string
+          notes?: string | null
+          recommendation?: string
+          recommendation_date?: string | null
+          target_weight?: number
+          ticker?: string
+          tir_pct?: number | null
+          updated_at?: string
+          upside_pct?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portfolio_assets_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_portfolio_performance: {
+        Row: {
+          client_id: string
+          created_at: string
+          deposits: number
+          final_value: number
+          id: string
+          initial_value: number
+          month: string
+          return_pct: number | null
+          updated_at: string
+          user_id: string
+          withdrawals: number
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          deposits?: number
+          final_value?: number
+          id?: string
+          initial_value?: number
+          month: string
+          return_pct?: number | null
+          updated_at?: string
+          user_id: string
+          withdrawals?: number
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          deposits?: number
+          final_value?: number
+          id?: string
+          initial_value?: number
+          month?: string
+          return_pct?: number | null
+          updated_at?: string
+          user_id?: string
+          withdrawals?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portfolio_performance_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_portfolio_previous_values: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          previous_value: number
+          ticker: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          previous_value?: number
+          ticker: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          previous_value?: number
+          ticker?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portfolio_previous_values_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_portfolio_reports: {
+        Row: {
+          client_id: string
+          content: string
+          created_at: string
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          content?: string
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portfolio_reports_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_portfolio_simulations: {
+        Row: {
+          aporte: number
+          client_id: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aporte?: number
+          client_id: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aporte?: number
+          client_id?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portfolio_simulations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           age: number | null

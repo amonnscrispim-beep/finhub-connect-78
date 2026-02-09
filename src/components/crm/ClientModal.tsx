@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { 
   Heart, Users, PieChart, Landmark, Target, Calendar, Cake, CreditCard, 
-  TrendingUp, Award, CheckCircle, User, DollarSign, FileText, Briefcase, ClipboardList
+  TrendingUp, Award, CheckCircle, User, DollarSign, FileText, Briefcase, ClipboardList, Wallet
 } from 'lucide-react';
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,6 +57,7 @@ import { DebtSimulatorInline } from './DebtSimulatorInline';
 import { ClientTasksSection } from './ClientTasksSection';
 import { CollapsibleComments } from './CollapsibleComments';
 import type { DebtSimulationData } from '@/types/client';
+import { PortfolioModule } from './portfolio/PortfolioModule';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -1389,6 +1391,11 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 }))}
                 placeholder="Comentários sobre documentos, pendências, envios…"
               />
+            </CollapsibleSection>
+
+            {/* SECTION 13: Carteira */}
+            <CollapsibleSection title="Carteira" icon={Wallet} defaultOpen={false}>
+              <PortfolioModule clientId={client?.id} />
             </CollapsibleSection>
 
             {/* Submit Button */}
