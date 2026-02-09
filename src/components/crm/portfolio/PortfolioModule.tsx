@@ -43,12 +43,15 @@ export function PortfolioModule({ clientId }: Props) {
           assets={portfolio.assets}
           aporte={portfolio.aporte}
           previousValues={portfolio.previousValues}
+          hasManualWeights={portfolio.hasManualWeights}
           onAddAsset={portfolio.addAsset}
           onDeleteAsset={portfolio.deleteAsset}
           onUpdateAsset={portfolio.updateAssetLocal}
           onSaveAsset={portfolio.debouncedSaveAsset}
           onSaveAporte={portfolio.saveAporte}
           onSavePreviousValue={portfolio.savePreviousValue}
+          onRedistributeWeights={portfolio.redistributeWeights}
+          onSetManualWeights={portfolio.setHasManualWeights}
         />
       </TabsContent>
 
