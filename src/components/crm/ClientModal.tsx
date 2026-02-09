@@ -11,7 +11,7 @@ import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
+// ScrollArea removed — Radix ScrollArea applies overflow-hidden on Root, clipping nested horizontal scroll
 import { Checkbox } from '@/components/ui/checkbox';
 import { 
   Client, 
@@ -590,7 +590,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
           </DialogTitle>
         </DialogHeader>
         
-        <ScrollArea className="max-h-[calc(90vh-140px)]">
+        <div className="max-h-[calc(90vh-140px)] overflow-y-auto scrollbar-thin min-w-0">
           <form onSubmit={handleSubmit} className="p-6 space-y-4 min-w-0">
             
             {/* SECTION 1: Informações Pessoais - defaultOpen=false */}
@@ -1407,7 +1407,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               </Button>
             </div>
           </form>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
