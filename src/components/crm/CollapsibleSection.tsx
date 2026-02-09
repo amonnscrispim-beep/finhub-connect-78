@@ -37,7 +37,7 @@ export function CollapsibleSection({
         )}
       </button>
       {isOpen && (
-        <div className="p-4 space-y-4 bg-card min-w-0 overflow-x-auto">
+        <div className="p-4 space-y-4 bg-card min-w-0">
           {children}
         </div>
       )}

@@ -89,8 +89,19 @@ export function PortfolioAssetsTab({
       )}
 
       {/* Assets table */}
-      <div className="portfolio-table-scroll rounded-lg border border-border max-h-[400px] scrollbar-thin">
-          <table className="w-max min-w-[1100px] text-sm" style={{ tableLayout: 'auto' }}>
+      <div
+        className="rounded-lg border border-border scrollbar-thin"
+        style={{
+          width: '100%',
+          maxWidth: '100%',
+          overflowX: 'auto',
+          overflowY: 'hidden',
+          display: 'block',
+          WebkitOverflowScrolling: 'touch',
+          maxHeight: '400px',
+        }}
+      >
+          <table className="text-sm" style={{ tableLayout: 'auto', width: 'max-content', minWidth: '1400px' }}>
             <thead className="bg-muted/80">
               <tr>
                 <th className="px-3 py-2 text-left font-medium">Ticker</th>
