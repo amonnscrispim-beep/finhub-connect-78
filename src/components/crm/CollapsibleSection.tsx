@@ -20,11 +20,11 @@ export function CollapsibleSection({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className={cn("border border-border rounded-xl overflow-hidden", className)}>
+    <div className={cn("border border-border rounded-xl", className)}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 bg-muted/30 hover:bg-muted/50 transition-colors"
+        className="w-full flex items-center justify-between p-4 bg-muted/30 hover:bg-muted/50 transition-colors rounded-t-xl"
       >
         <div className="flex items-center gap-2">
           {Icon && <Icon className="w-5 h-5 text-primary" />}

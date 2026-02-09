@@ -89,8 +89,8 @@ export function PortfolioAssetsTab({
       )}
 
       {/* Assets table */}
-      <div className="rounded-lg border border-border overflow-x-auto min-w-0 max-h-[400px] overflow-y-auto">
-          <table className="min-w-[1000px] w-full text-sm">
+      <div className="rounded-lg border border-border min-w-0 overflow-x-auto overflow-y-auto max-h-[400px] w-full" style={{ WebkitOverflowScrolling: 'touch', display: 'block' }}>
+          <table className="w-max min-w-[1100px] text-sm" style={{ tableLayout: 'auto' }}>
             <thead className="bg-muted/80">
               <tr>
                 <th className="px-3 py-2 text-left font-medium">Ticker</th>
