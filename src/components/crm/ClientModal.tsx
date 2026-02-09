@@ -1213,7 +1213,12 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               />
             </CollapsibleSection>
 
-            {/* SECTION 8: Contrato, Reuniões e Entregas */}
+            {/* SECTION 8: Carteira */}
+            <CollapsibleSection title="Carteira" icon={Wallet} defaultOpen={false}>
+              <PortfolioModule clientId={client?.id} />
+            </CollapsibleSection>
+
+            {/* SECTION 9: Contrato, Reuniões e Entregas */}
             <CollapsibleSection title="Contrato, Reuniões e Entregas" icon={Calendar} defaultOpen={false}>
               <div className="space-y-2">
                 <Label htmlFor="contractedMeetings">Quantidade de Reuniões</Label>
@@ -1393,10 +1398,6 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               />
             </CollapsibleSection>
 
-            {/* SECTION 13: Carteira */}
-            <CollapsibleSection title="Carteira" icon={Wallet} defaultOpen={false}>
-              <PortfolioModule clientId={client?.id} />
-            </CollapsibleSection>
 
             {/* Submit Button */}
             <div className="pt-4 flex justify-end gap-3">
