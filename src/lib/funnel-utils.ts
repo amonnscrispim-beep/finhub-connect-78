@@ -6,6 +6,7 @@ import { FunnelStage } from '@/types/client';
  */
 const STAGE_DISPLAY_MAP: Record<string, string> = {
   'Em atendimento': 'Em atendimento',
+  'Pendências Urgentes': 'Pendências Urgentes',
   '1ª Reunião agendada': '1ª Reunião',
   '2ª Reunião agendada': '2ª Reunião',
   '3ª Reunião agendada': '3ª Reunião',
@@ -38,6 +39,7 @@ export function getStageValueToSave(displayLabel: string): FunnelStage {
   // Map display labels back to stored values (using existing format for compatibility)
   const reverseMap: Record<string, FunnelStage> = {
     'Em atendimento': 'Em atendimento',
+    'Pendências Urgentes': 'Pendências Urgentes',
     '1ª Reunião': '1ª Reunião agendada',
     '2ª Reunião': '2ª Reunião agendada',
     '3ª Reunião': '3ª Reunião agendada',
@@ -62,6 +64,7 @@ export function getStageValueToSave(displayLabel: string): FunnelStage {
  */
 export const FUNNEL_STAGE_OPTIONS = [
   { value: 'Em atendimento', label: 'Em atendimento' },
+  { value: 'Pendências Urgentes', label: 'Pendências Urgentes' },
   { value: '1ª Reunião agendada', label: '1ª Reunião' },
   { value: '2ª Reunião agendada', label: '2ª Reunião' },
   { value: '3ª Reunião agendada', label: '3ª Reunião' },
