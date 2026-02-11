@@ -61,6 +61,7 @@ import type { DebtSimulationData } from '@/types/client';
 import { PortfolioModule } from './portfolio/PortfolioModule';
 import { DiagnosticoPatrimonial } from './DiagnosticoPatrimonial';
 import { ScoreEstrategico } from './ScoreEstrategico';
+import { AlertasConsultor } from './AlertasConsultor';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -149,6 +150,8 @@ interface FormData {
   debtsComments: string;
   moduleNotes: ModuleNotes;
   businessAssets: string;
+  passiveIncome: string;
+  successionPlanning: string;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
@@ -233,6 +236,8 @@ const defaultFormData: FormData = {
   debtsComments: '',
   moduleNotes: {},
   businessAssets: '',
+  passiveIncome: '',
+  successionPlanning: '',
 };
 
 export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
@@ -313,6 +318,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         debtsComments: client.debtsComments || '',
         moduleNotes: client.moduleNotes || {},
         businessAssets: (client as any).businessAssets?.toString() || '',
+        passiveIncome: (client as any).passiveIncome?.toString() || '',
+        successionPlanning: (client as any).successionPlanning || '',
       });
       setDraftGoals([]);
     } else {
@@ -457,6 +464,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       moduleNotes: formData.moduleNotes,
       kanbanOrder: client?.kanbanOrder || null,
       businessAssets: parseFloat(formData.businessAssets) || 0,
+      passiveIncome: parseFloat(formData.passiveIncome) || 0,
+      successionPlanning: formData.successionPlanning || '',
     };
 
     try {
@@ -980,6 +989,82 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 </div>
               </div>
 
+              {/* New fields: Patrimônio Empresarial, Custo Mensal, Renda Passiva, Planej. Sucessório */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="businessAssets">Patrimônio Empresarial</Label>
+                  <CurrencyInput id="businessAssets" value={formData.businessAssets} onChange={(value) => handleChange('businessAssets', value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="monthlyLivingCost">Custo Mensal da Família</Label>
+                  <CurrencyInput id="monthlyLivingCost" value={formData.monthlyLivingCost} onChange={(value) => handleChange('monthlyLivingCost', value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="passiveIncome">Renda Passiva Atual (estimada)</Label>
+                  <CurrencyInput id="passiveIncome" value={formData.passiveIncome} onChange={(value) => handleChange('passiveIncome', value)} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="successionPlanning">Planejamento Sucessório?</Label>
+                  <Select value={formData.successionPlanning} onValueChange={(value) => handleChange('successionPlanning', value)}>
+                    <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Sim">Sim</SelectItem>
+                      <SelectItem value="Parcial">Parcial</SelectItem>
+                      <SelectItem value="Não">Não</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Diagnóstico Patrimonial (calculado) */}
+              <DiagnosticoPatrimonial
+                financialAssets={parseFloat(formData.financialAssets) || 0}
+                materialAssets={parseFloat(formData.materialAssets) || 0}
+                businessAssets={parseFloat(formData.businessAssets) || 0}
+                emergencyReserve={parseFloat(formData.emergencyReserve) || 0}
+                monthlyLivingCost={formData.monthlyLivingCost ? parseFloat(formData.monthlyLivingCost) : null}
+                monthlyRevenue={parseFloat(formData.monthlyRevenue) || 0}
+                monthlyContribution={parseFloat(formData.monthlyContribution) || 0}
+              />
+
+              {/* Alertas do Consultor */}
+              <AlertasConsultor
+                financialAssets={parseFloat(formData.financialAssets) || 0}
+                materialAssets={parseFloat(formData.materialAssets) || 0}
+                businessAssets={parseFloat(formData.businessAssets) || 0}
+                emergencyReserve={parseFloat(formData.emergencyReserve) || 0}
+                monthlyLivingCost={formData.monthlyLivingCost ? parseFloat(formData.monthlyLivingCost) : null}
+                monthlyRevenue={parseFloat(formData.monthlyRevenue) || 0}
+                monthlyContribution={parseFloat(formData.monthlyContribution) || 0}
+              />
+
+              {/* Score Estratégico (calculado) */}
+              <ScoreEstrategico
+                financialAssets={parseFloat(formData.financialAssets) || 0}
+                materialAssets={parseFloat(formData.materialAssets) || 0}
+                businessAssets={parseFloat(formData.businessAssets) || 0}
+                emergencyReserve={parseFloat(formData.emergencyReserve) || 0}
+                monthlyLivingCost={formData.monthlyLivingCost ? parseFloat(formData.monthlyLivingCost) : null}
+                monthlyRevenue={parseFloat(formData.monthlyRevenue) || 0}
+                monthlyContribution={parseFloat(formData.monthlyContribution) || 0}
+                retirementGoal={formData.retirementAge || formData.retirementIncome ? {
+                  desiredAge: formData.retirementAge ? parseInt(formData.retirementAge) : null,
+                  desiredMonthlyIncome: formData.retirementIncome ? parseFloat(formData.retirementIncome) : null,
+                } : null}
+                age={parseInt(formData.age) || 0}
+                married={formData.married}
+                hasChildren={formData.hasChildren}
+                children={formData.children}
+                financialInstitutions={formData.financialInstitutions}
+                investorProfile={formData.investorProfile}
+                allocationExists={formData.allocation.postFixed > 0 || formData.allocation.preFixed > 0 || formData.allocation.stocks > 0}
+                passiveIncome={parseFloat(formData.passiveIncome) || 0}
+                successionPlanning={formData.successionPlanning}
+              />
+
               {/* Collapsible Comments */}
               <CollapsibleComments
                 value={formData.moduleNotes.financial || ''}
@@ -1225,40 +1310,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               <PortfolioModule clientId={client?.id} />
             </CollapsibleSection>
 
-            {/* SECTION 8.1: Diagnóstico Patrimonial */}
-            <CollapsibleSection title="Diagnóstico Patrimonial" icon={BarChart3} defaultOpen={false}>
-              <DiagnosticoPatrimonial
-                financialAssets={formData.financialAssets}
-                materialAssets={formData.materialAssets}
-                businessAssets={formData.businessAssets}
-                emergencyReserve={formData.emergencyReserve}
-                monthlyLivingCost={formData.monthlyLivingCost}
-                monthlyRevenue={formData.monthlyRevenue}
-                onChange={(field, value) => handleChange(field, value)}
-              />
-            </CollapsibleSection>
 
-            {/* SECTION 8.2: Score Estratégico */}
-            <CollapsibleSection title="Score Estratégico" icon={Shield} defaultOpen={false}>
-              <ScoreEstrategico
-                client={{
-                  financialAssets: parseFloat(formData.financialAssets) || 0,
-                  materialAssets: parseFloat(formData.materialAssets) || 0,
-                  businessAssets: parseFloat(formData.businessAssets) || 0,
-                  emergencyReserve: parseFloat(formData.emergencyReserve) || 0,
-                  monthlyLivingCost: formData.monthlyLivingCost ? parseFloat(formData.monthlyLivingCost) : null,
-                  monthlyRevenue: parseFloat(formData.monthlyRevenue) || 0,
-                  retirementGoal: formData.retirementAge || formData.retirementIncome ? {
-                    desiredAge: formData.retirementAge ? parseInt(formData.retirementAge) : null,
-                    desiredMonthlyIncome: formData.retirementIncome ? parseFloat(formData.retirementIncome) : null,
-                  } : null,
-                  age: parseInt(formData.age) || 0,
-                  married: formData.married,
-                  hasChildren: formData.hasChildren,
-                  children: formData.children,
-                }}
-              />
-            </CollapsibleSection>
 
             {/* SECTION 9: Contrato, Reuniões e Entregas */}
             <CollapsibleSection title="Contrato, Reuniões e Entregas" icon={Calendar} defaultOpen={false}>

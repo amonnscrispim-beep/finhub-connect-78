@@ -297,6 +297,7 @@ export type Database = {
           organized_finances: string | null
           partner: Json | null
           partner_monthly_revenue: number | null
+          passive_income: number | null
           pending_schedule: boolean | null
           phone: string | null
           portfolio_distribution: Json | null
@@ -313,6 +314,7 @@ export type Database = {
           scheduled_meeting: Json | null
           short_term_goals: string | null
           state: string | null
+          succession_planning: string | null
           updated_at: string
           user_id: string
           work_done: string | null
@@ -370,6 +372,7 @@ export type Database = {
           organized_finances?: string | null
           partner?: Json | null
           partner_monthly_revenue?: number | null
+          passive_income?: number | null
           pending_schedule?: boolean | null
           phone?: string | null
           portfolio_distribution?: Json | null
@@ -386,6 +389,7 @@ export type Database = {
           scheduled_meeting?: Json | null
           short_term_goals?: string | null
           state?: string | null
+          succession_planning?: string | null
           updated_at?: string
           user_id: string
           work_done?: string | null
@@ -443,6 +447,7 @@ export type Database = {
           organized_finances?: string | null
           partner?: Json | null
           partner_monthly_revenue?: number | null
+          passive_income?: number | null
           pending_schedule?: boolean | null
           phone?: string | null
           portfolio_distribution?: Json | null
@@ -459,6 +464,7 @@ export type Database = {
           scheduled_meeting?: Json | null
           short_term_goals?: string | null
           state?: string | null
+          succession_planning?: string | null
           updated_at?: string
           user_id?: string
           work_done?: string | null
