@@ -229,6 +229,9 @@ export interface Client {
   kanbanOrder: number | null;
   // Patrimônio empresarial (Diagnóstico Patrimonial)
   businessAssets: number;
+  // New integrated diagnostic fields
+  passiveIncome: number;
+  successionPlanning: string;
   createdAt: Date;
   updatedAt: Date;
 }

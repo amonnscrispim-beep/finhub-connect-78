@@ -102,6 +102,8 @@ function dbToClient(row: ClientRow): Client {
     moduleNotes: ((row as any).module_notes as ModuleNotes) ?? {},
     kanbanOrder: (row as any).kanban_order ?? null,
     businessAssets: Number((row as any).business_assets) || 0,
+    passiveIncome: Number((row as any).passive_income) || 0,
+    successionPlanning: (row as any).succession_planning ?? '',
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -178,6 +180,8 @@ function clientToDbInsert(client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>
     module_notes: client.moduleNotes ?? {},
     kanban_order: client.kanbanOrder ?? null,
     business_assets: client.businessAssets ?? 0,
+    passive_income: (client as any).passiveIncome ?? 0,
+    succession_planning: (client as any).successionPlanning ?? '',
   } as any;
 }
 
@@ -253,6 +257,8 @@ function clientToDbUpdate(updates: Partial<Client>): TablesUpdate<'clients'> {
   if (updates.debtsComments !== undefined) (dbUpdates as any).debts_comments = updates.debtsComments;
   if (updates.moduleNotes !== undefined) (dbUpdates as any).module_notes = updates.moduleNotes;
   if (updates.businessAssets !== undefined) (dbUpdates as any).business_assets = updates.businessAssets;
+  if ((updates as any).passiveIncome !== undefined) (dbUpdates as any).passive_income = (updates as any).passiveIncome;
+  if ((updates as any).successionPlanning !== undefined) (dbUpdates as any).succession_planning = (updates as any).successionPlanning;
   
   // Handle kanbanOrder - explicitly extract and log for debugging
   const kanbanOrderValue = (updates as any).kanbanOrder;
