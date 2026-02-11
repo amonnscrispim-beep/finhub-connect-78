@@ -14,6 +14,8 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   Award,
   Cake,
   ListTodo,
@@ -32,10 +34,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { TasksModal } from './TasksModal';
 import { StageQuickViewDrawer } from './StageQuickViewDrawer';
+import { ClientTasksDrawer } from './ClientTasksDrawer';
 import { KanbanDndProvider, useKanbanDnd } from './KanbanDndContext';
 import { SortableKanbanCard } from './SortableKanbanCard';
 import { DroppableColumn } from './DroppableColumn';
 import { cn } from '@/lib/utils';
+
+// Build version globals from vite.config.ts define
+declare const __BUILD_TIME__: string;
+declare const __BUILD_MODE__: string;
 
 interface KanbanViewProps {
   onEditClient: (client: Client) => void;
@@ -45,6 +52,11 @@ interface KanbanViewProps {
 interface KanbanCardProps {
   client: Client;
   onEdit: () => void;
+  onCardClick: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
   dragHandleProps?: any;
   isDragging?: boolean;
 }
@@ -76,6 +88,11 @@ const isBirthdayToday = (birthDate: Date | null): boolean => {
 const KanbanCardComponent = memo(function KanbanCard({ 
   client, 
   onEdit, 
+  onCardClick,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp = false,
+  canMoveDown = false,
   dragHandleProps,
   isDragging,
 }: KanbanCardProps) {
@@ -106,6 +123,19 @@ const KanbanCardComponent = memo(function KanbanCard({
     onEdit();
   };
 
+  const handleBodyClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    // Don't open drawer if clicking on buttons, inputs, drag handle, or dropdown
+    if (
+      target.closest('button') ||
+      target.closest('input') ||
+      target.closest('[data-drag-handle]') ||
+      target.closest('[role="menu"]') ||
+      target.closest('[data-radix-collection-item]')
+    ) return;
+    onCardClick();
+  };
+
   const openTasksModal = (e: React.MouseEvent, tab: 'pending' | 'completed') => {
     e.stopPropagation();
     e.preventDefault();
@@ -116,11 +146,12 @@ const KanbanCardComponent = memo(function KanbanCard({
   return (
     <div
       className={cn(
-        "group bg-card rounded-xl p-4 shadow-card border border-border/50 border-l-4 transition-all duration-200 hover:shadow-lg",
+        "group bg-card rounded-xl p-4 shadow-card border border-border/50 border-l-4 transition-all duration-200 hover:shadow-lg cursor-pointer",
         borderColor,
         client.pendingSchedule && "ring-2 ring-destructive/20",
         isDragging && "shadow-2xl scale-105 rotate-1 cursor-grabbing"
       )}
+      onClick={handleBodyClick}
     >
       {/* Birthday Alert */}
       {hasBirthday && (
@@ -143,6 +174,7 @@ const KanbanCardComponent = memo(function KanbanCard({
         {/* Drag handle - ONLY this initiates drag */}
         <div 
           {...(dragHandleProps || {})}
+          data-drag-handle="true"
           className={cn(
             "flex items-center mr-2 flex-shrink-0 transition-opacity cursor-grab active:cursor-grabbing select-none",
             "opacity-40 group-hover:opacity-100",
@@ -153,16 +185,42 @@ const KanbanCardComponent = memo(function KanbanCard({
           <GripVertical className="w-4 h-4 text-muted-foreground" />
         </div>
         
-        {/* Name area - clicking opens modal */}
+        {/* Name area + reorder arrows */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-0.5">
+          <div className="flex items-center gap-1 mb-0.5">
             <h4 
-              className="font-semibold text-foreground leading-tight truncate cursor-pointer hover:text-primary transition-colors"
+              className="font-semibold text-foreground leading-tight truncate cursor-pointer hover:text-primary transition-colors flex-1 min-w-0"
               onClick={handleHeaderClick}
             >
               {client.name}
             </h4>
             
+            {/* Reorder arrows ↑↓ */}
+            <div className="flex items-center gap-0 flex-shrink-0">
+              <button
+                onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }}
+                disabled={!canMoveUp}
+                className={cn(
+                  "p-0.5 rounded hover:bg-muted transition-colors",
+                  canMoveUp ? "text-muted-foreground hover:text-foreground" : "text-muted-foreground/20 cursor-default"
+                )}
+                title="Mover para cima"
+              >
+                <ChevronUp className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onMoveDown?.(); }}
+                disabled={!canMoveDown}
+                className={cn(
+                  "p-0.5 rounded hover:bg-muted transition-colors",
+                  canMoveDown ? "text-muted-foreground hover:text-foreground" : "text-muted-foreground/20 cursor-default"
+                )}
+                title="Mover para baixo"
+              >
+                <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
             {/* Premium Renewed Client Badge */}
             {client.isRenewedClient && (
               <div className="p-0.5 rounded-full bg-amber-500/20 flex-shrink-0" title="Cliente Renovado">
@@ -382,6 +440,8 @@ const KanbanCard = memo(KanbanCardComponent, (prevProps, nextProps) => {
     prevProps.client.tasks.length === nextProps.client.tasks.length &&
     prevProps.client.tasks.filter(t => t.completed).length === nextProps.client.tasks.filter(t => t.completed).length &&
     prevProps.isDragging === nextProps.isDragging &&
+    prevProps.canMoveUp === nextProps.canMoveUp &&
+    prevProps.canMoveDown === nextProps.canMoveDown &&
     JSON.stringify(prevProps.client.tasks.map(t => ({ id: t.id, completed: t.completed }))) ===
     JSON.stringify(nextProps.client.tasks.map(t => ({ id: t.id, completed: t.completed })))
   );
@@ -423,11 +483,20 @@ function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerStage, setDrawerStage] = useState<FunnelStage | null>(null);
   
+  // Client Tasks Drawer state
+  const [tasksDrawerOpen, setTasksDrawerOpen] = useState(false);
+  const [tasksDrawerClient, setTasksDrawerClient] = useState<Client | null>(null);
+  
   const { activeClient } = useKanbanDnd();
   
   const handleColumnHeaderClick = useCallback((stage: FunnelStage) => {
     setDrawerStage(stage);
     setDrawerOpen(true);
+  }, []);
+
+  const handleCardClick = useCallback((client: Client) => {
+    setTasksDrawerClient(client);
+    setTasksDrawerOpen(true);
   }, []);
 
   const checkScrollability = () => {
@@ -530,11 +599,37 @@ function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
     return grouped;
   }, [clients, searchQuery]);
 
+  // Keep tasks drawer client in sync with latest data
+  const currentDrawerClient = useMemo(() => {
+    if (!tasksDrawerClient) return null;
+    return clients.find(c => c.id === tasksDrawerClient.id) ?? tasksDrawerClient;
+  }, [clients, tasksDrawerClient]);
+
   const getStageColor = useCallback((stage: FunnelStage) => {
     if (stage === 'Em atendimento') return 'bg-warning';
+    if (stage === 'Pendências Urgentes') return 'bg-destructive';
     if (stage === 'Conclusão') return 'bg-success';
     return 'bg-primary';
   }, []);
+
+  // Handle arrow move up/down within same column
+  const handleMoveUp = useCallback((clientId: string, stage: FunnelStage) => {
+    const stageClients = clientsByStage[stage];
+    const idx = stageClients.findIndex(c => c.id === clientId);
+    if (idx <= 0) return;
+    const aboveClient = stageClients[idx - 1];
+    setReorderingFlag(true);
+    swapClientOrder(clientId, aboveClient.id);
+  }, [clientsByStage, swapClientOrder, setReorderingFlag]);
+
+  const handleMoveDown = useCallback((clientId: string, stage: FunnelStage) => {
+    const stageClients = clientsByStage[stage];
+    const idx = stageClients.findIndex(c => c.id === clientId);
+    if (idx < 0 || idx >= stageClients.length - 1) return;
+    const belowClient = stageClients[idx + 1];
+    setReorderingFlag(true);
+    swapClientOrder(clientId, belowClient.id);
+  }, [clientsByStage, swapClientOrder, setReorderingFlag]);
 
   return (
     <div className="relative">
@@ -590,11 +685,16 @@ function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
 
                 {/* Cards with @dnd-kit */}
                 <DroppableColumn stage={stage} clientIds={clientIds}>
-                  {stageClients.map((client) => (
+                  {stageClients.map((client, index) => (
                     <SortableKanbanCard key={client.id} client={client}>
                       <KanbanCard
                         client={client}
                         onEdit={() => onEditClient(client)}
+                        onCardClick={() => handleCardClick(client)}
+                        onMoveUp={() => handleMoveUp(client.id, stage)}
+                        onMoveDown={() => handleMoveDown(client.id, stage)}
+                        canMoveUp={index > 0}
+                        canMoveDown={index < stageClients.length - 1}
                       />
                     </SortableKanbanCard>
                   ))}
@@ -624,6 +724,18 @@ function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
         clientsInStage={drawerStage ? (clientsByStage[drawerStage] || []) : []}
         onOpenClient={onEditClient}
       />
+
+      {/* Client Tasks Drawer */}
+      <ClientTasksDrawer
+        open={tasksDrawerOpen}
+        onOpenChange={setTasksDrawerOpen}
+        client={currentDrawerClient}
+      />
+
+      {/* Build Version Indicator */}
+      <div className="fixed bottom-2 right-2 z-50 text-[10px] text-muted-foreground/50 bg-background/80 backdrop-blur-sm px-2 py-1 rounded border border-border/30 select-none pointer-events-none">
+        {typeof __BUILD_MODE__ !== 'undefined' ? __BUILD_MODE__ : 'dev'} | {typeof __BUILD_TIME__ !== 'undefined' ? new Date(__BUILD_TIME__).toLocaleString('pt-BR') : 'dev'}
+      </div>
     </div>
   );
 }
@@ -692,12 +804,12 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
       // Insert at specific position
       const targetClient = stageClients[position];
       if (position === 0) {
-        newOrder = (targetClient.kanbanOrder ?? 10) - 10;
+        newOrder = (targetClient.kanbanOrder ?? 10) - 1000;
       } else {
         const prevClient = stageClients[position - 1];
         const prevOrder = prevClient.kanbanOrder ?? 0;
         const targetOrder = targetClient.kanbanOrder ?? 10;
-        newOrder = Math.floor((prevOrder + targetOrder) / 2);
+        newOrder = (prevOrder + targetOrder) / 2;
       }
     } else {
       // Add to end

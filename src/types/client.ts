@@ -1,5 +1,6 @@
 export type FunnelStage =
   | 'Em atendimento'
+  | 'Pendências Urgentes'
   | '1ª Reunião agendada'
   | '2ª Reunião agendada'
   | '3ª Reunião agendada'
@@ -243,6 +244,7 @@ export interface ModuleNotes {
 
 export const FUNNEL_STAGES: FunnelStage[] = [
   'Em atendimento',
+  'Pendências Urgentes',
   '1ª Reunião agendada',
   '2ª Reunião agendada',
   '3ª Reunião agendada',
