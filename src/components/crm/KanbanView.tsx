@@ -609,6 +609,12 @@ function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
     if (stage === 'Em atendimento') return 'bg-warning';
     if (stage === 'Pendências Urgentes') return 'bg-destructive';
     if (stage === 'Conclusão') return 'bg-success';
+    if (stage === 'Diagnóstico Iniciado') return 'bg-blue-500';
+    if (stage === 'Diagnóstico Concluído') return 'bg-cyan-500';
+    if (stage === 'Estratégia Apresentada') return 'bg-violet-500';
+    if (stage === 'Implementação') return 'bg-orange-500';
+    if (stage === 'Acompanhamento') return 'bg-teal-500';
+    if (stage === 'Cliente Patrimonial') return 'bg-emerald-600';
     return 'bg-primary';
   }, []);
 

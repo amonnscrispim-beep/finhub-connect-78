@@ -7,7 +7,13 @@ export type FunnelStage =
   | '4ª Reunião agendada'
   | '5ª Reunião agendada'
   | '6ª Reunião agendada'
-  | 'Conclusão';
+  | 'Conclusão'
+  | 'Diagnóstico Iniciado'
+  | 'Diagnóstico Concluído'
+  | 'Estratégia Apresentada'
+  | 'Implementação'
+  | 'Acompanhamento'
+  | 'Cliente Patrimonial';
 
 export type InvestorProfile = 
   | 'Conservador' 
@@ -221,6 +227,8 @@ export interface Client {
   moduleNotes: ModuleNotes;
   // Kanban ordering within funnel stage
   kanbanOrder: number | null;
+  // Patrimônio empresarial (Diagnóstico Patrimonial)
+  businessAssets: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -252,6 +260,12 @@ export const FUNNEL_STAGES: FunnelStage[] = [
   '5ª Reunião agendada',
   '6ª Reunião agendada',
   'Conclusão',
+  'Diagnóstico Iniciado',
+  'Diagnóstico Concluído',
+  'Estratégia Apresentada',
+  'Implementação',
+  'Acompanhamento',
+  'Cliente Patrimonial',
 ];
 
 export const INVESTOR_PROFILES: InvestorProfile[] = [
