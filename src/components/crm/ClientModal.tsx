@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { 
   Heart, Users, PieChart, Landmark, Target, Calendar, Cake, CreditCard, 
-  TrendingUp, Award, CheckCircle, User, DollarSign, FileText, Briefcase, ClipboardList, Wallet
+  TrendingUp, Award, CheckCircle, User, DollarSign, FileText, Briefcase, ClipboardList, Wallet,
+  BarChart3, Shield
 } from 'lucide-react';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -58,6 +59,8 @@ import { ClientTasksSection } from './ClientTasksSection';
 import { CollapsibleComments } from './CollapsibleComments';
 import type { DebtSimulationData } from '@/types/client';
 import { PortfolioModule } from './portfolio/PortfolioModule';
+import { DiagnosticoPatrimonial } from './DiagnosticoPatrimonial';
+import { ScoreEstrategico } from './ScoreEstrategico';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -145,6 +148,7 @@ interface FormData {
   investingOrigin: string;
   debtsComments: string;
   moduleNotes: ModuleNotes;
+  businessAssets: string;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
@@ -228,6 +232,7 @@ const defaultFormData: FormData = {
   investingOrigin: '',
   debtsComments: '',
   moduleNotes: {},
+  businessAssets: '',
 };
 
 export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
@@ -307,6 +312,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         investingOrigin: client.investingOrigin || '',
         debtsComments: client.debtsComments || '',
         moduleNotes: client.moduleNotes || {},
+        businessAssets: (client as any).businessAssets?.toString() || '',
       });
       setDraftGoals([]);
     } else {
@@ -450,6 +456,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       debtsComments: formData.debtsComments || null,
       moduleNotes: formData.moduleNotes,
       kanbanOrder: client?.kanbanOrder || null,
+      businessAssets: parseFloat(formData.businessAssets) || 0,
     };
 
     try {
@@ -1216,6 +1223,41 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
             {/* SECTION 8: Carteira */}
             <CollapsibleSection title="Carteira" icon={Wallet} defaultOpen={false}>
               <PortfolioModule clientId={client?.id} />
+            </CollapsibleSection>
+
+            {/* SECTION 8.1: Diagnóstico Patrimonial */}
+            <CollapsibleSection title="Diagnóstico Patrimonial" icon={BarChart3} defaultOpen={false}>
+              <DiagnosticoPatrimonial
+                financialAssets={formData.financialAssets}
+                materialAssets={formData.materialAssets}
+                businessAssets={formData.businessAssets}
+                emergencyReserve={formData.emergencyReserve}
+                monthlyLivingCost={formData.monthlyLivingCost}
+                monthlyRevenue={formData.monthlyRevenue}
+                onChange={(field, value) => handleChange(field, value)}
+              />
+            </CollapsibleSection>
+
+            {/* SECTION 8.2: Score Estratégico */}
+            <CollapsibleSection title="Score Estratégico" icon={Shield} defaultOpen={false}>
+              <ScoreEstrategico
+                client={{
+                  financialAssets: parseFloat(formData.financialAssets) || 0,
+                  materialAssets: parseFloat(formData.materialAssets) || 0,
+                  businessAssets: parseFloat(formData.businessAssets) || 0,
+                  emergencyReserve: parseFloat(formData.emergencyReserve) || 0,
+                  monthlyLivingCost: formData.monthlyLivingCost ? parseFloat(formData.monthlyLivingCost) : null,
+                  monthlyRevenue: parseFloat(formData.monthlyRevenue) || 0,
+                  retirementGoal: formData.retirementAge || formData.retirementIncome ? {
+                    desiredAge: formData.retirementAge ? parseInt(formData.retirementAge) : null,
+                    desiredMonthlyIncome: formData.retirementIncome ? parseFloat(formData.retirementIncome) : null,
+                  } : null,
+                  age: parseInt(formData.age) || 0,
+                  married: formData.married,
+                  hasChildren: formData.hasChildren,
+                  children: formData.children,
+                }}
+              />
             </CollapsibleSection>
 
             {/* SECTION 9: Contrato, Reuniões e Entregas */}

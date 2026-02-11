@@ -248,6 +248,7 @@ export type Database = {
           age: number | null
           already_invests: boolean | null
           birth_date: string | null
+          business_assets: number | null
           children: Json | null
           city: string | null
           consulting_finished: boolean | null
@@ -320,6 +321,7 @@ export type Database = {
           age?: number | null
           already_invests?: boolean | null
           birth_date?: string | null
+          business_assets?: number | null
           children?: Json | null
           city?: string | null
           consulting_finished?: boolean | null
@@ -392,6 +394,7 @@ export type Database = {
           age?: number | null
           already_invests?: boolean | null
           birth_date?: string | null
+          business_assets?: number | null
           children?: Json | null
           city?: string | null
           consulting_finished?: boolean | null
