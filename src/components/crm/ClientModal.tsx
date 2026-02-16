@@ -64,6 +64,7 @@ import { ScoreEstrategico } from './ScoreEstrategico';
 import { AlertasConsultor } from './AlertasConsultor';
 import { DiagnosticoEstrategico, defaultStrategicDiagnostic, StrategicDiagnosticData } from './DiagnosticoEstrategico';
 import { EstruturaPatrimonial, defaultEstruturaPatrimonial, EstruturaPatrimonialData } from './EstruturaPatrimonial';
+import { FluxoCaixaAccumulacao, defaultFluxoCaixa, FluxoCaixaData } from './FluxoCaixaAccumulacao';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -156,6 +157,7 @@ interface FormData {
   successionPlanning: string;
   strategicDiagnostic: StrategicDiagnosticData;
   estruturaPatrimonial: EstruturaPatrimonialData;
+  fluxoCaixa: FluxoCaixaData;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
@@ -244,6 +246,7 @@ const defaultFormData: FormData = {
   successionPlanning: '',
   strategicDiagnostic: defaultStrategicDiagnostic,
   estruturaPatrimonial: defaultEstruturaPatrimonial,
+  fluxoCaixa: defaultFluxoCaixa,
 };
 
 export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
@@ -328,6 +331,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         successionPlanning: (client as any).successionPlanning || '',
         strategicDiagnostic: { ...defaultStrategicDiagnostic, ...((client as any).strategicDiagnostic || {}) },
         estruturaPatrimonial: { ...defaultEstruturaPatrimonial, ...((client as any).estruturaPatrimonial || ((client as any).strategicDiagnostic?.estruturaPatrimonial) || {}) },
+        fluxoCaixa: { ...defaultFluxoCaixa, ...((client as any).fluxoCaixa || ((client as any).strategicDiagnostic?.fluxoCaixa) || {}) },
       });
       setDraftGoals([]);
     } else {
@@ -474,7 +478,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       businessAssets: parseFloat(formData.businessAssets) || 0,
       passiveIncome: parseFloat(formData.passiveIncome) || 0,
       successionPlanning: formData.successionPlanning || '',
-      strategicDiagnostic: { ...formData.strategicDiagnostic, estruturaPatrimonial: formData.estruturaPatrimonial },
+      strategicDiagnostic: { ...formData.strategicDiagnostic, estruturaPatrimonial: formData.estruturaPatrimonial, fluxoCaixa: formData.fluxoCaixa },
     };
 
     try {
@@ -792,6 +796,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               <EstruturaPatrimonial
                 data={formData.estruturaPatrimonial}
                 onChange={(data) => setFormData(prev => ({ ...prev, estruturaPatrimonial: data }))}
+              />
+              <FluxoCaixaAccumulacao
+                data={formData.fluxoCaixa}
+                onChange={(data) => setFormData(prev => ({ ...prev, fluxoCaixa: data }))}
               />
             </CollapsibleSection>
 
