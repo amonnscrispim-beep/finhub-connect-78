@@ -62,6 +62,7 @@ import { PortfolioModule } from './portfolio/PortfolioModule';
 import { DiagnosticoPatrimonial } from './DiagnosticoPatrimonial';
 import { ScoreEstrategico } from './ScoreEstrategico';
 import { AlertasConsultor } from './AlertasConsultor';
+import { ResumoFinanceiroAutomatico } from './ResumoFinanceiroAutomatico';
 import { DiagnosticoEstrategico, defaultStrategicDiagnostic, StrategicDiagnosticData } from './DiagnosticoEstrategico';
 import { EstruturaPatrimonial, defaultEstruturaPatrimonial, EstruturaPatrimonialData } from './EstruturaPatrimonial';
 import { FluxoCaixaAccumulacao, defaultFluxoCaixa, FluxoCaixaData } from './FluxoCaixaAccumulacao';
@@ -909,6 +910,30 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
 
             {/* SECTION 3: Situação Financeira Atual */}
             <CollapsibleSection title="Situação Financeira Atual" icon={DollarSign} defaultOpen={false}>
+              {/* Resumo Financeiro Automático */}
+              <ResumoFinanceiroAutomatico
+                financialAssets={parseFloat(formData.financialAssets) || 0}
+                materialAssets={parseFloat(formData.materialAssets) || 0}
+                businessAssets={parseFloat(formData.businessAssets) || 0}
+                emergencyReserve={parseFloat(formData.emergencyReserve) || 0}
+                monthlyLivingCost={formData.monthlyLivingCost ? parseFloat(formData.monthlyLivingCost) : null}
+                monthlyRevenue={parseFloat(formData.monthlyRevenue) || 0}
+                monthlyContribution={parseFloat(formData.monthlyContribution) || 0}
+                passiveIncome={parseFloat(formData.passiveIncome) || 0}
+                investorProfile={formData.investorProfile}
+                financialInstitutions={formData.financialInstitutions}
+                successionPlanning={formData.successionPlanning}
+                organizedFinances={formData.organizedFinances}
+                fluxoCaixa={formData.fluxoCaixa}
+                estruturaPatrimonial={formData.estruturaPatrimonial}
+                direcionamentoEstrategico={formData.direcionamentoEstrategico}
+                consultantNote={formData.moduleNotes.financialSummary || ''}
+                onConsultantNoteChange={(value) => setFormData(prev => ({
+                  ...prev,
+                  moduleNotes: { ...prev.moduleNotes, financialSummary: value }
+                }))}
+              />
+
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="financialAssets">Patrimônio Financeiro</Label>

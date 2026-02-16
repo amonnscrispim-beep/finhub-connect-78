@@ -250,6 +250,7 @@ export interface ModuleNotes {
   tasks?: string;
   result?: string;
   files?: string;
+  financialSummary?: string;
 }
 
 export const FUNNEL_STAGES: FunnelStage[] = [
