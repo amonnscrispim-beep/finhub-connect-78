@@ -27,6 +27,17 @@ export function computeLiquidityBands(
 
   positions.forEach(p => {
     const value = p.grossBalance ?? 0;
+    // Previdência (VGBL/PGBL) → always "noLiquidity" unless explicit redemption rules
+    const tipo = (p.type ?? '').toLowerCase();
+    const nome = (p.name ?? '').toLowerCase();
+    const isPrev = tipo.includes('previdência') || tipo.includes('previdencia') ||
+      tipo.includes('vgbl') || tipo.includes('pgbl') ||
+      nome.includes('vgbl') || nome.includes('pgbl') ||
+      nome.includes('previdência') || nome.includes('previdencia');
+    if (isPrev) {
+      buckets['noLiquidity'] += value;
+      return;
+    }
     if (!p.maturityDate) {
       // No maturity = assume liquid (D+1)
       buckets['dPlus1'] += value;
@@ -50,7 +61,7 @@ export function computeLiquidityBands(
     }
   });
 
-  return STANDARD_LIQUIDITY_BANDS.filter(b => b.key !== 'noLiquidity').map(b => ({
+  return STANDARD_LIQUIDITY_BANDS.map(b => ({
     label: b.label,
     key: b.key,
     valueR$: buckets[b.key],
