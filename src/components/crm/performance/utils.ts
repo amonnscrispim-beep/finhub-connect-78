@@ -71,15 +71,20 @@ export function buildConsolidatedSummary(reports: ReportRecord[]): ConsolidatedS
   const extracted = reports.filter(r => r.status === 'extracted');
   let totalGross = 0;
   let totalNet = 0;
+  let reportsWithNet = 0;
   const allPositions: PositionWithOrigin[] = [];
-  const brokerMap: Record<string, { reports: ReportRecord[]; positions: PositionWithOrigin[] }> = {};
+  const brokerMap: Record<string, { reports: ReportRecord[]; positions: PositionWithOrigin[]; hasAnyNet: boolean }> = {};
 
   extracted.forEach(r => {
     const gd = r.extractedData?.generalData ?? {};
     const gross = gd.grossPatrimony ?? 0;
-    const net = gd.netPatrimony ?? 0;
+    const net = gd.netPatrimony;
+    const hasNet = net != null && net !== 0;
     totalGross += gross;
-    totalNet += net;
+    if (hasNet) {
+      totalNet += net;
+      reportsWithNet++;
+    }
 
     const positions = Array.isArray(r.extractedData?.positions) ? r.extractedData.positions : [];
     const mapped = positions.map((p: any) => ({
@@ -90,9 +95,10 @@ export function buildConsolidatedSummary(reports: ReportRecord[]): ConsolidatedS
     allPositions.push(...mapped);
 
     const bk = r.broker || 'Sem corretora';
-    if (!brokerMap[bk]) brokerMap[bk] = { reports: [], positions: [] };
+    if (!brokerMap[bk]) brokerMap[bk] = { reports: [], positions: [], hasAnyNet: false };
     brokerMap[bk].reports.push(r);
     brokerMap[bk].positions.push(...mapped);
+    if (hasNet) brokerMap[bk].hasAnyNet = true;
   });
 
   const liquidityBands = computeLiquidityBands(allPositions, totalGross);
@@ -101,17 +107,27 @@ export function buildConsolidatedSummary(reports: ReportRecord[]): ConsolidatedS
   const brokers: BrokerSummary[] = Object.entries(brokerMap)
     .map(([broker, data]) => {
       const bGross = data.reports.reduce((s, r) => s + (r.extractedData?.generalData?.grossPatrimony ?? 0), 0);
-      const bNet = data.reports.reduce((s, r) => s + (r.extractedData?.generalData?.netPatrimony ?? 0), 0);
+      const bNetReports = data.reports.filter(r => {
+        const n = r.extractedData?.generalData?.netPatrimony;
+        return n != null && n !== 0;
+      });
+      const bNet = bNetReports.reduce((s, r) => s + (r.extractedData?.generalData?.netPatrimony ?? 0), 0);
       return {
         broker,
         totalGross: bGross,
         totalNet: bNet,
+        hasNet: data.hasAnyNet,
         positions: data.positions,
         liquidityBands: computeLiquidityBands(data.positions, bGross),
         reports: data.reports.map(r => ({ pdfFilename: r.pdfFilename, reportDate: r.reportDate, status: r.status })),
       };
     })
     .sort((a, b) => b.totalGross - a.totalGross);
+
+  // Gross audit
+  const brokerGrossSum = brokers.reduce((s, b) => s + b.totalGross, 0);
+  const grossDiff = Math.abs(totalGross - brokerGrossSum);
+  const missingBrokers = grossDiff > 0.01 ? brokers.filter(b => b.totalGross === 0).map(b => b.broker) : [];
 
   // Consolidated alerts
   const allAlerts: string[] = [];
@@ -157,5 +173,14 @@ export function buildConsolidatedSummary(reports: ReportRecord[]): ConsolidatedS
     r.alerts.forEach(a => allAlerts.push(`[${r.broker}] ${a}`));
   });
 
-  return { totalGross, totalNet, positions: allPositions, liquidityBands, brokers, alerts: allAlerts };
+  return {
+    totalGross,
+    totalNet,
+    netCoverage: { available: reportsWithNet, total: extracted.length },
+    grossAudit: { sum: brokerGrossSum, consolidated: totalGross, diff: grossDiff, missingBrokers },
+    positions: allPositions,
+    liquidityBands,
+    brokers,
+    alerts: allAlerts,
+  };
 }
