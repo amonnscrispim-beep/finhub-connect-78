@@ -39,7 +39,7 @@ import {
 } from '@/types/client';
 import { FUNNEL_STAGE_OPTIONS } from '@/lib/funnel-utils';
 import { PGBLCalculator } from './PGBLCalculator';
-import { AllocationStrategySection, AllocationData, migratePortfolioToAllocation, allocationToPortfolio } from './AllocationStrategySection';
+import { ArquiteturaEstrategicaCarteira, ArquiteturaEstrategicaData, defaultArquiteturaEstrategica } from './ArquiteturaEstrategicaCarteira';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { BirthDatePicker } from '@/components/ui/birth-date-picker';
@@ -126,7 +126,7 @@ interface FormData {
   partnerMonthlyRevenue: string;
   hasChildren: boolean;
   children: ChildInfo[];
-  allocation: AllocationData;
+  arquiteturaEstrategica: ArquiteturaEstrategicaData;
   privatePensionStatus: PrivatePensionStatus;
   privatePensionType: PrivatePensionType;
   retirementAge: string;
@@ -210,18 +210,7 @@ const defaultFormData: FormData = {
   partnerMonthlyRevenue: '',
   hasChildren: false,
   children: [],
-  allocation: {
-    reserve: 0,
-    postFixed: 0,
-    preFixed: 0,
-    inflationIndexed: 0,
-    stocks: 0,
-    realEstate: 0,
-    international: 0,
-    objective: '',
-    horizon: '',
-    allocationProfile: ''
-  },
+  arquiteturaEstrategica: defaultArquiteturaEstrategica,
   privatePensionStatus: '',
   privatePensionType: '',
   retirementAge: '',
@@ -312,7 +301,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         partnerMonthlyRevenue: client.partner?.monthlyRevenue?.toString() || '',
         hasChildren: client.hasChildren || false,
         children: client.children || [],
-        allocation: migratePortfolioToAllocation(client.portfolioDistribution),
+        arquiteturaEstrategica: { ...defaultArquiteturaEstrategica, ...(client.portfolioDistribution as any)?.arquiteturaEstrategica || {} },
         privatePensionStatus: client.privatePensionStatus || '',
         privatePensionType: client.privatePensionType || '',
         retirementAge: client.retirementGoal?.desiredAge?.toString() || '',
@@ -401,15 +390,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
 
     let children: ChildInfo[] = formData.hasChildren ? formData.children : (client?.children || []);
 
-    // Convert allocation to portfolio distribution format
-    const hasAllocation = formData.allocation.postFixed > 0 || 
-      formData.allocation.preFixed > 0 || 
-      formData.allocation.inflationIndexed > 0 || 
-      formData.allocation.stocks > 0 || 
-      formData.allocation.realEstate > 0 || 
-      formData.allocation.international > 0;
-    
-    const portfolioDistribution = hasAllocation ? allocationToPortfolio(formData.allocation) : null;
+    // Store arquitetura estrategica in portfolio_distribution
+    const portfolioDistribution = { arquiteturaEstrategica: formData.arquiteturaEstrategica };
 
     let retirementGoal: RetirementGoal | null = null;
     if (formData.retirementAge || formData.retirementIncome) {
@@ -548,7 +530,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     }
   };
 
-  const handleChange = (field: string, value: string | boolean | Date | null | ContractedMeetings | AllocationData) => {
+  const handleChange = (field: string, value: string | boolean | Date | null | ContractedMeetings | ArquiteturaEstrategicaData) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -1137,7 +1119,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 children={formData.children}
                 financialInstitutions={formData.financialInstitutions}
                 investorProfile={formData.investorProfile}
-                allocationExists={formData.allocation.postFixed > 0 || formData.allocation.preFixed > 0 || formData.allocation.stocks > 0}
+                allocationExists={formData.arquiteturaEstrategica.fixedIncomePct > 0 || formData.arquiteturaEstrategica.equitiesPct > 0 || formData.arquiteturaEstrategica.internationalPct > 0}
                 passiveIncome={parseFloat(formData.passiveIncome) || 0}
                 successionPlanning={formData.successionPlanning}
               />
@@ -1364,12 +1346,11 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               />
             </CollapsibleSection>
 
-            {/* SECTION 7: Estratégia de Alocação */}
-            <CollapsibleSection title="Estratégia de Alocação" icon={PieChart} defaultOpen={false}>
-              <AllocationStrategySection 
-                value={formData.allocation}
-                onChange={(allocation) => handleChange('allocation', allocation)}
-                investorProfile={formData.investorProfile}
+            {/* SECTION 7: Arquitetura Estratégica da Carteira */}
+            <CollapsibleSection title="Arquitetura Estratégica da Carteira" icon={PieChart} defaultOpen={false}>
+              <ArquiteturaEstrategicaCarteira 
+                data={formData.arquiteturaEstrategica}
+                onChange={(data) => handleChange('arquiteturaEstrategica', data)}
               />
 
               {/* Collapsible Comments */}
