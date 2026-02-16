@@ -208,7 +208,7 @@ Regras:
       commercialSummary += `Próximo passo: agendar uma conversa para discutir ajustes e oportunidades.`;
     }
 
-    // Always INSERT (support multiple reports per client)
+    // Always INSERT into the new performance_reports table (supports multiple reports per client)
     const reportData = {
       client_id: clientId,
       user_id: user.id,
@@ -221,16 +221,46 @@ Regras:
       commercial_summary: commercialSummary,
       broker: broker || null,
       report_type: reportType || null,
+      corretora: broker || null,
+      tipo_relatorio: reportType || null,
+      nome_arquivo: file.name,
+      data_relatorio: extractedData?.reportDate ?? null,
+      patrimonio_bruto: gd.grossPatrimony ?? null,
+      patrimonio_liquido: gd.netPatrimony ?? null,
+      rent_mes: gd.monthReturn ?? null,
+      rent_ano: gd.yearReturn ?? null,
+      rent_12m: gd.twelveMonthReturn ?? null,
+      rent_acumulada: gd.cumulativeReturn ?? null,
+      status: 'extracted',
       updated_at: new Date().toISOString(),
     };
 
     const { data: insertedReport, error: insertError } = await supabase
-      .from("client_performance_reports")
+      .from("performance_reports")
       .insert(reportData)
       .select("id")
       .single();
 
     if (insertError) throw new Error(`Save failed: ${insertError.message}`);
+
+    // Insert positions into performance_positions
+    if (positions.length > 0 && insertedReport?.id) {
+      const positionRows = positions.map((p: any) => ({
+        report_id: insertedReport.id,
+        user_id: user.id,
+        ativo: p.name ?? null,
+        tipo: p.type ?? null,
+        indexador: p.indexer ?? null,
+        taxa: p.rate ? parseFloat(String(p.rate).replace(/[^0-9.,\-]/g, '').replace(',', '.')) || null : null,
+        vencimento: p.maturityDate ?? null,
+        valor: p.grossBalance ?? null,
+        percentual: p.portfolioPct ?? null,
+      }));
+      const { error: posError } = await supabase
+        .from("performance_positions")
+        .insert(positionRows);
+      if (posError) console.error("Error inserting positions:", posError);
+    }
 
     return new Response(JSON.stringify({
       success: true,
