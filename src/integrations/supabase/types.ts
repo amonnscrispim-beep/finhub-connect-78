@@ -17,6 +17,7 @@ export type Database = {
       client_performance_reports: {
         Row: {
           alerts: Json | null
+          broker: string | null
           client_id: string
           commercial_summary: string | null
           consultant_conclusion: string | null
@@ -27,12 +28,14 @@ export type Database = {
           pdf_filename: string | null
           pdf_url: string | null
           report_date: string | null
+          report_type: string | null
           technical_summary: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           alerts?: Json | null
+          broker?: string | null
           client_id: string
           commercial_summary?: string | null
           consultant_conclusion?: string | null
@@ -43,12 +46,14 @@ export type Database = {
           pdf_filename?: string | null
           pdf_url?: string | null
           report_date?: string | null
+          report_type?: string | null
           technical_summary?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           alerts?: Json | null
+          broker?: string | null
           client_id?: string
           commercial_summary?: string | null
           consultant_conclusion?: string | null
@@ -59,6 +64,7 @@ export type Database = {
           pdf_filename?: string | null
           pdf_url?: string | null
           report_date?: string | null
+          report_type?: string | null
           technical_summary?: string | null
           updated_at?: string
           user_id?: string
