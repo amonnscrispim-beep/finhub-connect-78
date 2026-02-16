@@ -209,19 +209,18 @@ Regras:
     }
 
     // Always INSERT into the new performance_reports table (supports multiple reports per client)
+    const brokerValue = broker || "Não informado";
     const reportData = {
       client_id: clientId,
       user_id: user.id,
       pdf_url: filePath,
       pdf_filename: file.name,
-      report_date: extractedData?.reportDate ?? null,
       extracted_data: extractedData ?? {},
       alerts,
       technical_summary: technicalSummary,
       commercial_summary: commercialSummary,
-      broker: broker || null,
-      report_type: reportType || null,
-      corretora: broker || null,
+      broker: brokerValue,
+      corretora: brokerValue,
       tipo_relatorio: reportType || null,
       nome_arquivo: file.name,
       data_relatorio: extractedData?.reportDate ?? null,

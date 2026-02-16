@@ -707,6 +707,7 @@ export type Database = {
       performance_reports: {
         Row: {
           alerts: Json | null
+          broker: string | null
           client_id: string
           commercial_summary: string | null
           consultant_conclusion: string | null
@@ -733,6 +734,7 @@ export type Database = {
         }
         Insert: {
           alerts?: Json | null
+          broker?: string | null
           client_id: string
           commercial_summary?: string | null
           consultant_conclusion?: string | null
@@ -759,6 +761,7 @@ export type Database = {
         }
         Update: {
           alerts?: Json | null
+          broker?: string | null
           client_id?: string
           commercial_summary?: string | null
           consultant_conclusion?: string | null
