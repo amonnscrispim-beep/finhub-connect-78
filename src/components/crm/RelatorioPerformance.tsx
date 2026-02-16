@@ -160,10 +160,14 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
 
     const brokerValue = uploadBroker === 'Outros' ? (uploadBrokerOther || 'Outros') : uploadBroker;
 
+    const ACCEPTED_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+    const ACCEPTED_EXTS = ['pdf', 'jpg', 'jpeg', 'png'];
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      if (file.type !== 'application/pdf') {
-        toast.error(`"${file.name}" não é PDF. Ignorado.`);
+      const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+      if (!ACCEPTED_TYPES.includes(file.type) && !ACCEPTED_EXTS.includes(ext)) {
+        toast.error(`"${file.name}" não é PDF ou imagem. Ignorado.`);
         continue;
       }
       uploadSingleFile(file, brokerValue, uploadReportType);
@@ -733,7 +737,7 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
     <div className="space-y-6">
       {/* Upload Section */}
       <div className="p-4 bg-muted/30 rounded-lg border border-border space-y-3">
-        <h4 className="font-semibold text-foreground">Relatórios (PDF)</h4>
+        <h4 className="font-semibold text-foreground">Relatórios (PDF / Imagens)</h4>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <Label className="text-xs">Corretora/Instituição *</Label>
@@ -760,9 +764,9 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
             <Label className="cursor-pointer w-full">
               <div className="flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors h-9">
                 <Upload className="w-4 h-4" />
-                <span className="text-sm">Anexar PDF(s)</span>
+                <span className="text-sm">Anexar PDF / Imagem</span>
               </div>
-              <input type="file" accept="application/pdf" multiple className="hidden" onChange={handleFileUpload} disabled={uploadingFiles.size > 0} />
+              <input type="file" accept="application/pdf,image/jpeg,image/png,image/jpg,.pdf,.jpg,.jpeg,.png" multiple className="hidden" onChange={handleFileUpload} disabled={uploadingFiles.size > 0} />
             </Label>
           </div>
         </div>
