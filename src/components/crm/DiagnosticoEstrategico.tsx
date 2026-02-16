@@ -5,8 +5,41 @@ import { Input } from '@/components/ui/input';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Search, ChevronDown, ChevronRight, ChevronUp, MessageSquare } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, ChevronUp, MessageSquare, Heart } from 'lucide-react';
+
+export interface FamilyData {
+  maritalStatus: string; // Solteiro(a) | Casado(a) | União estável | Divorciado(a) | Viúvo(a)
+  propertyRegime: string; // Comunhão parcial | Comunhão universal | Separação total | Participação final nos aquestos | Não aplicável
+  hasChildren: string; // Sim | Não
+  childrenCount: string;
+  childrenAges: string;
+  childrenFinanciallyDependent: string; // Sim | Não
+  hasOtherDependents: string; // Sim | Não
+  otherDependentsDetail: string;
+  spouseHasIncome: string; // Sim | Não | Não se aplica
+  spouseMonthlyIncome: string;
+  exclusiveIncomeDependency: string; // Sim | Não | Parcialmente
+  successionDiscussed: string; // Sim | Não | Parcialmente
+  familySynthesis: string;
+}
+
+export const defaultFamilyData: FamilyData = {
+  maritalStatus: '',
+  propertyRegime: '',
+  hasChildren: '',
+  childrenCount: '',
+  childrenAges: '',
+  childrenFinanciallyDependent: '',
+  hasOtherDependents: '',
+  otherDependentsDetail: '',
+  spouseHasIncome: '',
+  spouseMonthlyIncome: '',
+  exclusiveIncomeDependency: '',
+  successionDiscussed: '',
+  familySynthesis: '',
+};
 
 export interface StrategicDiagnosticData {
   // 1 - Construção de Patrimônio
@@ -15,11 +48,11 @@ export interface StrategicDiagnosticData {
   wealthBuildingNotes: string;
   // 2 - Momento de Vida
   lifePhaseAnswer: string;
-  lifePhase: string; // Expansão | Consolidação | Proteção
+  lifePhase: string;
   lifePhaseNotes: string;
   // 3 - Maior Decisão
   biggestDecision: string;
-  decisionProfile: string; // Estratégico | Oportunista | Conservador | Impulsivo
+  decisionProfile: string;
   biggestDecisionNotes: string;
   // 4 - Maior Erro
   biggestMistake: string;
@@ -30,6 +63,8 @@ export interface StrategicDiagnosticData {
   targetPatrimony: string;
   targetMonthlyIncome: string;
   futureVisionNotes: string;
+  // 6 - Estrutura Familiar
+  family: FamilyData;
   // Síntese
   strategicSynthesis: string;
 }
@@ -51,6 +86,7 @@ export const defaultStrategicDiagnostic: StrategicDiagnosticData = {
   targetPatrimony: '',
   targetMonthlyIncome: '',
   futureVisionNotes: '',
+  family: { ...defaultFamilyData },
   strategicSynthesis: '',
 };
 
@@ -100,9 +136,17 @@ function OptionalNotes({ value, onChange, label = 'Observações do consultor' }
   );
 }
 
+const MARITAL_STATUS_OPTIONS = ['Solteiro(a)', 'Casado(a)', 'União estável', 'Divorciado(a)', 'Viúvo(a)'];
+const PROPERTY_REGIME_OPTIONS = ['Comunhão parcial', 'Comunhão universal', 'Separação total', 'Participação final nos aquestos', 'Não aplicável'];
+
 export function DiagnosticoEstrategico({ data, onChange }: Props) {
   const update = (partial: Partial<StrategicDiagnosticData>) => {
     onChange({ ...data, ...partial });
+  };
+
+  const family = data.family || defaultFamilyData;
+  const updateFamily = (partial: Partial<FamilyData>) => {
+    update({ family: { ...family, ...partial } });
   };
 
   const toggleSource = (source: string) => {
@@ -288,6 +332,178 @@ export function DiagnosticoEstrategico({ data, onChange }: Props) {
         </div>
 
         <OptionalNotes value={data.futureVisionNotes} onChange={(v) => update({ futureVisionNotes: v })} />
+      </div>
+
+      {/* 6️⃣ Estrutura Familiar e Responsabilidades */}
+      <div className="p-4 bg-muted/20 rounded-lg border border-border space-y-4">
+        <h4 className="font-medium text-foreground flex items-center gap-2">
+          <Heart className="w-4 h-4 text-pink-500" />
+          6️⃣ Estrutura Familiar e Responsabilidades
+        </h4>
+        <ConsultantNote>
+          Mapear responsabilidades familiares, dependência financeira e impacto na estratégia patrimonial, proteção e sucessão.
+        </ConsultantNote>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Estado Civil</Label>
+            <Select value={family.maritalStatus} onValueChange={(v) => updateFamily({ maritalStatus: v })}>
+              <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectContent>
+                {MARITAL_STATUS_OPTIONS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {(family.maritalStatus === 'Casado(a)' || family.maritalStatus === 'União estável') && (
+            <div className="space-y-2">
+              <Label>Regime de Bens</Label>
+              <Select value={family.propertyRegime} onValueChange={(v) => updateFamily({ propertyRegime: v })}>
+                <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectContent>
+                  {PROPERTY_REGIME_OPTIONS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+
+        {/* Filhos */}
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <Label>Possui Filhos?</Label>
+            <Select value={family.hasChildren} onValueChange={(v) => updateFamily({ hasChildren: v })}>
+              <SelectTrigger className="crm-input w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Sim">Sim</SelectItem>
+                <SelectItem value="Não">Não</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {family.hasChildren === 'Sim' && (
+            <div className="p-3 bg-card rounded-lg border border-border space-y-3">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Quantidade de filhos</Label>
+                  <Input
+                    type="number"
+                    value={family.childrenCount}
+                    onChange={(e) => updateFamily({ childrenCount: e.target.value })}
+                    placeholder="Ex: 2"
+                    className="crm-input"
+                  />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label>Idade dos filhos</Label>
+                  <Input
+                    value={family.childrenAges}
+                    onChange={(e) => updateFamily({ childrenAges: e.target.value })}
+                    placeholder="Ex: 8 e 12 anos"
+                    className="crm-input"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Dependem financeiramente?</Label>
+                <Select value={family.childrenFinanciallyDependent} onValueChange={(v) => updateFamily({ childrenFinanciallyDependent: v })}>
+                  <SelectTrigger className="crm-input w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Sim">Sim</SelectItem>
+                    <SelectItem value="Não">Não</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Outros dependentes */}
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <Label>Possui Outros Dependentes Financeiros?</Label>
+            <Select value={family.hasOtherDependents} onValueChange={(v) => updateFamily({ hasOtherDependents: v })}>
+              <SelectTrigger className="crm-input w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Sim">Sim</SelectItem>
+                <SelectItem value="Não">Não</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {family.hasOtherDependents === 'Sim' && (
+            <Input
+              value={family.otherDependentsDetail}
+              onChange={(e) => updateFamily({ otherDependentsDetail: e.target.value })}
+              placeholder="Ex: mãe idosa, irmão com deficiência..."
+              className="crm-input"
+            />
+          )}
+        </div>
+
+        {/* Renda do cônjuge */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Cônjuge Possui Renda Própria?</Label>
+            <Select value={family.spouseHasIncome} onValueChange={(v) => updateFamily({ spouseHasIncome: v })}>
+              <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Sim">Sim</SelectItem>
+                <SelectItem value="Não">Não</SelectItem>
+                <SelectItem value="Não se aplica">Não se aplica</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {family.spouseHasIncome === 'Sim' && (
+            <div className="space-y-2">
+              <Label>Renda mensal estimada do cônjuge (R$)</Label>
+              <CurrencyInput
+                value={family.spouseMonthlyIncome}
+                onChange={(v) => updateFamily({ spouseMonthlyIncome: v })}
+                placeholder="R$ 0,00"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Dependência exclusiva */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Alguém depende exclusivamente da sua renda?</Label>
+            <Select value={family.exclusiveIncomeDependency} onValueChange={(v) => updateFamily({ exclusiveIncomeDependency: v })}>
+              <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Sim">Sim</SelectItem>
+                <SelectItem value="Não">Não</SelectItem>
+                <SelectItem value="Parcialmente">Parcialmente</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>A sucessão já foi discutida com a família?</Label>
+            <Select value={family.successionDiscussed} onValueChange={(v) => updateFamily({ successionDiscussed: v })}>
+              <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Sim">Sim</SelectItem>
+                <SelectItem value="Não">Não</SelectItem>
+                <SelectItem value="Parcialmente">Parcialmente</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Síntese Familiar */}
+        <div className="space-y-2 pt-3 border-t border-border/50">
+          <Label className="font-medium">Síntese Familiar do Consultor</Label>
+          <ConsultantNote>
+            Registrar impacto da estrutura familiar na estratégia patrimonial, risco e sucessão.
+          </ConsultantNote>
+          <Textarea
+            value={family.familySynthesis}
+            onChange={(e) => updateFamily({ familySynthesis: e.target.value })}
+            placeholder="Ex: família com alta dependência financeira do titular, sem planejamento sucessório, cônjuge sem renda própria — priorizar seguro de vida e testamento."
+            className="crm-input min-h-[100px]"
+          />
+        </div>
       </div>
 
       {/* 🎯 Síntese Estratégica */}
