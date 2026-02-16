@@ -17,6 +17,8 @@ export interface PortfolioAsset {
   tir_pct: number | null;
   notes: string | null;
   display_order: number;
+  liquidity_days: number | null;
+  maturity_date: string | null;
 }
 
 export interface PortfolioPerformance {
@@ -74,6 +76,8 @@ export function useClientPortfolio(clientId: string | undefined) {
           tir_pct: a.tir_pct != null ? Number(a.tir_pct) : null,
           notes: a.notes,
           display_order: a.display_order,
+          liquidity_days: a.liquidity_days != null ? Number(a.liquidity_days) : null,
+          maturity_date: a.maturity_date || null,
         }));
         setAssets(mapped);
         // Detect if weights were manually set
@@ -120,6 +124,7 @@ export function useClientPortfolio(clientId: string | undefined) {
       recommendation_date: asset.recommendation_date, fair_price: asset.fair_price,
       current_price: asset.current_price, upside_pct: asset.upside_pct,
       tir_pct: asset.tir_pct, notes: asset.notes, display_order: asset.display_order,
+      liquidity_days: asset.liquidity_days, maturity_date: asset.maturity_date,
     };
     const { error } = await supabase.from('client_portfolio_assets').upsert({ id: asset.id, ...payload });
     if (error) { console.error(error); toast.error('Erro ao salvar ativo'); }
@@ -160,6 +165,7 @@ export function useClientPortfolio(clientId: string | undefined) {
         recommendation: 'MANTER', recommendation_date: newAsset.recommendation_date,
         fair_price: 0, current_price: null, upside_pct: null, tir_pct: null,
         notes: null, display_order: assets.length,
+        liquidity_days: null, maturity_date: null,
       };
       const newList = [...assets, newItem];
       // Auto-distribute if no manual weights

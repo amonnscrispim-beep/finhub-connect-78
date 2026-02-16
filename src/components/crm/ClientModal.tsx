@@ -72,6 +72,8 @@ import { PerfilRisco, defaultPerfilRisco, PerfilRiscoData } from './PerfilRisco'
 import { ProtecaoSucessao, defaultProtecaoSucessao, ProtecaoSucessaoData } from './ProtecaoSucessao';
 import { HistoricoMercado, defaultHistoricoMercado, HistoricoMercadoData } from './HistoricoMercado';
 import { RelatorioPerformance } from './RelatorioPerformance';
+import { RelatorioAutomatizado } from './RelatorioAutomatizado';
+import { useClientPortfolio } from '@/hooks/useClientPortfolio';
 import { DirecionamentoEstrategico, defaultDirecionamentoEstrategico, DirecionamentoEstrategicoData } from './DirecionamentoEstrategico';
 import { ArquiteturaCarteira, defaultArquiteturaCarteira, ArquiteturaCarteiraData } from './ArquiteturaCarteira';
 import { supabase } from '@/integrations/supabase/client';
@@ -265,6 +267,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   const [formData, setFormData] = useState(defaultFormData);
   const [draftGoals, setDraftGoals] = useState<DraftGoal[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [autoReportObservation, setAutoReportObservation] = useState('');
+  const portfolio = useClientPortfolio(client?.id);
 
   useEffect(() => {
     if (client) {
@@ -1325,6 +1329,19 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   <CurrencyInput id="consultingFinalPatrimony" value={formData.consultingFinalPatrimony} onChange={(value) => handleChange('consultingFinalPatrimony', value)} />
                 </div>
               </div>
+
+              {/* Relatório Automatizado */}
+              {client && (
+                <div className="border-t border-border pt-4 mt-4">
+                  <RelatorioAutomatizado
+                    client={client}
+                    assets={portfolio.assets}
+                    consultantObservation={autoReportObservation}
+                    onObservationChange={setAutoReportObservation}
+                    onObservationBlur={() => {}}
+                  />
+                </div>
+              )}
 
               {/* Collapsible Comments */}
               <CollapsibleComments
