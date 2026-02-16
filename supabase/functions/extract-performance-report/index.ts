@@ -42,8 +42,23 @@ serve(async (req) => {
       }
     }
 
+    // Sanitize filename: remove accents, special chars, spaces
+    const sanitize = (name: string): string => {
+      // Remove accents
+      let s = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      // Get extension
+      const dotIdx = s.lastIndexOf(".");
+      let ext = dotIdx > 0 ? s.substring(dotIdx + 1).toLowerCase() : "";
+      let base = dotIdx > 0 ? s.substring(0, dotIdx) : s;
+      // Replace non-alphanumeric with underscore
+      base = base.replace(/[^a-zA-Z0-9]/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
+      if (ext === "jpeg") ext = "jpg";
+      return base + (ext ? `.${ext}` : "");
+    };
+    const safeFilename = sanitize(file.name);
+
     // Upload file to storage
-    const filePath = `${user.id}/${clientId}/${Date.now()}_${file.name}`;
+    const filePath = `${user.id}/${clientId}/${Date.now()}_${safeFilename}`;
     const { error: uploadError } = await supabase.storage
       .from("performance-reports")
       .upload(filePath, file, { contentType: mimeType, upsert: true });
