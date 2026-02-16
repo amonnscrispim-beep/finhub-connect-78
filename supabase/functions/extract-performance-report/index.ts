@@ -95,8 +95,11 @@ Regras de leitura:
 - Campos que não existirem no documento devem ser null
 
 REGRAS CRÍTICAS DE PATRIMÔNIO LÍQUIDO:
-- Só preencha netPatrimony se o relatório trouxer EXPLICITAMENTE "patrimônio líquido", "valor líquido" ou equivalente
-- Se não houver esse campo, deixe netPatrimony como null — NÃO preencha com zero, NÃO copie o bruto
+- Só preencha netPatrimony se o relatório trouxer EXPLICITAMENTE um destes termos junto de um valor monetário:
+  "patrimônio líquido", "valor líquido", "saldo líquido", "valor líquido total", "total líquido", "líquido total"
+- Se nenhum desses termos aparecer, deixe netPatrimony como null — NÃO preencha com zero, NÃO copie o bruto, NÃO estime
+- PROIBIDO usar como patrimônio líquido: "disponível para resgate", "saldo disponível", "resgatável" — esses valores pertencem à seção de liquidez
+- Para XP especificamente: procure por "saldo líquido", "valor líquido", "total líquido", "líquido total", "patrimônio líquido". Se não encontrar nenhum, netPatrimony = null
 
 REGRAS CRÍTICAS DE LIQUIDEZ:
 - Jamais assuma D+1 como padrão se o relatório não informar prazos de liquidez
