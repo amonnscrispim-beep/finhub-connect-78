@@ -33,6 +33,7 @@ export type BrokerSummary = {
   broker: string;
   totalGross: number;
   totalNet: number;
+  hasNet: boolean;          // true only if the report explicitly provided net patrimony
   positions: PositionWithOrigin[];
   liquidityBands: LiquidityBand[];
   reports: { pdfFilename: string; reportDate: string; status: string }[];
@@ -41,6 +42,8 @@ export type BrokerSummary = {
 export type ConsolidatedSummary = {
   totalGross: number;
   totalNet: number;
+  netCoverage: { available: number; total: number };  // X of Y reports have net
+  grossAudit: { sum: number; consolidated: number; diff: number; missingBrokers: string[] };
   positions: PositionWithOrigin[];
   liquidityBands: LiquidityBand[];
   brokers: BrokerSummary[];

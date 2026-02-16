@@ -23,6 +23,11 @@ export function BrokerCard({ data }: BrokerCardProps) {
         <div className="text-right">
           <p className="text-lg font-bold text-foreground">R$ {fmt(data.totalGross)}</p>
           <p className="text-xs text-muted-foreground">Patrimônio bruto</p>
+          {data.hasNet ? (
+            <p className="text-xs text-muted-foreground">Líquido: R$ {fmt(data.totalNet)}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground italic">Líquido: não informado</p>
+          )}
         </div>
       </div>
 

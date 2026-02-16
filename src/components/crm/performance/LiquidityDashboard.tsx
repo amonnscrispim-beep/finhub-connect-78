@@ -42,7 +42,11 @@ export function LiquidityDashboard({ reports }: LiquidityDashboardProps) {
     lines.push('═'.repeat(50));
     lines.push('');
     lines.push(`Patrimônio Bruto: R$ ${fmt(data.totalGross)}`);
-    lines.push(`Patrimônio Líquido: R$ ${fmt(data.totalNet)}`);
+    if (data.netCoverage.available > 0) {
+      lines.push(`Patrimônio Líquido: R$ ${fmt(data.totalNet)} (cobertura: ${data.netCoverage.available} de ${data.netCoverage.total} relatórios)`);
+    } else {
+      lines.push('Patrimônio Líquido: não informado nos relatórios');
+    }
     lines.push(`Relatórios: ${extractedCount} extraídos${failedCount > 0 ? `, ${failedCount} falhou(aram)` : ''}`);
     lines.push(`Corretoras: ${data.brokers.map(b => b.broker).join(', ')}`);
     lines.push('');
@@ -95,12 +99,32 @@ export function LiquidityDashboard({ reports }: LiquidityDashboardProps) {
           <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
             <p className="text-xs text-muted-foreground">Patrimônio Bruto Total</p>
             <p className="text-2xl font-bold text-foreground">R$ {fmt(data.totalGross)}</p>
+            <p className="text-[10px] text-muted-foreground mt-1">{extractedCount} relatório(s)</p>
           </div>
           <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
             <p className="text-xs text-muted-foreground">Patrimônio Líquido Total</p>
-            <p className="text-2xl font-bold text-foreground">R$ {fmt(data.totalNet)}</p>
+            {data.netCoverage.available > 0 ? (
+              <>
+                <p className="text-2xl font-bold text-foreground">R$ {fmt(data.totalNet)}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Cobertura: {data.netCoverage.available} de {data.netCoverage.total} relatório(s)
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground mt-2">Não informado nos relatórios</p>
+            )}
           </div>
         </div>
+
+        {/* Gross audit warning */}
+        {data.grossAudit.diff > 0.01 && (
+          <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-xs text-destructive">
+            ⚠ Diferença detectada: soma por corretora (R$ {fmt(data.grossAudit.sum)}) ≠ bruto consolidado (R$ {fmt(data.grossAudit.consolidated)}).
+            {data.grossAudit.missingBrokers.length > 0 && (
+              <> Relatórios possivelmente fora: {data.grossAudit.missingBrokers.join(', ')}.</>
+            )}
+          </div>
+        )}
 
         {/* Liquidez Consolidada Table */}
         <div className="space-y-2">
