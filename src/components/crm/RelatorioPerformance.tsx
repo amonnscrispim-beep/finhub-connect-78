@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Upload, FileText, AlertTriangle, Copy, Check, Edit3, RotateCcw, Loader2, Calendar } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Upload, FileText, AlertTriangle, Copy, Check, Edit3, RotateCcw, Loader2, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -218,6 +218,36 @@ export function RelatorioPerformance({ clientId }: RelatorioPerformanceProps) {
   const gd = reportData?.generalData ?? {};
   const liq = reportData?.liquidity ?? {};
   const ie = reportData?.indexerExposure ?? {};
+  const grossPatrimony = gd.grossPatrimony ?? null;
+
+  // Maturity buckets
+  const maturityBuckets = useMemo(() => {
+    if (positions.length === 0) return { within6m: [], sixTo12m: [], byYear: {} as Record<string, typeof positions> };
+    const now = new Date();
+    const in6m = new Date(now); in6m.setMonth(in6m.getMonth() + 6);
+    const in12m = new Date(now); in12m.setMonth(in12m.getMonth() + 12);
+
+    const withMaturity = positions
+      .filter(p => p?.maturityDate && p?.grossBalance != null)
+      .map(p => ({ ...p, matDate: new Date(p.maturityDate!) }))
+      .sort((a, b) => a.matDate.getTime() - b.matDate.getTime());
+
+    const within6m = withMaturity.filter(p => p.matDate >= now && p.matDate <= in6m);
+    const sixTo12m = withMaturity.filter(p => p.matDate > in6m && p.matDate <= in12m);
+
+    const byYear: Record<string, typeof withMaturity> = {};
+    withMaturity.filter(p => p.matDate > now).forEach(p => {
+      const year = p.matDate.getFullYear().toString();
+      if (!byYear[year]) byYear[year] = [];
+      byYear[year].push(p);
+    });
+
+    return { within6m, sixTo12m, byYear };
+  }, [positions]);
+
+  const [expandedBuckets, setExpandedBuckets] = useState<Record<string, boolean>>({});
+  const [maturityFilter, setMaturityFilter] = useState<string>('all');
+  const toggleBucket = (key: string) => setExpandedBuckets(prev => ({ ...prev, [key]: !prev[key] }));
 
   if (!clientId) {
     return (
@@ -363,23 +393,24 @@ export function RelatorioPerformance({ clientId }: RelatorioPerformanceProps) {
           {(liq.dPlus1 != null || liq.upTo1Year != null || liq.oneToFiveYears != null || liq.aboveFiveYears != null) && (
             <div className="p-4 bg-muted/30 rounded-lg border border-border space-y-3">
               <h4 className="font-semibold text-foreground">Liquidez por Prazo</h4>
+              {grossPatrimony == null && (
+                <p className="text-xs text-destructive">⚠ Sem patrimônio bruto para calcular valores em R$.</p>
+              )}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">D+1</p>
-                  <p className="text-lg font-bold text-foreground">{fmtPct(liq.dPlus1)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Até 1 ano</p>
-                  <p className="text-lg font-bold text-foreground">{fmtPct(liq.upTo1Year)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">1 a 5 anos</p>
-                  <p className="text-lg font-bold text-foreground">{fmtPct(liq.oneToFiveYears)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Acima de 5 anos</p>
-                  <p className="text-lg font-bold text-foreground">{fmtPct(liq.aboveFiveYears)}</p>
-                </div>
+                {[
+                  { label: 'D+1', value: liq.dPlus1 },
+                  { label: 'Até 1 ano', value: liq.upTo1Year },
+                  { label: '1 a 5 anos', value: liq.oneToFiveYears },
+                  { label: 'Acima de 5 anos', value: liq.aboveFiveYears },
+                ].map(({ label, value }) => (
+                  <div key={label}>
+                    <p className="text-xs text-muted-foreground">{label}</p>
+                    <p className="text-lg font-bold text-foreground">{fmtPct(value)}</p>
+                    {value != null && grossPatrimony != null && (
+                      <p className="text-xs text-muted-foreground">R$ {fmt(grossPatrimony * (value / 100))}</p>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -496,7 +527,123 @@ export function RelatorioPerformance({ clientId }: RelatorioPerformanceProps) {
             ) : (
               <p className="text-sm text-muted-foreground">✅ Estrutura equilibrada dentro dos parâmetros definidos.</p>
             )}
+
+            {/* Maturity detail buckets */}
+            {[
+              { key: 'within6m', label: 'Ativos vencendo em até 6 meses', items: maturityBuckets.within6m },
+              { key: 'sixTo12m', label: 'Ativos vencendo entre 6 e 12 meses', items: maturityBuckets.sixTo12m },
+            ].filter(b => b.items.length > 0).map(({ key, label, items }) => {
+              let total = 0; items.forEach(p => { total += (p.grossBalance ?? 0); });
+              const show = expandedBuckets[key];
+              const display = show ? items : items.slice(0, 10);
+              return (
+                <div key={key} className="p-3 bg-accent/30 rounded border border-border space-y-1">
+                  <button type="button" className="flex items-center gap-2 w-full text-left" onClick={() => toggleBucket(key)}>
+                    {show ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    <span className="text-sm font-medium">{label}: {items.length} {items.length === 1 ? 'ativo' : 'ativos'} | Total: R$ {fmt(total)}</span>
+                  </button>
+                  {show && (
+                    <div className="pl-6 space-y-1 mt-1">
+                      {display.map((p, i) => (
+                        <p key={i} className="text-xs text-muted-foreground">
+                          {p.name} | Venc: {new Date(p.maturityDate!).toLocaleDateString('pt-BR')} | R$ {fmt(p.grossBalance)}
+                        </p>
+                      ))}
+                      {items.length > 10 && !expandedBuckets[key + '_all'] && (
+                        <button type="button" className="text-xs text-primary underline" onClick={() => setExpandedBuckets(prev => ({ ...prev, [key + '_all']: true, [key]: true }))}>
+                          Ver todos ({items.length})
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* By year concentration */}
+            {Object.entries(maturityBuckets.byYear)
+              .filter(([, items]) => items.length >= 3)
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([year, items]) => {
+                let total = 0; items.forEach(p => { total += (p.grossBalance ?? 0); });
+                const key = `year_${year}`;
+                const show = expandedBuckets[key];
+                const display = show ? items : items.slice(0, 10);
+                return (
+                  <div key={key} className="p-3 bg-accent/30 rounded border border-border space-y-1">
+                    <button type="button" className="flex items-center gap-2 w-full text-left" onClick={() => toggleBucket(key)}>
+                      {show ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      <span className="text-sm font-medium">Concentração de vencimentos em {year}: {items.length} ativos | Total: R$ {fmt(total)}</span>
+                    </button>
+                    {show && (
+                      <div className="pl-6 space-y-1 mt-1">
+                        {display.map((p, i) => (
+                          <p key={i} className="text-xs text-muted-foreground">
+                            {p.name} | Venc: {new Date(p.maturityDate!).toLocaleDateString('pt-BR')} | R$ {fmt(p.grossBalance)}
+                          </p>
+                        ))}
+                        {items.length > 10 && !expandedBuckets[key + '_all'] && (
+                          <button type="button" className="text-xs text-primary underline" onClick={() => setExpandedBuckets(prev => ({ ...prev, [key + '_all']: true, [key]: true }))}>
+                            Ver todos ({items.length})
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
           </div>
+
+          {/* Agenda de Vencimentos (Detalhada) */}
+          {positions.some(p => p?.maturityDate) && (
+            <div className="p-4 bg-muted/30 rounded-lg border border-border space-y-3">
+              <h4 className="font-semibold text-foreground">Agenda de Vencimentos (Detalhada)</h4>
+              <div className="flex gap-2 flex-wrap">
+                {['all', '6m', '12m', ...Object.keys(maturityBuckets.byYear).sort()].map(f => (
+                  <Button key={f} type="button" variant={maturityFilter === f ? 'default' : 'outline'} size="sm" onClick={() => setMaturityFilter(f)}>
+                    {f === 'all' ? 'Todos' : f === '6m' ? '6 meses' : f === '12m' ? '12 meses' : f}
+                  </Button>
+                ))}
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Vencimento</TableHead>
+                      <TableHead>Ativo</TableHead>
+                      <TableHead className="text-right">Valor (R$)</TableHead>
+                      <TableHead className="text-right">% Patrimônio</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(() => {
+                      const now = new Date();
+                      const allWithMat = positions
+                        .filter(p => p?.maturityDate && new Date(p.maturityDate) >= now)
+                        .sort((a, b) => new Date(a.maturityDate!).getTime() - new Date(b.maturityDate!).getTime());
+                      
+                      const filtered = allWithMat.filter(p => {
+                        const d = new Date(p.maturityDate!);
+                        if (maturityFilter === '6m') { const limit = new Date(now); limit.setMonth(limit.getMonth() + 6); return d <= limit; }
+                        if (maturityFilter === '12m') { const limit = new Date(now); limit.setMonth(limit.getMonth() + 12); return d <= limit; }
+                        if (maturityFilter !== 'all') return d.getFullYear().toString() === maturityFilter;
+                        return true;
+                      });
+
+                      return filtered.map((p, i) => (
+                        <TableRow key={i}>
+                          <TableCell className="text-xs">{new Date(p.maturityDate!).toLocaleDateString('pt-BR')}</TableCell>
+                          <TableCell className="text-xs font-medium">{p.name ?? '—'}</TableCell>
+                          <TableCell className="text-right text-xs">R$ {fmt(p.grossBalance)}</TableCell>
+                          <TableCell className="text-right text-xs">{fmtPct(p.portfolioPct)}</TableCell>
+                        </TableRow>
+                      ));
+                    })()}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
 
           {/* Resumo Técnico — only when extracted */}
           {technicalSummary && (
