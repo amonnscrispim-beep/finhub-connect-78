@@ -122,7 +122,6 @@ export function DiagnosticoEstrategico({ data, onChange }: Props) {
           className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
         >
           <div className="flex items-center gap-2">
-            <Search className="w-5 h-5 text-primary" />
             <span className="font-semibold text-foreground text-sm">Diagnóstico Estratégico – Identidade e Direção do Cliente</span>
           </div>
           {isOpen ? (
