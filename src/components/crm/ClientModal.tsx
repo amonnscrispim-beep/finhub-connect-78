@@ -63,6 +63,7 @@ import { DiagnosticoPatrimonial } from './DiagnosticoPatrimonial';
 import { ScoreEstrategico } from './ScoreEstrategico';
 import { AlertasConsultor } from './AlertasConsultor';
 import { DiagnosticoEstrategico, defaultStrategicDiagnostic, StrategicDiagnosticData } from './DiagnosticoEstrategico';
+import { EstruturaPatrimonial, defaultEstruturaPatrimonial, EstruturaPatrimonialData } from './EstruturaPatrimonial';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -154,6 +155,7 @@ interface FormData {
   passiveIncome: string;
   successionPlanning: string;
   strategicDiagnostic: StrategicDiagnosticData;
+  estruturaPatrimonial: EstruturaPatrimonialData;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
@@ -241,6 +243,7 @@ const defaultFormData: FormData = {
   passiveIncome: '',
   successionPlanning: '',
   strategicDiagnostic: defaultStrategicDiagnostic,
+  estruturaPatrimonial: defaultEstruturaPatrimonial,
 };
 
 export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
@@ -324,6 +327,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         passiveIncome: (client as any).passiveIncome?.toString() || '',
         successionPlanning: (client as any).successionPlanning || '',
         strategicDiagnostic: { ...defaultStrategicDiagnostic, ...((client as any).strategicDiagnostic || {}) },
+        estruturaPatrimonial: { ...defaultEstruturaPatrimonial, ...((client as any).estruturaPatrimonial || ((client as any).strategicDiagnostic?.estruturaPatrimonial) || {}) },
       });
       setDraftGoals([]);
     } else {
@@ -470,7 +474,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       businessAssets: parseFloat(formData.businessAssets) || 0,
       passiveIncome: parseFloat(formData.passiveIncome) || 0,
       successionPlanning: formData.successionPlanning || '',
-      strategicDiagnostic: formData.strategicDiagnostic,
+      strategicDiagnostic: { ...formData.strategicDiagnostic, estruturaPatrimonial: formData.estruturaPatrimonial },
     };
 
     try {
@@ -781,9 +785,13 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
 
             {/* SECTION 1.5: Conhecer o Cliente */}
             <CollapsibleSection title="Conhecer o Cliente" icon={Search} defaultOpen={false}>
-              <DiagnosticoEstrategico
+               <DiagnosticoEstrategico
                 data={formData.strategicDiagnostic}
                 onChange={(data) => setFormData(prev => ({ ...prev, strategicDiagnostic: data }))}
+              />
+              <EstruturaPatrimonial
+                data={formData.estruturaPatrimonial}
+                onChange={(data) => setFormData(prev => ({ ...prev, estruturaPatrimonial: data }))}
               />
             </CollapsibleSection>
 
