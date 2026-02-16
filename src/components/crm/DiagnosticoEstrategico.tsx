@@ -123,7 +123,7 @@ export function DiagnosticoEstrategico({ data, onChange }: Props) {
         >
           <div className="flex items-center gap-2">
             <Search className="w-5 h-5 text-primary" />
-            <span className="font-semibold text-foreground text-sm">🔎 Diagnóstico Estratégico – Identidade e Direção do Cliente</span>
+            <span className="font-semibold text-foreground text-sm">Diagnóstico Estratégico – Identidade e Direção do Cliente</span>
           </div>
           {isOpen ? (
             <ChevronDown className="w-5 h-5 text-muted-foreground transition-transform duration-200" />
