@@ -232,6 +232,7 @@ export interface Client {
   // New integrated diagnostic fields
   passiveIncome: number;
   successionPlanning: string;
+  strategicDiagnostic: Record<string, any>;
   createdAt: Date;
   updatedAt: Date;
 }

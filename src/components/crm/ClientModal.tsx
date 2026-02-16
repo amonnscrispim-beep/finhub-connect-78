@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   Heart, Users, PieChart, Landmark, Target, Calendar, Cake, CreditCard, 
   TrendingUp, Award, CheckCircle, User, DollarSign, FileText, Briefcase, ClipboardList, Wallet,
-  BarChart3, Shield
+  BarChart3, Shield, Search
 } from 'lucide-react';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -62,6 +62,7 @@ import { PortfolioModule } from './portfolio/PortfolioModule';
 import { DiagnosticoPatrimonial } from './DiagnosticoPatrimonial';
 import { ScoreEstrategico } from './ScoreEstrategico';
 import { AlertasConsultor } from './AlertasConsultor';
+import { DiagnosticoEstrategico, defaultStrategicDiagnostic, StrategicDiagnosticData } from './DiagnosticoEstrategico';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -152,6 +153,7 @@ interface FormData {
   businessAssets: string;
   passiveIncome: string;
   successionPlanning: string;
+  strategicDiagnostic: StrategicDiagnosticData;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
@@ -238,6 +240,7 @@ const defaultFormData: FormData = {
   businessAssets: '',
   passiveIncome: '',
   successionPlanning: '',
+  strategicDiagnostic: defaultStrategicDiagnostic,
 };
 
 export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
@@ -320,6 +323,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         businessAssets: (client as any).businessAssets?.toString() || '',
         passiveIncome: (client as any).passiveIncome?.toString() || '',
         successionPlanning: (client as any).successionPlanning || '',
+        strategicDiagnostic: { ...defaultStrategicDiagnostic, ...((client as any).strategicDiagnostic || {}) },
       });
       setDraftGoals([]);
     } else {
@@ -466,6 +470,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       businessAssets: parseFloat(formData.businessAssets) || 0,
       passiveIncome: parseFloat(formData.passiveIncome) || 0,
       successionPlanning: formData.successionPlanning || '',
+      strategicDiagnostic: formData.strategicDiagnostic,
     };
 
     try {
@@ -771,6 +776,14 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   ...prev,
                   moduleNotes: { ...prev.moduleNotes, personalInfo: value }
                 }))}
+              />
+            </CollapsibleSection>
+
+            {/* SECTION 1.5: Conhecer o Cliente */}
+            <CollapsibleSection title="Conhecer o Cliente" icon={Search} defaultOpen={false}>
+              <DiagnosticoEstrategico
+                data={formData.strategicDiagnostic}
+                onChange={(data) => setFormData(prev => ({ ...prev, strategicDiagnostic: data }))}
               />
             </CollapsibleSection>
 

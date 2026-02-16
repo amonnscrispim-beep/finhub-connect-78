@@ -314,6 +314,7 @@ export type Database = {
           scheduled_meeting: Json | null
           short_term_goals: string | null
           state: string | null
+          strategic_diagnostic: Json | null
           succession_planning: string | null
           updated_at: string
           user_id: string
@@ -389,6 +390,7 @@ export type Database = {
           scheduled_meeting?: Json | null
           short_term_goals?: string | null
           state?: string | null
+          strategic_diagnostic?: Json | null
           succession_planning?: string | null
           updated_at?: string
           user_id: string
@@ -464,6 +466,7 @@ export type Database = {
           scheduled_meeting?: Json | null
           short_term_goals?: string | null
           state?: string | null
+          strategic_diagnostic?: Json | null
           succession_planning?: string | null
           updated_at?: string
           user_id?: string
