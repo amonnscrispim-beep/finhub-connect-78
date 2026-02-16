@@ -31,21 +31,50 @@ serve(async (req) => {
 
     if (!file || !clientId) throw new Error("Missing file or clientId");
 
-    // Upload PDF to storage
+    // Determine MIME type
+    const mimeType = file.type || "application/octet-stream";
+    const supportedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"];
+    if (!supportedTypes.some(t => mimeType.startsWith(t.split("/")[0]) && mimeType.includes(t.split("/")[1]))) {
+      // Fallback: check by extension
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      if (!['pdf', 'jpg', 'jpeg', 'png'].includes(ext ?? '')) {
+        throw new Error("Formato não suportado. Envie PDF, JPG ou PNG.");
+      }
+    }
+
+    // Upload file to storage
     const filePath = `${user.id}/${clientId}/${Date.now()}_${file.name}`;
     const { error: uploadError } = await supabase.storage
       .from("performance-reports")
-      .upload(filePath, file, { contentType: "application/pdf", upsert: true });
+      .upload(filePath, file, { contentType: mimeType, upsert: true });
     if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
-    // Read PDF as base64
+    // Read file as base64
     const arrayBuffer = await file.arrayBuffer();
     const base64 = base64Encode(new Uint8Array(arrayBuffer));
+
+    // Resolve the data URI MIME for the AI vision call
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    let dataMime = mimeType;
+    if (ext === 'jpg' || ext === 'jpeg') dataMime = 'image/jpeg';
+    else if (ext === 'png') dataMime = 'image/png';
+    else if (ext === 'pdf') dataMime = 'application/pdf';
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const systemPrompt = `Você é um especialista em análise de relatórios financeiros de investimentos. Analise o PDF do relatório financeiro e extraia TODAS as informações relevantes em formato JSON estruturado.
+    const systemPrompt = `Você é um especialista em análise de relatórios financeiros de investimentos. Analise o arquivo (PDF ou imagem) e extraia TODAS as informações relevantes em formato JSON estruturado.
+
+Se o arquivo for uma imagem de extrato de previdência (app de banco/seguradora), capture:
+- "Quanto eu tenho" como grossPatrimony
+- "Quanto já rendeu" como cumulativeReturn (valor absoluto em R$, coloque em generalData)
+- Liste os planos em positions com: name = matrícula + tipo (VGBL/PGBL), type = "Previdência", grossBalance = saldo
+
+Regras de leitura:
+- Se for imagem escaneada ou screenshot, use OCR/visão para extrair todos os números
+- Preserve separadores brasileiros (R$ 491.718,23)
+- Se houver dúvida em algum número, ainda assim extraia o melhor valor possível
+- Campos que não existirem no documento devem ser null
 
 IMPORTANTE: Retorne APENAS o JSON, sem markdown, sem backticks, sem texto antes ou depois.
 
@@ -108,8 +137,8 @@ Regras:
           {
             role: "user",
             content: [
-              { type: "text", text: "Analise este relatório financeiro e extraia todos os dados estruturados conforme solicitado." },
-              { type: "image_url", image_url: { url: `data:application/pdf;base64,${base64}` } },
+              { type: "text", text: "Analise este arquivo financeiro (pode ser PDF, imagem de extrato, screenshot de app) e extraia todos os dados estruturados conforme solicitado. Se for imagem, use OCR/visão." },
+              { type: "image_url", image_url: { url: `data:${dataMime};base64,${base64}` } },
             ],
           },
         ],
