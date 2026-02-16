@@ -88,6 +88,8 @@ export type Database = {
           display_order: number
           fair_price: number | null
           id: string
+          liquidity_days: number | null
+          maturity_date: string | null
           name: string
           notes: string | null
           recommendation: string
@@ -107,6 +109,8 @@ export type Database = {
           display_order?: number
           fair_price?: number | null
           id?: string
+          liquidity_days?: number | null
+          maturity_date?: string | null
           name?: string
           notes?: string | null
           recommendation?: string
@@ -126,6 +130,8 @@ export type Database = {
           display_order?: number
           fair_price?: number | null
           id?: string
+          liquidity_days?: number | null
+          maturity_date?: string | null
           name?: string
           notes?: string | null
           recommendation?: string

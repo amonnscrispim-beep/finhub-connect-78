@@ -101,7 +101,7 @@ export function PortfolioAssetsTab({
           maxHeight: '400px',
         }}
       >
-          <table className="text-sm" style={{ tableLayout: 'auto', width: 'max-content', minWidth: '1400px' }}>
+          <table className="text-sm" style={{ tableLayout: 'auto', width: 'max-content', minWidth: '1600px' }}>
             <thead className="bg-muted/80">
               <tr>
                 <th className="px-3 py-2 text-left font-medium">Ticker</th>
@@ -114,6 +114,8 @@ export function PortfolioAssetsTab({
                 <th className="px-3 py-2 text-right font-medium">Preço Atual</th>
                 <th className="px-3 py-2 text-right font-medium">Upside %</th>
                 <th className="px-3 py-2 text-right font-medium">TIR %</th>
+                <th className="px-3 py-2 text-right font-medium">Liquidez D+</th>
+                <th className="px-3 py-2 text-left font-medium">Vencimento</th>
                 <th className="px-3 py-2 text-left font-medium">Obs.</th>
                 <th className="px-3 py-2 w-10"></th>
               </tr>
@@ -206,6 +208,23 @@ export function PortfolioAssetsTab({
                   </td>
                   <td className="px-3 py-1.5">
                     <Input
+                      type="number" step="1" min="0"
+                      value={asset.liquidity_days ?? ''}
+                      onChange={e => handleFieldChange(asset, 'liquidity_days', e.target.value ? parseInt(e.target.value) : null)}
+                      className="h-8 w-16 bg-transparent border-none px-1 text-xs text-right"
+                      placeholder="D+0"
+                    />
+                  </td>
+                  <td className="px-3 py-1.5">
+                    <Input
+                      type="date"
+                      value={asset.maturity_date || ''}
+                      onChange={e => handleFieldChange(asset, 'maturity_date', e.target.value || null)}
+                      className="h-8 w-32 bg-transparent border-none px-1 text-xs"
+                    />
+                  </td>
+                  <td className="px-3 py-1.5">
+                    <Input
                       value={asset.notes || ''}
                       onChange={e => handleFieldChange(asset, 'notes', e.target.value)}
                       className="h-8 w-28 bg-transparent border-none px-1 text-xs"
@@ -220,7 +239,7 @@ export function PortfolioAssetsTab({
                 </tr>
               ))}
               {filteredAssets.length === 0 && (
-                <tr><td colSpan={12} className="text-center py-8 text-muted-foreground">Nenhum ativo cadastrado</td></tr>
+                <tr><td colSpan={14} className="text-center py-8 text-muted-foreground">Nenhum ativo cadastrado</td></tr>
               )}
             </tbody>
           </table>
