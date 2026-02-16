@@ -272,16 +272,19 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
 
     let totalGross = 0;
     let totalNet = 0;
+    let reportsWithNet = 0;
     const allPositions: (Position & { broker: string; pdfFilename: string })[] = [];
-    const liqByReport: { gross: number; liq: PerformanceReportData['liquidity'] }[] = [];
+    const liqByReport: { gross: number; liq: PerformanceReportData['liquidity']; liqNotInformed: boolean }[] = [];
 
     extractedReports.forEach(r => {
       const gd = r.extractedData?.generalData ?? {};
       const gross = gd.grossPatrimony ?? 0;
-      const net = gd.netPatrimony ?? 0;
+      const net = gd.netPatrimony;
+      const hasNet = net != null && net !== 0;
       totalGross += gross;
-      totalNet += net;
-      liqByReport.push({ gross, liq: r.extractedData?.liquidity ?? {} });
+      if (hasNet) { totalNet += net!; reportsWithNet++; }
+      const liqNotInformed = !!(r.extractedData as any)?.liquidityNotInformed;
+      liqByReport.push({ gross, liq: r.extractedData?.liquidity ?? {}, liqNotInformed });
 
       const positions = Array.isArray(r.extractedData?.positions) ? r.extractedData.positions : [];
       positions.forEach(p => {
@@ -292,10 +295,12 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
     // Consolidated liquidity: sum R$ values per band then compute %
     const liqBands = ['dPlus1', 'upTo1Year', 'oneToFiveYears', 'aboveFiveYears'] as const;
     const consolidatedLiq: Record<string, number | null> = {};
+    let liqClassifiedTotal = 0;
     liqBands.forEach(band => {
       let totalVal = 0;
       let hasData = false;
-      liqByReport.forEach(({ gross, liq }) => {
+      liqByReport.forEach(({ gross, liq, liqNotInformed }) => {
+        if (liqNotInformed) return;
         const pct = liq?.[band] ?? null;
         if (pct != null && gross > 0) {
           totalVal += gross * (pct / 100);
@@ -303,7 +308,12 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
         }
       });
       consolidatedLiq[band] = hasData && totalGross > 0 ? (totalVal / totalGross) * 100 : null;
+      liqClassifiedTotal += totalVal;
     });
+
+    // Liquidity not informed value
+    const liqNotInformedValue = totalGross - liqClassifiedTotal;
+    const liqNotInformedPct = totalGross > 0 ? (liqNotInformedValue / totalGross) * 100 : 0;
 
     // Consolidated alerts
     const allAlerts: string[] = [];
@@ -313,9 +323,21 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
       });
     });
 
+    // Gross audit
+    const brokerGrossMap: Record<string, number> = {};
+    extractedReports.forEach(r => {
+      const bk = r.broker || 'Sem corretora';
+      brokerGrossMap[bk] = (brokerGrossMap[bk] ?? 0) + (r.extractedData?.generalData?.grossPatrimony ?? 0);
+    });
+    const brokerGrossSum = Object.values(brokerGrossMap).reduce((a, b) => a + b, 0);
+    const grossDiff = Math.abs(totalGross - brokerGrossSum);
+
     return {
       totalGross,
       totalNet,
+      netCoverage: { available: reportsWithNet, total: extractedReports.length },
+      grossAudit: { sum: brokerGrossSum, consolidated: totalGross, diff: grossDiff },
+      liqNotInformed: { value: liqNotInformedValue, pct: liqNotInformedPct },
       allPositions,
       liquidity: {
         dPlus1: consolidatedLiq.dPlus1,
@@ -388,11 +410,13 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
   const renderDataPanel = (
     label: string,
     grossPatrimony: number,
-    netPatrimony: number,
+    netPatrimony: number | null | undefined,
+    hasNet: boolean,
     liq: PerformanceReportData['liquidity'],
     positions: (Position & { broker?: string; pdfFilename?: string })[],
     alerts: string[],
     keyPrefix: string,
+    liqNotInformed?: { value: number; pct: number },
   ) => {
     const withMat = positions
       .filter(p => p.maturityDate && p.grossBalance != null)
@@ -424,10 +448,21 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Patrimônio Líquido</p>
-              <p className="text-lg font-bold text-foreground">R$ {fmt(netPatrimony)}</p>
+              {hasNet ? (
+                <p className="text-lg font-bold text-foreground">R$ {fmt(netPatrimony)}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground italic mt-1">Não informado neste relatório</p>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Liquidez não informada */}
+        {liqNotInformed && liqNotInformed.value > 0.01 && (
+          <div className="p-3 bg-accent/30 border border-border rounded-lg text-xs text-muted-foreground">
+            ℹ️ Liquidez não informada: R$ {fmt(liqNotInformed.value)} ({fmtPct(liqNotInformed.pct)}) — relatórios sem dados de liquidez ou previdência.
+          </div>
+        )}
 
         {/* Liquidez */}
         {liq && (liq.dPlus1 != null || liq.upTo1Year != null || liq.oneToFiveYears != null || liq.aboveFiveYears != null) && (
@@ -608,7 +643,11 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
     if (!consolidatedData) return '';
     const lines: string[] = ['RELATÓRIO CONSOLIDADO — TODAS AS CORRETORAS', '═'.repeat(50), ''];
     lines.push(`Patrimônio Bruto Total: R$ ${fmt(consolidatedData.totalGross)}`);
-    lines.push(`Patrimônio Líquido Total: R$ ${fmt(consolidatedData.totalNet)}`);
+    if (consolidatedData.netCoverage.available > 0) {
+      lines.push(`Patrimônio Líquido Total: R$ ${fmt(consolidatedData.totalNet)} (cobertura: ${consolidatedData.netCoverage.available} de ${consolidatedData.netCoverage.total} relatórios)`);
+    } else {
+      lines.push('Patrimônio Líquido Total: não informado nos relatórios');
+    }
     lines.push(`Relatórios analisados: ${extractedReports.length}`);
     lines.push(`Corretoras: ${brokerList.join(', ') || 'N/A'}`);
     lines.push('');
@@ -829,10 +868,12 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
               `Consolidação Geral (${extractedReports.length} relatório${extractedReports.length > 1 ? 's' : ''})`,
               consolidatedData.totalGross,
               consolidatedData.totalNet,
+              consolidatedData.netCoverage.available > 0,
               consolidatedData.liquidity,
               consolidatedData.allPositions,
               consolidatedData.alerts,
               'cons',
+              consolidatedData.liqNotInformed,
             )}
             <RelatorioExecutivoLiquidez
               grossPatrimony={consolidatedData.totalGross}
@@ -863,6 +904,7 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
                   `Resumo — ${selectedBroker}`,
                   brokerData.totalGross,
                   brokerData.totalNet,
+                  brokerData.totalNet > 0,
                   brokerData.liquidity,
                   brokerData.allPositions,
                   brokerData.alerts,
@@ -899,7 +941,8 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
                   {renderDataPanel(
                     `${selectedReport.broker || 'Relatório'} — ${selectedReport.pdfFilename}`,
                     gd.grossPatrimony ?? 0,
-                    gd.netPatrimony ?? 0,
+                    gd.netPatrimony,
+                    gd.netPatrimony != null && gd.netPatrimony !== 0,
                     selectedReport.extractedData?.liquidity ?? {},
                     positions.map(p => ({ ...p, broker: selectedReport.broker, pdfFilename: selectedReport.pdfFilename })),
                     selectedReport.alerts,
