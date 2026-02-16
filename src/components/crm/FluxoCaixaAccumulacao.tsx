@@ -66,8 +66,10 @@ interface Props {
 }
 
 export function FluxoCaixaAccumulacao({ data, onChange }: Props) {
+  const safeData = data ?? defaultFluxoCaixa;
+
   const update = (partial: Partial<FluxoCaixaData>) => {
-    onChange({ ...data, ...partial });
+    onChange({ ...safeData, ...partial });
   };
 
   const [isOpen, setIsOpen] = useState(false);
@@ -98,14 +100,14 @@ export function FluxoCaixaAccumulacao({ data, onChange }: Props) {
             <h4 className="font-medium text-foreground">1️⃣ Receita Mensal Média</h4>
             <Label>Qual é sua receita média mensal nos últimos 12 meses?</Label>
             <CurrencyInput
-              value={data.monthlyRevenue}
+              value={safeData.monthlyRevenue}
               onChange={(v) => update({ monthlyRevenue: v })}
               placeholder="R$ 0,00"
             />
             <div className="space-y-2">
               <Label>Fonte principal da renda</Label>
               <RadioGroup
-                value={data.revenueSource}
+                value={safeData.revenueSource}
                 onValueChange={(v) => update({ revenueSource: v })}
                 className="flex flex-wrap gap-x-4 gap-y-2"
               >
@@ -126,7 +128,7 @@ export function FluxoCaixaAccumulacao({ data, onChange }: Props) {
           <div className="p-4 bg-muted/20 rounded-lg border border-border space-y-3">
             <h4 className="font-medium text-foreground">2️⃣ Estabilidade da Receita</h4>
             <Label>Sua receita é previsível ou varia ao longo do ano?</Label>
-            <Select value={data.revenueStability} onValueChange={(v) => update({ revenueStability: v })}>
+            <Select value={safeData.revenueStability} onValueChange={(v) => update({ revenueStability: v })}>
               <SelectTrigger className="crm-input w-[250px]"><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="Alta previsibilidade">Alta previsibilidade</SelectItem>
@@ -144,7 +146,7 @@ export function FluxoCaixaAccumulacao({ data, onChange }: Props) {
             <h4 className="font-medium text-foreground">3️⃣ Custo de Vida</h4>
             <Label>Qual é seu custo de vida mensal médio?</Label>
             <CurrencyInput
-              value={data.livingCost}
+              value={safeData.livingCost}
               onChange={(v) => update({ livingCost: v })}
               placeholder="R$ 0,00"
             />
@@ -158,14 +160,14 @@ export function FluxoCaixaAccumulacao({ data, onChange }: Props) {
             <h4 className="font-medium text-foreground">4️⃣ Capacidade de Aporte</h4>
             <Label>Quanto você consegue investir mensalmente de forma consistente?</Label>
             <CurrencyInput
-              value={data.monthlyInvestment}
+              value={safeData.monthlyInvestment}
               onChange={(v) => update({ monthlyInvestment: v })}
               placeholder="R$ 0,00"
             />
             <div className="space-y-2">
               <Label>Esse valor já está sendo investido?</Label>
               <RadioGroup
-                value={data.alreadyInvesting}
+                value={safeData.alreadyInvesting}
                 onValueChange={(v) => update({ alreadyInvesting: v })}
                 className="flex gap-4"
               >
@@ -193,7 +195,7 @@ export function FluxoCaixaAccumulacao({ data, onChange }: Props) {
             <h4 className="font-medium text-foreground">5️⃣ Dependência de Renda Ativa</h4>
             <Label>Se você parar de trabalhar hoje, por quanto tempo seu padrão de vida se mantém?</Label>
             <Textarea
-              value={data.financialAutonomy}
+              value={safeData.financialAutonomy}
               onChange={(e) => update({ financialAutonomy: e.target.value })}
               placeholder="Resposta descritiva ou número de meses..."
               className="crm-input min-h-[80px]"
@@ -214,7 +216,7 @@ export function FluxoCaixaAccumulacao({ data, onChange }: Props) {
                   type="number"
                   min="0"
                   max="100"
-                  value={data.savingsRate}
+                  value={safeData.savingsRate}
                   onChange={(e) => update({ savingsRate: e.target.value })}
                   placeholder="Ex: 30"
                   className="crm-input w-[150px]"
@@ -223,7 +225,7 @@ export function FluxoCaixaAccumulacao({ data, onChange }: Props) {
 
               <div className="space-y-2">
                 <Label>Grau de estabilidade</Label>
-                <Select value={data.stabilityLevel} onValueChange={(v) => update({ stabilityLevel: v })}>
+                <Select value={safeData.stabilityLevel} onValueChange={(v) => update({ stabilityLevel: v })}>
                   <SelectTrigger className="crm-input w-[180px]"><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Alto">Alto</SelectItem>
@@ -238,7 +240,7 @@ export function FluxoCaixaAccumulacao({ data, onChange }: Props) {
                 <Input
                   type="number"
                   min="0"
-                  value={data.autonomyMonths}
+                  value={safeData.autonomyMonths}
                   onChange={(e) => update({ autonomyMonths: e.target.value })}
                   placeholder="Ex: 18"
                   className="crm-input w-[150px]"
@@ -249,7 +251,7 @@ export function FluxoCaixaAccumulacao({ data, onChange }: Props) {
             <div className="space-y-2">
               <Label>Direção estratégica sugerida</Label>
               <Textarea
-                value={data.strategicDirection}
+                value={safeData.strategicDirection}
                 onChange={(e) => update({ strategicDirection: e.target.value })}
                 placeholder="Descreva a direção estratégica sugerida..."
                 className="crm-input min-h-[100px] text-sm"
