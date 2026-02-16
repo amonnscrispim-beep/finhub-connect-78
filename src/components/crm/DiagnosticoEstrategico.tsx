@@ -5,8 +5,8 @@ import { Input } from '@/components/ui/input';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { CollapsibleSection } from './CollapsibleSection';
-import { Search, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Search, ChevronDown, ChevronRight, ChevronUp, MessageSquare } from 'lucide-react';
 
 export interface StrategicDiagnosticData {
   // 1 - Construção de Patrimônio
@@ -112,15 +112,31 @@ export function DiagnosticoEstrategico({ data, onChange }: Props) {
     update({ wealthSources: sources });
   };
 
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2 mb-2">
-        <Search className="w-5 h-5 text-primary" />
-        <h3 className="font-semibold text-foreground">🔎 Diagnóstico Estratégico – Identidade e Direção do Cliente</h3>
-      </div>
-      <p className="text-xs text-muted-foreground -mt-4">
-        Mapear mentalidade, momento de vida, padrão decisório e visão de futuro antes de falar sobre investimentos.
-      </p>
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <CollapsibleTrigger asChild>
+        <button
+          type="button"
+          className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Search className="w-5 h-5 text-primary" />
+            <span className="font-semibold text-foreground text-sm">🔎 Diagnóstico Estratégico – Identidade e Direção do Cliente</span>
+          </div>
+          {isOpen ? (
+            <ChevronDown className="w-5 h-5 text-muted-foreground transition-transform duration-200" />
+          ) : (
+            <ChevronRight className="w-5 h-5 text-muted-foreground transition-transform duration-200" />
+          )}
+        </button>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+        <div className="pt-4 space-y-6">
+        <p className="text-xs text-muted-foreground">
+          Mapear mentalidade, momento de vida, padrão decisório e visão de futuro antes de falar sobre investimentos.
+        </p>
 
       {/* 1️⃣ Construção de Patrimônio */}
       <div className="p-4 bg-muted/20 rounded-lg border border-border space-y-3">
@@ -290,6 +306,8 @@ export function DiagnosticoEstrategico({ data, onChange }: Props) {
           className="crm-input min-h-[160px] text-sm"
         />
       </div>
-    </div>
+      </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
