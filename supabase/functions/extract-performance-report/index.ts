@@ -26,6 +26,8 @@ serve(async (req) => {
     const formData = await req.formData();
     const file = formData.get("file") as File;
     const clientId = formData.get("clientId") as string;
+    const broker = formData.get("broker") as string | null;
+    const reportType = formData.get("reportType") as string | null;
 
     if (!file || !clientId) throw new Error("Missing file or clientId");
 
@@ -36,7 +38,7 @@ serve(async (req) => {
       .upload(filePath, file, { contentType: "application/pdf", upsert: true });
     if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
-    // Read PDF as base64 using Deno's standard library (no stack overflow)
+    // Read PDF as base64
     const arrayBuffer = await file.arrayBuffer();
     const base64 = base64Encode(new Uint8Array(arrayBuffer));
 
@@ -132,8 +134,6 @@ Regras:
 
     const aiData = await aiResponse.json();
     let extractedText = aiData.choices?.[0]?.message?.content ?? "";
-    
-    // Clean markdown code blocks if present
     extractedText = extractedText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     
     let extractedData: any;
@@ -144,26 +144,20 @@ Regras:
       throw new Error("Falha ao interpretar os dados do PDF. Tente novamente.");
     }
 
-    // Safe access helpers
     const positions = Array.isArray(extractedData?.positions) ? extractedData.positions : [];
     const gd = extractedData?.generalData ?? {};
     const liq = extractedData?.liquidity ?? {};
     const ie = extractedData?.indexerExposure ?? {};
     const totalPatrimony = gd.grossPatrimony ?? gd.netPatrimony ?? 0;
 
-    // Generate alerts only if positions exist
+    // Generate alerts
     const alerts: string[] = [];
-
     if (totalPatrimony > 0 && positions.length > 0) {
       const sortedByPct = [...positions].sort((a: any, b: any) => ((b?.portfolioPct ?? 0) - (a?.portfolioPct ?? 0)));
       const topPct = sortedByPct[0]?.portfolioPct ?? 0;
-      if (topPct > 15) {
-        alerts.push(`⚠️ Concentração elevada: "${sortedByPct[0]?.name ?? 'N/A'}" representa ${topPct.toFixed(1)}% do patrimônio (> 15%)`);
-      }
+      if (topPct > 15) alerts.push(`⚠️ Concentração elevada: "${sortedByPct[0]?.name ?? 'N/A'}" representa ${topPct.toFixed(1)}% do patrimônio (> 15%)`);
       const top3Pct = sortedByPct.slice(0, 3).reduce((s: number, p: any) => s + (p?.portfolioPct ?? 0), 0);
-      if (top3Pct > 45) {
-        alerts.push(`⚠️ Top 3 ativos concentram ${top3Pct.toFixed(1)}% do patrimônio (> 45%)`);
-      }
+      if (top3Pct > 45) alerts.push(`⚠️ Top 3 ativos concentram ${top3Pct.toFixed(1)}% do patrimônio (> 45%)`);
 
       const byIssuer: Record<string, number> = {};
       positions.forEach((p: any) => {
@@ -175,7 +169,6 @@ Regras:
       });
     }
 
-    // Maturity alerts (only if positions exist)
     if (positions.length > 0) {
       const now = new Date();
       const in6m = new Date(now); in6m.setMonth(in6m.getMonth() + 6);
@@ -184,31 +177,15 @@ Regras:
       const maturing12m = positions.filter((p: any) => p?.maturityDate && new Date(p.maturityDate) <= in12m && new Date(p.maturityDate) > in6m);
       if (maturing6m.length > 0) alerts.push(`📅 ${maturing6m.length} ativo(s) vencendo em até 6 meses`);
       if (maturing12m.length > 0) alerts.push(`📅 ${maturing12m.length} ativo(s) vencendo entre 6 e 12 meses`);
-
-      const maturityYears: Record<string, number> = {};
-      positions.forEach((p: any) => {
-        if (p?.maturityDate) {
-          const yr = new Date(p.maturityDate).getFullYear().toString();
-          maturityYears[yr] = (maturityYears[yr] ?? 0) + 1;
-        }
-      });
-      Object.entries(maturityYears).forEach(([yr, cnt]) => {
-        if (cnt >= 3) alerts.push(`📅 Concentração de vencimentos em ${yr}: ${cnt} ativos`);
-      });
     }
 
-    // Liquidity alerts
     const liqD1 = liq.dPlus1 ?? null;
-    if (liqD1 !== null && liqD1 < 5) {
-      alerts.push(`🔴 Liquidez imediata (D+1) baixa: ${liqD1.toFixed(1)}% (< 5%)`);
-    }
-
-    // Indexer exposure alerts
+    if (liqD1 !== null && liqD1 < 5) alerts.push(`🔴 Liquidez imediata (D+1) baixa: ${liqD1.toFixed(1)}% (< 5%)`);
     if (ie.ipca != null && ie.ipca > 60) alerts.push(`⚠️ Exposição elevada a IPCA+: ${ie.ipca.toFixed(1)}% (> 60%)`);
     if (ie.prefixed != null && ie.prefixed > 50) alerts.push(`⚠️ Exposição elevada a Prefixado: ${ie.prefixed.toFixed(1)}% (> 50%)`);
     if (ie.postFixed != null && ie.postFixed < 5) alerts.push(`⚠️ Exposição baixa a Pós-fixado: ${ie.postFixed.toFixed(1)}% (< 5%)`);
 
-    // Generate technical summary
+    // Generate summaries
     const fmtNum = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
     let technicalSummary = "";
     const patrimony = gd.netPatrimony ?? gd.grossPatrimony ?? 0;
@@ -219,48 +196,19 @@ Regras:
       if (gd.twelveMonthReturn != null) technicalSummary += `Rentabilidade 12M: ${gd.twelveMonthReturn.toFixed(2)}%\n`;
       if (gd.cdiEquivalent != null) technicalSummary += `CDI equivalente: ${gd.cdiEquivalent.toFixed(1)}%\n`;
     }
-    if (liq.dPlus1 != null || liq.upTo1Year != null) {
-      technicalSummary += `\n💧 Liquidez\n`;
-      if (liq.dPlus1 != null) technicalSummary += `D+1: ${liq.dPlus1.toFixed(1)}%\n`;
-      if (liq.upTo1Year != null) technicalSummary += `Até 1 ano: ${liq.upTo1Year.toFixed(1)}%\n`;
-      if (liq.oneToFiveYears != null) technicalSummary += `1-5 anos: ${liq.oneToFiveYears.toFixed(1)}%\n`;
-      if (liq.aboveFiveYears != null) technicalSummary += `+5 anos: ${liq.aboveFiveYears.toFixed(1)}%\n`;
-    }
-    if (ie.ipca != null || ie.prefixed != null || ie.postFixed != null) {
-      technicalSummary += `\n📈 Composição por Indexador\n`;
-      if (ie.ipca != null) technicalSummary += `IPCA+: ${ie.ipca.toFixed(1)}%\n`;
-      if (ie.prefixed != null) technicalSummary += `Prefixado: ${ie.prefixed.toFixed(1)}%\n`;
-      if (ie.postFixed != null) technicalSummary += `Pós-fixado: ${ie.postFixed.toFixed(1)}%\n`;
-      if (ie.other != null) technicalSummary += `Outros: ${ie.other.toFixed(1)}%\n`;
-    }
-    if (alerts.length > 0) {
-      technicalSummary += `\n🚨 Riscos Identificados\n${alerts.join("\n")}\n`;
-    }
-    technicalSummary += `\n📋 Diagnóstico: ${positions.length} posições identificadas.`;
 
-    // Generate commercial summary
     let commercialSummary = "";
     if (patrimony > 0) {
-      commercialSummary += `Olá! Analisei seu relatório.\n\n`;
-      commercialSummary += `Seu patrimônio investido é de R$ ${fmtNum(patrimony)}`;
+      commercialSummary += `Olá! Analisei seu relatório.\n\nSeu patrimônio investido é de R$ ${fmtNum(patrimony)}`;
       if (gd.yearReturn != null) commercialSummary += `, com rentabilidade de ${gd.yearReturn.toFixed(2)}% no ano`;
       commercialSummary += `.\n\n`;
       if (alerts.length > 0) {
         commercialSummary += `Principal ponto de atenção: ${alerts[0].replace(/[⚠️🔴📅]/g, "").trim()}\n\n`;
-      } else {
-        commercialSummary += `Sua carteira está bem estruturada dentro dos parâmetros.\n\n`;
       }
       commercialSummary += `Próximo passo: agendar uma conversa para discutir ajustes e oportunidades.`;
     }
 
-    // Save to database
-    const { data: existingReport } = await supabase
-      .from("client_performance_reports")
-      .select("id")
-      .eq("client_id", clientId)
-      .eq("user_id", user.id)
-      .maybeSingle();
-
+    // Always INSERT (support multiple reports per client)
     const reportData = {
       client_id: clientId,
       user_id: user.id,
@@ -271,23 +219,30 @@ Regras:
       alerts,
       technical_summary: technicalSummary,
       commercial_summary: commercialSummary,
+      broker: broker || null,
+      report_type: reportType || null,
       updated_at: new Date().toISOString(),
     };
 
-    if (existingReport) {
-      await supabase.from("client_performance_reports").update(reportData).eq("id", existingReport.id);
-    } else {
-      await supabase.from("client_performance_reports").insert(reportData);
-    }
+    const { data: insertedReport, error: insertError } = await supabase
+      .from("client_performance_reports")
+      .insert(reportData)
+      .select("id")
+      .single();
+
+    if (insertError) throw new Error(`Save failed: ${insertError.message}`);
 
     return new Response(JSON.stringify({
       success: true,
+      reportId: insertedReport?.id,
       extractedData: extractedData ?? {},
       alerts,
       technicalSummary,
       commercialSummary,
       reportDate: extractedData?.reportDate ?? null,
       pdfFilename: file.name,
+      broker: broker || null,
+      reportType: reportType || null,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
