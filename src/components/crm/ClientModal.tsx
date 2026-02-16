@@ -63,6 +63,7 @@ import { DiagnosticoPatrimonial } from './DiagnosticoPatrimonial';
 import { ScoreEstrategico } from './ScoreEstrategico';
 import { AlertasConsultor } from './AlertasConsultor';
 import { ResumoFinanceiroAutomatico } from './ResumoFinanceiroAutomatico';
+import { PainelFinanceiro } from './PainelFinanceiro';
 import { DiagnosticoEstrategico, defaultStrategicDiagnostic, StrategicDiagnosticData } from './DiagnosticoEstrategico';
 import { EstruturaPatrimonial, defaultEstruturaPatrimonial, EstruturaPatrimonialData } from './EstruturaPatrimonial';
 import { FluxoCaixaAccumulacao, defaultFluxoCaixa, FluxoCaixaData } from './FluxoCaixaAccumulacao';
@@ -908,221 +909,40 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               />
             </CollapsibleSection>
 
-            {/* SECTION 3: Situação Financeira Atual */}
+            {/* SECTION 3: Situação Financeira Atual (Painel Automático) */}
             <CollapsibleSection title="Situação Financeira Atual" icon={DollarSign} defaultOpen={false}>
-              {/* Resumo Financeiro Automático */}
-              <ResumoFinanceiroAutomatico
-                financialAssets={parseFloat(formData.financialAssets) || 0}
-                materialAssets={parseFloat(formData.materialAssets) || 0}
-                businessAssets={parseFloat(formData.businessAssets) || 0}
-                emergencyReserve={parseFloat(formData.emergencyReserve) || 0}
-                monthlyLivingCost={formData.monthlyLivingCost ? parseFloat(formData.monthlyLivingCost) : null}
-                monthlyRevenue={parseFloat(formData.monthlyRevenue) || 0}
-                monthlyContribution={parseFloat(formData.monthlyContribution) || 0}
-                passiveIncome={parseFloat(formData.passiveIncome) || 0}
-                investorProfile={formData.investorProfile}
-                financialInstitutions={formData.financialInstitutions}
-                successionPlanning={formData.successionPlanning}
-                organizedFinances={formData.organizedFinances}
+              <PainelFinanceiro
+                overrides={{
+                  financialAssets: formData.financialAssets,
+                  materialAssets: formData.materialAssets,
+                  businessAssets: formData.businessAssets,
+                  emergencyReserve: formData.emergencyReserve,
+                  monthlyRevenue: formData.monthlyRevenue,
+                  monthlyContribution: formData.monthlyContribution,
+                  monthlyLivingCost: formData.monthlyLivingCost,
+                  passiveIncome: formData.passiveIncome,
+                  investorProfile: formData.investorProfile,
+                  financialInstitutions: formData.financialInstitutions,
+                  successionPlanning: formData.successionPlanning,
+                  organizedFinances: formData.organizedFinances,
+                }}
+                onOverrideChange={(field, value) => {
+                  setFormData(prev => ({ ...prev, [field]: value }));
+                }}
                 fluxoCaixa={formData.fluxoCaixa}
                 estruturaPatrimonial={formData.estruturaPatrimonial}
                 direcionamentoEstrategico={formData.direcionamentoEstrategico}
+                perfilRisco={formData.perfilRisco}
+                protecaoSucessao={formData.protecaoSucessao}
+                objetivosMetas={formData.objetivosMetas}
+                strategicDiagnostic={formData.strategicDiagnostic}
                 consultantNote={formData.moduleNotes.financialSummary || ''}
                 onConsultantNoteChange={(value) => setFormData(prev => ({
                   ...prev,
                   moduleNotes: { ...prev.moduleNotes, financialSummary: value }
                 }))}
-              />
-
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="financialAssets">Patrimônio Financeiro</Label>
-                  <CurrencyInput id="financialAssets" value={formData.financialAssets} onChange={(value) => handleChange('financialAssets', value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="materialAssets">Patrimônio Material</Label>
-                  <CurrencyInput id="materialAssets" value={formData.materialAssets} onChange={(value) => handleChange('materialAssets', value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="emergencyReserve">Reserva de Emergência</Label>
-                  <CurrencyInput id="emergencyReserve" value={formData.emergencyReserve} onChange={(value) => handleChange('emergencyReserve', value)} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="monthlyRevenue">Faturamento Mensal</Label>
-                  <CurrencyInput id="monthlyRevenue" value={formData.monthlyRevenue} onChange={(value) => handleChange('monthlyRevenue', value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="monthlyContribution">Aporte Mensal</Label>
-                  <CurrencyInput id="monthlyContribution" value={formData.monthlyContribution} onChange={(value) => handleChange('monthlyContribution', value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="investorProfile">Perfil de Investidor</Label>
-                  <Select value={formData.investorProfile} onValueChange={(value) => handleChange('investorProfile', value)}>
-                    <SelectTrigger className="crm-input"><SelectValue /></SelectTrigger>
-                    <SelectContent>{INVESTOR_PROFILES.map((profile) => (<SelectItem key={profile} value={profile}>{profile}</SelectItem>))}</SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="organizedFinances">Finanças pessoais organizadas?</Label>
-                <Select value={formData.organizedFinances} onValueChange={(value) => handleChange('organizedFinances', value)}>
-                  <SelectTrigger className="crm-input w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>{ORGANIZED_FINANCES_OPTIONS.map((option) => (<SelectItem key={option} value={option}>{option}</SelectItem>))}</SelectContent>
-                </Select>
-              </div>
-
-              {/* Patrimônio Atual */}
-              <div className="space-y-2">
-                <Label htmlFor="currentWealthNotes">Patrimônio Atual</Label>
-                <Textarea 
-                  id="currentWealthNotes" 
-                  value={formData.currentWealthNotes} 
-                  onChange={(e) => handleChange('currentWealthNotes', e.target.value)} 
-                  placeholder="• Imóvel residencial em fase final de construção (valor ainda não estimado)&#10;• Veículo próprio avaliado em aproximadamente R$ 30.000&#10;• Veículo da esposa avaliado entre R$ 15.000 e R$ 20.000"
-                  className="crm-input min-h-[100px]"
-                />
-              </div>
-
-              {/* Instituições Financeiras */}
-              <div className="space-y-2">
-                <Label htmlFor="financialInstitutions">Instituições Financeiras</Label>
-                <Textarea 
-                  id="financialInstitutions" 
-                  value={formData.financialInstitutions} 
-                  onChange={(e) => handleChange('financialInstitutions', e.target.value)} 
-                  placeholder="Ex: Itaú, BTG Pactual, XP, Nubank, corretora internacional, previdência privada, etc."
-                  className="crm-input min-h-[80px]"
-                />
-              </div>
-
-              {/* Módulo de Reserva de Emergência */}
-              <EmergencyReserveModule
-                data={{
-                  status: formData.emergencyReserveStatus,
-                  note: formData.emergencyReserveNote,
-                  startMonth: formData.emergencyStartMonth,
-                  startYear: formData.emergencyStartYear,
-                  monthlyLivingCost: formData.monthlyLivingCost ? parseFloat(formData.monthlyLivingCost) : null,
-                  coverageMonths: formData.emergencyCoverageMonths ? parseInt(formData.emergencyCoverageMonths) : 6,
-                  contributionsCount: formData.emergencyContributionsCount ? parseInt(formData.emergencyContributionsCount) : 12,
-                  currentReserve: formData.emergencyReserve ? parseFloat(formData.emergencyReserve) : 0,
-                }}
-                onChange={(field, value) => {
-                  if (field === 'status') {
-                    setFormData(prev => ({ ...prev, emergencyReserveStatus: value as string }));
-                  } else if (field === 'note') {
-                    setFormData(prev => ({ ...prev, emergencyReserveNote: value as string }));
-                  } else if (field === 'startMonth') {
-                    setFormData(prev => ({ ...prev, emergencyStartMonth: value as number | null }));
-                  } else if (field === 'startYear') {
-                    setFormData(prev => ({ ...prev, emergencyStartYear: value as number | null }));
-                  } else if (field === 'monthlyLivingCost') {
-                    setFormData(prev => ({ ...prev, monthlyLivingCost: value?.toString() || '' }));
-                  } else if (field === 'coverageMonths') {
-                    setFormData(prev => ({ ...prev, emergencyCoverageMonths: value?.toString() || '6' }));
-                  } else if (field === 'contributionsCount') {
-                    setFormData(prev => ({ ...prev, emergencyContributionsCount: value?.toString() || '12' }));
-                  } else if (field === 'currentReserve') {
-                    setFormData(prev => ({ ...prev, emergencyReserve: value?.toString() || '0' }));
-                  }
-                }}
-              />
-
-              {/* Objetivos Financeiros */}
-              <div className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
-                <h4 className="font-medium text-foreground flex items-center gap-2">
-                  <Target className="w-4 h-4" />
-                  Objetivos Financeiros
-                </h4>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="shortTermGoals">Curto Prazo</Label>
-                  <Textarea 
-                    id="shortTermGoals" 
-                    value={formData.shortTermGoals} 
-                    onChange={(e) => handleChange('shortTermGoals', e.target.value)} 
-                    placeholder="Ex: reserva de emergência, quitar dívidas, viagem, compra de carro…"
-                    className="crm-input min-h-[70px]"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="mediumTermGoals">Médio Prazo</Label>
-                  <Textarea 
-                    id="mediumTermGoals" 
-                    value={formData.mediumTermGoals} 
-                    onChange={(e) => handleChange('mediumTermGoals', e.target.value)} 
-                    placeholder="Ex: troca de imóvel, expansão profissional, renda passiva inicial…"
-                    className="crm-input min-h-[70px]"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="longTermGoals">Longo Prazo</Label>
-                  <Textarea 
-                    id="longTermGoals" 
-                    value={formData.longTermGoals} 
-                    onChange={(e) => handleChange('longTermGoals', e.target.value)} 
-                    placeholder="Ex: aposentadoria, independência financeira, sucessão patrimonial…"
-                    className="crm-input min-h-[70px]"
-                  />
-                </div>
-              </div>
-
-              {/* New fields: Patrimônio Empresarial, Custo Mensal, Renda Passiva, Planej. Sucessório */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="businessAssets">Patrimônio Empresarial</Label>
-                  <CurrencyInput id="businessAssets" value={formData.businessAssets} onChange={(value) => handleChange('businessAssets', value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="monthlyLivingCost">Custo Mensal da Família</Label>
-                  <CurrencyInput id="monthlyLivingCost" value={formData.monthlyLivingCost} onChange={(value) => handleChange('monthlyLivingCost', value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="passiveIncome">Renda Passiva Atual (estimada)</Label>
-                  <CurrencyInput id="passiveIncome" value={formData.passiveIncome} onChange={(value) => handleChange('passiveIncome', value)} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="successionPlanning">Planejamento Sucessório?</Label>
-                  <Select value={formData.successionPlanning} onValueChange={(value) => handleChange('successionPlanning', value)}>
-                    <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Sim">Sim</SelectItem>
-                      <SelectItem value="Parcial">Parcial</SelectItem>
-                      <SelectItem value="Não">Não</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Diagnóstico Patrimonial (calculado) */}
-              <DiagnosticoPatrimonial
-                financialAssets={parseFloat(formData.financialAssets) || 0}
-                materialAssets={parseFloat(formData.materialAssets) || 0}
-                businessAssets={parseFloat(formData.businessAssets) || 0}
-                emergencyReserve={parseFloat(formData.emergencyReserve) || 0}
-                monthlyLivingCost={formData.monthlyLivingCost ? parseFloat(formData.monthlyLivingCost) : null}
-                monthlyRevenue={parseFloat(formData.monthlyRevenue) || 0}
-                monthlyContribution={parseFloat(formData.monthlyContribution) || 0}
-              />
-
-              {/* Alertas do Consultor */}
-              <AlertasConsultor
-                financialAssets={parseFloat(formData.financialAssets) || 0}
-                materialAssets={parseFloat(formData.materialAssets) || 0}
-                businessAssets={parseFloat(formData.businessAssets) || 0}
-                emergencyReserve={parseFloat(formData.emergencyReserve) || 0}
-                monthlyLivingCost={formData.monthlyLivingCost ? parseFloat(formData.monthlyLivingCost) : null}
-                monthlyRevenue={parseFloat(formData.monthlyRevenue) || 0}
-                monthlyContribution={parseFloat(formData.monthlyContribution) || 0}
+                clientName={formData.name}
+                age={parseInt(formData.age) || 0}
               />
 
               {/* Score Estratégico (calculado) */}
