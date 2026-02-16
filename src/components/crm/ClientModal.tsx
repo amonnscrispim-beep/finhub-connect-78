@@ -70,6 +70,7 @@ import { PerfilRisco, defaultPerfilRisco, PerfilRiscoData } from './PerfilRisco'
 import { ProtecaoSucessao, defaultProtecaoSucessao, ProtecaoSucessaoData } from './ProtecaoSucessao';
 import { HistoricoMercado, defaultHistoricoMercado, HistoricoMercadoData } from './HistoricoMercado';
 import { DirecionamentoEstrategico, defaultDirecionamentoEstrategico, DirecionamentoEstrategicoData } from './DirecionamentoEstrategico';
+import { ArquiteturaCarteira, defaultArquiteturaCarteira, ArquiteturaCarteiraData } from './ArquiteturaCarteira';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -168,6 +169,7 @@ interface FormData {
   protecaoSucessao: ProtecaoSucessaoData;
   historicoMercado: HistoricoMercadoData;
   direcionamentoEstrategico: DirecionamentoEstrategicoData;
+  arquiteturaCarteira: ArquiteturaCarteiraData;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
@@ -262,6 +264,7 @@ const defaultFormData: FormData = {
   protecaoSucessao: defaultProtecaoSucessao,
   historicoMercado: defaultHistoricoMercado,
   direcionamentoEstrategico: defaultDirecionamentoEstrategico,
+  arquiteturaCarteira: defaultArquiteturaCarteira,
 };
 
 export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
@@ -352,6 +355,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         protecaoSucessao: { ...defaultProtecaoSucessao, ...((client as any).protecaoSucessao || ((client as any).strategicDiagnostic?.protecaoSucessao) || {}) },
         historicoMercado: { ...defaultHistoricoMercado, ...((client as any).historicoMercado || ((client as any).strategicDiagnostic?.historicoMercado) || {}) },
         direcionamentoEstrategico: { ...defaultDirecionamentoEstrategico, ...((client as any).direcionamentoEstrategico || ((client as any).strategicDiagnostic?.direcionamentoEstrategico) || {}) },
+        arquiteturaCarteira: { ...defaultArquiteturaCarteira, ...((client as any).arquiteturaCarteira || ((client as any).strategicDiagnostic?.arquiteturaCarteira) || {}) },
       });
       setDraftGoals([]);
     } else {
@@ -498,7 +502,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       businessAssets: parseFloat(formData.businessAssets) || 0,
       passiveIncome: parseFloat(formData.passiveIncome) || 0,
       successionPlanning: formData.successionPlanning || '',
-      strategicDiagnostic: { ...formData.strategicDiagnostic, estruturaPatrimonial: formData.estruturaPatrimonial, fluxoCaixa: formData.fluxoCaixa, objetivosMetas: formData.objetivosMetas, perfilRisco: formData.perfilRisco, protecaoSucessao: formData.protecaoSucessao, historicoMercado: formData.historicoMercado, direcionamentoEstrategico: formData.direcionamentoEstrategico },
+      strategicDiagnostic: { ...formData.strategicDiagnostic, estruturaPatrimonial: formData.estruturaPatrimonial, fluxoCaixa: formData.fluxoCaixa, objetivosMetas: formData.objetivosMetas, perfilRisco: formData.perfilRisco, protecaoSucessao: formData.protecaoSucessao, historicoMercado: formData.historicoMercado, direcionamentoEstrategico: formData.direcionamentoEstrategico, arquiteturaCarteira: formData.arquiteturaCarteira },
     };
 
     try {
@@ -840,6 +844,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               <DirecionamentoEstrategico
                 data={formData.direcionamentoEstrategico}
                 onChange={(data) => setFormData(prev => ({ ...prev, direcionamentoEstrategico: data }))}
+              />
+              <ArquiteturaCarteira
+                data={formData.arquiteturaCarteira}
+                onChange={(data) => setFormData(prev => ({ ...prev, arquiteturaCarteira: data }))}
               />
             </CollapsibleSection>
 
