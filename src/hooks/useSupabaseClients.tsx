@@ -104,6 +104,7 @@ function dbToClient(row: ClientRow): Client {
     businessAssets: Number((row as any).business_assets) || 0,
     passiveIncome: Number((row as any).passive_income) || 0,
     successionPlanning: (row as any).succession_planning ?? '',
+    strategicDiagnostic: (row as any).strategic_diagnostic ?? {},
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -182,6 +183,7 @@ function clientToDbInsert(client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>
     business_assets: client.businessAssets ?? 0,
     passive_income: (client as any).passiveIncome ?? 0,
     succession_planning: (client as any).successionPlanning ?? '',
+    strategic_diagnostic: (client as any).strategicDiagnostic ?? {},
   } as any;
 }
 
@@ -259,6 +261,7 @@ function clientToDbUpdate(updates: Partial<Client>): TablesUpdate<'clients'> {
   if (updates.businessAssets !== undefined) (dbUpdates as any).business_assets = updates.businessAssets;
   if ((updates as any).passiveIncome !== undefined) (dbUpdates as any).passive_income = (updates as any).passiveIncome;
   if ((updates as any).successionPlanning !== undefined) (dbUpdates as any).succession_planning = (updates as any).successionPlanning;
+  if ((updates as any).strategicDiagnostic !== undefined) (dbUpdates as any).strategic_diagnostic = (updates as any).strategicDiagnostic;
   
   // Handle kanbanOrder - explicitly extract and log for debugging
   const kanbanOrderValue = (updates as any).kanbanOrder;
