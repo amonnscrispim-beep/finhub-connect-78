@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Upload, FileText, AlertTriangle, Copy, Check, Edit3, RotateCcw, Loader2, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { RelatorioExecutivoLiquidez } from './RelatorioExecutivoLiquidez';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -49,6 +50,7 @@ type ModuleState = 'idle' | 'loading' | 'extracted' | 'failed';
 
 interface RelatorioPerformanceProps {
   clientId?: string;
+  investorProfile?: string | null;
 }
 
 const fmt = (v: number | null | undefined) => {
@@ -61,7 +63,7 @@ const fmtPct = (v: number | null | undefined) => {
   return `${v.toFixed(2)}%`;
 };
 
-export function RelatorioPerformance({ clientId }: RelatorioPerformanceProps) {
+export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPerformanceProps) {
   const { user } = useAuth();
   const [moduleState, setModuleState] = useState<ModuleState>('idle');
   const [isInitialLoading, setIsInitialLoading] = useState(false);
@@ -75,6 +77,7 @@ export function RelatorioPerformance({ clientId }: RelatorioPerformanceProps) {
   const [technicalSummary, setTechnicalSummary] = useState('');
   const [commercialSummary, setCommercialSummary] = useState('');
   const [consultantConclusion, setConsultantConclusion] = useState('');
+  const [executiveObservation, setExecutiveObservation] = useState('');
   const [reportDate, setReportDate] = useState('');
   const [pdfFilename, setPdfFilename] = useState('');
 
@@ -644,6 +647,17 @@ export function RelatorioPerformance({ clientId }: RelatorioPerformanceProps) {
               </div>
             </div>
           )}
+
+          {/* Relatório Executivo de Liquidez e Vencimentos */}
+          <RelatorioExecutivoLiquidez
+            grossPatrimony={grossPatrimony}
+            liquidity={liq}
+            positions={positions}
+            investorProfile={investorProfile}
+            consultantObservation={executiveObservation}
+            onObservationChange={setExecutiveObservation}
+            onObservationBlur={handleSaveConclusion}
+          />
 
           {/* Resumo Técnico — only when extracted */}
           {technicalSummary && (

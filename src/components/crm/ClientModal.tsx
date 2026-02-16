@@ -1310,7 +1310,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
 
             {/* SECTION 10.5: Relatório de Performance */}
             <CollapsibleSection title="Relatório de Performance" defaultOpen={false}>
-              <RelatorioPerformance clientId={client?.id} />
+              <RelatorioPerformance clientId={client?.id} investorProfile={formData.investorProfile} />
             </CollapsibleSection>
 
             {/* SECTION 11: Resultado da Consultoria */}
