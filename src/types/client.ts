@@ -121,18 +121,16 @@ export type AllocationObjective = 'Preservação' | 'Renda' | 'Crescimento' | 'B
 export type PortfolioHorizon = 'Curto prazo' | 'Médio prazo' | 'Longo prazo' | '';
 
 export interface PortfolioDistribution {
-  // Fixed Income breakdown
-  postFixed: number; // % Pós-fixado
-  preFixed: number; // % Prefixado
-  inflationIndexed: number; // % Indexado à inflação
-  // Other assets
-  stocks: number; // % Ações
-  realEstate: number; // % Fundos Imobiliários
-  international: number; // % Exterior
-  // Auxiliary fields
-  objective: AllocationObjective;
-  horizon: PortfolioHorizon;
-  // Legacy field for backward compatibility
+  arquiteturaEstrategica?: any;
+  // Legacy fields for backward compatibility
+  postFixed?: number;
+  preFixed?: number;
+  inflationIndexed?: number;
+  stocks?: number;
+  realEstate?: number;
+  international?: number;
+  objective?: AllocationObjective;
+  horizon?: PortfolioHorizon;
   fixedIncome?: number;
 }
 
