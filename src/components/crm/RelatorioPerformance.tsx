@@ -117,7 +117,7 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
     setIsLoading(true);
     try {
       const { data, error } = await supabase
-        .from('client_performance_reports')
+        .from('performance_reports')
         .select('*')
         .eq('client_id', clientId)
         .eq('user_id', user.id)
@@ -126,11 +126,14 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
       if (error) throw error;
       const mapped: ReportRecord[] = (data ?? []).map((d: any) => ({
         id: d.id,
-        pdfFilename: d.pdf_filename ?? '',
-        broker: d.broker ?? '',
-        reportType: d.report_type ?? '',
-        reportDate: d.report_date ?? '',
-        status: (d.extracted_data && Object.keys(d.extracted_data).length > 0) ? 'extracted' as ReportStatus : 'failed' as ReportStatus,
+        pdfFilename: d.pdf_filename ?? d.nome_arquivo ?? '',
+        broker: d.broker ?? d.corretora ?? '',
+        reportType: d.report_type ?? d.tipo_relatorio ?? '',
+        reportDate: d.report_date ?? d.data_relatorio ?? '',
+        status: d.status === 'extracted' ? 'extracted' as ReportStatus :
+                d.status === 'processing' ? 'processing' as ReportStatus :
+                d.status === 'failed' ? 'failed' as ReportStatus :
+                (d.extracted_data && Object.keys(d.extracted_data).length > 0) ? 'extracted' as ReportStatus : 'failed' as ReportStatus,
         extractedData: (d.extracted_data ?? {}) as PerformanceReportData,
         alerts: Array.isArray(d.alerts) ? (d.alerts as string[]) : [],
         technicalSummary: d.technical_summary ?? '',
@@ -239,7 +242,7 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
     if (!user) return;
     try {
       if (!reportId.startsWith('temp_')) {
-        await supabase.from('client_performance_reports').delete().eq('id', reportId).eq('user_id', user.id);
+        await supabase.from('performance_reports').delete().eq('id', reportId).eq('user_id', user.id);
       }
       setReports(prev => prev.filter(r => r.id !== reportId));
       toast.success('Relatório removido.');

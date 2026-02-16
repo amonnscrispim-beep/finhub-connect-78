@@ -654,6 +654,145 @@ export type Database = {
           },
         ]
       }
+      performance_positions: {
+        Row: {
+          ativo: string | null
+          created_at: string
+          id: string
+          indexador: string | null
+          percentual: number | null
+          report_id: string
+          taxa: number | null
+          tipo: string | null
+          user_id: string
+          valor: number | null
+          vencimento: string | null
+        }
+        Insert: {
+          ativo?: string | null
+          created_at?: string
+          id?: string
+          indexador?: string | null
+          percentual?: number | null
+          report_id: string
+          taxa?: number | null
+          tipo?: string | null
+          user_id: string
+          valor?: number | null
+          vencimento?: string | null
+        }
+        Update: {
+          ativo?: string | null
+          created_at?: string
+          id?: string
+          indexador?: string | null
+          percentual?: number | null
+          report_id?: string
+          taxa?: number | null
+          tipo?: string | null
+          user_id?: string
+          valor?: number | null
+          vencimento?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_positions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "performance_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_reports: {
+        Row: {
+          alerts: Json | null
+          client_id: string
+          commercial_summary: string | null
+          consultant_conclusion: string | null
+          corretora: string | null
+          created_at: string
+          data_relatorio: string | null
+          extracted_data: Json | null
+          id: string
+          manual_overrides: Json | null
+          nome_arquivo: string | null
+          patrimonio_bruto: number | null
+          patrimonio_liquido: number | null
+          pdf_filename: string | null
+          pdf_url: string | null
+          rent_12m: number | null
+          rent_acumulada: number | null
+          rent_ano: number | null
+          rent_mes: number | null
+          status: string
+          technical_summary: string | null
+          tipo_relatorio: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alerts?: Json | null
+          client_id: string
+          commercial_summary?: string | null
+          consultant_conclusion?: string | null
+          corretora?: string | null
+          created_at?: string
+          data_relatorio?: string | null
+          extracted_data?: Json | null
+          id?: string
+          manual_overrides?: Json | null
+          nome_arquivo?: string | null
+          patrimonio_bruto?: number | null
+          patrimonio_liquido?: number | null
+          pdf_filename?: string | null
+          pdf_url?: string | null
+          rent_12m?: number | null
+          rent_acumulada?: number | null
+          rent_ano?: number | null
+          rent_mes?: number | null
+          status?: string
+          technical_summary?: string | null
+          tipo_relatorio?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alerts?: Json | null
+          client_id?: string
+          commercial_summary?: string | null
+          consultant_conclusion?: string | null
+          corretora?: string | null
+          created_at?: string
+          data_relatorio?: string | null
+          extracted_data?: Json | null
+          id?: string
+          manual_overrides?: Json | null
+          nome_arquivo?: string | null
+          patrimonio_bruto?: number | null
+          patrimonio_liquido?: number | null
+          pdf_filename?: string | null
+          pdf_url?: string | null
+          rent_12m?: number | null
+          rent_acumulada?: number | null
+          rent_ano?: number | null
+          rent_mes?: number | null
+          status?: string
+          technical_summary?: string | null
+          tipo_relatorio?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_reports_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
