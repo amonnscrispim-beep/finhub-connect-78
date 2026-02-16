@@ -26,7 +26,7 @@ export const STANDARD_LIQUIDITY_BANDS = [
   { key: '35to90', label: '35 a 90 dias', maxDays: 90 },
   { key: '1to5years', label: '1 a 5 anos', maxDays: 1825 },
   { key: 'above5years', label: 'Acima de 5 anos', maxDays: Infinity },
-  { key: 'noLiquidity', label: 'Sem liquidez', maxDays: -1 },
+  { key: 'noLiquidity', label: 'Liquidez não informada', maxDays: -1 },
 ] as const;
 
 export type BrokerSummary = {

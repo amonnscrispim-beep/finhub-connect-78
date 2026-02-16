@@ -84,7 +84,9 @@ Se o arquivo for uma imagem de extrato de previdência (app de banco/seguradora)
 - "Quanto eu tenho" como grossPatrimony
 - "Quanto já rendeu" como cumulativeReturn (valor absoluto em R$, coloque em generalData)
 - Liste os planos em positions com: name = matrícula + tipo (VGBL/PGBL), type = "Previdência", grossBalance = saldo
-- NÃO atribua liquidez D+1 a previdência. Classifique como liquidityNotInformed = true salvo se a imagem mostrar regras de resgate ou carência explícitas.
+- PROIBIDO atribuir liquidez D+0 ou D+1 a previdência. SEMPRE classifique como liquidityNotInformed = true.
+- Na seção liquidity, deixe TODOS os campos como null para previdência.
+- Somente classifique com prazo de liquidez se a imagem trouxer EXPLICITAMENTE regras de resgate, carência ou prazo de resgate.
 
 Regras de leitura:
 - Se for imagem escaneada ou screenshot, use OCR/visão para extrair todos os números
