@@ -66,6 +66,7 @@ import { DiagnosticoEstrategico, defaultStrategicDiagnostic, StrategicDiagnostic
 import { EstruturaPatrimonial, defaultEstruturaPatrimonial, EstruturaPatrimonialData } from './EstruturaPatrimonial';
 import { FluxoCaixaAccumulacao, defaultFluxoCaixa, FluxoCaixaData } from './FluxoCaixaAccumulacao';
 import { ObjetivosMetas, defaultObjetivosMetas, ObjetivosMetasData } from './ObjetivosMetas';
+import { PerfilRisco, defaultPerfilRisco, PerfilRiscoData } from './PerfilRisco';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -160,6 +161,7 @@ interface FormData {
   estruturaPatrimonial: EstruturaPatrimonialData;
   fluxoCaixa: FluxoCaixaData;
   objetivosMetas: ObjetivosMetasData;
+  perfilRisco: PerfilRiscoData;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
@@ -250,6 +252,7 @@ const defaultFormData: FormData = {
   estruturaPatrimonial: defaultEstruturaPatrimonial,
   fluxoCaixa: defaultFluxoCaixa,
   objetivosMetas: defaultObjetivosMetas,
+  perfilRisco: defaultPerfilRisco,
 };
 
 export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
@@ -336,6 +339,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         estruturaPatrimonial: { ...defaultEstruturaPatrimonial, ...((client as any).estruturaPatrimonial || ((client as any).strategicDiagnostic?.estruturaPatrimonial) || {}) },
         fluxoCaixa: { ...defaultFluxoCaixa, ...((client as any).fluxoCaixa || ((client as any).strategicDiagnostic?.fluxoCaixa) || {}) },
         objetivosMetas: { ...defaultObjetivosMetas, ...((client as any).objetivosMetas || ((client as any).strategicDiagnostic?.objetivosMetas) || {}) },
+        perfilRisco: { ...defaultPerfilRisco, ...((client as any).perfilRisco || ((client as any).strategicDiagnostic?.perfilRisco) || {}) },
       });
       setDraftGoals([]);
     } else {
@@ -482,7 +486,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       businessAssets: parseFloat(formData.businessAssets) || 0,
       passiveIncome: parseFloat(formData.passiveIncome) || 0,
       successionPlanning: formData.successionPlanning || '',
-      strategicDiagnostic: { ...formData.strategicDiagnostic, estruturaPatrimonial: formData.estruturaPatrimonial, fluxoCaixa: formData.fluxoCaixa, objetivosMetas: formData.objetivosMetas },
+      strategicDiagnostic: { ...formData.strategicDiagnostic, estruturaPatrimonial: formData.estruturaPatrimonial, fluxoCaixa: formData.fluxoCaixa, objetivosMetas: formData.objetivosMetas, perfilRisco: formData.perfilRisco },
     };
 
     try {
@@ -808,6 +812,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               <ObjetivosMetas
                 data={formData.objetivosMetas}
                 onChange={(data) => setFormData(prev => ({ ...prev, objetivosMetas: data }))}
+              />
+              <PerfilRisco
+                data={formData.perfilRisco}
+                onChange={(data) => setFormData(prev => ({ ...prev, perfilRisco: data }))}
               />
             </CollapsibleSection>
 
