@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Upload, FileText, AlertTriangle, Copy, Check, Edit3, RotateCcw, Loader2, Calendar, ChevronDown, ChevronUp, Trash2, Building2 } from 'lucide-react';
 import { RelatorioExecutivoLiquidez } from './RelatorioExecutivoLiquidez';
+import { LiquidityDashboard } from './performance/LiquidityDashboard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -97,7 +98,7 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
   const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set());
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [executiveObservation, setExecutiveObservation] = useState('');
-  const [activeTab, setActiveTab] = useState('consolidated');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedBroker, setSelectedBroker] = useState<string>('');
   const [selectedReportId, setSelectedReportId] = useState<string>('');
   const [agendaBrokerFilter, setAgendaBrokerFilter] = useState<string>('all');
@@ -798,10 +799,25 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
       {extractedReports.length > 0 && consolidatedData && (
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full justify-start flex-wrap h-auto gap-1">
+            <TabsTrigger value="dashboard" className="text-xs">📊 Dashboard</TabsTrigger>
             <TabsTrigger value="consolidated" className="text-xs">Consolidação Geral</TabsTrigger>
             <TabsTrigger value="broker" className="text-xs">Por Corretora</TabsTrigger>
             <TabsTrigger value="report" className="text-xs">Por Relatório</TabsTrigger>
           </TabsList>
+
+          {/* Dashboard */}
+          <TabsContent value="dashboard" className="mt-4">
+            <LiquidityDashboard reports={reports.map(r => ({
+              id: r.id,
+              pdfFilename: r.pdfFilename,
+              broker: r.broker,
+              reportType: r.reportType,
+              reportDate: r.reportDate,
+              status: r.status,
+              extractedData: r.extractedData,
+              alerts: r.alerts,
+            }))} />
+          </TabsContent>
 
           {/* A) Consolidated */}
           <TabsContent value="consolidated" className="space-y-4 mt-4">
