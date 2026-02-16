@@ -84,6 +84,7 @@ Se o arquivo for uma imagem de extrato de previdência (app de banco/seguradora)
 - "Quanto eu tenho" como grossPatrimony
 - "Quanto já rendeu" como cumulativeReturn (valor absoluto em R$, coloque em generalData)
 - Liste os planos em positions com: name = matrícula + tipo (VGBL/PGBL), type = "Previdência", grossBalance = saldo
+- NÃO atribua liquidez D+1 a previdência. Classifique como liquidityNotInformed = true salvo se a imagem mostrar regras de resgate ou carência explícitas.
 
 Regras de leitura:
 - Se for imagem escaneada ou screenshot, use OCR/visão para extrair todos os números
@@ -91,22 +92,32 @@ Regras de leitura:
 - Se houver dúvida em algum número, ainda assim extraia o melhor valor possível
 - Campos que não existirem no documento devem ser null
 
+REGRAS CRÍTICAS DE PATRIMÔNIO LÍQUIDO:
+- Só preencha netPatrimony se o relatório trouxer EXPLICITAMENTE "patrimônio líquido", "valor líquido" ou equivalente
+- Se não houver esse campo, deixe netPatrimony como null — NÃO preencha com zero, NÃO copie o bruto
+
+REGRAS CRÍTICAS DE LIQUIDEZ:
+- Jamais assuma D+1 como padrão se o relatório não informar prazos de liquidez
+- Se o relatório NÃO tiver informação de liquidez, retorne liquidityNotInformed = true e todos os campos de liquidity como null
+- Se o relatório tiver faixas de liquidez diferentes das padrão, mapeie para as mais próximas
+
 IMPORTANTE: Retorne APENAS o JSON, sem markdown, sem backticks, sem texto antes ou depois.
 
 Estrutura obrigatória do JSON:
 {
   "reportDate": "YYYY-MM-DD ou null se não identificável",
+  "liquidityNotInformed": boolean (true se o relatório não traz dados de liquidez),
   "generalData": {
     "grossPatrimony": number ou null,
-    "netPatrimony": number ou null,
+    "netPatrimony": number ou null (SOMENTE se explicitamente informado no relatório),
     "monthReturn": number ou null (percentual),
     "yearReturn": number ou null (percentual),
     "twelveMonthReturn": number ou null (percentual),
-    "cumulativeReturn": number ou null (percentual),
+    "cumulativeReturn": number ou null (percentual ou valor absoluto se previdência),
     "cdiEquivalent": number ou null (percentual)
   },
   "liquidity": {
-    "dPlus1": number ou null (percentual),
+    "dPlus1": number ou null (percentual — somente se o relatório informar),
     "upTo1Year": number ou null (percentual),
     "oneToFiveYears": number ou null (percentual),
     "aboveFiveYears": number ou null (percentual)
@@ -114,7 +125,7 @@ Estrutura obrigatória do JSON:
   "positions": [
     {
       "name": "string",
-      "type": "string (CRA, CRI, Debênture, CDB, Fundo, LCA, LCI, Tesouro, Ação, FII, etc.)",
+      "type": "string (CRA, CRI, Debênture, CDB, Fundo, LCA, LCI, Tesouro, Ação, FII, Previdência, etc.)",
       "indexer": "string (IPCA+, Prefixado, Pós-fixado, CDI+, etc.)",
       "rate": "string (ex: IPCA+6.5%, 110% CDI, 12.5% a.a.)",
       "maturityDate": "YYYY-MM-DD ou null",
