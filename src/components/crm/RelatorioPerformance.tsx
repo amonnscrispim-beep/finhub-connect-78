@@ -100,6 +100,7 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
   const [activeTab, setActiveTab] = useState('consolidated');
   const [selectedBroker, setSelectedBroker] = useState<string>('');
   const [selectedReportId, setSelectedReportId] = useState<string>('');
+  const [agendaBrokerFilter, setAgendaBrokerFilter] = useState<string>('all');
 
   // Upload metadata state
   const [uploadBroker, setUploadBroker] = useState('');
@@ -448,46 +449,72 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
         )}
 
         {/* Vencimentos */}
-        {withMat.length > 0 && (
-          <div className="p-4 bg-muted/30 rounded-lg border border-border space-y-3">
-            <h4 className="font-semibold text-foreground">Agenda de Vencimentos</h4>
-            {[
-              { label: 'Até 6 meses', items: within6m },
-              { label: '6 a 12 meses', items: sixTo12m },
-            ].filter(b => b.items.length > 0).map(({ label: l, items }) => {
-              const total = items.reduce((s, p) => s + (p.grossBalance ?? 0), 0);
-              return (
-                <div key={l} className="p-3 bg-accent/30 rounded border border-border space-y-1">
-                  <p className="text-sm font-medium">{l}: {items.length} {items.length === 1 ? 'ativo' : 'ativos'} | Total: R$ {fmt(total)}</p>
-                  {items.slice(0, 10).map((p, i) => (
-                    <p key={i} className="text-xs text-muted-foreground pl-4">
-                      {p.name} | Venc: {new Date(p.maturityDate!).toLocaleDateString('pt-BR')} | R$ {fmt(p.grossBalance)}
-                      {p.broker ? ` | ${p.broker}` : ''}{p.pdfFilename ? ` – ${p.pdfFilename}` : ''}
-                    </p>
-                  ))}
-                  {items.length > 10 && <p className="text-xs text-muted-foreground pl-4">...e mais {items.length - 10}</p>}
-                </div>
-              );
-            })}
+        {withMat.length > 0 && (() => {
+          // Get unique brokers from maturity items
+          const agendaBrokers = Array.from(new Set(withMat.map(p => (p as any).broker).filter(Boolean))).sort() as string[];
+          const filteredMat = agendaBrokerFilter === 'all' ? withMat : withMat.filter(p => (p as any).broker === agendaBrokerFilter);
+          const filteredWithin6m = filteredMat.filter(p => p.matDate <= in6m);
+          const filteredSixTo12m = filteredMat.filter(p => p.matDate > in6m && p.matDate <= in12m);
+          const filteredByYear: Record<string, typeof filteredMat> = {};
+          filteredMat.forEach(p => {
+            const yr = p.matDate.getFullYear().toString();
+            if (!filteredByYear[yr]) filteredByYear[yr] = [];
+            filteredByYear[yr].push(p);
+          });
 
-            {Object.entries(byYear).sort(([a], [b]) => a.localeCompare(b)).map(([year, items]) => {
-              const total = items.reduce((s, p) => s + (p.grossBalance ?? 0), 0);
-              const pctPat = grossPatrimony > 0 ? (total / grossPatrimony) * 100 : 0;
-              return (
-                <div key={year} className="p-3 bg-accent/30 rounded border border-border space-y-1">
-                  <p className="text-sm font-medium">Ano {year}: {items.length} ativos | R$ {fmt(total)} | {fmtPct(pctPat)} do patrimônio</p>
-                  {items.slice(0, 10).map((p, i) => (
-                    <p key={i} className="text-xs text-muted-foreground pl-4">
-                      {p.name} | Venc: {new Date(p.maturityDate!).toLocaleDateString('pt-BR')} | R$ {fmt(p.grossBalance)}
-                      {p.broker ? ` | ${p.broker}` : ''}{p.pdfFilename ? ` – ${p.pdfFilename}` : ''}
-                    </p>
-                  ))}
-                  {items.length > 10 && <p className="text-xs text-muted-foreground pl-4">...e mais {items.length - 10}</p>}
-                </div>
-              );
-            })}
-          </div>
-        )}
+          return (
+            <div className="p-4 bg-muted/30 rounded-lg border border-border space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h4 className="font-semibold text-foreground">Agenda de Vencimentos</h4>
+                {agendaBrokers.length > 1 && (
+                  <Select value={agendaBrokerFilter} onValueChange={setAgendaBrokerFilter}>
+                    <SelectTrigger className="w-48 h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas corretoras</SelectItem>
+                      {agendaBrokers.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              {[
+                { label: 'Até 6 meses', items: filteredWithin6m },
+                { label: '6 a 12 meses', items: filteredSixTo12m },
+              ].filter(b => b.items.length > 0).map(({ label: l, items }) => {
+                const total = items.reduce((s, p) => s + (p.grossBalance ?? 0), 0);
+                return (
+                  <div key={l} className="p-3 bg-accent/30 rounded border border-border space-y-1">
+                    <p className="text-sm font-medium">{l}: {items.length} {items.length === 1 ? 'ativo' : 'ativos'} | Total: R$ {fmt(total)}</p>
+                    {items.slice(0, 10).map((p, i) => (
+                      <p key={i} className="text-xs text-muted-foreground pl-4">
+                        {p.name} | Venc: {new Date(p.maturityDate!).toLocaleDateString('pt-BR')} | R$ {fmt(p.grossBalance)}
+                        {(p as any).broker ? ` | Origem: ${(p as any).broker}` : ''}{(p as any).pdfFilename ? ` – ${(p as any).pdfFilename}` : ''}
+                      </p>
+                    ))}
+                    {items.length > 10 && <p className="text-xs text-muted-foreground pl-4">...e mais {items.length - 10}</p>}
+                  </div>
+                );
+              })}
+
+              {Object.entries(filteredByYear).sort(([a], [b]) => a.localeCompare(b)).map(([year, items]) => {
+                const total = items.reduce((s, p) => s + (p.grossBalance ?? 0), 0);
+                const pctPat = grossPatrimony > 0 ? (total / grossPatrimony) * 100 : 0;
+                return (
+                  <div key={year} className="p-3 bg-accent/30 rounded border border-border space-y-1">
+                    <p className="text-sm font-medium">Ano {year}: {items.length} ativos | R$ {fmt(total)} | {fmtPct(pctPat)} do patrimônio</p>
+                    {items.slice(0, 10).map((p, i) => (
+                      <p key={i} className="text-xs text-muted-foreground pl-4">
+                        {p.name} | Venc: {new Date(p.maturityDate!).toLocaleDateString('pt-BR')} | R$ {fmt(p.grossBalance)}
+                        {(p as any).broker ? ` | Origem: ${(p as any).broker}` : ''}{(p as any).pdfFilename ? ` – ${(p as any).pdfFilename}` : ''}
+                      </p>
+                    ))}
+                    {items.length > 10 && <p className="text-xs text-muted-foreground pl-4">...e mais {items.length - 10}</p>}
+                  </div>
+                );
+              })}
+              {filteredMat.length === 0 && <p className="text-xs text-muted-foreground">Nenhum vencimento encontrado para o filtro selecionado.</p>}
+            </div>
+          );
+        })()}
 
         {/* Alertas */}
         {alerts.length > 0 && (
@@ -509,7 +536,6 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {positions[0]?.broker !== undefined && <TableHead>Corretora</TableHead>}
                     <TableHead className="min-w-[160px]">Ativo</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead>Indexador</TableHead>
@@ -517,12 +543,12 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
                     <TableHead>Vencimento</TableHead>
                     <TableHead className="text-right">Valor (R$)</TableHead>
                     <TableHead className="text-right">%</TableHead>
+                    <TableHead>Origem</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {positions.map((p, i) => (
                     <TableRow key={i}>
-                      {(p as any).broker !== undefined && <TableCell className="text-xs">{(p as any).broker ?? '—'}</TableCell>}
                       <TableCell className="text-xs font-medium">{p.name ?? '—'}</TableCell>
                       <TableCell><Badge variant="outline" className="text-xs">{p.type ?? '—'}</Badge></TableCell>
                       <TableCell className="text-xs">{p.indexer ?? '—'}</TableCell>
@@ -530,6 +556,10 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
                       <TableCell className="text-xs">{p.maturityDate ? new Date(p.maturityDate).toLocaleDateString('pt-BR') : '—'}</TableCell>
                       <TableCell className="text-right text-xs">R$ {fmt(p.grossBalance)}</TableCell>
                       <TableCell className="text-right text-xs">{fmtPct(p.portfolioPct)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {(p as any).broker ? `${(p as any).broker}` : '—'}
+                        {(p as any).pdfFilename ? ` – ${(p as any).pdfFilename}` : ''}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -581,8 +611,75 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
       const gd = r.extractedData?.generalData ?? {};
       lines.push(`► ${r.broker || 'N/A'} — ${r.pdfFilename}: R$ ${fmt(gd.grossPatrimony)}`);
     });
+
+    // Per-position listing with origin
+    if (consolidatedData.allPositions.length > 0) {
+      lines.push('', '─'.repeat(50), 'POSIÇÕES CONSOLIDADAS', '');
+      consolidatedData.allPositions.forEach(p => {
+        const venc = p.maturityDate ? new Date(p.maturityDate).toLocaleDateString('pt-BR') : '—';
+        lines.push(`${p.name} | ${p.type || '—'} | Venc: ${venc} | R$ ${fmt(p.grossBalance)} | Origem: ${p.broker || 'N/A'} – ${p.pdfFilename || 'N/A'}`);
+      });
+    }
+
+    // Per-broker breakdown
+    if (brokerList.length > 0) {
+      lines.push('', '═'.repeat(50), 'DETALHAMENTO POR CORRETORA', '═'.repeat(50));
+      brokerList.forEach(broker => {
+        const brokerPositions = consolidatedData.allPositions.filter(p => p.broker === broker);
+        const brokerReports = extractedReports.filter(r => r.broker === broker);
+        const brokerGross = brokerReports.reduce((s, r) => s + (r.extractedData?.generalData?.grossPatrimony ?? 0), 0);
+        
+        lines.push('', `▸ ${broker}`, '─'.repeat(40));
+        lines.push(`  Patrimônio: R$ ${fmt(brokerGross)} | ${brokerPositions.length} ativos`);
+        
+        // Maturity by year for this broker
+        const withMatBroker = brokerPositions
+          .filter(p => p.maturityDate && new Date(p.maturityDate) >= new Date())
+          .sort((a, b) => new Date(a.maturityDate!).getTime() - new Date(b.maturityDate!).getTime());
+
+        if (withMatBroker.length > 0) {
+          const byYearBroker: Record<string, typeof withMatBroker> = {};
+          withMatBroker.forEach(p => {
+            const yr = new Date(p.maturityDate!).getFullYear().toString();
+            if (!byYearBroker[yr]) byYearBroker[yr] = [];
+            byYearBroker[yr].push(p);
+          });
+          lines.push('  Vencimentos:');
+          Object.entries(byYearBroker).sort(([a], [b]) => a.localeCompare(b)).forEach(([year, items]) => {
+            const total = items.reduce((s, p) => s + (p.grossBalance ?? 0), 0);
+            lines.push(`    ${year}: ${items.length} ativos | R$ ${fmt(total)}`);
+            items.forEach(p => {
+              lines.push(`      - ${p.name} | Venc: ${new Date(p.maturityDate!).toLocaleDateString('pt-BR')} | R$ ${fmt(p.grossBalance)}`);
+            });
+          });
+        }
+
+        // Liquidity for this broker
+        const brokerLiqReports = brokerReports.map(r => ({
+          gross: r.extractedData?.generalData?.grossPatrimony ?? 0,
+          liq: r.extractedData?.liquidity ?? {},
+        }));
+        const liqBands = ['dPlus1', 'upTo1Year', 'oneToFiveYears', 'aboveFiveYears'] as const;
+        const liqLabels: Record<string, string> = { dPlus1: 'D+1', upTo1Year: 'Até 1 ano', oneToFiveYears: '1-5 anos', aboveFiveYears: '5+ anos' };
+        const liqParts: string[] = [];
+        liqBands.forEach(band => {
+          let totalVal = 0; let hasData = false;
+          brokerLiqReports.forEach(({ gross, liq }) => {
+            const pct = liq?.[band] ?? null;
+            if (pct != null && gross > 0) { totalVal += gross * (pct / 100); hasData = true; }
+          });
+          if (hasData && brokerGross > 0) {
+            liqParts.push(`${liqLabels[band]}: ${((totalVal / brokerGross) * 100).toFixed(1)}% (R$ ${fmt(totalVal)})`);
+          }
+        });
+        if (liqParts.length > 0) {
+          lines.push(`  Liquidez: ${liqParts.join(' | ')}`);
+        }
+      });
+    }
+
     if (consolidatedData.alerts.length > 0) {
-      lines.push('', 'ALERTAS:', ...consolidatedData.alerts);
+      lines.push('', '─'.repeat(50), 'ALERTAS:', ...consolidatedData.alerts);
     }
     return lines.join('\n');
   }, [consolidatedData, extractedReports, brokerList]);
@@ -597,6 +694,18 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
       parts.push(`⚠️ *Alertas:* ${consolidatedData.alerts.length} pontos de atenção identificados.\n`);
     }
     parts.push(`📌 *Próximo passo:* Agendar reunião para discutir a visão consolidada.`);
+
+    // Origin line with per-broker totals
+    if (brokerList.length > 0) {
+      const brokerTotals = brokerList.map(broker => {
+        const total = extractedReports
+          .filter(r => r.broker === broker)
+          .reduce((s, r) => s + (r.extractedData?.generalData?.grossPatrimony ?? 0), 0);
+        return `${broker} (R$ ${fmt(total)})`;
+      });
+      parts.push(`\n📎 *Origem dos dados:* ${brokerTotals.join(' | ')}`);
+    }
+
     return parts.join('\n');
   }, [consolidatedData, extractedReports, brokerList]);
 
