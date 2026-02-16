@@ -3,6 +3,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { CurrencyInput, formatCurrencyBR } from '@/components/ui/currency-input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronRight, ChevronUp, MessageSquare } from 'lucide-react';
@@ -28,7 +29,12 @@ export interface EstruturaPatrimonialData {
   activeDependencyNotes: string;
   activeDependencyPercent: string;
   // 6 - Síntese Técnica
-  structuralDiagnosis: string;
+  // 6 - Síntese Técnica (structured)
+  concentrationLevel: string;
+  liquidityLevel: string;
+  legalExposure: string;
+  personalDependency: string;
+  strategicDirection: string;
 }
 
 export const defaultEstruturaPatrimonial: EstruturaPatrimonialData = {
@@ -46,7 +52,11 @@ export const defaultEstruturaPatrimonial: EstruturaPatrimonialData = {
   concentrationDetail: '',
   activeDependencyNotes: '',
   activeDependencyPercent: '',
-  structuralDiagnosis: '',
+  concentrationLevel: '',
+  liquidityLevel: '',
+  legalExposure: '',
+  personalDependency: '',
+  strategicDirection: '',
 };
 
 function ConsultantNote({ children }: { children: string }) {
@@ -265,17 +275,69 @@ export function EstruturaPatrimonial({ data, onChange }: Props) {
           </div>
 
           {/* 6️⃣ Síntese Técnica do Consultor */}
-          <div className="p-4 bg-primary/5 rounded-lg border-2 border-primary/30 space-y-3">
-            <h4 className="font-semibold text-primary">6️⃣ Síntese Técnica do Consultor</h4>
-            <p className="text-xs text-muted-foreground">
-              Diagnóstico Estrutural Inicial — Preencha: Nível de concentração (% maior ativo), Grau de liquidez, Exposição jurídica, Dependência pessoal e Direção estratégica sugerida.
-            </p>
-            <Textarea
-              value={data.structuralDiagnosis}
-              onChange={(e) => update({ structuralDiagnosis: e.target.value })}
-              placeholder={"• Nível de concentração (% maior ativo):\n• Grau de liquidez (alto / médio / baixo):\n• Exposição jurídica (alta / média / baixa):\n• Dependência pessoal (alta / média / baixa):\n• Direção estratégica sugerida:"}
-              className="crm-input min-h-[160px] text-sm"
-            />
+          <div className="p-4 bg-primary/5 rounded-lg border-2 border-primary/30 space-y-4">
+            <h4 className="font-semibold text-primary">6️⃣ Diagnóstico Estrutural Inicial</h4>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nível de concentração (% maior ativo)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={data.concentrationLevel}
+                  onChange={(e) => update({ concentrationLevel: e.target.value })}
+                  placeholder="Ex: 65"
+                  className="crm-input w-[150px]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Grau de liquidez</Label>
+                <Select value={data.liquidityLevel} onValueChange={(v) => update({ liquidityLevel: v })}>
+                  <SelectTrigger className="crm-input w-[180px]"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Alto">Alto</SelectItem>
+                    <SelectItem value="Médio">Médio</SelectItem>
+                    <SelectItem value="Baixo">Baixo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Exposição jurídica</Label>
+                <Select value={data.legalExposure} onValueChange={(v) => update({ legalExposure: v })}>
+                  <SelectTrigger className="crm-input w-[180px]"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Alta">Alta</SelectItem>
+                    <SelectItem value="Média">Média</SelectItem>
+                    <SelectItem value="Baixa">Baixa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Dependência pessoal</Label>
+                <Select value={data.personalDependency} onValueChange={(v) => update({ personalDependency: v })}>
+                  <SelectTrigger className="crm-input w-[180px]"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Alta">Alta</SelectItem>
+                    <SelectItem value="Média">Média</SelectItem>
+                    <SelectItem value="Baixa">Baixa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Direção estratégica sugerida</Label>
+              <Textarea
+                value={data.strategicDirection}
+                onChange={(e) => update({ strategicDirection: e.target.value })}
+                placeholder="Descreva a direção estratégica sugerida..."
+                className="crm-input min-h-[100px] text-sm"
+              />
+            </div>
           </div>
         </div>
       </CollapsibleContent>
