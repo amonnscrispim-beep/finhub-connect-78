@@ -64,7 +64,7 @@ import { ScoreEstrategico } from './ScoreEstrategico';
 import { AlertasConsultor } from './AlertasConsultor';
 import { ResumoFinanceiroAutomatico } from './ResumoFinanceiroAutomatico';
 import { PainelFinanceiro } from './PainelFinanceiro';
-import { DiagnosticoEstrategico, defaultStrategicDiagnostic, StrategicDiagnosticData } from './DiagnosticoEstrategico';
+import { DiagnosticoEstrategico, defaultStrategicDiagnostic, StrategicDiagnosticData, defaultFamilyData } from './DiagnosticoEstrategico';
 import { EstruturaPatrimonial, defaultEstruturaPatrimonial, EstruturaPatrimonialData } from './EstruturaPatrimonial';
 import { FluxoCaixaAccumulacao, defaultFluxoCaixa, FluxoCaixaData } from './FluxoCaixaAccumulacao';
 import { ObjetivosMetas, defaultObjetivosMetas, ObjetivosMetasData } from './ObjetivosMetas';
@@ -338,7 +338,24 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         businessAssets: (client as any).businessAssets?.toString() || '',
         passiveIncome: (client as any).passiveIncome?.toString() || '',
         successionPlanning: (client as any).successionPlanning || '',
-        strategicDiagnostic: { ...defaultStrategicDiagnostic, ...((client as any).strategicDiagnostic || {}) },
+        strategicDiagnostic: (() => {
+          const base = { ...defaultStrategicDiagnostic, ...((client as any).strategicDiagnostic || {}) };
+          // Migrate legacy family data if family block is empty
+          if (!base.family || !base.family.maritalStatus) {
+            const legacyFamily = {
+              maritalStatus: client.married ? 'Casado(a)' : '',
+              hasChildren: client.hasChildren ? 'Sim' : '',
+              childrenCount: client.children?.length?.toString() || '',
+              childrenAges: client.children?.map((c: any) => c.age ? `${c.age} anos` : '').filter(Boolean).join(', ') || '',
+              spouseHasIncome: client.partner?.monthlyRevenue ? 'Sim' : '',
+              spouseMonthlyIncome: client.partner?.monthlyRevenue?.toString() || '',
+            };
+            base.family = { ...(base.family || {}), ...legacyFamily };
+          }
+          // Ensure family defaults
+          base.family = { ...defaultFamilyData, ...(base.family || {}) };
+          return base;
+        })(),
         estruturaPatrimonial: { ...defaultEstruturaPatrimonial, ...((client as any).estruturaPatrimonial || ((client as any).strategicDiagnostic?.estruturaPatrimonial) || {}) },
         fluxoCaixa: { ...defaultFluxoCaixa, ...((client as any).fluxoCaixa || ((client as any).strategicDiagnostic?.fluxoCaixa) || {}) },
         objetivosMetas: { ...defaultObjetivosMetas, ...((client as any).objetivosMetas || ((client as any).strategicDiagnostic?.objetivosMetas) || {}) },
@@ -378,19 +395,24 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     e.preventDefault();
     setIsSaving(true);
     
+    // Derive legacy family fields from strategicDiagnostic.family
+    const familyData = formData.strategicDiagnostic.family;
+    const isMarried = familyData?.maritalStatus === 'Casado(a)' || familyData?.maritalStatus === 'União estável';
+    
     let partner: PartnerInfo | null = null;
-    if (formData.married && (formData.partnerName || formData.partnerAge || formData.partnerProfession || formData.partnerMonthlyRevenue)) {
+    if (isMarried && (formData.partnerName || formData.partnerAge || formData.partnerProfession || familyData?.spouseMonthlyIncome)) {
       partner = {
         name: formData.partnerName,
         age: formData.partnerAge ? parseInt(formData.partnerAge) : null,
         profession: formData.partnerProfession,
-        monthlyRevenue: formData.partnerMonthlyRevenue ? parseFloat(formData.partnerMonthlyRevenue) : null,
+        monthlyRevenue: familyData?.spouseMonthlyIncome ? parseFloat(familyData.spouseMonthlyIncome) : (formData.partnerMonthlyRevenue ? parseFloat(formData.partnerMonthlyRevenue) : null),
       };
-    } else if (!formData.married && client?.partner) {
+    } else if (!isMarried && client?.partner) {
       partner = client.partner;
     }
 
-    let children: ChildInfo[] = formData.hasChildren ? formData.children : (client?.children || []);
+    const hasChildrenFromDiag = familyData?.hasChildren === 'Sim';
+    let children: ChildInfo[] = hasChildrenFromDiag ? formData.children : (client?.children || []);
 
     // Store arquitetura estrategica in portfolio_distribution
     const portfolioDistribution = { arquiteturaEstrategica: formData.arquiteturaEstrategica };
@@ -446,9 +468,9 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       residence: formData.residence,
       renewalStatus: formData.renewalStatus,
       renewalDate: formData.renewalDate,
-      married: formData.married,
-      partner: formData.married ? partner : (client?.partner || null),
-      hasChildren: formData.hasChildren,
+      married: isMarried,
+      partner: isMarried ? partner : (client?.partner || null),
+      hasChildren: hasChildrenFromDiag,
       children: children,
       portfolioDistribution: portfolioDistribution,
       privatePensionStatus: formData.privatePensionStatus,
@@ -835,79 +857,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               />
             </CollapsibleSection>
 
-            {/* SECTION 2: Estrutura Familiar */}
-            <CollapsibleSection title="Estrutura Familiar" icon={Heart} defaultOpen={false}>
-              <div className="space-y-2">
-                <Label htmlFor="married">Casado(a)?</Label>
-                <Select value={formData.married ? 'sim' : 'não'} onValueChange={(value) => handleChange('married', value === 'sim')}>
-                  <SelectTrigger className="crm-input w-[200px]"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="sim">Sim</SelectItem><SelectItem value="não">Não</SelectItem></SelectContent>
-                </Select>
-              </div>
-
-              {formData.married && (
-                <div className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
-                  <h4 className="font-medium text-foreground">Dados do Parceiro(a)</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="partnerName">Nome</Label>
-                      <Input id="partnerName" value={formData.partnerName} onChange={(e) => handleChange('partnerName', e.target.value)} placeholder="Nome completo" className="crm-input" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="partnerAge">Idade</Label>
-                      <Input id="partnerAge" type="number" value={formData.partnerAge} onChange={(e) => handleChange('partnerAge', e.target.value)} placeholder="Ex: 35" className="crm-input" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="partnerProfession">Profissão</Label>
-                      <Input id="partnerProfession" value={formData.partnerProfession} onChange={(e) => handleChange('partnerProfession', e.target.value)} placeholder="Ex: Advogada" className="crm-input" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="partnerMonthlyRevenue">Faturamento mensal do parceiro(a)</Label>
-                      <CurrencyInput id="partnerMonthlyRevenue" value={formData.partnerMonthlyRevenue} onChange={(value) => handleChange('partnerMonthlyRevenue', value)} placeholder="R$ 0,00" />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="hasChildren">Filhos?</Label>
-                <Select value={formData.hasChildren ? 'sim' : 'não'} onValueChange={(value) => { const hasChildren = value === 'sim'; handleChange('hasChildren', hasChildren); if (hasChildren && formData.children.length === 0) handleAddChild(); }}>
-                  <SelectTrigger className="crm-input w-[200px]"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="sim">Sim</SelectItem><SelectItem value="não">Não</SelectItem></SelectContent>
-                </Select>
-              </div>
-
-              {formData.hasChildren && (
-                <div className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
-                  <h4 className="font-medium text-foreground">Dados dos Filhos</h4>
-                  {formData.children.map((child, index) => (
-                    <div key={child.id} className="flex items-end gap-3">
-                      <div className="flex-1 space-y-2">
-                        <Label>Nome do Filho(a) {index + 1}</Label>
-                        <Input value={child.name} onChange={(e) => handleChildChange(child.id, 'name', e.target.value)} placeholder="Nome completo" className="crm-input" />
-                      </div>
-                      <div className="w-24 space-y-2">
-                        <Label>Idade</Label>
-                        <Input type="number" value={child.age?.toString() || ''} onChange={(e) => handleChildChange(child.id, 'age', e.target.value)} placeholder="Idade" className="crm-input" />
-                      </div>
-                      <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveChild(child.id)} className="text-destructive hover:text-destructive">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button type="button" variant="outline" size="sm" onClick={handleAddChild} className="mt-2"><Plus className="w-4 h-4 mr-2" />Adicionar outro filho</Button>
-                </div>
-              )}
-
-              {/* Collapsible Comments */}
-              <CollapsibleComments
-                value={formData.moduleNotes.family || ''}
-                onChange={(value) => setFormData(prev => ({
-                  ...prev,
-                  moduleNotes: { ...prev.moduleNotes, family: value }
-                }))}
-              />
-            </CollapsibleSection>
+            {/* Estrutura Familiar agora integrada dentro do Diagnóstico Estratégico */}
 
             {/* SECTION 3: Situação Financeira Atual (Painel Automático) */}
             <CollapsibleSection title="Situação Financeira Atual" icon={DollarSign} defaultOpen={false}>
