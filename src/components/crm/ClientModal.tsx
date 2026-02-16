@@ -69,6 +69,7 @@ import { ObjetivosMetas, defaultObjetivosMetas, ObjetivosMetasData } from './Obj
 import { PerfilRisco, defaultPerfilRisco, PerfilRiscoData } from './PerfilRisco';
 import { ProtecaoSucessao, defaultProtecaoSucessao, ProtecaoSucessaoData } from './ProtecaoSucessao';
 import { HistoricoMercado, defaultHistoricoMercado, HistoricoMercadoData } from './HistoricoMercado';
+import { DirecionamentoEstrategico, defaultDirecionamentoEstrategico, DirecionamentoEstrategicoData } from './DirecionamentoEstrategico';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -166,6 +167,7 @@ interface FormData {
   perfilRisco: PerfilRiscoData;
   protecaoSucessao: ProtecaoSucessaoData;
   historicoMercado: HistoricoMercadoData;
+  direcionamentoEstrategico: DirecionamentoEstrategicoData;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
@@ -259,6 +261,7 @@ const defaultFormData: FormData = {
   perfilRisco: defaultPerfilRisco,
   protecaoSucessao: defaultProtecaoSucessao,
   historicoMercado: defaultHistoricoMercado,
+  direcionamentoEstrategico: defaultDirecionamentoEstrategico,
 };
 
 export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
@@ -348,6 +351,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         perfilRisco: { ...defaultPerfilRisco, ...((client as any).perfilRisco || ((client as any).strategicDiagnostic?.perfilRisco) || {}) },
         protecaoSucessao: { ...defaultProtecaoSucessao, ...((client as any).protecaoSucessao || ((client as any).strategicDiagnostic?.protecaoSucessao) || {}) },
         historicoMercado: { ...defaultHistoricoMercado, ...((client as any).historicoMercado || ((client as any).strategicDiagnostic?.historicoMercado) || {}) },
+        direcionamentoEstrategico: { ...defaultDirecionamentoEstrategico, ...((client as any).direcionamentoEstrategico || ((client as any).strategicDiagnostic?.direcionamentoEstrategico) || {}) },
       });
       setDraftGoals([]);
     } else {
@@ -494,7 +498,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       businessAssets: parseFloat(formData.businessAssets) || 0,
       passiveIncome: parseFloat(formData.passiveIncome) || 0,
       successionPlanning: formData.successionPlanning || '',
-      strategicDiagnostic: { ...formData.strategicDiagnostic, estruturaPatrimonial: formData.estruturaPatrimonial, fluxoCaixa: formData.fluxoCaixa, objetivosMetas: formData.objetivosMetas, perfilRisco: formData.perfilRisco, protecaoSucessao: formData.protecaoSucessao, historicoMercado: formData.historicoMercado },
+      strategicDiagnostic: { ...formData.strategicDiagnostic, estruturaPatrimonial: formData.estruturaPatrimonial, fluxoCaixa: formData.fluxoCaixa, objetivosMetas: formData.objetivosMetas, perfilRisco: formData.perfilRisco, protecaoSucessao: formData.protecaoSucessao, historicoMercado: formData.historicoMercado, direcionamentoEstrategico: formData.direcionamentoEstrategico },
     };
 
     try {
@@ -832,6 +836,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               <HistoricoMercado
                 data={formData.historicoMercado}
                 onChange={(data) => setFormData(prev => ({ ...prev, historicoMercado: data }))}
+              />
+              <DirecionamentoEstrategico
+                data={formData.direcionamentoEstrategico}
+                onChange={(data) => setFormData(prev => ({ ...prev, direcionamentoEstrategico: data }))}
               />
             </CollapsibleSection>
 
