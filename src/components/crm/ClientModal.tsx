@@ -71,6 +71,7 @@ import { ObjetivosMetas, defaultObjetivosMetas, ObjetivosMetasData } from './Obj
 import { PerfilRisco, defaultPerfilRisco, PerfilRiscoData } from './PerfilRisco';
 import { ProtecaoSucessao, defaultProtecaoSucessao, ProtecaoSucessaoData } from './ProtecaoSucessao';
 import { HistoricoMercado, defaultHistoricoMercado, HistoricoMercadoData } from './HistoricoMercado';
+import { RelatorioPerformance } from './RelatorioPerformance';
 import { DirecionamentoEstrategico, defaultDirecionamentoEstrategico, DirecionamentoEstrategicoData } from './DirecionamentoEstrategico';
 import { ArquiteturaCarteira, defaultArquiteturaCarteira, ArquiteturaCarteiraData } from './ArquiteturaCarteira';
 import { supabase } from '@/integrations/supabase/client';
@@ -1306,6 +1307,11 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 onModuleNotesChange={(notes) => setFormData(prev => ({ ...prev, moduleNotes: notes }))}
               />
             )}
+
+            {/* SECTION 10.5: Relatório de Performance */}
+            <CollapsibleSection title="Relatório de Performance" defaultOpen={false}>
+              <RelatorioPerformance clientId={client?.id} />
+            </CollapsibleSection>
 
             {/* SECTION 11: Resultado da Consultoria */}
             <CollapsibleSection title="Resultado da Consultoria" icon={TrendingUp} defaultOpen={false}>

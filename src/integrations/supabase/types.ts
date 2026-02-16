@@ -14,6 +14,65 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_performance_reports: {
+        Row: {
+          alerts: Json | null
+          client_id: string
+          commercial_summary: string | null
+          consultant_conclusion: string | null
+          created_at: string
+          extracted_data: Json | null
+          id: string
+          manual_overrides: Json | null
+          pdf_filename: string | null
+          pdf_url: string | null
+          report_date: string | null
+          technical_summary: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alerts?: Json | null
+          client_id: string
+          commercial_summary?: string | null
+          consultant_conclusion?: string | null
+          created_at?: string
+          extracted_data?: Json | null
+          id?: string
+          manual_overrides?: Json | null
+          pdf_filename?: string | null
+          pdf_url?: string | null
+          report_date?: string | null
+          technical_summary?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alerts?: Json | null
+          client_id?: string
+          commercial_summary?: string | null
+          consultant_conclusion?: string | null
+          created_at?: string
+          extracted_data?: Json | null
+          id?: string
+          manual_overrides?: Json | null
+          pdf_filename?: string | null
+          pdf_url?: string | null
+          report_date?: string | null
+          technical_summary?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_performance_reports_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_portfolio_assets: {
         Row: {
           asset_class: string
