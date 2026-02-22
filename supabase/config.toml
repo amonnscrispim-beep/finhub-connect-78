@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.extract-performance-report]
 verify_jwt = false
+
+[functions.generate-client-report]
+verify_jwt = false
