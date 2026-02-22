@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_form_tokens: {
+        Row: {
+          client_id: string
+          client_name: string
+          completed_at: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          responses: Json | null
+          status: string
+          token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          client_name?: string
+          completed_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          responses?: Json | null
+          status?: string
+          token?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          client_name?: string
+          completed_at?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          responses?: Json | null
+          status?: string
+          token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_form_tokens_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_performance_reports: {
         Row: {
           alerts: Json | null

@@ -75,6 +75,7 @@ import { HistoricoMercado, defaultHistoricoMercado, HistoricoMercadoData } from 
 import { RelatorioPerformance } from './RelatorioPerformance';
 import { RelatorioAutomatizado } from './RelatorioAutomatizado';
 import { ResumoRelatorio } from './ResumoRelatorio';
+import { ClientFormLink } from './ClientFormLink';
 import { useClientPortfolio } from '@/hooks/useClientPortfolio';
 import { DirecionamentoEstrategico, defaultDirecionamentoEstrategico, DirecionamentoEstrategicoData } from './DirecionamentoEstrategico';
 import { ArquiteturaCarteira, defaultArquiteturaCarteira, ArquiteturaCarteiraData } from './ArquiteturaCarteira';
@@ -660,6 +661,17 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         <div className="max-h-[calc(90vh-140px)] overflow-y-auto scrollbar-thin min-w-0">
           <form onSubmit={handleSubmit} className="p-6 space-y-4 min-w-0">
             
+            {/* Form Link Section - only show for existing clients */}
+            {client && (
+              <ClientFormLink
+                clientId={client.id}
+                clientName={client.name}
+                onFormCompleted={() => {
+                  // Reload client data after form sync
+                }}
+              />
+            )}
+
             {/* SECTION 1: Informações Pessoais - defaultOpen=false */}
             <CollapsibleSection title="Informações Pessoais" icon={User} defaultOpen={false}>
               <div className="grid grid-cols-2 gap-4">
