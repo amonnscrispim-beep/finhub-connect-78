@@ -758,28 +758,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 </div>
               </div>
 
-              {/* Consultant annotation fields */}
-              <div className="space-y-2">
-                <Label htmlFor="consultingReason">Motivo da Consultoria</Label>
-                <Textarea 
-                  id="consultingReason" 
-                  value={formData.consultingReason} 
-                  onChange={(e) => handleChange('consultingReason', e.target.value)} 
-                  placeholder="Ex: veio por indicação, quer organizar finanças, montar carteira, planejar mudança de país, aposentadoria…"
-                  className="crm-input min-h-[80px]"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="professionalProfile">Perfil Profissional</Label>
-                <Textarea 
-                  id="professionalProfile" 
-                  value={formData.professionalProfile} 
-                  onChange={(e) => handleChange('professionalProfile', e.target.value)} 
-                  placeholder="Ex: cargo, área, como ganha dinheiro, estabilidade, bônus, PJ/CLT, sazonalidade…"
-                  className="crm-input min-h-[80px]"
-                />
-              </div>
+              {/* consultingReason and professionalProfile fields hidden from UI - data preserved in database */}
 
               {/* Investment History fields */}
               <div className="grid grid-cols-2 gap-4">
