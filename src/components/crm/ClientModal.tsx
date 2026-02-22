@@ -74,6 +74,7 @@ import { ProtecaoSucessao, defaultProtecaoSucessao, ProtecaoSucessaoData } from 
 import { HistoricoMercado, defaultHistoricoMercado, HistoricoMercadoData } from './HistoricoMercado';
 import { RelatorioPerformance } from './RelatorioPerformance';
 import { RelatorioAutomatizado } from './RelatorioAutomatizado';
+import { ResumoRelatorio } from './ResumoRelatorio';
 import { useClientPortfolio } from '@/hooks/useClientPortfolio';
 import { DirecionamentoEstrategico, defaultDirecionamentoEstrategico, DirecionamentoEstrategicoData } from './DirecionamentoEstrategico';
 import { ArquiteturaCarteira, defaultArquiteturaCarteira, ArquiteturaCarteiraData } from './ArquiteturaCarteira';
@@ -269,6 +270,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   const [draftGoals, setDraftGoals] = useState<DraftGoal[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [autoReportObservation, setAutoReportObservation] = useState('');
+  const [reportConsultantObs, setReportConsultantObs] = useState('');
   const portfolio = useClientPortfolio(client?.id);
 
   useEffect(() => {
@@ -1140,7 +1142,6 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
             </CollapsibleSection>
 
 
-
             {/* SECTION 9: Contrato, Reuniões e Entregas */}
             <CollapsibleSection title="Contrato, Reuniões e Entregas" icon={Calendar} defaultOpen={false}>
               <div className="space-y-2">
@@ -1339,6 +1340,17 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               />
             </CollapsibleSection>
 
+            {/* SECTION 13: Resumo e Relatório */}
+            {client && (
+              <CollapsibleSection title="Resumo e Relatório" defaultOpen={false}>
+                <ResumoRelatorio
+                  client={client}
+                  formData={formData}
+                  consultantObservation={reportConsultantObs}
+                  onConsultantObservationChange={setReportConsultantObs}
+                />
+              </CollapsibleSection>
+            )}
 
             {/* Submit Button */}
             <div className="pt-4 flex justify-end gap-3">
