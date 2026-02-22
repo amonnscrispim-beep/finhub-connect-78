@@ -39,7 +39,8 @@ import {
 } from '@/types/client';
 import { FUNNEL_STAGE_OPTIONS } from '@/lib/funnel-utils';
 import { PGBLCalculator } from './PGBLCalculator';
-import { ArquiteturaEstrategicaCarteira, ArquiteturaEstrategicaData, defaultArquiteturaEstrategica } from './ArquiteturaEstrategicaCarteira';
+import { ArquiteturaEstrategicaData, defaultArquiteturaEstrategica } from './ArquiteturaEstrategicaCarteira';
+import { ArquiteturaEstrategicaPainel } from './ArquiteturaEstrategicaPainel';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { BirthDatePicker } from '@/components/ui/birth-date-picker';
@@ -58,7 +59,7 @@ import { DebtSimulatorInline } from './DebtSimulatorInline';
 import { ClientTasksSection } from './ClientTasksSection';
 import { CollapsibleComments } from './CollapsibleComments';
 import type { DebtSimulationData } from '@/types/client';
-import { PortfolioModule } from './portfolio/PortfolioModule';
+// PortfolioModule removed from UI (data preserved in DB)
 import { DiagnosticoPatrimonial } from './DiagnosticoPatrimonial';
 import { ScoreEstrategico } from './ScoreEstrategico';
 import { AlertasConsultor } from './AlertasConsultor';
@@ -1146,26 +1147,17 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               />
             </CollapsibleSection>
 
-            {/* SECTION 7: Arquitetura Estratégica da Carteira */}
+            {/* SECTION 7: Arquitetura Estratégica da Carteira (Painel Automático) */}
             <CollapsibleSection title="Arquitetura Estratégica da Carteira" icon={PieChart} defaultOpen={false}>
-              <ArquiteturaEstrategicaCarteira 
-                data={formData.arquiteturaEstrategica}
-                onChange={(data) => handleChange('arquiteturaEstrategica', data)}
-              />
-
-              {/* Collapsible Comments */}
-              <CollapsibleComments
-                value={formData.moduleNotes.allocation || ''}
-                onChange={(value) => setFormData(prev => ({
+              <ArquiteturaEstrategicaPainel
+                arquiteturaCarteira={formData.arquiteturaCarteira}
+                arquiteturaEstrategica={formData.arquiteturaEstrategica}
+                consultantNote={formData.moduleNotes.allocation || ''}
+                onConsultantNoteChange={(value) => setFormData(prev => ({
                   ...prev,
                   moduleNotes: { ...prev.moduleNotes, allocation: value }
                 }))}
               />
-            </CollapsibleSection>
-
-            {/* SECTION 8: Carteira */}
-            <CollapsibleSection title="Carteira" icon={Wallet} defaultOpen={false}>
-              <PortfolioModule clientId={client?.id} />
             </CollapsibleSection>
 
 
