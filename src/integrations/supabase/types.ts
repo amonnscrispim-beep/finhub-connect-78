@@ -419,6 +419,7 @@ export type Database = {
           partner: Json | null
           partner_monthly_revenue: number | null
           passive_income: number | null
+          patrimonio_financeiro_liquido: number | null
           pending_schedule: boolean | null
           phone: string | null
           portfolio_distribution: Json | null
@@ -495,6 +496,7 @@ export type Database = {
           partner?: Json | null
           partner_monthly_revenue?: number | null
           passive_income?: number | null
+          patrimonio_financeiro_liquido?: number | null
           pending_schedule?: boolean | null
           phone?: string | null
           portfolio_distribution?: Json | null
@@ -571,6 +573,7 @@ export type Database = {
           partner?: Json | null
           partner_monthly_revenue?: number | null
           passive_income?: number | null
+          patrimonio_financeiro_liquido?: number | null
           pending_schedule?: boolean | null
           phone?: string | null
           portfolio_distribution?: Json | null

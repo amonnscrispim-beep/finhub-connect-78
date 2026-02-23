@@ -27,8 +27,8 @@ export function StatsCards({ onPendingScheduleClick, onTotalClientsClick, onRene
   ).length;
   const totalRenewals = renewedCount + renewalPotentialCount;
 
-  // Total financial assets (only active clients)
-  const totalFinancialAssets = activeClients.reduce((sum, client) => sum + client.financialAssets, 0);
+  // Total financial assets using canonical field (only active clients)
+  const totalFinancialAssets = activeClients.reduce((sum, client) => sum + (client.patrimonioFinanceiroLiquido ?? 0), 0);
   const formatCurrency = (value: number) => {
     if (value >= 1000000) {
       return `R$ ${(value / 1000000).toFixed(1)}M`;

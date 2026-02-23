@@ -231,6 +231,8 @@ export interface Client {
   passiveIncome: number;
   successionPlanning: string;
   strategicDiagnostic: Record<string, any>;
+  // Canonical field for ranking (source: Conhecer o Cliente > Ativos financeiros líquidos)
+  patrimonioFinanceiroLiquido: number | null;
   createdAt: Date;
   updatedAt: Date;
 }

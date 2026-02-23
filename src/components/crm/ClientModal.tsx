@@ -457,6 +457,14 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     const resolvedMaterialAssets = resolveNum(formData.estruturaPatrimonial.realEstate, formData.materialAssets);
     const resolvedBusinessAssets = resolveNum(formData.estruturaPatrimonial.businessParticipations, formData.businessAssets);
 
+    // Consolidate canonical patrimonio_financeiro_liquido
+    // Priority A: liquidFinancialAssets from Conhecer o Cliente
+    // Priority B: financialAssets (legacy field)
+    // Priority C: null
+    const liquidFromConhecer = parseFloat(formData.estruturaPatrimonial.liquidFinancialAssets || '') || 0;
+    const liquidFromLegacy = parseFloat(formData.financialAssets) || 0;
+    const patrimonioFinanceiroLiquido = liquidFromConhecer > 0 ? liquidFromConhecer : (liquidFromLegacy > 0 ? liquidFromLegacy : null);
+
     const clientData = {
       contractStart: new Date(formData.contractStart),
       contractEnd: new Date(formData.contractEnd),
@@ -528,6 +536,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       passiveIncome: parseFloat(formData.passiveIncome) || 0,
       successionPlanning: formData.successionPlanning || '',
       strategicDiagnostic: { ...formData.strategicDiagnostic, estruturaPatrimonial: formData.estruturaPatrimonial, fluxoCaixa: formData.fluxoCaixa, objetivosMetas: formData.objetivosMetas, perfilRisco: formData.perfilRisco, protecaoSucessao: formData.protecaoSucessao, historicoMercado: formData.historicoMercado, direcionamentoEstrategico: formData.direcionamentoEstrategico, arquiteturaCarteira: formData.arquiteturaCarteira },
+      patrimonioFinanceiroLiquido: patrimonioFinanceiroLiquido,
     };
 
     try {
