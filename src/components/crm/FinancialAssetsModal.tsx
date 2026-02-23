@@ -1,4 +1,4 @@
-import { DollarSign, TrendingUp, ExternalLink } from 'lucide-react';
+import { DollarSign, TrendingUp, ExternalLink, RefreshCw } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -12,12 +12,15 @@ interface FinancialAssetsModalProps {
 }
 
 export function FinancialAssetsModal({ open, onOpenChange, onEditClient }: FinancialAssetsModalProps) {
-  const { clients } = useClients();
+  const { clients, refetch } = useClients();
+
+  // Filter clients with financialAssets > 0 and sort descending
+  const sortedClients = [...clients]
+    .filter(c => c.financialAssets > 0)
+    .sort((a, b) => b.financialAssets - a.financialAssets)
+    .slice(0, 10);
 
   const totalFinancialAssets = clients.reduce((sum, client) => sum + client.financialAssets, 0);
-
-  // Sort clients by financial assets (highest first)
-  const sortedClients = [...clients].sort((a, b) => b.financialAssets - a.financialAssets);
 
   const handleOpenClient = (client: Client) => {
     onOpenChange(false);
@@ -42,6 +45,16 @@ export function FinancialAssetsModal({ open, onOpenChange, onEditClient }: Finan
             Patrimônio Financeiro Total
           </DialogTitle>
           <p className="text-2xl font-bold mt-2">{formatCurrency(totalFinancialAssets)}</p>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => refetch()}
+            className="mt-2 gap-1.5 text-xs"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Recalcular ranking
+          </Button>
         </DialogHeader>
 
         <ScrollArea className="max-h-[calc(85vh-140px)]">
