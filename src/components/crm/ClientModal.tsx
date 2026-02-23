@@ -447,6 +447,16 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     const finalState = isExterior ? '' : formData.state;
     const finalCountry = isExterior ? formData.country : '';
 
+    // Resolve patrimony values: EstruturaPatrimonial (primary) > override (fallback)
+    const resolveNum = (conhecer: string | undefined, override: string): number => {
+      const fromConhecer = parseFloat(conhecer || '') || 0;
+      const fromOverride = parseFloat(override) || 0;
+      return fromConhecer || fromOverride;
+    };
+    const resolvedFinancialAssets = resolveNum(formData.estruturaPatrimonial.liquidFinancialAssets, formData.financialAssets);
+    const resolvedMaterialAssets = resolveNum(formData.estruturaPatrimonial.realEstate, formData.materialAssets);
+    const resolvedBusinessAssets = resolveNum(formData.estruturaPatrimonial.businessParticipations, formData.businessAssets);
+
     const clientData = {
       contractStart: new Date(formData.contractStart),
       contractEnd: new Date(formData.contractEnd),
@@ -458,8 +468,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       profession: formData.profession,
       objective: formData.objective,
       investmentTerm: formData.investmentTerm,
-      financialAssets: parseFloat(formData.financialAssets) || 0,
-      materialAssets: parseFloat(formData.materialAssets) || 0,
+      financialAssets: resolvedFinancialAssets,
+      materialAssets: resolvedMaterialAssets,
       emergencyReserve: parseFloat(formData.emergencyReserve) || 0,
       investorProfile: formData.investorProfile,
       monthlyRevenue: parseFloat(formData.monthlyRevenue) || 0,
@@ -514,7 +524,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       debtsComments: formData.debtsComments || null,
       moduleNotes: formData.moduleNotes,
       kanbanOrder: client?.kanbanOrder || null,
-      businessAssets: parseFloat(formData.businessAssets) || 0,
+      businessAssets: resolvedBusinessAssets,
       passiveIncome: parseFloat(formData.passiveIncome) || 0,
       successionPlanning: formData.successionPlanning || '',
       strategicDiagnostic: { ...formData.strategicDiagnostic, estruturaPatrimonial: formData.estruturaPatrimonial, fluxoCaixa: formData.fluxoCaixa, objetivosMetas: formData.objetivosMetas, perfilRisco: formData.perfilRisco, protecaoSucessao: formData.protecaoSucessao, historicoMercado: formData.historicoMercado, direcionamentoEstrategico: formData.direcionamentoEstrategico, arquiteturaCarteira: formData.arquiteturaCarteira },
