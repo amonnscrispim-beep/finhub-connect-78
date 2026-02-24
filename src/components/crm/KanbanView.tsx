@@ -20,6 +20,7 @@ import {
   Cake,
   ListTodo,
   CheckCircle2,
+  Trophy,
 } from 'lucide-react';
 import { useClients } from '@/contexts/ClientContext';
 import { Client, FunnelStage, FUNNEL_STAGES, Task } from '@/types/client';
@@ -35,11 +36,12 @@ import {
 import { TasksModal } from './TasksModal';
 import { StageQuickViewDrawer } from './StageQuickViewDrawer';
 import { ClientTasksDrawer } from './ClientTasksDrawer';
-import { KanbanDndProvider, useKanbanDnd } from './KanbanDndContext';
+import { KanbanDndProvider, useKanbanDnd, TOP10_BUCKET_ID } from './KanbanDndContext';
 import { SortableKanbanCard } from './SortableKanbanCard';
 import { DroppableColumn } from './DroppableColumn';
-import { Top10PatrimonioColumn } from './Top10PatrimonioColumn';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 // Build version globals from vite.config.ts define
 declare const __BUILD_TIME__: string;
@@ -475,7 +477,7 @@ function DragOverlayCard({ client }: { client: Client }) {
 }
 
 function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
-  const { clients, moveClientToStage, swapClientOrder, setReorderingFlag } = useClients();
+  const { clients, moveClientToStage, swapClientOrder, setReorderingFlag, updateClient } = useClients();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -558,14 +560,13 @@ function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
     }
   };
 
-  // Memoize clients grouped by stage
+  // Memoize clients grouped by stage + top10
   const clientsByStage = useMemo(() => {
-    const grouped: Record<FunnelStage, Client[]> = {} as Record<FunnelStage, Client[]>;
+    const grouped: Record<string, Client[]> = {};
     const query = searchQuery.trim().toLowerCase();
     
-    KANBAN_STAGES.forEach(stage => {
-      grouped[stage] = [];
-    });
+    KANBAN_STAGES.forEach(stage => { grouped[stage] = []; });
+    grouped[TOP10_BUCKET_ID] = [];
     
     clients.forEach(client => {
       if (client.consultingFinished) return;
@@ -578,23 +579,29 @@ function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
         if (!matches) return;
       }
       
+      if (client.isTop10) {
+        grouped[TOP10_BUCKET_ID].push(client);
+      }
+      
       if (grouped[client.funnelStage]) {
         grouped[client.funnelStage].push(client);
       }
     });
 
-    // Sort by kanbanOrder ASC
     KANBAN_STAGES.forEach(stage => {
       grouped[stage].sort((a, b) => {
         const orderA = a.kanbanOrder ?? Number.MAX_SAFE_INTEGER;
         const orderB = b.kanbanOrder ?? Number.MAX_SAFE_INTEGER;
-        
-        if (orderA !== orderB) {
-          return orderA - orderB;
-        }
-        
+        if (orderA !== orderB) return orderA - orderB;
         return a.id.localeCompare(b.id);
       });
+    });
+
+    grouped[TOP10_BUCKET_ID].sort((a, b) => {
+      const orderA = a.top10Order ?? Number.MAX_SAFE_INTEGER;
+      const orderB = b.top10Order ?? Number.MAX_SAFE_INTEGER;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.id.localeCompare(b.id);
     });
     
     return grouped;
@@ -638,6 +645,32 @@ function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
     swapClientOrder(clientId, belowClient.id);
   }, [clientsByStage, swapClientOrder, setReorderingFlag]);
 
+  // Handle Top 10 reorder via arrows
+  const handleTop10MoveUp = useCallback((clientId: string) => {
+    const top10Clients = clientsByStage[TOP10_BUCKET_ID] || [];
+    const idx = top10Clients.findIndex(c => c.id === clientId);
+    if (idx <= 0) return;
+    const aboveClient = top10Clients[idx - 1];
+    // Swap top10_order values
+    const orderA = top10Clients[idx].top10Order ?? idx * 1000;
+    const orderB = aboveClient.top10Order ?? (idx - 1) * 1000;
+    setReorderingFlag(true);
+    updateClient(clientId, { top10Order: orderB } as any);
+    updateClient(aboveClient.id, { top10Order: orderA } as any);
+  }, [clientsByStage, setReorderingFlag, updateClient]);
+
+  const handleTop10MoveDown = useCallback((clientId: string) => {
+    const top10Clients = clientsByStage[TOP10_BUCKET_ID] || [];
+    const idx = top10Clients.findIndex(c => c.id === clientId);
+    if (idx < 0 || idx >= top10Clients.length - 1) return;
+    const belowClient = top10Clients[idx + 1];
+    const orderA = top10Clients[idx].top10Order ?? idx * 1000;
+    const orderB = belowClient.top10Order ?? (idx + 1) * 1000;
+    setReorderingFlag(true);
+    updateClient(clientId, { top10Order: orderB } as any);
+    updateClient(belowClient.id, { top10Order: orderA } as any);
+  }, [clientsByStage, setReorderingFlag, updateClient]);
+
   return (
     <div className="relative">
       {/* Left Arrow */}
@@ -667,8 +700,47 @@ function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
         className="overflow-x-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent"
       >
         <div className="flex gap-4 p-4 min-w-max">
-          {/* Top 10 Patrimônio - fixed informational column */}
-          <Top10PatrimonioColumn onEditClient={onEditClient} />
+          {/* Top 10 Patrimônio bucket column */}
+          {(() => {
+            const top10Clients = clientsByStage[TOP10_BUCKET_ID] || [];
+            const top10Ids = top10Clients.map(c => c.id);
+            return (
+              <div
+                key={TOP10_BUCKET_ID}
+                className="bg-amber-500/5 rounded-2xl p-4 min-h-[500px] w-80 flex-shrink-0 border border-amber-500/20 transition-all duration-200"
+              >
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-amber-500/20">
+                  <div className="flex items-center gap-2">
+                    <Trophy className="w-4 h-4 text-amber-500" />
+                    <h3 className="font-semibold text-sm text-foreground">Top 10 Patrimônio</h3>
+                  </div>
+                  <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                    {top10Clients.length}/10
+                  </span>
+                </div>
+                <DroppableColumn stage={TOP10_BUCKET_ID as any} clientIds={top10Ids}>
+                  {top10Clients.map((client, index) => (
+                    <SortableKanbanCard key={client.id} client={client}>
+                      <KanbanCard
+                        client={client}
+                        onEdit={() => onEditClient(client)}
+                        onCardClick={() => handleCardClick(client)}
+                        onMoveUp={() => handleTop10MoveUp(client.id)}
+                        onMoveDown={() => handleTop10MoveDown(client.id)}
+                        canMoveUp={index > 0}
+                        canMoveDown={index < top10Clients.length - 1}
+                      />
+                    </SortableKanbanCard>
+                  ))}
+                  {top10Clients.length === 0 && (
+                    <div className="text-center py-12 text-muted-foreground text-sm border-2 border-dashed border-amber-500/20 rounded-xl">
+                      Arraste clientes aqui
+                    </div>
+                  )}
+                </DroppableColumn>
+              </div>
+            );
+          })()}
 
           {KANBAN_STAGES.map((stage) => {
             const stageClients = clientsByStage[stage] || [];
@@ -751,16 +823,18 @@ function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
 }
 
 export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) {
-  const { clients, moveClientToStage, swapClientOrder, setReorderingFlag } = useClients();
+  const { clients, moveClientToStage, swapClientOrder, setReorderingFlag, updateClient } = useClients();
   
-  // Memoize clients grouped by stage for the provider
+  const TOP10_LIMIT = 10;
+
+  // Memoize clients grouped by stage + Top10 bucket
   const clientsByStage = useMemo(() => {
-    const grouped: Record<FunnelStage, Client[]> = {} as Record<FunnelStage, Client[]>;
+    const grouped: Record<string, Client[]> = {};
     const query = searchQuery.trim().toLowerCase();
     
-    FUNNEL_STAGES.forEach(stage => {
-      grouped[stage] = [];
-    });
+    // Init all kanban stages + top10
+    KANBAN_STAGES.forEach(stage => { grouped[stage] = []; });
+    grouped[TOP10_BUCKET_ID] = [];
     
     clients.forEach(client => {
       if (client.consultingFinished) return;
@@ -773,12 +847,19 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
         if (!matches) return;
       }
       
+      // Add to Top10 bucket if flagged
+      if (client.isTop10) {
+        grouped[TOP10_BUCKET_ID].push(client);
+      }
+      
+      // Always add to funnel stage column (client can be in both)
       if (grouped[client.funnelStage]) {
         grouped[client.funnelStage].push(client);
       }
     });
 
-    FUNNEL_STAGES.forEach(stage => {
+    // Sort funnel stages by kanbanOrder
+    KANBAN_STAGES.forEach(stage => {
       grouped[stage].sort((a, b) => {
         const orderA = a.kanbanOrder ?? Number.MAX_SAFE_INTEGER;
         const orderB = b.kanbanOrder ?? Number.MAX_SAFE_INTEGER;
@@ -786,32 +867,33 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
         return a.id.localeCompare(b.id);
       });
     });
+
+    // Sort Top10 by top10Order
+    grouped[TOP10_BUCKET_ID].sort((a, b) => {
+      const orderA = a.top10Order ?? Number.MAX_SAFE_INTEGER;
+      const orderB = b.top10Order ?? Number.MAX_SAFE_INTEGER;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.id.localeCompare(b.id);
+    });
     
     return grouped;
   }, [clients, searchQuery]);
 
   // Handle reorder within same column
-  const handleReorder = useCallback((clientId: string, targetClientId: string | null, stage: FunnelStage, insertBefore: boolean) => {
+  const handleReorder = useCallback((clientId: string, targetClientId: string | null, stage: string, insertBefore: boolean) => {
     if (!targetClientId) return;
-    
-    // Block refetch during reorder
     setReorderingFlag(true);
-    
-    console.log('[Kanban @dnd-kit] Reorder:', { clientId, targetClientId, stage, insertBefore });
-    
-    // Use swapClientOrder for same-column reordering
     swapClientOrder(clientId, targetClientId);
   }, [swapClientOrder, setReorderingFlag]);
 
   // Handle move to different stage
-  const handleMoveToStage = useCallback((clientId: string, stage: FunnelStage, position?: number) => {
+  const handleMoveToStage = useCallback((clientId: string, stage: string, position?: number) => {
     setReorderingFlag(true);
     
     const stageClients = clientsByStage[stage] || [];
     let newOrder: number;
     
     if (position !== undefined && position < stageClients.length) {
-      // Insert at specific position
       const targetClient = stageClients[position];
       if (position === 0) {
         newOrder = (targetClient.kanbanOrder ?? 10) - 1000;
@@ -822,22 +904,75 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
         newOrder = (prevOrder + targetOrder) / 2;
       }
     } else {
-      // Add to end
       const lastOrder = stageClients.length > 0 
         ? Math.max(...stageClients.map(c => c.kanbanOrder ?? 0)) 
         : 0;
       newOrder = lastOrder + 1000;
     }
     
-    console.log('[Kanban @dnd-kit] Move to stage:', { clientId, stage, newOrder });
-    moveClientToStage(clientId, stage, newOrder);
+    moveClientToStage(clientId, stage as FunnelStage, newOrder);
   }, [clientsByStage, moveClientToStage, setReorderingFlag]);
+
+  // Handle move TO Top 10
+  const handleMoveToTop10 = useCallback((clientId: string, position?: number) => {
+    const top10Clients = clientsByStage[TOP10_BUCKET_ID] || [];
+    
+    // Check limit
+    const alreadyInTop10 = top10Clients.some(c => c.id === clientId);
+    if (!alreadyInTop10 && top10Clients.length >= TOP10_LIMIT) {
+      toast.warning(`Top 10 já está cheio (${TOP10_LIMIT} clientes). Remova um cliente primeiro.`);
+      return;
+    }
+
+    let newOrder: number;
+    if (position !== undefined && position < top10Clients.length) {
+      const targetClient = top10Clients[position];
+      if (position === 0) {
+        newOrder = (targetClient.top10Order ?? 10) - 1000;
+      } else {
+        const prevClient = top10Clients[position - 1];
+        newOrder = ((prevClient.top10Order ?? 0) + (targetClient.top10Order ?? 10)) / 2;
+      }
+    } else {
+      const lastOrder = top10Clients.length > 0
+        ? Math.max(...top10Clients.map(c => c.top10Order ?? 0))
+        : 0;
+      newOrder = lastOrder + 1000;
+    }
+
+    setReorderingFlag(true);
+    updateClient(clientId, { isTop10: true, top10Order: newOrder } as any);
+  }, [clientsByStage, setReorderingFlag, updateClient, TOP10_LIMIT]);
+
+  // Handle remove FROM Top 10
+  const handleRemoveFromTop10 = useCallback((clientId: string) => {
+    setReorderingFlag(true);
+    updateClient(clientId, { isTop10: false, top10Order: null } as any);
+  }, [setReorderingFlag, updateClient]);
+
+  // Handle reorder within Top 10
+  const handleReorderTop10 = useCallback((clientId: string, targetClientId: string) => {
+    const top10Clients = clientsByStage[TOP10_BUCKET_ID] || [];
+    const activeIdx = top10Clients.findIndex(c => c.id === clientId);
+    const targetIdx = top10Clients.findIndex(c => c.id === targetClientId);
+    if (activeIdx < 0 || targetIdx < 0) return;
+
+    // Swap orders
+    const orderA = top10Clients[activeIdx].top10Order ?? activeIdx * 1000;
+    const orderB = top10Clients[targetIdx].top10Order ?? targetIdx * 1000;
+    setReorderingFlag(true);
+    updateClient(clientId, { top10Order: orderB } as any);
+    updateClient(targetClientId, { top10Order: orderA } as any);
+  }, [clientsByStage, setReorderingFlag, updateClient]);
 
   return (
     <KanbanDndProvider
       clientsByStage={clientsByStage}
       onReorder={handleReorder}
       onMoveToStage={handleMoveToStage}
+      onMoveToTop10={handleMoveToTop10}
+      onRemoveFromTop10={handleRemoveFromTop10}
+      onReorderTop10={handleReorderTop10}
     >
       <KanbanContent onEditClient={onEditClient} searchQuery={searchQuery} />
     </KanbanDndProvider>

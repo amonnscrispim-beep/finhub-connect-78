@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { useKanbanDnd } from './KanbanDndContext';
 
 interface DroppableColumnProps {
-  stage: FunnelStage;
+  stage: string;
   clientIds: string[];
   children: React.ReactNode;
 }
