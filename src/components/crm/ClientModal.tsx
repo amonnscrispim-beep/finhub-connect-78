@@ -537,6 +537,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       successionPlanning: formData.successionPlanning || '',
       strategicDiagnostic: { ...formData.strategicDiagnostic, estruturaPatrimonial: formData.estruturaPatrimonial, fluxoCaixa: formData.fluxoCaixa, objetivosMetas: formData.objetivosMetas, perfilRisco: formData.perfilRisco, protecaoSucessao: formData.protecaoSucessao, historicoMercado: formData.historicoMercado, direcionamentoEstrategico: formData.direcionamentoEstrategico, arquiteturaCarteira: formData.arquiteturaCarteira },
       patrimonioFinanceiroLiquido: patrimonioFinanceiroLiquido,
+      isTop10: client?.isTop10 ?? false,
+      top10Order: client?.top10Order ?? null,
     };
 
     try {

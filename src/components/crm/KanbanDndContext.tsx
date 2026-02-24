@@ -1,11 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import {
   DndContext,
-  DragOverlay,
-  closestCenter,
   pointerWithin,
   rectIntersection,
-  getFirstCollision,
   KeyboardSensor,
   PointerSensor,
   MouseSensor,
@@ -20,18 +17,24 @@ import {
   CollisionDetection,
 } from '@dnd-kit/core';
 import {
-  arrayMove,
-  SortableContext,
   sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Client, FunnelStage, FUNNEL_STAGES } from '@/types/client';
+
+export const TOP10_BUCKET_ID = '__TOP10_PATRIMONIO__';
+
+// All droppable IDs (stages + top10 bucket)
+const ALL_DROPPABLE_IDS = [...FUNNEL_STAGES, TOP10_BUCKET_ID];
+
+function isDroppableId(id: string): boolean {
+  return ALL_DROPPABLE_IDS.includes(id);
+}
 
 interface KanbanDndContextType {
   activeId: UniqueIdentifier | null;
   activeClient: Client | null;
   overId: UniqueIdentifier | null;
-  overStage: FunnelStage | null;
+  overStage: FunnelStage | string | null;
   isDragging: boolean;
 }
 
@@ -49,9 +52,12 @@ export function useKanbanDnd() {
 
 interface KanbanDndProviderProps {
   children: React.ReactNode;
-  clientsByStage: Record<FunnelStage, Client[]>;
-  onReorder: (clientId: string, targetClientId: string | null, stage: FunnelStage, insertBefore: boolean) => void;
-  onMoveToStage: (clientId: string, stage: FunnelStage, position?: number) => void;
+  clientsByStage: Record<string, Client[]>;
+  onReorder: (clientId: string, targetClientId: string | null, stage: string, insertBefore: boolean) => void;
+  onMoveToStage: (clientId: string, stage: string, position?: number) => void;
+  onMoveToTop10: (clientId: string, position?: number) => void;
+  onRemoveFromTop10: (clientId: string) => void;
+  onReorderTop10: (clientId: string, targetClientId: string) => void;
 }
 
 export function KanbanDndProvider({
@@ -59,110 +65,83 @@ export function KanbanDndProvider({
   clientsByStage,
   onReorder,
   onMoveToStage,
+  onMoveToTop10,
+  onRemoveFromTop10,
+  onReorderTop10,
 }: KanbanDndProviderProps) {
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [activeClient, setActiveClient] = useState<Client | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
-  const [overStage, setOverStage] = useState<FunnelStage | null>(null);
+  const [overStage, setOverStage] = useState<FunnelStage | string | null>(null);
   
-  // Track if drag is in progress to prevent interference
   const isDraggingRef = useRef(false);
 
-  // Configure sensors for maximum cross-browser support (Opera, Chrome, Edge, etc.)
   const pointerSensor = useSensor(PointerSensor, {
-    activationConstraint: {
-      distance: 5, // Reduced for more responsive feel
-    },
+    activationConstraint: { distance: 5 },
   });
-  
   const mouseSensor = useSensor(MouseSensor, {
-    activationConstraint: {
-      distance: 5,
-    },
+    activationConstraint: { distance: 5 },
   });
-  
   const touchSensor = useSensor(TouchSensor, {
-    activationConstraint: {
-      delay: 150,
-      tolerance: 5,
-    },
+    activationConstraint: { delay: 150, tolerance: 5 },
   });
-  
   const keyboardSensor = useSensor(KeyboardSensor, {
     coordinateGetter: sortableKeyboardCoordinates,
   });
 
   const sensors = useSensors(pointerSensor, mouseSensor, touchSensor, keyboardSensor);
 
-  // Custom collision detection that prioritizes cards over columns
   const collisionDetection: CollisionDetection = useCallback((args) => {
-    // First check for collisions with sortable items (cards)
     const pointerCollisions = pointerWithin(args);
     if (pointerCollisions.length > 0) {
-      // Filter out stage columns, prefer card collisions
       const cardCollisions = pointerCollisions.filter(
-        collision => !FUNNEL_STAGES.includes(collision.id as FunnelStage)
+        collision => !isDroppableId(collision.id as string)
       );
-      if (cardCollisions.length > 0) {
-        return cardCollisions;
-      }
+      if (cardCollisions.length > 0) return cardCollisions;
     }
-    
-    // Fall back to rect intersection for column drops
-    const rectCollisions = rectIntersection(args);
-    return rectCollisions;
+    return rectIntersection(args);
   }, []);
 
-  // Find client by ID
+  // Find client across all buckets
   const findClient = useCallback((id: UniqueIdentifier): Client | null => {
-    for (const stage of FUNNEL_STAGES) {
-      const client = clientsByStage[stage]?.find(c => c.id === id);
+    for (const key of Object.keys(clientsByStage)) {
+      const client = clientsByStage[key]?.find(c => c.id === id);
       if (client) return client;
     }
     return null;
   }, [clientsByStage]);
 
-  // Find stage by client ID
-  const findStage = useCallback((id: UniqueIdentifier): FunnelStage | null => {
-    for (const stage of FUNNEL_STAGES) {
-      const client = clientsByStage[stage]?.find(c => c.id === id);
-      if (client) return stage;
+  // Find which bucket/stage a client is in
+  const findBucket = useCallback((id: UniqueIdentifier): string | null => {
+    for (const key of Object.keys(clientsByStage)) {
+      if (clientsByStage[key]?.find(c => c.id === id)) return key;
     }
     return null;
   }, [clientsByStage]);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
-    const { active } = event;
     isDraggingRef.current = true;
-    setActiveId(active.id);
-    setActiveClient(findClient(active.id));
+    setActiveId(event.active.id);
+    setActiveClient(findClient(event.active.id));
   }, [findClient]);
 
   const handleDragOver = useCallback((event: DragOverEvent) => {
     const { over } = event;
-    
     if (!over) {
       setOverId(null);
       setOverStage(null);
       return;
     }
-
-    const overId = over.id;
-    setOverId(overId);
-
-    // Check if over a stage (column)
-    if (FUNNEL_STAGES.includes(overId as FunnelStage)) {
-      setOverStage(overId as FunnelStage);
+    setOverId(over.id);
+    if (isDroppableId(over.id as string)) {
+      setOverStage(over.id as string);
     } else {
-      // Over a client - find its stage
-      const stage = findStage(overId);
-      setOverStage(stage);
+      setOverStage(findBucket(over.id));
     }
-  }, [findStage]);
+  }, [findBucket]);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
-    
     isDraggingRef.current = false;
     setActiveId(null);
     setActiveClient(null);
@@ -172,47 +151,70 @@ export function KanbanDndProvider({
     if (!over) return;
 
     const activeClientId = active.id as string;
-    const overId = over.id;
-    
-    // Find the source stage
-    const sourceStage = findStage(activeClientId);
-    if (!sourceStage) return;
+    const targetId = over.id as string;
+    const sourceBucket = findBucket(activeClientId);
+    if (!sourceBucket) return;
 
-    // Check if dropping on a stage (column)
-    if (FUNNEL_STAGES.includes(overId as FunnelStage)) {
-      const targetStage = overId as FunnelStage;
-      if (targetStage !== sourceStage) {
-        // Move to different stage at the end
-        onMoveToStage(activeClientId, targetStage);
+    const isSourceTop10 = sourceBucket === TOP10_BUCKET_ID;
+
+    // Dropping on a droppable (column)
+    if (isDroppableId(targetId)) {
+      if (targetId === TOP10_BUCKET_ID) {
+        if (!isSourceTop10) {
+          onMoveToTop10(activeClientId);
+        }
+      } else {
+        // Dropping on a funnel stage column
+        const targetStage = targetId as FunnelStage;
+        if (isSourceTop10) {
+          // Remove from top10, the client keeps its real funnel_stage
+          onRemoveFromTop10(activeClientId);
+          // Only move if the client's real stage differs from target
+          onMoveToStage(activeClientId, targetStage);
+        } else if (String(sourceBucket) !== String(targetStage)) {
+          onMoveToStage(activeClientId, targetStage);
+        }
       }
       return;
     }
 
-    // Dropping on a client
-    const targetClientId = overId as string;
-    const targetStage = findStage(targetClientId);
-    
-    if (!targetStage) return;
-    
-    if (activeClientId === targetClientId) return;
+    // Dropping on a client card
+    const targetBucket = findBucket(targetId);
+    if (!targetBucket) return;
+    if (activeClientId === targetId) return;
 
-    if (sourceStage === targetStage) {
-      // Same stage - reorder
-      const stageClients = clientsByStage[sourceStage];
-      const activeIndex = stageClients.findIndex(c => c.id === activeClientId);
-      const overIndex = stageClients.findIndex(c => c.id === targetClientId);
-      
-      if (activeIndex !== overIndex) {
-        const insertBefore = activeIndex > overIndex;
-        onReorder(activeClientId, targetClientId, sourceStage, insertBefore);
-      }
+    const isTargetTop10 = targetBucket === TOP10_BUCKET_ID;
+
+    if (isSourceTop10 && isTargetTop10) {
+      // Reorder within Top 10
+      onReorderTop10(activeClientId, targetId);
+    } else if (!isSourceTop10 && isTargetTop10) {
+      // Move into Top 10 at position
+      const targetClients = clientsByStage[TOP10_BUCKET_ID] || [];
+      const overIndex = targetClients.findIndex(c => c.id === targetId);
+      onMoveToTop10(activeClientId, overIndex);
+    } else if (isSourceTop10 && !isTargetTop10) {
+      // Remove from top10 and move to target stage at position
+      onRemoveFromTop10(activeClientId);
+      const targetClients = clientsByStage[targetBucket] || [];
+      const overIndex = targetClients.findIndex(c => c.id === targetId);
+      onMoveToStage(activeClientId, targetBucket as FunnelStage, overIndex);
     } else {
-      // Different stage - move to position
-      const targetClients = clientsByStage[targetStage];
-      const overIndex = targetClients.findIndex(c => c.id === targetClientId);
-      onMoveToStage(activeClientId, targetStage, overIndex);
+      // Normal funnel stage reorder / move
+      if (sourceBucket === targetBucket) {
+        const stageClients = clientsByStage[sourceBucket];
+        const activeIndex = stageClients.findIndex(c => c.id === activeClientId);
+        const overIndex = stageClients.findIndex(c => c.id === targetId);
+        if (activeIndex !== overIndex) {
+          onReorder(activeClientId, targetId, sourceBucket, activeIndex > overIndex);
+        }
+      } else {
+        const targetClients = clientsByStage[targetBucket] || [];
+        const overIndex = targetClients.findIndex(c => c.id === targetId);
+        onMoveToStage(activeClientId, targetBucket as FunnelStage, overIndex);
+      }
     }
-  }, [findStage, clientsByStage, onReorder, onMoveToStage]);
+  }, [findBucket, clientsByStage, onReorder, onMoveToStage, onMoveToTop10, onRemoveFromTop10, onReorderTop10]);
 
   const handleDragCancel = useCallback(() => {
     isDraggingRef.current = false;

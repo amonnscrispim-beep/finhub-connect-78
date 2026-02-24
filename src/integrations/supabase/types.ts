@@ -401,6 +401,7 @@ export type Database = {
           investment_term: string | null
           investor_profile: string | null
           is_renewed_client: boolean | null
+          is_top10: boolean
           kanban_order: number | null
           last_activity_at: string | null
           long_term_goals: string | null
@@ -438,6 +439,7 @@ export type Database = {
           state: string | null
           strategic_diagnostic: Json | null
           succession_planning: string | null
+          top10_order: number | null
           updated_at: string
           user_id: string
           work_done: string | null
@@ -478,6 +480,7 @@ export type Database = {
           investment_term?: string | null
           investor_profile?: string | null
           is_renewed_client?: boolean | null
+          is_top10?: boolean
           kanban_order?: number | null
           last_activity_at?: string | null
           long_term_goals?: string | null
@@ -515,6 +518,7 @@ export type Database = {
           state?: string | null
           strategic_diagnostic?: Json | null
           succession_planning?: string | null
+          top10_order?: number | null
           updated_at?: string
           user_id: string
           work_done?: string | null
@@ -555,6 +559,7 @@ export type Database = {
           investment_term?: string | null
           investor_profile?: string | null
           is_renewed_client?: boolean | null
+          is_top10?: boolean
           kanban_order?: number | null
           last_activity_at?: string | null
           long_term_goals?: string | null
@@ -592,6 +597,7 @@ export type Database = {
           state?: string | null
           strategic_diagnostic?: Json | null
           succession_planning?: string | null
+          top10_order?: number | null
           updated_at?: string
           user_id?: string
           work_done?: string | null

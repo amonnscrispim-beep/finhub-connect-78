@@ -233,6 +233,9 @@ export interface Client {
   strategicDiagnostic: Record<string, any>;
   // Canonical field for ranking (source: Conhecer o Cliente > Ativos financeiros líquidos)
   patrimonioFinanceiroLiquido: number | null;
+  // Top 10 Patrimônio bucket (not a funnel stage)
+  isTop10: boolean;
+  top10Order: number | null;
   createdAt: Date;
   updatedAt: Date;
 }

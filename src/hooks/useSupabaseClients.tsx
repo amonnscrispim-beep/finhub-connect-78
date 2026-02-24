@@ -106,6 +106,8 @@ function dbToClient(row: ClientRow): Client {
     successionPlanning: (row as any).succession_planning ?? '',
     strategicDiagnostic: (row as any).strategic_diagnostic ?? {},
     patrimonioFinanceiroLiquido: Number((row as any).patrimonio_financeiro_liquido) || null,
+    isTop10: (row as any).is_top10 ?? false,
+    top10Order: (row as any).top10_order ?? null,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -186,6 +188,8 @@ function clientToDbInsert(client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>
     succession_planning: (client as any).successionPlanning ?? '',
     strategic_diagnostic: (client as any).strategicDiagnostic ?? {},
     patrimonio_financeiro_liquido: client.patrimonioFinanceiroLiquido ?? null,
+    is_top10: client.isTop10 ?? false,
+    top10_order: client.top10Order ?? null,
   } as any;
 }
 
@@ -265,6 +269,8 @@ function clientToDbUpdate(updates: Partial<Client>): TablesUpdate<'clients'> {
   if ((updates as any).successionPlanning !== undefined) (dbUpdates as any).succession_planning = (updates as any).successionPlanning;
   if ((updates as any).strategicDiagnostic !== undefined) (dbUpdates as any).strategic_diagnostic = (updates as any).strategicDiagnostic;
   if ((updates as any).patrimonioFinanceiroLiquido !== undefined) (dbUpdates as any).patrimonio_financeiro_liquido = (updates as any).patrimonioFinanceiroLiquido;
+  if ((updates as any).isTop10 !== undefined) (dbUpdates as any).is_top10 = (updates as any).isTop10;
+  if ((updates as any).top10Order !== undefined) (dbUpdates as any).top10_order = (updates as any).top10Order;
   
   // Handle kanbanOrder - explicitly extract and log for debugging
   const kanbanOrderValue = (updates as any).kanbanOrder;
