@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2, CalendarPlus, GraduationCap } from 'lucide-react';
+import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2, CalendarPlus, GraduationCap, Users } from 'lucide-react';
 import { ClientProvider, useClients } from '@/contexts/ClientContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Client } from '@/types/client';
@@ -20,6 +20,7 @@ import { DashboardExecutive } from '@/components/crm/DashboardExecutive';
 import { GoogleCalendarConnect } from '@/components/crm/GoogleCalendarConnect';
 import { ScheduleMeetingModal } from '@/components/crm/ScheduleMeetingModal';
 import { StudiesArea } from '@/components/studies/StudiesArea';
+import { EmAtendimentoDrawer } from '@/components/crm/EmAtendimentoDrawer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -37,6 +38,7 @@ function CRMDashboard() {
   const [financialAssetsModalOpen, setFinancialAssetsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [scheduleMeetingModalOpen, setScheduleMeetingModalOpen] = useState(false);
+  const [emAtendimentoDrawerOpen, setEmAtendimentoDrawerOpen] = useState(false);
 
   // Filter clients based on search query
   const filteredClients = useMemo(() => {
@@ -199,16 +201,27 @@ function CRMDashboard() {
             {/* Views */}
             <Tabs value={view} onValueChange={(v) => setView(v as 'table' | 'kanban')} className="space-y-4">
               <div className="flex items-center justify-between">
-                <TabsList className="bg-muted/50">
-                  <TabsTrigger value="table" className="data-[state=active]:bg-card data-[state=active]:shadow-sm">
-                    <TableIcon className="w-4 h-4 mr-2" />
-                    Tabela
-                  </TabsTrigger>
-                  <TabsTrigger value="kanban" className="data-[state=active]:bg-card data-[state=active]:shadow-sm">
-                    <LayoutGrid className="w-4 h-4 mr-2" />
-                    Kanban
-                  </TabsTrigger>
-                </TabsList>
+                <div className="flex items-center gap-2">
+                  <TabsList className="bg-muted/50">
+                    <TabsTrigger value="table" className="data-[state=active]:bg-card data-[state=active]:shadow-sm">
+                      <TableIcon className="w-4 h-4 mr-2" />
+                      Tabela
+                    </TabsTrigger>
+                    <TabsTrigger value="kanban" className="data-[state=active]:bg-card data-[state=active]:shadow-sm">
+                      <LayoutGrid className="w-4 h-4 mr-2" />
+                      Kanban
+                    </TabsTrigger>
+                  </TabsList>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEmAtendimentoDrawerOpen(true)}
+                    className="text-warning border-warning/30 hover:bg-warning/10"
+                  >
+                    <Users className="w-4 h-4 mr-1.5" />
+                    Em atendimento
+                  </Button>
+                </div>
                 
                 {searchQuery && (
                   <p className="text-sm text-muted-foreground">
@@ -248,6 +261,11 @@ function CRMDashboard() {
       <RenewalsModal open={renewalsModalOpen} onOpenChange={setRenewalsModalOpen} onEditClient={handleEditClient} />
       <FinancialAssetsModal open={financialAssetsModalOpen} onOpenChange={setFinancialAssetsModalOpen} onEditClient={handleEditClient} />
       <ScheduleMeetingModal open={scheduleMeetingModalOpen} onOpenChange={setScheduleMeetingModalOpen} />
+      <EmAtendimentoDrawer
+        isOpen={emAtendimentoDrawerOpen}
+        onClose={() => setEmAtendimentoDrawerOpen(false)}
+        onOpenClient={handleEditClient}
+      />
     </div>
   );
 }

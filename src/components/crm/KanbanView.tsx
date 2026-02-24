@@ -38,6 +38,7 @@ import { ClientTasksDrawer } from './ClientTasksDrawer';
 import { KanbanDndProvider, useKanbanDnd } from './KanbanDndContext';
 import { SortableKanbanCard } from './SortableKanbanCard';
 import { DroppableColumn } from './DroppableColumn';
+import { Top10PatrimonioColumn } from './Top10PatrimonioColumn';
 import { cn } from '@/lib/utils';
 
 // Build version globals from vite.config.ts define
@@ -61,8 +62,8 @@ interface KanbanCardProps {
   isDragging?: boolean;
 }
 
-// All funnel stages are valid for Kanban
-const KANBAN_STAGES = FUNNEL_STAGES;
+// Kanban stages: exclude "Em atendimento" (shown in separate drawer)
+const KANBAN_STAGES = FUNNEL_STAGES.filter(s => s !== 'Em atendimento');
 
 // Get card border color based on state
 const getCardBorderColor = (client: Client) => {
@@ -666,6 +667,9 @@ function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
         className="overflow-x-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent"
       >
         <div className="flex gap-4 p-4 min-w-max">
+          {/* Top 10 Patrimônio - fixed informational column */}
+          <Top10PatrimonioColumn onEditClient={onEditClient} />
+
           {KANBAN_STAGES.map((stage) => {
             const stageClients = clientsByStage[stage] || [];
             const clientIds = stageClients.map(c => c.id);
