@@ -477,10 +477,11 @@ function DragOverlayCard({ client }: { client: Client }) {
 }
 
 function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
-  const { clients, moveClientToStage, swapClientOrder, setReorderingFlag, updateClient } = useClients();
+  const { clients, moveClientToStage, swapClientOrder, setReorderingFlag, updateClient, refetch } = useClients();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [isAutoFilling, setIsAutoFilling] = useState(false);
   
   // Stage Quick View Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -491,6 +492,54 @@ function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
   const [tasksDrawerClient, setTasksDrawerClient] = useState<Client | null>(null);
   
   const { activeClient } = useKanbanDnd();
+
+  // Helper to get patrimônio for ranking
+  const getPatrimonioValue = useCallback((c: Client) => {
+    if (c.patrimonioFinanceiroLiquido != null && c.patrimonioFinanceiroLiquido > 0) return c.patrimonioFinanceiroLiquido;
+    const diag = c.strategicDiagnostic?.estruturaPatrimonial;
+    if (diag?.liquidFinancialAssets) {
+      const val = typeof diag.liquidFinancialAssets === 'number' ? diag.liquidFinancialAssets 
+        : parseFloat(String(diag.liquidFinancialAssets).replace(/R\$\s?/g, '').replace(/\./g, '').replace(',', '.'));
+      if (!isNaN(val) && val > 0) return val;
+    }
+    if (c.financialAssets > 0) return c.financialAssets;
+    return 0;
+  }, []);
+
+  // Auto-fill Top 10 from patrimônio ranking
+  const handleAutoFillTop10 = useCallback(async () => {
+    setIsAutoFilling(true);
+    try {
+      // First, clear all current top10 flags
+      const currentTop10 = clients.filter(c => c.isTop10);
+      for (const c of currentTop10) {
+        await supabase.from('clients').update({ is_top10: false, top10_order: null } as any).eq('id', c.id);
+      }
+
+      // Get top 10 by patrimônio
+      const ranked = [...clients]
+        .filter(c => !c.consultingFinished)
+        .map(c => ({ id: c.id, value: getPatrimonioValue(c) }))
+        .filter(x => x.value > 0)
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 10);
+
+      // Set top10 flags
+      for (let i = 0; i < ranked.length; i++) {
+        await supabase.from('clients').update({ is_top10: true, top10_order: (i + 1) * 1000 } as any).eq('id', ranked[i].id);
+      }
+
+      // Refetch data
+      setTimeout(() => refetch(), 200);
+      
+      toast.success(`Top 10 preenchido automaticamente com ${ranked.length} clientes!`);
+    } catch (err) {
+      toast.error('Erro ao preencher Top 10');
+      console.error(err);
+    } finally {
+      setIsAutoFilling(false);
+    }
+  }, [clients, getPatrimonioValue, refetch]);
   
   const handleColumnHeaderClick = useCallback((stage: FunnelStage) => {
     setDrawerStage(stage);
@@ -704,12 +753,28 @@ function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
           {(() => {
             const top10Clients = clientsByStage[TOP10_BUCKET_ID] || [];
             const top10Ids = top10Clients.map(c => c.id);
+            
+            // Helper to get patrimônio value for display
+            const getPatrimonio = (c: Client) => {
+              if (c.patrimonioFinanceiroLiquido != null && c.patrimonioFinanceiroLiquido > 0) return c.patrimonioFinanceiroLiquido;
+              const diag = c.strategicDiagnostic?.estruturaPatrimonial;
+              if (diag?.liquidFinancialAssets) {
+                const val = typeof diag.liquidFinancialAssets === 'number' ? diag.liquidFinancialAssets 
+                  : parseFloat(String(diag.liquidFinancialAssets).replace(/R\$\s?/g, '').replace(/\./g, '').replace(',', '.'));
+                if (!isNaN(val) && val > 0) return val;
+              }
+              if (c.financialAssets > 0) return c.financialAssets;
+              return 0;
+            };
+
+            const formatCurrency = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
+
             return (
               <div
                 key={TOP10_BUCKET_ID}
                 className="bg-amber-500/5 rounded-2xl p-4 min-h-[500px] w-80 flex-shrink-0 border border-amber-500/20 transition-all duration-200"
               >
-                <div className="flex items-center justify-between mb-4 pb-3 border-b border-amber-500/20">
+                <div className="flex items-center justify-between mb-2 pb-3 border-b border-amber-500/20">
                   <div className="flex items-center gap-2">
                     <Trophy className="w-4 h-4 text-amber-500" />
                     <h3 className="font-semibold text-sm text-foreground">Top 10 Patrimônio</h3>
@@ -718,23 +783,49 @@ function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
                     {top10Clients.length}/10
                   </span>
                 </div>
+                <div className="mb-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full h-7 text-xs gap-1.5 border-amber-500/30 text-amber-600 hover:bg-amber-500/10"
+                    onClick={handleAutoFillTop10}
+                    disabled={isAutoFilling}
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isAutoFilling ? 'animate-spin' : ''}`} />
+                    {isAutoFilling ? 'Calculando...' : (top10Clients.length > 0 ? 'Resetar para automático' : 'Preencher automático')}
+                  </Button>
+                </div>
+
+                {/* Patrimônio value on each card */}
                 <DroppableColumn stage={TOP10_BUCKET_ID as any} clientIds={top10Ids}>
-                  {top10Clients.map((client, index) => (
-                    <SortableKanbanCard key={client.id} client={client}>
-                      <KanbanCard
-                        client={client}
-                        onEdit={() => onEditClient(client)}
-                        onCardClick={() => handleCardClick(client)}
-                        onMoveUp={() => handleTop10MoveUp(client.id)}
-                        onMoveDown={() => handleTop10MoveDown(client.id)}
-                        canMoveUp={index > 0}
-                        canMoveDown={index < top10Clients.length - 1}
-                      />
-                    </SortableKanbanCard>
-                  ))}
+                  {top10Clients.map((client, index) => {
+                    const patrimonio = getPatrimonio(client);
+                    return (
+                      <div key={client.id}>
+                        <SortableKanbanCard client={client}>
+                          <KanbanCard
+                            client={client}
+                            onEdit={() => onEditClient(client)}
+                            onCardClick={() => handleCardClick(client)}
+                            onMoveUp={() => handleTop10MoveUp(client.id)}
+                            onMoveDown={() => handleTop10MoveDown(client.id)}
+                            canMoveUp={index > 0}
+                            canMoveDown={index < top10Clients.length - 1}
+                          />
+                        </SortableKanbanCard>
+                        {patrimonio > 0 && (
+                          <div className="text-xs text-amber-600 font-medium px-4 -mt-2 mb-1">
+                            {formatCurrency(patrimonio)}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                   {top10Clients.length === 0 && (
-                    <div className="text-center py-12 text-muted-foreground text-sm border-2 border-dashed border-amber-500/20 rounded-xl">
-                      Arraste clientes aqui
+                    <div className="text-center py-8 text-muted-foreground text-sm border-2 border-dashed border-amber-500/20 rounded-xl">
+                      <Trophy className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                      <p>Arraste clientes aqui</p>
+                      <p className="text-xs mt-1">ou use "Preencher automático"</p>
                     </div>
                   )}
                 </DroppableColumn>

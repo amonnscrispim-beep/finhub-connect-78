@@ -121,7 +121,7 @@ export function ResumoRelatorio({
   }, []);
 
   const downloadPDF = useCallback((text: string, filename: string) => {
-    // Generate a printable HTML and trigger browser print/save as PDF
+    // Generate a printable HTML document
     const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -134,6 +134,7 @@ export function ResumoRelatorio({
   p { margin: 8px 0; }
   strong { color: #1e3a5f; }
   .meta { font-size: 12px; color: #666; margin-bottom: 24px; }
+  @media print { body { margin: 20px; } }
 </style>
 </head>
 <body>
@@ -146,15 +147,33 @@ ${text.split('\n').map(line => {
     }).join('\n')}
 </body>
 </html>`;
-    const blob = new Blob([html], { type: 'text/html' });
+
+    // Method 1: Download as HTML file (works even with ad blockers)
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
-    const win = window.open(url, '_blank');
-    if (win) {
-      win.onload = () => {
-        setTimeout(() => win.print(), 500);
-      };
+    
+    // Try anchor download first (most reliable, not blocked by ad blockers)
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename.replace(/\s+/g, '_')}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Also try opening for print (fallback - may be blocked)
+    try {
+      const win = window.open(url, '_blank', 'noopener,noreferrer');
+      if (win) {
+        win.onload = () => {
+          setTimeout(() => win.print(), 500);
+        };
+      }
+    } catch {
+      // Silently fail - download already worked via anchor
     }
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    
+    setTimeout(() => URL.revokeObjectURL(url), 15000);
+    toast.success(`"${filename}" baixado com sucesso!`);
   }, [formData.name, generatedAt, version]);
 
   const hasReports = technicalReport || clientReport;
