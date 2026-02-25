@@ -1,11 +1,14 @@
-import { useState, useMemo, memo } from 'react';
-import { Search, ExternalLink } from 'lucide-react';
+import { useState, useMemo, memo, useCallback } from 'react';
+import { Search, ExternalLink, ArrowRightLeft } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Client } from '@/types/client';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Client, FunnelStage, FUNNEL_STAGES } from '@/types/client';
 import { useClients } from '@/contexts/ClientContext';
 import { useDebounce } from '@/hooks/useDebounce';
+import { getStageDisplayLabel } from '@/lib/funnel-utils';
+import { toast } from 'sonner';
 
 interface EmAtendimentoDrawerProps {
   isOpen: boolean;
@@ -13,14 +16,20 @@ interface EmAtendimentoDrawerProps {
   onOpenClient: (client: Client) => void;
 }
 
+// Stages you can move TO (exclude "Em atendimento" itself)
+const MOVABLE_STAGES = FUNNEL_STAGES.filter(s => s !== 'Em atendimento');
+
 const ClientCard = memo(function ClientCard({
   client,
   onOpen,
+  onMoveStage,
 }: {
   client: Client;
   onOpen: () => void;
+  onMoveStage: (stage: FunnelStage) => void;
 }) {
   const pendingTasks = client.tasks.filter(t => !t.completed).length;
+  const [showMoveSelector, setShowMoveSelector] = useState(false);
 
   return (
     <div className="p-4 bg-card rounded-xl border border-border/50 hover:shadow-md transition-all duration-200 group">
@@ -35,19 +44,56 @@ const ClientCard = memo(function ClientCard({
             </p>
           )}
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 px-2 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpen();
-          }}
-        >
-          <ExternalLink className="w-4 h-4 mr-1" />
-          Abrir
-        </Button>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowMoveSelector(!showMoveSelector);
+            }}
+            title="Mover etapa"
+          >
+            <ArrowRightLeft className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpen();
+            }}
+          >
+            <ExternalLink className="w-4 h-4 mr-1" />
+            Abrir
+          </Button>
+        </div>
       </div>
+
+      {/* Move stage selector */}
+      {showMoveSelector && (
+        <div className="mt-2 p-2 bg-muted/50 rounded-lg border border-border/50">
+          <p className="text-xs text-muted-foreground mb-1.5 font-medium">Mover para:</p>
+          <Select onValueChange={(value) => {
+            onMoveStage(value as FunnelStage);
+            setShowMoveSelector(false);
+          }}>
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue placeholder="Selecionar etapa..." />
+            </SelectTrigger>
+            <SelectContent>
+              {MOVABLE_STAGES.map(stage => (
+                <SelectItem key={stage} value={stage} className="text-xs">
+                  {getStageDisplayLabel(stage)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       {client.objective && (
         <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
           {client.objective}
@@ -63,7 +109,7 @@ const ClientCard = memo(function ClientCard({
 });
 
 export function EmAtendimentoDrawer({ isOpen, onClose, onOpenClient }: EmAtendimentoDrawerProps) {
-  const { clients } = useClients();
+  const { clients, moveClientToStage } = useClients();
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 150);
 
@@ -80,6 +126,11 @@ export function EmAtendimentoDrawer({ isOpen, onClose, onOpenClient }: EmAtendim
       c.objective.toLowerCase().includes(q)
     );
   }, [emAtendimentoClients, debouncedSearch]);
+
+  const handleMoveStage = useCallback((clientId: string, stage: FunnelStage) => {
+    moveClientToStage(clientId, stage);
+    toast.success(`Cliente movido para "${getStageDisplayLabel(stage)}"`);
+  }, [moveClientToStage]);
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
@@ -120,6 +171,7 @@ export function EmAtendimentoDrawer({ isOpen, onClose, onOpenClient }: EmAtendim
                   onClose();
                   onOpenClient(client);
                 }}
+                onMoveStage={(stage) => handleMoveStage(client.id, stage)}
               />
             ))
           )}
