@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Search, ChevronDown, ChevronRight, ChevronUp, MessageSquare, Heart } from 'lucide-react';
+import { CollapsibleComments } from './CollapsibleComments';
 
 export interface FamilyData {
   maritalStatus: string; // Solteiro(a) | Casado(a) | União estável | Divorciado(a) | Viúvo(a)
@@ -67,6 +68,7 @@ export interface StrategicDiagnosticData {
   family: FamilyData;
   // Síntese
   strategicSynthesis: string;
+  consultantComment: string;
 }
 
 export const defaultStrategicDiagnostic: StrategicDiagnosticData = {
@@ -88,6 +90,7 @@ export const defaultStrategicDiagnostic: StrategicDiagnosticData = {
   futureVisionNotes: '',
   family: { ...defaultFamilyData },
   strategicSynthesis: '',
+  consultantComment: '',
 };
 
 const WEALTH_SOURCES = [
@@ -521,6 +524,13 @@ export function DiagnosticoEstrategico({ data, onChange }: Props) {
           className="crm-input min-h-[160px] text-sm"
         />
       </div>
+
+      {/* Comentário do Consultor */}
+      <CollapsibleComments
+        value={data.consultantComment || ''}
+        onChange={(v) => update({ consultantComment: v })}
+        placeholder="Comentário do consultor sobre o diagnóstico estratégico..."
+      />
       </div>
       </CollapsibleContent>
     </Collapsible>

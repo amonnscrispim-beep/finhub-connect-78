@@ -219,7 +219,7 @@ function CRMDashboard() {
                     className="text-warning border-warning/30 hover:bg-warning/10"
                   >
                     <Users className="w-4 h-4 mr-1.5" />
-                    Em atendimento
+                    Em atendimento ({clients.filter(c => c.funnelStage === 'Em atendimento' && !c.consultingFinished).length})
                   </Button>
                 </div>
                 

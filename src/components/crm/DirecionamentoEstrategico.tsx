@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
+import { CollapsibleComments } from './CollapsibleComments';
 
 export interface DirecionamentoEstrategicoData {
   strategicPriority: string;
@@ -14,6 +15,7 @@ export interface DirecionamentoEstrategicoData {
   identifiedRisks: string;
   pillars: string[];
   executiveSummary: string;
+  consultantComment: string;
 }
 
 export const defaultDirecionamentoEstrategico: DirecionamentoEstrategicoData = {
@@ -23,6 +25,7 @@ export const defaultDirecionamentoEstrategico: DirecionamentoEstrategicoData = {
   identifiedRisks: '',
   pillars: [],
   executiveSummary: '',
+  consultantComment: '',
 };
 
 function ConsultantNote({ children }: { children: string }) {
@@ -191,6 +194,13 @@ export function DirecionamentoEstrategico({ data, onChange }: Props) {
               className="crm-input min-h-[120px] text-sm"
             />
           </div>
+
+          {/* Comentário do Consultor */}
+          <CollapsibleComments
+            value={safeData.consultantComment || ''}
+            onChange={(v) => update({ consultantComment: v })}
+            placeholder="Comentário do consultor sobre direcionamento estratégico..."
+          />
         </div>
       </CollapsibleContent>
     </Collapsible>

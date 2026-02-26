@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronRight, ChevronUp, MessageSquare } from 'lucide-react';
+import { CollapsibleComments } from './CollapsibleComments';
 
 export interface EstruturaPatrimonialData {
   // 1 - Patrimônio Total
@@ -35,6 +36,7 @@ export interface EstruturaPatrimonialData {
   legalExposure: string;
   personalDependency: string;
   strategicDirection: string;
+  consultantComment: string;
 }
 
 export const defaultEstruturaPatrimonial: EstruturaPatrimonialData = {
@@ -57,6 +59,7 @@ export const defaultEstruturaPatrimonial: EstruturaPatrimonialData = {
   legalExposure: '',
   personalDependency: '',
   strategicDirection: '',
+  consultantComment: '',
 };
 
 function ConsultantNote({ children }: { children: string }) {
@@ -339,6 +342,13 @@ export function EstruturaPatrimonial({ data, onChange }: Props) {
               />
             </div>
           </div>
+
+          {/* Comentário do Consultor */}
+          <CollapsibleComments
+            value={data.consultantComment || ''}
+            onChange={(v) => update({ consultantComment: v })}
+            placeholder="Comentário do consultor sobre a estrutura patrimonial..."
+          />
         </div>
       </CollapsibleContent>
     </Collapsible>

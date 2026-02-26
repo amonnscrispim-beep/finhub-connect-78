@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { CollapsibleComments } from './CollapsibleComments';
 
 export interface ProtecaoSucessaoData {
   successionPlanning: string;
@@ -24,6 +25,7 @@ export interface ProtecaoSucessaoData {
   summaryFamilyProtection: string;
   summaryBrazilRisk: string;
   summaryStrategicDirection: string;
+  consultantComment: string;
 }
 
 export const defaultProtecaoSucessao: ProtecaoSucessaoData = {
@@ -41,6 +43,7 @@ export const defaultProtecaoSucessao: ProtecaoSucessaoData = {
   summaryFamilyProtection: '',
   summaryBrazilRisk: '',
   summaryStrategicDirection: '',
+  consultantComment: '',
 };
 
 function ConsultantNote({ children }: { children: string }) {
@@ -292,6 +295,13 @@ export function ProtecaoSucessao({ data, onChange }: Props) {
               />
             </div>
           </div>
+
+          {/* Comentário do Consultor */}
+          <CollapsibleComments
+            value={safeData.consultantComment || ''}
+            onChange={(v) => update({ consultantComment: v })}
+            placeholder="Comentário do consultor sobre proteção e sucessão..."
+          />
         </div>
       </CollapsibleContent>
     </Collapsible>

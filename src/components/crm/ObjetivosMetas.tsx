@@ -6,6 +6,7 @@ import { CurrencyInput } from '@/components/ui/currency-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { CollapsibleComments } from './CollapsibleComments';
 
 export interface ObjetivosMetasData {
   // 1
@@ -31,6 +32,7 @@ export interface ObjetivosMetasData {
   summaryDominantPriority: string;
   summaryRestrictions: string;
   summaryStrategicDirection: string;
+  consultantComment: string;
 }
 
 export const defaultObjetivosMetas: ObjetivosMetasData = {
@@ -51,6 +53,7 @@ export const defaultObjetivosMetas: ObjetivosMetasData = {
   summaryDominantPriority: '',
   summaryRestrictions: '',
   summaryStrategicDirection: '',
+  consultantComment: '',
 };
 
 function ConsultantNote({ children }: { children: string }) {
@@ -351,6 +354,13 @@ export function ObjetivosMetas({ data, onChange }: Props) {
               />
             </div>
           </div>
+
+          {/* Comentário do Consultor */}
+          <CollapsibleComments
+            value={safeData.consultantComment || ''}
+            onChange={(v) => update({ consultantComment: v })}
+            placeholder="Comentário do consultor sobre objetivos e metas..."
+          />
         </div>
       </CollapsibleContent>
     </Collapsible>
