@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { CollapsibleComments } from './CollapsibleComments';
 
 export interface PerfilRiscoData {
   volatilityExperience: string;
@@ -19,6 +20,7 @@ export interface PerfilRiscoData {
   behavioralRisk: string;
   liquidityNeed: string;
   strategicDirection: string;
+  consultantComment: string;
 }
 
 export const defaultPerfilRisco: PerfilRiscoData = {
@@ -33,6 +35,7 @@ export const defaultPerfilRisco: PerfilRiscoData = {
   behavioralRisk: '',
   liquidityNeed: '',
   strategicDirection: '',
+  consultantComment: '',
 };
 
 function ConsultantNote({ children }: { children: string }) {
@@ -246,6 +249,13 @@ export function PerfilRisco({ data, onChange }: Props) {
               />
             </div>
           </div>
+
+          {/* Comentário do Consultor */}
+          <CollapsibleComments
+            value={safeData.consultantComment || ''}
+            onChange={(v) => update({ consultantComment: v })}
+            placeholder="Comentário do consultor sobre perfil de risco..."
+          />
         </div>
       </CollapsibleContent>
     </Collapsible>

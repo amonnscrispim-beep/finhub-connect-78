@@ -522,7 +522,7 @@ function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
         .map(c => ({ id: c.id, value: getPatrimonioValue(c) }))
         .filter(x => x.value > 0)
         .sort((a, b) => b.value - a.value)
-        .slice(0, 10);
+        .slice(0, 15);
 
       // Set top10 flags
       for (let i = 0; i < ranked.length; i++) {
@@ -532,7 +532,7 @@ function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
       // Refetch data
       setTimeout(() => refetch(), 200);
       
-      toast.success(`Top 10 preenchido automaticamente com ${ranked.length} clientes!`);
+      toast.success(`Top 15 preenchido automaticamente com ${ranked.length} clientes!`);
     } catch (err) {
       toast.error('Erro ao preencher Top 10');
       console.error(err);
@@ -777,10 +777,10 @@ function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
                 <div className="flex items-center justify-between mb-2 pb-3 border-b border-amber-500/20">
                   <div className="flex items-center gap-2">
                     <Trophy className="w-4 h-4 text-amber-500" />
-                    <h3 className="font-semibold text-sm text-foreground">Top 10 Patrimônio</h3>
+                    <h3 className="font-semibold text-sm text-foreground">Top 15 Patrimônio</h3>
                   </div>
                   <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-                    {top10Clients.length}/10
+                    {top10Clients.length}/15
                   </span>
                 </div>
                 <div className="mb-3">
@@ -916,7 +916,7 @@ function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
 export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) {
   const { clients, moveClientToStage, swapClientOrder, setReorderingFlag, updateClient } = useClients();
   
-  const TOP10_LIMIT = 10;
+  const TOP10_LIMIT = 15;
 
   // Memoize clients grouped by stage + Top10 bucket
   const clientsByStage = useMemo(() => {
@@ -1011,7 +1011,7 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
     // Check limit
     const alreadyInTop10 = top10Clients.some(c => c.id === clientId);
     if (!alreadyInTop10 && top10Clients.length >= TOP10_LIMIT) {
-      toast.warning(`Top 10 já está cheio (${TOP10_LIMIT} clientes). Remova um cliente primeiro.`);
+      toast.warning(`Top 15 já está cheio (${TOP10_LIMIT} clientes). Remova um cliente primeiro.`);
       return;
     }
 

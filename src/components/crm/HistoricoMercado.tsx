@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { CollapsibleComments } from './CollapsibleComments';
 
 export interface HistoricoMercadoData {
   investmentExperience: string;
@@ -21,6 +22,7 @@ export interface HistoricoMercadoData {
   summaryInvolvement: string;
   summaryMisalignmentRisk: string;
   summaryRelationshipStrategy: string;
+  consultantComment: string;
 }
 
 export const defaultHistoricoMercado: HistoricoMercadoData = {
@@ -37,6 +39,7 @@ export const defaultHistoricoMercado: HistoricoMercadoData = {
   summaryInvolvement: '',
   summaryMisalignmentRisk: '',
   summaryRelationshipStrategy: '',
+  consultantComment: '',
 };
 
 function ConsultantNote({ children }: { children: string }) {
@@ -202,6 +205,13 @@ export function HistoricoMercado({ data, onChange }: Props) {
               <Textarea value={safeData.summaryRelationshipStrategy} onChange={(e) => update({ summaryRelationshipStrategy: e.target.value })} placeholder="Descreva a estratégia de relacionamento sugerida..." className="crm-input min-h-[100px] text-sm" />
             </div>
           </div>
+
+          {/* Comentário do Consultor */}
+          <CollapsibleComments
+            value={safeData.consultantComment || ''}
+            onChange={(v) => update({ consultantComment: v })}
+            placeholder="Comentário do consultor sobre histórico com mercado financeiro..."
+          />
         </div>
       </CollapsibleContent>
     </Collapsible>

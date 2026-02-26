@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { CollapsibleComments } from './CollapsibleComments';
 
 export interface FluxoCaixaData {
   // 1
@@ -26,6 +27,7 @@ export interface FluxoCaixaData {
   stabilityLevel: string;
   autonomyMonths: string;
   strategicDirection: string;
+  consultantComment: string;
 }
 
 export const defaultFluxoCaixa: FluxoCaixaData = {
@@ -40,6 +42,7 @@ export const defaultFluxoCaixa: FluxoCaixaData = {
   stabilityLevel: '',
   autonomyMonths: '',
   strategicDirection: '',
+  consultantComment: '',
 };
 
 function ConsultantNote({ children }: { children: string }) {
@@ -258,6 +261,13 @@ export function FluxoCaixaAccumulacao({ data, onChange }: Props) {
               />
             </div>
           </div>
+
+          {/* Comentário do Consultor */}
+          <CollapsibleComments
+            value={safeData.consultantComment || ''}
+            onChange={(v) => update({ consultantComment: v })}
+            placeholder="Comentário do consultor sobre fluxo de caixa e acumulação..."
+          />
         </div>
       </CollapsibleContent>
     </Collapsible>
