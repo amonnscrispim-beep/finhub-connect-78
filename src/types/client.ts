@@ -242,6 +242,7 @@ export interface Client {
   // Top 10 Patrimônio bucket (not a funnel stage)
   isTop10: boolean;
   top10Order: number | null;
+  previousFunnelStage: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
