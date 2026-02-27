@@ -108,6 +108,7 @@ function dbToClient(row: ClientRow): Client {
     patrimonioFinanceiroLiquido: Number((row as any).patrimonio_financeiro_liquido) || null,
     isTop10: (row as any).is_top10 ?? false,
     top10Order: (row as any).top10_order ?? null,
+    previousFunnelStage: (row as any).previous_funnel_stage ?? null,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
