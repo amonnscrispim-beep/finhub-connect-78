@@ -265,9 +265,29 @@ export interface ModuleNotes {
   financialSummary?: string;
 }
 
+// New active Kanban stages (6 columns)
+export const KANBAN_COLUMN_STAGES: FunnelStage[] = [
+  'PRIVATE',
+  'SELECT',
+  'GROWTH',
+  'CORE',
+  'Pendências Urgentes',
+  'START',
+];
+
+// Patrimony-based columns (auto-distribution, max 10 each)
+export const PATRIMONY_COLUMNS: FunnelStage[] = ['PRIVATE', 'SELECT', 'GROWTH', 'CORE'];
+
+// Full list including legacy + new (for backward compat in selectors, DB, etc.)
 export const FUNNEL_STAGES: FunnelStage[] = [
   'Em atendimento',
+  'PRIVATE',
+  'SELECT',
+  'GROWTH',
+  'CORE',
   'Pendências Urgentes',
+  'START',
+  // Legacy stages kept for backward compatibility
   '1ª Reunião agendada',
   '2ª Reunião agendada',
   '3ª Reunião agendada',
