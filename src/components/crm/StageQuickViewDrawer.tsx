@@ -3,7 +3,7 @@ import { X, Search, ChevronLeft, ChevronRight, ExternalLink, ListTodo, CheckCirc
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Client, FunnelStage, FUNNEL_STAGES } from '@/types/client';
+import { Client, FunnelStage, KANBAN_COLUMN_STAGES } from '@/types/client';
 import { getStageDisplayLabel } from '@/lib/funnel-utils';
 import { useClients } from '@/contexts/ClientContext';
 import { cn } from '@/lib/utils';
