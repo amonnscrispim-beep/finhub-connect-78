@@ -17,7 +17,7 @@ interface EmAtendimentoDrawerProps {
 }
 
 // Stages you can move TO (exclude "Em atendimento" itself)
-const MOVABLE_STAGES = FUNNEL_STAGES.filter(s => s !== 'Em atendimento');
+const MOVABLE_STAGES = KANBAN_COLUMN_STAGES;
 
 const ClientCard = memo(function ClientCard({
   client,

@@ -150,10 +150,10 @@ export function StageQuickViewDrawer({
 
   // Get adjacent stages for navigation
   const getAdjacentStages = useCallback((currentStage: FunnelStage) => {
-    const currentIndex = FUNNEL_STAGES.indexOf(currentStage);
+    const currentIndex = KANBAN_COLUMN_STAGES.indexOf(currentStage);
     return {
-      prevStage: currentIndex > 0 ? FUNNEL_STAGES[currentIndex - 1] : null,
-      nextStage: currentIndex < FUNNEL_STAGES.length - 1 ? FUNNEL_STAGES[currentIndex + 1] : null,
+      prevStage: currentIndex > 0 ? KANBAN_COLUMN_STAGES[currentIndex - 1] : null,
+      nextStage: currentIndex < KANBAN_COLUMN_STAGES.length - 1 ? KANBAN_COLUMN_STAGES[currentIndex + 1] : null,
     };
   }, []);
 
