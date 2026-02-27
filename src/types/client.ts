@@ -1,6 +1,12 @@
 export type FunnelStage =
   | 'Em atendimento'
   | 'Pendências Urgentes'
+  | 'PRIVATE'
+  | 'SELECT'
+  | 'GROWTH'
+  | 'CORE'
+  | 'START'
+  // Legacy stages (kept for backward compatibility with existing data)
   | '1ª Reunião agendada'
   | '2ª Reunião agendada'
   | '3ª Reunião agendada'
