@@ -4,7 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Client, FunnelStage, FUNNEL_STAGES } from '@/types/client';
+import { Client, FunnelStage, KANBAN_COLUMN_STAGES } from '@/types/client';
 import { useClients } from '@/contexts/ClientContext';
 import { useDebounce } from '@/hooks/useDebounce';
 import { getStageDisplayLabel } from '@/lib/funnel-utils';
@@ -17,7 +17,7 @@ interface EmAtendimentoDrawerProps {
 }
 
 // Stages you can move TO (exclude "Em atendimento" itself)
-const MOVABLE_STAGES = FUNNEL_STAGES.filter(s => s !== 'Em atendimento');
+const MOVABLE_STAGES = KANBAN_COLUMN_STAGES;
 
 const ClientCard = memo(function ClientCard({
   client,

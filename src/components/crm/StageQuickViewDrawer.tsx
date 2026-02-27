@@ -3,7 +3,7 @@ import { X, Search, ChevronLeft, ChevronRight, ExternalLink, ListTodo, CheckCirc
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Client, FunnelStage, FUNNEL_STAGES } from '@/types/client';
+import { Client, FunnelStage, KANBAN_COLUMN_STAGES } from '@/types/client';
 import { getStageDisplayLabel } from '@/lib/funnel-utils';
 import { useClients } from '@/contexts/ClientContext';
 import { cn } from '@/lib/utils';
@@ -150,10 +150,10 @@ export function StageQuickViewDrawer({
 
   // Get adjacent stages for navigation
   const getAdjacentStages = useCallback((currentStage: FunnelStage) => {
-    const currentIndex = FUNNEL_STAGES.indexOf(currentStage);
+    const currentIndex = KANBAN_COLUMN_STAGES.indexOf(currentStage);
     return {
-      prevStage: currentIndex > 0 ? FUNNEL_STAGES[currentIndex - 1] : null,
-      nextStage: currentIndex < FUNNEL_STAGES.length - 1 ? FUNNEL_STAGES[currentIndex + 1] : null,
+      prevStage: currentIndex > 0 ? KANBAN_COLUMN_STAGES[currentIndex - 1] : null,
+      nextStage: currentIndex < KANBAN_COLUMN_STAGES.length - 1 ? KANBAN_COLUMN_STAGES[currentIndex + 1] : null,
     };
   }, []);
 

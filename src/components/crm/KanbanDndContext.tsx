@@ -19,12 +19,10 @@ import {
 import {
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
-import { Client, FunnelStage, FUNNEL_STAGES } from '@/types/client';
+import { Client, FunnelStage, KANBAN_COLUMN_STAGES } from '@/types/client';
 
-export const TOP10_BUCKET_ID = '__TOP10_PATRIMONIO__';
-
-// All droppable IDs (stages + top10 bucket)
-const ALL_DROPPABLE_IDS = [...FUNNEL_STAGES, TOP10_BUCKET_ID];
+// All droppable IDs = the 6 kanban columns
+const ALL_DROPPABLE_IDS: string[] = [...KANBAN_COLUMN_STAGES];
 
 function isDroppableId(id: string): boolean {
   return ALL_DROPPABLE_IDS.includes(id);
@@ -55,9 +53,6 @@ interface KanbanDndProviderProps {
   clientsByStage: Record<string, Client[]>;
   onReorder: (clientId: string, targetClientId: string | null, stage: string, insertBefore: boolean) => void;
   onMoveToStage: (clientId: string, stage: string, position?: number) => void;
-  onMoveToTop10: (clientId: string, position?: number) => void;
-  onRemoveFromTop10: (clientId: string) => void;
-  onReorderTop10: (clientId: string, targetClientId: string) => void;
 }
 
 export function KanbanDndProvider({
@@ -65,9 +60,6 @@ export function KanbanDndProvider({
   clientsByStage,
   onReorder,
   onMoveToStage,
-  onMoveToTop10,
-  onRemoveFromTop10,
-  onReorderTop10,
 }: KanbanDndProviderProps) {
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [activeClient, setActiveClient] = useState<Client | null>(null);
@@ -102,7 +94,6 @@ export function KanbanDndProvider({
     return rectIntersection(args);
   }, []);
 
-  // Find client across all buckets
   const findClient = useCallback((id: UniqueIdentifier): Client | null => {
     for (const key of Object.keys(clientsByStage)) {
       const client = clientsByStage[key]?.find(c => c.id === id);
@@ -111,7 +102,6 @@ export function KanbanDndProvider({
     return null;
   }, [clientsByStage]);
 
-  // Find which bucket/stage a client is in
   const findBucket = useCallback((id: UniqueIdentifier): string | null => {
     for (const key of Object.keys(clientsByStage)) {
       if (clientsByStage[key]?.find(c => c.id === id)) return key;
@@ -155,25 +145,10 @@ export function KanbanDndProvider({
     const sourceBucket = findBucket(activeClientId);
     if (!sourceBucket) return;
 
-    const isSourceTop10 = sourceBucket === TOP10_BUCKET_ID;
-
-    // Dropping on a droppable (column)
+    // Dropping on a droppable column
     if (isDroppableId(targetId)) {
-      if (targetId === TOP10_BUCKET_ID) {
-        if (!isSourceTop10) {
-          onMoveToTop10(activeClientId);
-        }
-      } else {
-        // Dropping on a funnel stage column
-        const targetStage = targetId as FunnelStage;
-        if (isSourceTop10) {
-          // Remove from top10, the client keeps its real funnel_stage
-          onRemoveFromTop10(activeClientId);
-          // Only move if the client's real stage differs from target
-          onMoveToStage(activeClientId, targetStage);
-        } else if (String(sourceBucket) !== String(targetStage)) {
-          onMoveToStage(activeClientId, targetStage);
-        }
+      if (String(sourceBucket) !== String(targetId)) {
+        onMoveToStage(activeClientId, targetId);
       }
       return;
     }
@@ -183,38 +158,21 @@ export function KanbanDndProvider({
     if (!targetBucket) return;
     if (activeClientId === targetId) return;
 
-    const isTargetTop10 = targetBucket === TOP10_BUCKET_ID;
-
-    if (isSourceTop10 && isTargetTop10) {
-      // Reorder within Top 10
-      onReorderTop10(activeClientId, targetId);
-    } else if (!isSourceTop10 && isTargetTop10) {
-      // Move into Top 10 at position
-      const targetClients = clientsByStage[TOP10_BUCKET_ID] || [];
-      const overIndex = targetClients.findIndex(c => c.id === targetId);
-      onMoveToTop10(activeClientId, overIndex);
-    } else if (isSourceTop10 && !isTargetTop10) {
-      // Remove from top10 and move to target stage at position
-      onRemoveFromTop10(activeClientId);
+    if (sourceBucket === targetBucket) {
+      // Reorder within same column
+      const stageClients = clientsByStage[sourceBucket];
+      const activeIndex = stageClients.findIndex(c => c.id === activeClientId);
+      const overIndex = stageClients.findIndex(c => c.id === targetId);
+      if (activeIndex !== overIndex) {
+        onReorder(activeClientId, targetId, sourceBucket, activeIndex > overIndex);
+      }
+    } else {
+      // Move to different column at position
       const targetClients = clientsByStage[targetBucket] || [];
       const overIndex = targetClients.findIndex(c => c.id === targetId);
-      onMoveToStage(activeClientId, targetBucket as FunnelStage, overIndex);
-    } else {
-      // Normal funnel stage reorder / move
-      if (sourceBucket === targetBucket) {
-        const stageClients = clientsByStage[sourceBucket];
-        const activeIndex = stageClients.findIndex(c => c.id === activeClientId);
-        const overIndex = stageClients.findIndex(c => c.id === targetId);
-        if (activeIndex !== overIndex) {
-          onReorder(activeClientId, targetId, sourceBucket, activeIndex > overIndex);
-        }
-      } else {
-        const targetClients = clientsByStage[targetBucket] || [];
-        const overIndex = targetClients.findIndex(c => c.id === targetId);
-        onMoveToStage(activeClientId, targetBucket as FunnelStage, overIndex);
-      }
+      onMoveToStage(activeClientId, targetBucket, overIndex);
     }
-  }, [findBucket, clientsByStage, onReorder, onMoveToStage, onMoveToTop10, onRemoveFromTop10, onReorderTop10]);
+  }, [findBucket, clientsByStage, onReorder, onMoveToStage]);
 
   const handleDragCancel = useCallback(() => {
     isDraggingRef.current = false;

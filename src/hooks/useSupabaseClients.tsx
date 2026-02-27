@@ -108,6 +108,7 @@ function dbToClient(row: ClientRow): Client {
     patrimonioFinanceiroLiquido: Number((row as any).patrimonio_financeiro_liquido) || null,
     isTop10: (row as any).is_top10 ?? false,
     top10Order: (row as any).top10_order ?? null,
+    previousFunnelStage: (row as any).previous_funnel_stage ?? null,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -271,6 +272,7 @@ function clientToDbUpdate(updates: Partial<Client>): TablesUpdate<'clients'> {
   if ((updates as any).patrimonioFinanceiroLiquido !== undefined) (dbUpdates as any).patrimonio_financeiro_liquido = (updates as any).patrimonioFinanceiroLiquido;
   if ((updates as any).isTop10 !== undefined) (dbUpdates as any).is_top10 = (updates as any).isTop10;
   if ((updates as any).top10Order !== undefined) (dbUpdates as any).top10_order = (updates as any).top10Order;
+  if ((updates as any).previousFunnelStage !== undefined) (dbUpdates as any).previous_funnel_stage = (updates as any).previousFunnelStage;
   
   // Handle kanbanOrder - explicitly extract and log for debugging
   const kanbanOrderValue = (updates as any).kanbanOrder;

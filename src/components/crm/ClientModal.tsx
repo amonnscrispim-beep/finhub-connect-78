@@ -539,6 +539,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       patrimonioFinanceiroLiquido: patrimonioFinanceiroLiquido,
       isTop10: client?.isTop10 ?? false,
       top10Order: client?.top10Order ?? null,
+      previousFunnelStage: client?.previousFunnelStage ?? null,
     };
 
     try {

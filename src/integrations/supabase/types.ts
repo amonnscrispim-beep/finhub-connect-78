@@ -424,6 +424,7 @@ export type Database = {
           pending_schedule: boolean | null
           phone: string | null
           portfolio_distribution: Json | null
+          previous_funnel_stage: string | null
           private_pension_status: string | null
           private_pension_type: string | null
           profession: string | null
@@ -503,6 +504,7 @@ export type Database = {
           pending_schedule?: boolean | null
           phone?: string | null
           portfolio_distribution?: Json | null
+          previous_funnel_stage?: string | null
           private_pension_status?: string | null
           private_pension_type?: string | null
           profession?: string | null
@@ -582,6 +584,7 @@ export type Database = {
           pending_schedule?: boolean | null
           phone?: string | null
           portfolio_distribution?: Json | null
+          previous_funnel_stage?: string | null
           private_pension_status?: string | null
           private_pension_type?: string | null
           profession?: string | null
