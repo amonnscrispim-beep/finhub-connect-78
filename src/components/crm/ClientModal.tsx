@@ -79,6 +79,8 @@ import { ClientFormLink } from './ClientFormLink';
 import { useClientPortfolio } from '@/hooks/useClientPortfolio';
 import { DirecionamentoEstrategico, defaultDirecionamentoEstrategico, DirecionamentoEstrategicoData } from './DirecionamentoEstrategico';
 import { ArquiteturaCarteira, defaultArquiteturaCarteira, ArquiteturaCarteiraData } from './ArquiteturaCarteira';
+import { ConhecerClienteModule } from './conhecer/ConhecerClienteModule';
+import { defaultConhecerCliente, migrateFromLegacy, ConhecerClienteData } from './conhecer/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
