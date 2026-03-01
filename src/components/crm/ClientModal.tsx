@@ -272,6 +272,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   const [formData, setFormData] = useState(defaultFormData);
   const [draftGoals, setDraftGoals] = useState<DraftGoal[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [conhecerData, setConhecerData] = useState<ConhecerClienteData>(defaultConhecerCliente);
   const [autoReportObservation, setAutoReportObservation] = useState('');
   const [reportConsultantObs, setReportConsultantObs] = useState('');
   const portfolio = useClientPortfolio(client?.id);
