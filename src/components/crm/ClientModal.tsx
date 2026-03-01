@@ -542,7 +542,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       businessAssets: resolvedBusinessAssets,
       passiveIncome: parseFloat(formData.passiveIncome) || 0,
       successionPlanning: formData.successionPlanning || '',
-      strategicDiagnostic: { ...formData.strategicDiagnostic, estruturaPatrimonial: formData.estruturaPatrimonial, fluxoCaixa: formData.fluxoCaixa, objetivosMetas: formData.objetivosMetas, perfilRisco: formData.perfilRisco, protecaoSucessao: formData.protecaoSucessao, historicoMercado: formData.historicoMercado, direcionamentoEstrategico: formData.direcionamentoEstrategico, arquiteturaCarteira: formData.arquiteturaCarteira },
+      strategicDiagnostic: conhecerData as any,
       patrimonioFinanceiroLiquido: patrimonioFinanceiroLiquido,
       isTop10: client?.isTop10 ?? false,
       top10Order: client?.top10Order ?? null,
