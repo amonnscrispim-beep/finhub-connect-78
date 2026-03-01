@@ -81,7 +81,7 @@ export function PainelFinanceiro({
   const totalRevenue = (mainRevenue + otherIncomesTotal) || resolve(undefined, overrides.monthlyRevenue);
   
   const livingCost = resolve(conhecerData.livingCost, overrides.monthlyLivingCost);
-  const monthlyContribution = resolve(conhecerData.monthlyContribution, overrides.monthlyContribution);
+  const monthlyContribution = resolve(conhecerData.monthlyInvestment, overrides.monthlyContribution);
   const surplus = totalRevenue - livingCost;
 
   // Liquidity from conhecer emergencyMonths
