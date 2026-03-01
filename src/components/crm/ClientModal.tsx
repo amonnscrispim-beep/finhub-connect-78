@@ -857,6 +857,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
             {/* SECTION 3: Situação Financeira Atual (Painel Automático) */}
             <CollapsibleSection title="Situação Financeira Atual" icon={DollarSign} defaultOpen={false}>
               <PainelFinanceiro
+                conhecerData={conhecerData}
                 overrides={{
                   financialAssets: formData.financialAssets,
                   materialAssets: formData.materialAssets,
@@ -866,21 +867,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   monthlyContribution: formData.monthlyContribution,
                   monthlyLivingCost: formData.monthlyLivingCost,
                   passiveIncome: formData.passiveIncome,
-                  investorProfile: formData.investorProfile,
-                  financialInstitutions: formData.financialInstitutions,
-                  successionPlanning: formData.successionPlanning,
-                  organizedFinances: formData.organizedFinances,
                 }}
                 onOverrideChange={(field, value) => {
                   setFormData(prev => ({ ...prev, [field]: value }));
                 }}
-                fluxoCaixa={formData.fluxoCaixa}
-                estruturaPatrimonial={formData.estruturaPatrimonial}
-                direcionamentoEstrategico={formData.direcionamentoEstrategico}
-                perfilRisco={formData.perfilRisco}
-                protecaoSucessao={formData.protecaoSucessao}
-                objetivosMetas={formData.objetivosMetas}
-                strategicDiagnostic={formData.strategicDiagnostic}
                 consultantNote={formData.moduleNotes.financialSummary || ''}
                 onConsultantNoteChange={(value) => setFormData(prev => ({
                   ...prev,

@@ -1,19 +1,12 @@
 import { useState, useMemo } from 'react';
-import { Copy, Check, AlertTriangle, FileText, Pencil, Lock, TrendingUp } from 'lucide-react';
+import { Copy, Check, AlertTriangle, FileText, Pencil, Lock, TrendingUp, DollarSign, Wallet, ShieldAlert, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { Progress } from '@/components/ui/progress';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { INVESTOR_PROFILES, ORGANIZED_FINANCES_OPTIONS } from '@/types/client';
-import type { FluxoCaixaData } from './FluxoCaixaAccumulacao';
-import type { EstruturaPatrimonialData } from './EstruturaPatrimonial';
-import type { DirecionamentoEstrategicoData } from './DirecionamentoEstrategico';
-import type { PerfilRiscoData } from './PerfilRisco';
-import type { ProtecaoSucessaoData } from './ProtecaoSucessao';
-import type { ObjetivosMetasData } from './ObjetivosMetas';
-import type { StrategicDiagnosticData } from './DiagnosticoEstrategico';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import type { ConhecerClienteData } from './conhecer/types';
 
 export interface PainelFinanceiroOverrides {
   financialAssets: string;
@@ -24,28 +17,14 @@ export interface PainelFinanceiroOverrides {
   monthlyContribution: string;
   monthlyLivingCost: string;
   passiveIncome: string;
-  investorProfile: string;
-  financialInstitutions: string;
-  successionPlanning: string;
-  organizedFinances: string;
 }
 
 interface Props {
-  // Overrides (legacy/manual fields from formData)
+  conhecerData: ConhecerClienteData;
   overrides: PainelFinanceiroOverrides;
   onOverrideChange: (field: keyof PainelFinanceiroOverrides, value: string) => void;
-  // Conhecer o Cliente data sources
-  fluxoCaixa: FluxoCaixaData;
-  estruturaPatrimonial: EstruturaPatrimonialData;
-  direcionamentoEstrategico: DirecionamentoEstrategicoData;
-  perfilRisco: PerfilRiscoData;
-  protecaoSucessao: ProtecaoSucessaoData;
-  objetivosMetas: ObjetivosMetasData;
-  strategicDiagnostic: StrategicDiagnosticData;
-  // Consultant note
   consultantNote: string;
   onConsultantNoteChange: (value: string) => void;
-  // Additional context
   clientName: string;
   age: number;
 }
@@ -53,36 +32,26 @@ interface Props {
 const fmt = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
-function ReadOnlyField({ label, value, alert }: { label: string; value: string; alert?: boolean }) {
-  return (
-    <div className="p-3 bg-muted/20 rounded-lg border border-border">
-      <p className="text-xs text-muted-foreground mb-1">{label}</p>
-      <p className={`text-sm font-medium ${alert ? 'text-yellow-600 dark:text-yellow-400' : 'text-foreground'}`}>
-        {value || <span className="text-muted-foreground italic">Não preenchido</span>}
-      </p>
-    </div>
-  );
-}
+const PIE_COLORS = ['hsl(var(--primary))', 'hsl(var(--accent-foreground))', '#f59e0b'];
+const BAR_COLORS = ['hsl(var(--primary))', '#ef4444', '#22c55e'];
 
-function KpiCard({ label, value, color }: { label: string; value: string; color?: string }) {
+function KpiCard({ icon: Icon, label, value, color, subtext }: { icon: React.ElementType; label: string; value: string; color?: string; subtext?: string }) {
   return (
-    <div className="p-3 bg-muted/30 rounded-lg text-center">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={`text-sm font-bold ${color || 'text-foreground'}`}>{value}</p>
+    <div className="p-4 bg-card rounded-xl border border-border shadow-sm space-y-1">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Icon className="w-4 h-4" />
+        <span className="text-xs font-medium">{label}</span>
+      </div>
+      <p className={`text-lg font-bold ${color || 'text-foreground'}`}>{value}</p>
+      {subtext && <p className="text-xs text-muted-foreground">{subtext}</p>}
     </div>
   );
 }
 
 export function PainelFinanceiro({
+  conhecerData,
   overrides,
   onOverrideChange,
-  fluxoCaixa,
-  estruturaPatrimonial,
-  direcionamentoEstrategico,
-  perfilRisco,
-  protecaoSucessao,
-  objetivosMetas,
-  strategicDiagnostic,
   consultantNote,
   onConsultantNoteChange,
   clientName,
@@ -91,313 +60,240 @@ export function PainelFinanceiro({
   const [editMode, setEditMode] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // === DATA RESOLUTION: Conhecer o Cliente is primary, overrides are fallback ===
-  const resolve = (conhecerValue: string | undefined, overrideValue: string): number => {
-    const fromConhecer = parseFloat(conhecerValue || '') || 0;
-    const fromOverride = parseFloat(overrideValue) || 0;
-    return fromConhecer || fromOverride;
+  // === DATA RESOLUTION: ConhecerCliente is primary, overrides are fallback ===
+  const resolve = (conhecerVal: string | undefined, overrideVal: string): number => {
+    const c = parseFloat(conhecerVal || '') || 0;
+    const o = parseFloat(overrideVal) || 0;
+    return c || o;
   };
 
-  const financialAssets = resolve(estruturaPatrimonial.liquidFinancialAssets, overrides.financialAssets);
-  const materialAssets = resolve(estruturaPatrimonial.realEstate, overrides.materialAssets);
-  const businessAssets = resolve(estruturaPatrimonial.businessParticipations, overrides.businessAssets);
-  const emergencyReserve = resolve(undefined, overrides.emergencyReserve); // only from override
-  const monthlyRevenue = resolve(fluxoCaixa.monthlyRevenue, overrides.monthlyRevenue);
-  const monthlyLivingCost = resolve(fluxoCaixa.livingCost, overrides.monthlyLivingCost);
-  const monthlyContribution = resolve(fluxoCaixa.monthlyInvestment, overrides.monthlyContribution);
-  const passiveIncome = resolve(undefined, overrides.passiveIncome);
-  const investorProfile = perfilRisco.behavioralRisk || overrides.investorProfile || '';
-  const financialInstitutions = overrides.financialInstitutions || '';
-  const successionPlanning = protecaoSucessao.successionPlanning || overrides.successionPlanning || '';
-  const organizedFinances = overrides.organizedFinances || '';
+  const totalPatrimony = resolve(conhecerData.totalPatrimony, '0');
+  const businessValue = resolve(conhecerData.businessValue, overrides.businessAssets);
+  const financialAssets = resolve(undefined, overrides.financialAssets);
+  const materialAssets = resolve(undefined, overrides.materialAssets);
 
-  // === CALCULATIONS ===
-  const totalPatrimony = financialAssets + materialAssets + businessAssets;
-  const liquidity = monthlyLivingCost > 0 ? emergencyReserve / monthlyLivingCost : null;
-  const savingsRate = monthlyRevenue > 0 ? (monthlyContribution / monthlyRevenue) * 100 : null;
-  const activeDependencyPct = parseFloat(estruturaPatrimonial.activeDependencyPercent) || null;
+  // Use totalPatrimony from conhecer as the main figure; fallback to sum of overrides
+  const effectivePatrimony = totalPatrimony > 0 ? totalPatrimony : (financialAssets + materialAssets + businessValue);
 
-  const pctFin = totalPatrimony > 0 ? (financialAssets / totalPatrimony * 100) : 0;
-  const pctMat = totalPatrimony > 0 ? (materialAssets / totalPatrimony * 100) : 0;
-  const pctBiz = totalPatrimony > 0 ? (businessAssets / totalPatrimony * 100) : 0;
+  // Revenue from conhecer
+  const mainRevenue = parseFloat(conhecerData.monthlyRevenue) || 0;
+  const otherIncomesTotal = conhecerData.otherIncomes.reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
+  const totalRevenue = (mainRevenue + otherIncomesTotal) || resolve(undefined, overrides.monthlyRevenue);
+  
+  const livingCost = resolve(conhecerData.livingCost, overrides.monthlyLivingCost);
+  const monthlyContribution = resolve(conhecerData.monthlyInvestment, overrides.monthlyContribution);
+  const surplus = totalRevenue - livingCost;
+
+  // Liquidity from conhecer emergencyMonths
+  const emergencyMonths = parseFloat(conhecerData.emergencyMonths) || 0;
+  const emergencyReserve = resolve(undefined, overrides.emergencyReserve);
+  const effectiveLiquidityMonths = emergencyMonths > 0 ? emergencyMonths : (livingCost > 0 ? emergencyReserve / livingCost : 0);
+
+  // Savings rate
+  const savingsRate = totalRevenue > 0 ? (monthlyContribution / totalRevenue) * 100 : null;
+
+  // Active dependency (business value / total patrimony)
+  const activeDependencyPct = effectivePatrimony > 0 && businessValue > 0 ? (businessValue / effectivePatrimony) * 100 : null;
+
+  // Patrimony distribution
+  const pctFin = effectivePatrimony > 0 ? (financialAssets / effectivePatrimony * 100) : 0;
+  const pctMat = effectivePatrimony > 0 ? (materialAssets / effectivePatrimony * 100) : 0;
+  const pctBiz = effectivePatrimony > 0 ? (businessValue / effectivePatrimony * 100) : 0;
+
+  // Colors
+  const liquidityColor = effectiveLiquidityMonths < 3 ? 'text-destructive' : effectiveLiquidityMonths <= 6 ? 'text-yellow-500' : 'text-green-500';
+  const savingsColor = savingsRate !== null ? (savingsRate < 10 ? 'text-destructive' : savingsRate <= 25 ? 'text-yellow-500' : 'text-green-500') : 'text-muted-foreground';
+
+  // Pie chart data
+  const pieData = useMemo(() => {
+    const items = [
+      { name: 'Financeiro', value: financialAssets },
+      { name: 'Material', value: materialAssets },
+      { name: 'Empresarial', value: businessValue },
+    ].filter(i => i.value > 0);
+    return items;
+  }, [financialAssets, materialAssets, businessValue]);
+
+  // Bar chart data
+  const barData = useMemo(() => [
+    { name: 'Receita', value: totalRevenue, fill: BAR_COLORS[0] },
+    { name: 'Custo', value: livingCost, fill: BAR_COLORS[1] },
+    { name: 'Aporte', value: monthlyContribution, fill: BAR_COLORS[2] },
+  ], [totalRevenue, livingCost, monthlyContribution]);
 
   // === ALERTS ===
   const alerts = useMemo(() => {
     const a: string[] = [];
-    if (!monthlyLivingCost) a.push('Sem custo mensal preenchido — não é possível calcular liquidez.');
-    if (!monthlyRevenue) a.push('Sem renda mensal preenchida — não é possível calcular taxa de poupança.');
-    if (emergencyReserve <= 0) a.push('Reserva de emergência não preenchida.');
-    if (liquidity !== null && liquidity < 6) a.push(`Reserva abaixo de 6 meses (${liquidity.toFixed(1)} meses).`);
+    if (!livingCost) a.push('Sem custo mensal preenchido — não é possível calcular liquidez.');
+    if (!totalRevenue) a.push('Sem renda mensal preenchida.');
+    if (effectiveLiquidityMonths > 0 && effectiveLiquidityMonths < 6) a.push(`Reserva abaixo de 6 meses (${effectiveLiquidityMonths.toFixed(1)} meses).`);
+    if (effectiveLiquidityMonths === 0 && livingCost > 0) a.push('Sem reserva de emergência identificada.');
     if (savingsRate !== null && savingsRate < 10) a.push(`Taxa de poupança baixa (${savingsRate.toFixed(1)}%).`);
-    if (totalPatrimony > 0 && pctBiz > 50) a.push('Patrimônio muito concentrado em empresa.');
-    if (totalPatrimony > 0 && pctFin < 10) a.push('Patrimônio financeiro abaixo de 10% do total.');
-    if (!investorProfile) a.push('Perfil de investidor não definido.');
-    if (activeDependencyPct !== null && activeDependencyPct > 70) a.push(`Alta dependência ativa (${activeDependencyPct}%).`);
+    if (effectivePatrimony > 0 && pctBiz > 50) a.push('Patrimônio muito concentrado em empresa.');
+    if (effectivePatrimony > 0 && pctFin < 10 && financialAssets > 0) a.push('Patrimônio financeiro abaixo de 10% do total.');
+    if (activeDependencyPct !== null && activeDependencyPct > 70) a.push(`Alta dependência ativa (${activeDependencyPct.toFixed(0)}%).`);
     return a;
-  }, [monthlyLivingCost, monthlyRevenue, emergencyReserve, liquidity, savingsRate, totalPatrimony, pctBiz, pctFin, investorProfile, activeDependencyPct]);
+  }, [livingCost, totalRevenue, effectiveLiquidityMonths, savingsRate, effectivePatrimony, pctBiz, pctFin, financialAssets, activeDependencyPct]);
 
   // === NEXT STEPS ===
   const nextSteps = useMemo(() => {
     const s: string[] = [];
-    if (emergencyReserve <= 0 || (liquidity !== null && liquidity < 6)) s.push('Estruturar ou reforçar reserva de emergência.');
+    if (effectiveLiquidityMonths < 6) s.push('Estruturar ou reforçar reserva de emergência.');
     if (savingsRate !== null && savingsRate < 10) s.push('Revisar fluxo de caixa para aumentar capacidade de aporte.');
-    if (totalPatrimony > 0 && pctBiz > 50) s.push('Avaliar estratégia de diversificação patrimonial.');
-    if (!successionPlanning || successionPlanning === 'Não') s.push('Iniciar planejamento sucessório.');
-    if (passiveIncome <= 0 && totalPatrimony > 100000) s.push('Explorar fontes de renda passiva.');
-    if (organizedFinances === 'Não') s.push('Organizar finanças pessoais antes de avançar com alocação.');
+    if (effectivePatrimony > 0 && pctBiz > 50) s.push('Avaliar estratégia de diversificação patrimonial.');
+    if (conhecerData.successionThought !== 'Sim') s.push('Iniciar planejamento sucessório.');
     if (s.length === 0) s.push('Prosseguir com a construção da arquitetura estratégica da carteira.');
     return s;
-  }, [emergencyReserve, liquidity, savingsRate, totalPatrimony, pctBiz, successionPlanning, passiveIncome, organizedFinances]);
-
-  // === AUTO SUMMARY ===
-  const autoSummary = useMemo(() => {
-    const lines: string[] = [];
-    if (clientName) lines.push(`Cliente: ${clientName}${age ? `, ${age} anos` : ''}.`);
-    if (totalPatrimony > 0) {
-      lines.push(`Patrimônio total estimado: ${fmt(totalPatrimony)}.`);
-      const parts: string[] = [];
-      if (financialAssets > 0) parts.push(`financeiro ${fmt(financialAssets)} (${pctFin.toFixed(0)}%)`);
-      if (materialAssets > 0) parts.push(`material ${fmt(materialAssets)} (${pctMat.toFixed(0)}%)`);
-      if (businessAssets > 0) parts.push(`empresarial ${fmt(businessAssets)} (${pctBiz.toFixed(0)}%)`);
-      if (parts.length > 0) lines.push(`Composição: ${parts.join(', ')}.`);
-    }
-    if (monthlyRevenue > 0) lines.push(`Faturamento mensal: ${fmt(monthlyRevenue)}.`);
-    if (monthlyContribution > 0) lines.push(`Aporte mensal: ${fmt(monthlyContribution)}.`);
-    if (savingsRate !== null) lines.push(`Taxa de poupança: ${savingsRate.toFixed(1)}%.`);
-    if (emergencyReserve > 0) {
-      lines.push(`Reserva de emergência: ${fmt(emergencyReserve)}.`);
-      if (liquidity !== null) lines.push(`Liquidez: ${liquidity.toFixed(1)} meses.`);
-    }
-    if (passiveIncome > 0) lines.push(`Renda passiva atual: ${fmt(passiveIncome)}.`);
-    if (investorProfile) lines.push(`Perfil de investidor: ${investorProfile}.`);
-    if (financialInstitutions) lines.push(`Instituições: ${financialInstitutions}.`);
-    if (organizedFinances) lines.push(`Finanças organizadas: ${organizedFinances}.`);
-    if (successionPlanning) lines.push(`Planejamento sucessório: ${successionPlanning}.`);
-    if (activeDependencyPct !== null) lines.push(`Dependência ativa: ${activeDependencyPct}%.`);
-    if (direcionamentoEstrategico.strategicPriority) lines.push(`Prioridade estratégica: ${direcionamentoEstrategico.strategicPriority}.`);
-    if (direcionamentoEstrategico.executiveSummary) lines.push(`\nSíntese: ${direcionamentoEstrategico.executiveSummary}`);
-    return lines.length > 1 ? lines.join('\n') : 'Preencha os dados em "Conhecer o Cliente" para gerar o resumo automático.';
-  }, [clientName, age, totalPatrimony, financialAssets, materialAssets, businessAssets, pctFin, pctMat, pctBiz, monthlyRevenue, monthlyContribution, savingsRate, emergencyReserve, liquidity, passiveIncome, investorProfile, financialInstitutions, organizedFinances, successionPlanning, activeDependencyPct, direcionamentoEstrategico]);
+  }, [effectiveLiquidityMonths, savingsRate, effectivePatrimony, pctBiz, conhecerData.successionThought]);
 
   const handleCopyAll = () => {
-    const text = `📊 RESUMO FINANCEIRO\n\n${autoSummary}\n\n⚠️ PONTOS DE ATENÇÃO\n\n${alerts.length > 0 ? alerts.map(a => `⚠️ ${a}`).join('\n') : 'Nenhum.'}\n\n➡️ PRÓXIMOS PASSOS\n\n${nextSteps.map(s => `→ ${s}`).join('\n')}${consultantNote ? `\n\n📝 NOTA DO CONSULTOR\n\n${consultantNote}` : ''}`;
+    const text = `📊 RESUMO FINANCEIRO — ${clientName}\n\nPatrimônio Total: ${fmt(effectivePatrimony)}\nReceita Total: ${fmt(totalRevenue)}\nCusto de Vida: ${fmt(livingCost)}\nSobra Mensal: ${fmt(surplus)}\nAporte: ${fmt(monthlyContribution)}\nLiquidez: ${effectiveLiquidityMonths.toFixed(1)} meses\n${savingsRate !== null ? `Taxa de Poupança: ${savingsRate.toFixed(1)}%` : ''}\n\n⚠️ ALERTAS\n${alerts.length > 0 ? alerts.map(a => `⚠️ ${a}`).join('\n') : 'Nenhum.'}\n\n➡️ PRÓXIMOS PASSOS\n${nextSteps.map(s => `→ ${s}`).join('\n')}${consultantNote ? `\n\n📝 NOTA\n${consultantNote}` : ''}`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const liquidityColor = liquidity !== null ? (liquidity < 3 ? 'text-red-500' : liquidity <= 6 ? 'text-yellow-500' : 'text-green-500') : 'text-muted-foreground';
-  const savingsColor = savingsRate !== null ? (savingsRate < 10 ? 'text-red-500' : savingsRate <= 25 ? 'text-yellow-500' : 'text-green-500') : 'text-muted-foreground';
+  const lastUpdate = new Date().toLocaleDateString('pt-BR');
 
   return (
-    <div className="space-y-6">
-      {/* === RESUMO AUTOMÁTICO === */}
-      <div className="p-4 bg-primary/5 rounded-lg border-2 border-primary/20 space-y-4">
-        <div className="flex items-center justify-between">
-          <h4 className="font-semibold text-primary flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            Resumo Automático do Módulo
-          </h4>
-          <Button type="button" variant="outline" size="sm" onClick={handleCopyAll} className="gap-2 text-xs">
-            {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-            {copied ? 'Copiado!' : 'Copiar tudo'}
-          </Button>
-        </div>
+    <div className="space-y-5">
+      {/* Source indicator */}
+      <div className="flex items-center justify-between text-xs text-muted-foreground bg-muted/30 px-3 py-2 rounded-lg border border-border">
+        <span>📥 Dados importados de <strong>Conhecer o Cliente</strong> — última atualização: {lastUpdate}</span>
+        <Button type="button" variant="ghost" size="sm" onClick={() => setEditMode(!editMode)} className="text-xs gap-1.5 h-7">
+          {editMode ? <><Lock className="w-3 h-3" /> Bloquear</> : <><Pencil className="w-3 h-3" /> Editar manualmente</>}
+        </Button>
+      </div>
 
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">Resumo financeiro (auto)</Label>
-          <div className="p-3 bg-background rounded-md border border-border text-sm whitespace-pre-line leading-relaxed min-h-[80px]">
-            {autoSummary}
-          </div>
-        </div>
+      {/* === LINHA 1 — 4 Cards principais === */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <KpiCard icon={DollarSign} label="Patrimônio Total" value={effectivePatrimony > 0 ? fmt(effectivePatrimony) : 'Sem dados'} />
+        <KpiCard icon={TrendingUp} label="Taxa de Poupança" value={savingsRate !== null ? `${savingsRate.toFixed(1)}%` : 'Sem dados'} color={savingsColor} />
+        <KpiCard
+          icon={ShieldAlert}
+          label="Liquidez"
+          value={effectiveLiquidityMonths > 0 ? `${effectiveLiquidityMonths.toFixed(1)} meses` : 'Sem dados'}
+          color={effectiveLiquidityMonths > 0 ? liquidityColor : undefined}
+          subtext={effectiveLiquidityMonths > 0 ? (effectiveLiquidityMonths < 3 ? '⚠️ Crítico' : effectiveLiquidityMonths <= 6 ? 'Regular' : '✅ Adequado') : undefined}
+        />
+        <KpiCard
+          icon={Activity}
+          label="Dependência Ativa"
+          value={activeDependencyPct !== null ? `${activeDependencyPct.toFixed(0)}%` : 'Sem dados'}
+          color={activeDependencyPct !== null && activeDependencyPct > 70 ? 'text-destructive' : undefined}
+        />
+      </div>
 
-        {alerts.length > 0 && (
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-              <AlertTriangle className="w-3.5 h-3.5 text-yellow-500" />
-              Pontos de atenção ({alerts.length})
-            </Label>
-            <div className="p-3 bg-background rounded-md border border-yellow-300/30 text-sm space-y-1">
-              {alerts.map((a, i) => (
-                <p key={i} className="text-yellow-700 dark:text-yellow-400">⚠️ {a}</p>
-              ))}
+      {/* === LINHA 2 — 3 Cards secundários === */}
+      <div className="grid grid-cols-3 gap-3">
+        <KpiCard icon={Wallet} label="Receita Total Mensal" value={totalRevenue > 0 ? fmt(totalRevenue) : 'Sem dados'} />
+        <KpiCard icon={Wallet} label="Custo de Vida Mensal" value={livingCost > 0 ? fmt(livingCost) : 'Sem dados'} />
+        <KpiCard
+          icon={Wallet}
+          label="Sobra + Aporte"
+          value={surplus !== 0 ? `${fmt(surplus)} | ${fmt(monthlyContribution)}` : 'Sem dados'}
+          color={surplus < 0 ? 'text-destructive' : undefined}
+        />
+      </div>
+
+      {/* === LINHA 3 — 2 Gráficos lado a lado === */}
+      {(pieData.length > 0 || totalRevenue > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Donut - Distribuição do Patrimônio */}
+          {pieData.length > 0 && (
+            <div className="p-4 bg-card rounded-xl border border-border">
+              <h4 className="text-sm font-medium mb-3">Distribuição do Patrimônio</h4>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
+                    {pieData.map((_, idx) => (
+                      <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(v: number) => fmt(v)} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
-          </div>
-        )}
+          )}
 
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">Próximos passos (auto)</Label>
-          <div className="p-3 bg-background rounded-md border border-border text-sm space-y-1">
-            {nextSteps.map((s, i) => (
-              <p key={i}>→ {s}</p>
+          {/* Bar - Receita vs Custo vs Aporte */}
+          {totalRevenue > 0 && (
+            <div className="p-4 bg-card rounded-xl border border-border">
+              <h4 className="text-sm font-medium mb-3">Receita vs Custo vs Aporte</h4>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={barData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                  <Tooltip formatter={(v: number) => fmt(v)} />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    {barData.map((entry, idx) => (
+                      <Cell key={idx} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* === LINHA 4 — Alertas automáticos === */}
+      {alerts.length > 0 && (
+        <div className="p-4 bg-card rounded-xl border border-border space-y-2">
+          <h4 className="text-sm font-medium flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-yellow-500" />
+            Pontos de Atenção ({alerts.length})
+          </h4>
+          <div className="space-y-1.5">
+            {alerts.map((a, i) => (
+              <p key={i} className="text-xs text-yellow-700 dark:text-yellow-400 bg-yellow-500/10 px-3 py-1.5 rounded-md">⚠️ {a}</p>
             ))}
           </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">Nota do consultor</Label>
-          <Textarea
-            value={consultantNote}
-            onChange={(e) => onConsultantNoteChange(e.target.value)}
-            placeholder="Adicione observações, contexto adicional ou ajustes..."
-            className="crm-input min-h-[80px] text-sm"
-          />
-        </div>
-      </div>
-
-      {/* === KPIs AUTOMÁTICOS === */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard label="Patrimônio Total" value={totalPatrimony > 0 ? fmt(totalPatrimony) : 'Sem dados'} />
-        <KpiCard label="Liquidez (meses)" value={liquidity !== null ? `${liquidity.toFixed(1)} meses` : 'Sem dados'} color={liquidityColor} />
-        <KpiCard label="Taxa de Poupança" value={savingsRate !== null ? `${savingsRate.toFixed(1)}%` : 'Sem dados'} color={savingsColor} />
-        <KpiCard label="Dependência Ativa" value={activeDependencyPct !== null ? `${activeDependencyPct}%` : 'Sem dados'} color={activeDependencyPct !== null && activeDependencyPct > 70 ? 'text-red-500' : undefined} />
-      </div>
-
-      {/* === DISTRIBUIÇÃO PATRIMONIAL === */}
-      {totalPatrimony > 0 && (
-        <div className="p-4 bg-muted/50 rounded-lg border border-border space-y-3">
-          <h4 className="text-sm font-medium flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" />
-            Distribuição Patrimonial
-          </h4>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <span>Financeiro</span>
-              <span className="font-medium">{pctFin.toFixed(1)}% — {fmt(financialAssets)}</span>
-            </div>
-            <Progress value={pctFin} className="h-2" />
-            <div className="flex items-center justify-between text-xs">
-              <span>Material / Imobilizado</span>
-              <span className="font-medium">{pctMat.toFixed(1)}% — {fmt(materialAssets)}</span>
-            </div>
-            <Progress value={pctMat} className="h-2" />
-            <div className="flex items-center justify-between text-xs">
-              <span>Empresarial</span>
-              <span className="font-medium">{pctBiz.toFixed(1)}% — {fmt(businessAssets)}</span>
-            </div>
-            <Progress value={pctBiz} className="h-2" />
+          <div className="pt-2 border-t border-border space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">➡️ Próximos passos sugeridos</p>
+            {nextSteps.map((s, i) => (
+              <p key={i} className="text-xs text-foreground">→ {s}</p>
+            ))}
           </div>
         </div>
       )}
 
-      {/* === DADOS CONSOLIDADOS (somente leitura) === */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
-            {editMode ? <Pencil className="w-4 h-4" /> : <Lock className="w-4 h-4 text-muted-foreground" />}
-            Dados Consolidados
-          </h4>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setEditMode(!editMode)}
-            className="text-xs gap-1.5"
-          >
-            {editMode ? (
-              <>
-                <Lock className="w-3.5 h-3.5" />
-                Bloquear edição
-              </>
-            ) : (
-              <>
-                <Pencil className="w-3.5 h-3.5" />
-                Editar manualmente
-              </>
-            )}
-          </Button>
+      {/* === LINHA 5 — Nota do consultor === */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">Nota do Consultor</Label>
+        <Textarea
+          value={consultantNote}
+          onChange={(e) => onConsultantNoteChange(e.target.value)}
+          placeholder="Adicione observações, contexto adicional ou ajustes..."
+          className="crm-input min-h-[80px] text-sm"
+        />
+      </div>
+
+      {/* === Override manual === */}
+      {editMode && (
+        <div className="p-4 bg-muted/20 rounded-xl border border-border space-y-3">
+          <p className="text-xs text-muted-foreground">Edição manual — sobrescreve dados de "Conhecer o Cliente" apenas neste painel.</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="space-y-1"><Label className="text-xs">Patrimônio Financeiro</Label><CurrencyInput value={overrides.financialAssets} onChange={(v) => onOverrideChange('financialAssets', v)} /></div>
+            <div className="space-y-1"><Label className="text-xs">Patrimônio Material</Label><CurrencyInput value={overrides.materialAssets} onChange={(v) => onOverrideChange('materialAssets', v)} /></div>
+            <div className="space-y-1"><Label className="text-xs">Patrimônio Empresarial</Label><CurrencyInput value={overrides.businessAssets} onChange={(v) => onOverrideChange('businessAssets', v)} /></div>
+            <div className="space-y-1"><Label className="text-xs">Reserva de Emergência</Label><CurrencyInput value={overrides.emergencyReserve} onChange={(v) => onOverrideChange('emergencyReserve', v)} /></div>
+            <div className="space-y-1"><Label className="text-xs">Receita Mensal</Label><CurrencyInput value={overrides.monthlyRevenue} onChange={(v) => onOverrideChange('monthlyRevenue', v)} /></div>
+            <div className="space-y-1"><Label className="text-xs">Custo Mensal</Label><CurrencyInput value={overrides.monthlyLivingCost} onChange={(v) => onOverrideChange('monthlyLivingCost', v)} /></div>
+            <div className="space-y-1"><Label className="text-xs">Aporte Mensal</Label><CurrencyInput value={overrides.monthlyContribution} onChange={(v) => onOverrideChange('monthlyContribution', v)} /></div>
+            <div className="space-y-1"><Label className="text-xs">Renda Passiva</Label><CurrencyInput value={overrides.passiveIncome} onChange={(v) => onOverrideChange('passiveIncome', v)} /></div>
+          </div>
         </div>
+      )}
 
-        <p className="text-xs text-muted-foreground">
-          {editMode
-            ? 'Modo de edição manual ativo. As alterações aqui sobrescrevem os dados de "Conhecer o Cliente".'
-            : 'Dados puxados automaticamente de "Conhecer o Cliente". Clique em "Editar manualmente" para ajustar.'}
-        </p>
-
-        {editMode ? (
-          <div className="space-y-4 p-4 bg-muted/20 rounded-lg border border-border">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>Patrimônio Financeiro</Label>
-                <CurrencyInput value={overrides.financialAssets} onChange={(v) => onOverrideChange('financialAssets', v)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Patrimônio Material</Label>
-                <CurrencyInput value={overrides.materialAssets} onChange={(v) => onOverrideChange('materialAssets', v)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Patrimônio Empresarial</Label>
-                <CurrencyInput value={overrides.businessAssets} onChange={(v) => onOverrideChange('businessAssets', v)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Reserva de Emergência</Label>
-                <CurrencyInput value={overrides.emergencyReserve} onChange={(v) => onOverrideChange('emergencyReserve', v)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Faturamento Mensal</Label>
-                <CurrencyInput value={overrides.monthlyRevenue} onChange={(v) => onOverrideChange('monthlyRevenue', v)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Aporte Mensal</Label>
-                <CurrencyInput value={overrides.monthlyContribution} onChange={(v) => onOverrideChange('monthlyContribution', v)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Custo Mensal da Família</Label>
-                <CurrencyInput value={overrides.monthlyLivingCost} onChange={(v) => onOverrideChange('monthlyLivingCost', v)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Renda Passiva Atual</Label>
-                <CurrencyInput value={overrides.passiveIncome} onChange={(v) => onOverrideChange('passiveIncome', v)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Perfil de Investidor</Label>
-                <Select value={overrides.investorProfile} onValueChange={(v) => onOverrideChange('investorProfile', v)}>
-                  <SelectTrigger className="crm-input"><SelectValue /></SelectTrigger>
-                  <SelectContent>{INVESTOR_PROFILES.map((p) => (<SelectItem key={p} value={p}>{p}</SelectItem>))}</SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Instituições Financeiras</Label>
-              <Textarea value={overrides.financialInstitutions} onChange={(e) => onOverrideChange('financialInstitutions', e.target.value)} placeholder="Ex: Itaú, BTG, XP..." className="crm-input min-h-[60px]" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Planejamento Sucessório</Label>
-                <Select value={overrides.successionPlanning} onValueChange={(v) => onOverrideChange('successionPlanning', v)}>
-                  <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Sim">Sim</SelectItem>
-                    <SelectItem value="Parcial">Parcial</SelectItem>
-                    <SelectItem value="Não">Não</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Finanças organizadas?</Label>
-                <Select value={overrides.organizedFinances} onValueChange={(v) => onOverrideChange('organizedFinances', v)}>
-                  <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>{ORGANIZED_FINANCES_OPTIONS.map((o) => (<SelectItem key={o} value={o}>{o}</SelectItem>))}</SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <ReadOnlyField label="Patrimônio Financeiro" value={financialAssets > 0 ? fmt(financialAssets) : ''} />
-            <ReadOnlyField label="Patrimônio Material" value={materialAssets > 0 ? fmt(materialAssets) : ''} />
-            <ReadOnlyField label="Patrimônio Empresarial" value={businessAssets > 0 ? fmt(businessAssets) : ''} />
-            <ReadOnlyField label="Reserva de Emergência" value={emergencyReserve > 0 ? fmt(emergencyReserve) : ''} alert={emergencyReserve <= 0} />
-            <ReadOnlyField label="Faturamento Mensal" value={monthlyRevenue > 0 ? fmt(monthlyRevenue) : ''} alert={!monthlyRevenue} />
-            <ReadOnlyField label="Aporte Mensal" value={monthlyContribution > 0 ? fmt(monthlyContribution) : ''} />
-            <ReadOnlyField label="Custo Mensal da Família" value={monthlyLivingCost > 0 ? fmt(monthlyLivingCost) : ''} alert={!monthlyLivingCost} />
-            <ReadOnlyField label="Renda Passiva Atual" value={passiveIncome > 0 ? fmt(passiveIncome) : ''} />
-            <ReadOnlyField label="Perfil de Investidor" value={investorProfile} alert={!investorProfile} />
-            <ReadOnlyField label="Instituições Financeiras" value={financialInstitutions} />
-            <ReadOnlyField label="Planejamento Sucessório" value={successionPlanning} />
-            <ReadOnlyField label="Finanças Organizadas" value={organizedFinances} />
-          </div>
-        )}
+      {/* Copy button */}
+      <div className="flex justify-end">
+        <Button type="button" variant="outline" size="sm" onClick={handleCopyAll} className="gap-2 text-xs">
+          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+          {copied ? 'Copiado!' : 'Copiar resumo'}
+        </Button>
       </div>
     </div>
   );
