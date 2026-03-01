@@ -44,14 +44,7 @@ function CommentButton({ value, onChange }: { value: string; onChange: (v: strin
   );
 }
 
-function BlocoHeader({ title, isOpen }: { title: string; isOpen: boolean }) {
-  return (
-    <button type="button" className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-      <span className="font-semibold text-foreground text-sm">{title}</span>
-      {isOpen ? <ChevronDown className="w-5 h-5 text-muted-foreground" /> : <ChevronRight className="w-5 h-5 text-muted-foreground" />}
-    </button>
-  );
-}
+// BlocoHeader removed — inlined into renderBlock's CollapsibleTrigger
 
 const REVENUE_SOURCES = ['Salário', 'Pró-labore', 'Distribuição de lucros', 'Dividendos', 'Aluguéis', 'Honorários', 'Outros'];
 const PRIORITIES = ['Segurança / preservação', 'Crescimento do patrimônio', 'Renda passiva', 'Liquidez', 'Planejamento sucessório', 'Proteção patrimonial', 'Diversificação internacional'];
