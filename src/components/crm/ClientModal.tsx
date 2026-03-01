@@ -460,15 +460,12 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       const fromOverride = parseFloat(override) || 0;
       return fromConhecer || fromOverride;
     };
-    const resolvedFinancialAssets = resolveNum(formData.estruturaPatrimonial.liquidFinancialAssets, formData.financialAssets);
-    const resolvedMaterialAssets = resolveNum(formData.estruturaPatrimonial.realEstate, formData.materialAssets);
-    const resolvedBusinessAssets = resolveNum(formData.estruturaPatrimonial.businessParticipations, formData.businessAssets);
+    const resolvedFinancialAssets = resolveNum(conhecerData.totalPatrimony, formData.financialAssets);
+    const resolvedMaterialAssets = resolveNum(undefined, formData.materialAssets);
+    const resolvedBusinessAssets = resolveNum(conhecerData.businessValue, formData.businessAssets);
 
     // Consolidate canonical patrimonio_financeiro_liquido
-    // Priority A: liquidFinancialAssets from Conhecer o Cliente
-    // Priority B: financialAssets (legacy field)
-    // Priority C: null
-    const liquidFromConhecer = parseFloat(formData.estruturaPatrimonial.liquidFinancialAssets || '') || 0;
+    const liquidFromConhecer = parseFloat(conhecerData.totalPatrimony || '') || 0;
     const liquidFromLegacy = parseFloat(formData.financialAssets) || 0;
     const patrimonioFinanceiroLiquido = liquidFromConhecer > 0 ? liquidFromConhecer : (liquidFromLegacy > 0 ? liquidFromLegacy : null);
 
