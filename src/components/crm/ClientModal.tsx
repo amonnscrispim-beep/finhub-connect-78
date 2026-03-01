@@ -845,43 +845,13 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               />
             </CollapsibleSection>
 
-            {/* SECTION 1.5: Conhecer o Cliente */}
+            {/* SECTION 1.5: Conhecer o Cliente (Módulo Mestre) */}
             <CollapsibleSection title="Conhecer o Cliente" icon={Search} defaultOpen={false}>
-               <DiagnosticoEstrategico
-                data={formData.strategicDiagnostic}
-                onChange={(data) => setFormData(prev => ({ ...prev, strategicDiagnostic: data }))}
-              />
-              <EstruturaPatrimonial
-                data={formData.estruturaPatrimonial}
-                onChange={(data) => setFormData(prev => ({ ...prev, estruturaPatrimonial: data }))}
-              />
-              <FluxoCaixaAccumulacao
-                data={formData.fluxoCaixa}
-                onChange={(data) => setFormData(prev => ({ ...prev, fluxoCaixa: data }))}
-              />
-              <ObjetivosMetas
-                data={formData.objetivosMetas}
-                onChange={(data) => setFormData(prev => ({ ...prev, objetivosMetas: data }))}
-              />
-              <PerfilRisco
-                data={formData.perfilRisco}
-                onChange={(data) => setFormData(prev => ({ ...prev, perfilRisco: data }))}
-              />
-              <ProtecaoSucessao
-                data={formData.protecaoSucessao}
-                onChange={(data) => setFormData(prev => ({ ...prev, protecaoSucessao: data }))}
-              />
-              <HistoricoMercado
-                data={formData.historicoMercado}
-                onChange={(data) => setFormData(prev => ({ ...prev, historicoMercado: data }))}
-              />
-              <DirecionamentoEstrategico
-                data={formData.direcionamentoEstrategico}
-                onChange={(data) => setFormData(prev => ({ ...prev, direcionamentoEstrategico: data }))}
-              />
-              <ArquiteturaCarteira
-                data={formData.arquiteturaCarteira}
-                onChange={(data) => setFormData(prev => ({ ...prev, arquiteturaCarteira: data }))}
+              <ConhecerClienteModule
+                data={conhecerData}
+                onChange={setConhecerData}
+                hasChildrenFromBloco1={conhecerData.hasChildren === 'Sim'}
+                clientAge={parseInt(formData.age) || 0}
               />
             </CollapsibleSection>
 
