@@ -272,6 +272,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   const [formData, setFormData] = useState(defaultFormData);
   const [draftGoals, setDraftGoals] = useState<DraftGoal[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [conhecerData, setConhecerData] = useState<ConhecerClienteData>(defaultConhecerCliente);
   const [autoReportObservation, setAutoReportObservation] = useState('');
   const [reportConsultantObs, setReportConsultantObs] = useState('');
   const portfolio = useClientPortfolio(client?.id);
@@ -377,9 +378,13 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         arquiteturaCarteira: { ...defaultArquiteturaCarteira, ...((client as any).arquiteturaCarteira || ((client as any).strategicDiagnostic?.arquiteturaCarteira) || {}) },
       });
       setDraftGoals([]);
+      // Initialize conhecerData from strategicDiagnostic via migration
+      const rawDiag = (client as any).strategicDiagnostic || {};
+      setConhecerData(migrateFromLegacy(rawDiag));
     } else {
       setFormData(defaultFormData);
       setDraftGoals([]);
+      setConhecerData(defaultConhecerCliente);
     }
   }, [client, open]);
 
@@ -455,15 +460,12 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       const fromOverride = parseFloat(override) || 0;
       return fromConhecer || fromOverride;
     };
-    const resolvedFinancialAssets = resolveNum(formData.estruturaPatrimonial.liquidFinancialAssets, formData.financialAssets);
-    const resolvedMaterialAssets = resolveNum(formData.estruturaPatrimonial.realEstate, formData.materialAssets);
-    const resolvedBusinessAssets = resolveNum(formData.estruturaPatrimonial.businessParticipations, formData.businessAssets);
+    const resolvedFinancialAssets = resolveNum(conhecerData.totalPatrimony, formData.financialAssets);
+    const resolvedMaterialAssets = resolveNum(undefined, formData.materialAssets);
+    const resolvedBusinessAssets = resolveNum(conhecerData.businessValue, formData.businessAssets);
 
     // Consolidate canonical patrimonio_financeiro_liquido
-    // Priority A: liquidFinancialAssets from Conhecer o Cliente
-    // Priority B: financialAssets (legacy field)
-    // Priority C: null
-    const liquidFromConhecer = parseFloat(formData.estruturaPatrimonial.liquidFinancialAssets || '') || 0;
+    const liquidFromConhecer = parseFloat(conhecerData.totalPatrimony || '') || 0;
     const liquidFromLegacy = parseFloat(formData.financialAssets) || 0;
     const patrimonioFinanceiroLiquido = liquidFromConhecer > 0 ? liquidFromConhecer : (liquidFromLegacy > 0 ? liquidFromLegacy : null);
 
@@ -537,7 +539,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       businessAssets: resolvedBusinessAssets,
       passiveIncome: parseFloat(formData.passiveIncome) || 0,
       successionPlanning: formData.successionPlanning || '',
-      strategicDiagnostic: { ...formData.strategicDiagnostic, estruturaPatrimonial: formData.estruturaPatrimonial, fluxoCaixa: formData.fluxoCaixa, objetivosMetas: formData.objetivosMetas, perfilRisco: formData.perfilRisco, protecaoSucessao: formData.protecaoSucessao, historicoMercado: formData.historicoMercado, direcionamentoEstrategico: formData.direcionamentoEstrategico, arquiteturaCarteira: formData.arquiteturaCarteira },
+      strategicDiagnostic: conhecerData as any,
       patrimonioFinanceiroLiquido: patrimonioFinanceiroLiquido,
       isTop10: client?.isTop10 ?? false,
       top10Order: client?.top10Order ?? null,
@@ -840,43 +842,13 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               />
             </CollapsibleSection>
 
-            {/* SECTION 1.5: Conhecer o Cliente */}
+            {/* SECTION 1.5: Conhecer o Cliente (Módulo Mestre) */}
             <CollapsibleSection title="Conhecer o Cliente" icon={Search} defaultOpen={false}>
-               <DiagnosticoEstrategico
-                data={formData.strategicDiagnostic}
-                onChange={(data) => setFormData(prev => ({ ...prev, strategicDiagnostic: data }))}
-              />
-              <EstruturaPatrimonial
-                data={formData.estruturaPatrimonial}
-                onChange={(data) => setFormData(prev => ({ ...prev, estruturaPatrimonial: data }))}
-              />
-              <FluxoCaixaAccumulacao
-                data={formData.fluxoCaixa}
-                onChange={(data) => setFormData(prev => ({ ...prev, fluxoCaixa: data }))}
-              />
-              <ObjetivosMetas
-                data={formData.objetivosMetas}
-                onChange={(data) => setFormData(prev => ({ ...prev, objetivosMetas: data }))}
-              />
-              <PerfilRisco
-                data={formData.perfilRisco}
-                onChange={(data) => setFormData(prev => ({ ...prev, perfilRisco: data }))}
-              />
-              <ProtecaoSucessao
-                data={formData.protecaoSucessao}
-                onChange={(data) => setFormData(prev => ({ ...prev, protecaoSucessao: data }))}
-              />
-              <HistoricoMercado
-                data={formData.historicoMercado}
-                onChange={(data) => setFormData(prev => ({ ...prev, historicoMercado: data }))}
-              />
-              <DirecionamentoEstrategico
-                data={formData.direcionamentoEstrategico}
-                onChange={(data) => setFormData(prev => ({ ...prev, direcionamentoEstrategico: data }))}
-              />
-              <ArquiteturaCarteira
-                data={formData.arquiteturaCarteira}
-                onChange={(data) => setFormData(prev => ({ ...prev, arquiteturaCarteira: data }))}
+              <ConhecerClienteModule
+                data={conhecerData}
+                onChange={setConhecerData}
+                hasChildrenFromBloco1={conhecerData.hasChildren === 'Sim'}
+                clientAge={parseInt(formData.age) || 0}
               />
             </CollapsibleSection>
 
