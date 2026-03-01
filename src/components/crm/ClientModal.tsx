@@ -378,9 +378,13 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         arquiteturaCarteira: { ...defaultArquiteturaCarteira, ...((client as any).arquiteturaCarteira || ((client as any).strategicDiagnostic?.arquiteturaCarteira) || {}) },
       });
       setDraftGoals([]);
+      // Initialize conhecerData from strategicDiagnostic via migration
+      const rawDiag = (client as any).strategicDiagnostic || {};
+      setConhecerData(migrateFromLegacy(rawDiag));
     } else {
       setFormData(defaultFormData);
       setDraftGoals([]);
+      setConhecerData(defaultConhecerCliente);
     }
   }, [client, open]);
 
