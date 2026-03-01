@@ -135,7 +135,10 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
 
   const renderBlock = (num: number, title: string, content: React.ReactNode) => (
     <Collapsible open={!!openBlocks[num]} onOpenChange={() => toggleBlock(num)}>
-      <CollapsibleTrigger asChild><BlocoHeader title={`BLOCO ${num} — ${title}`} isOpen={!!openBlocks[num]} /></CollapsibleTrigger>
+      <CollapsibleTrigger className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+        <span className="font-semibold text-foreground text-sm">{`BLOCO ${num} — ${title}`}</span>
+        {openBlocks[num] ? <ChevronDown className="w-5 h-5 text-muted-foreground" /> : <ChevronRight className="w-5 h-5 text-muted-foreground" />}
+      </CollapsibleTrigger>
       <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
         <div className="pt-4 space-y-4">{content}</div>
       </CollapsibleContent>
