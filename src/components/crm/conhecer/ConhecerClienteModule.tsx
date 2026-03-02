@@ -78,6 +78,8 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
   }, [data.emergencyMonths]);
 
   // Retirement calculator
+  const effectiveAge = useMemo(() => calculatedAge ?? clientAge, [calculatedAge, clientAge]);
+
   const retirementCalc = useMemo(() => {
     const income = parseFloat(data.retirementIncome) || 0;
     const years = parseFloat(data.retirementYears) || 0;
@@ -86,9 +88,9 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
     const correctedIncome = income * Math.pow(1.045, years);
     const annualCorrected = correctedIncome * 12;
     const requiredPatrimony = annualCorrected / (rate / 100);
-    const retirementAge = clientAge + years;
+    const retirementAge = effectiveAge + years;
     return { correctedIncome, annualCorrected, requiredPatrimony, retirementAge };
-  }, [data.retirementIncome, data.retirementYears, data.retirementWithdrawalRate, clientAge]);
+  }, [data.retirementIncome, data.retirementYears, data.retirementWithdrawalRate, effectiveAge]);
 
   // Bloco 8 allocation total
   const allocationTotal = useMemo(() => {
