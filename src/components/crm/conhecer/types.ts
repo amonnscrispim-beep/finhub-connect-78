@@ -25,6 +25,9 @@ export interface StrategicPillar {
 
 export interface ConhecerClienteData {
   // === BLOCO 1 — Quem é você? ===
+  fullName: string;
+  birthDate: string; // YYYY-MM-DD
+  profession: string;
   isMarried: string; // Sim | Não
   marriageRegime: string;
   civilStatus: string; // solteiro | divorciado | viúvo (if not married)
@@ -155,6 +158,7 @@ export interface ConhecerClienteData {
 
 export const defaultConhecerCliente: ConhecerClienteData = {
   // Bloco 1
+  fullName: '', birthDate: '', profession: '',
   isMarried: '', marriageRegime: '', civilStatus: '', hasChildren: '', children: [], howFoundUs: '', bloco1Comment: '',
   // Bloco 2
   hasRealEstate: '', realEstateUsage: '', hasOtherAssets: '', otherAssetsDetails: '', totalPatrimony: '',

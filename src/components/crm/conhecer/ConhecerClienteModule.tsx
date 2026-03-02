@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Label } from '@/components/ui/label';
@@ -9,7 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { ChevronDown, ChevronRight, Plus, Trash2, MessageSquare, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Trash2, MessageSquare, ChevronUp, Calendar } from 'lucide-react';
+import { BirthDatePicker } from '@/components/ui/birth-date-picker';
+import { Badge } from '@/components/ui/badge';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import type { ConhecerClienteData, ConhecerChildInfo, OtherIncomeItem, AnnualExpenseItem, StrategicPillar } from './types';
 import { calculateProgress, getProgressColor, getProgressBgColor } from './types';
@@ -75,7 +77,20 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
     return { label: '✅ Adequado', color: 'text-green-500 bg-green-500/10' };
   }, [data.emergencyMonths]);
 
+  // Calculate age from birthDate
+  const calculatedAge = useMemo(() => {
+    if (!data.birthDate) return null;
+    const birth = new Date(data.birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return age;
+  }, [data.birthDate]);
+
   // Retirement calculator
+  const effectiveAge = useMemo(() => calculatedAge ?? clientAge, [calculatedAge, clientAge]);
+
   const retirementCalc = useMemo(() => {
     const income = parseFloat(data.retirementIncome) || 0;
     const years = parseFloat(data.retirementYears) || 0;
@@ -84,9 +99,9 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
     const correctedIncome = income * Math.pow(1.045, years);
     const annualCorrected = correctedIncome * 12;
     const requiredPatrimony = annualCorrected / (rate / 100);
-    const retirementAge = clientAge + years;
+    const retirementAge = effectiveAge + years;
     return { correctedIncome, annualCorrected, requiredPatrimony, retirementAge };
-  }, [data.retirementIncome, data.retirementYears, data.retirementWithdrawalRate, clientAge]);
+  }, [data.retirementIncome, data.retirementYears, data.retirementWithdrawalRate, effectiveAge]);
 
   // Bloco 8 allocation total
   const allocationTotal = useMemo(() => {
@@ -133,6 +148,13 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
   const [openBlocks, setOpenBlocks] = useState<Record<number, boolean>>({});
   const toggleBlock = (n: number) => setOpenBlocks(prev => ({ ...prev, [n]: !prev[n] }));
 
+  // Auto-open Bloco 6 when succession = Sim in Bloco 3
+  useEffect(() => {
+    if (data.successionThought === 'Sim') {
+      setOpenBlocks(prev => ({ ...prev, 6: true }));
+    }
+  }, [data.successionThought]);
+
   const renderBlock = (num: number, title: string, content: React.ReactNode) => (
     <Collapsible open={!!openBlocks[num]} onOpenChange={() => toggleBlock(num)}>
       <CollapsibleTrigger className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
@@ -168,6 +190,31 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
           {/* === BLOCO 1 === */}
           {renderBlock(1, 'Quem é você?', <>
             <div className="p-4 bg-muted/20 rounded-lg border border-border space-y-3">
+              <div className="space-y-2">
+                <Label>Nome completo</Label>
+                <Input value={data.fullName} onChange={(e) => update({ fullName: e.target.value })} className="crm-input" placeholder="Nome completo do cliente" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Data de nascimento</Label>
+                  <BirthDatePicker
+                    value={data.birthDate ? new Date(data.birthDate + 'T00:00:00') : null}
+                    onChange={(date) => update({ birthDate: date ? date.toISOString().split('T')[0] : '' })}
+                    className="w-full"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Idade</Label>
+                  <div className="flex items-center h-10 px-3 rounded-md border border-input bg-muted/50 text-sm">
+                    {calculatedAge !== null ? <span className="font-medium">{calculatedAge} anos</span> : <span className="text-muted-foreground">—</span>}
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>O que você faz profissionalmente hoje?</Label>
+                <Input value={data.profession} onChange={(e) => update({ profession: e.target.value })} className="crm-input" placeholder="Profissão / atividade" />
+              </div>
+
               <div className="space-y-2">
                 <Label>Você é casado(a)?</Label>
                 <RadioGroup value={data.isMarried} onValueChange={(v) => update({ isMarried: v })} className="flex gap-4">
