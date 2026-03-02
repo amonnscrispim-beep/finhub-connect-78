@@ -849,6 +849,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 onChange={setConhecerData}
                 hasChildrenFromBloco1={conhecerData.hasChildren === 'Sim'}
                 clientAge={parseInt(formData.age) || 0}
+                clientName={formData.name}
+                advisorName=""
               />
             </CollapsibleSection>
 
@@ -1113,6 +1115,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   ...prev,
                   moduleNotes: { ...prev.moduleNotes, allocation: value }
                 }))}
+                clientName={formData.name}
+                advisorName=""
               />
             </CollapsibleSection>
 
