@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { ChevronDown, ChevronRight, Plus, Trash2, MessageSquare, ChevronUp, Calendar } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Trash2, MessageSquare, ChevronUp, Calendar, FileText } from 'lucide-react';
+import { generateConhecerPdf } from '@/lib/pdf-generators';
 import { BirthDatePicker } from '@/components/ui/birth-date-picker';
 import { Badge } from '@/components/ui/badge';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';

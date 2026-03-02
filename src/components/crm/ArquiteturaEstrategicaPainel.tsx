@@ -1,5 +1,6 @@
 import { useMemo, useCallback } from 'react';
 import { AlertTriangle, FileText } from 'lucide-react';
+import { generateArquiteturaPdf } from '@/lib/pdf-generators';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
