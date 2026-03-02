@@ -135,6 +135,24 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
   const [openBlocks, setOpenBlocks] = useState<Record<number, boolean>>({});
   const toggleBlock = (n: number) => setOpenBlocks(prev => ({ ...prev, [n]: !prev[n] }));
 
+  // Auto-open Bloco 6 when succession = Sim in Bloco 3
+  useEffect(() => {
+    if (data.successionThought === 'Sim') {
+      setOpenBlocks(prev => ({ ...prev, 6: true }));
+    }
+  }, [data.successionThought]);
+
+  // Calculate age from birthDate
+  const calculatedAge = useMemo(() => {
+    if (!data.birthDate) return null;
+    const birth = new Date(data.birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return age;
+  }, [data.birthDate]);
+
   const renderBlock = (num: number, title: string, content: React.ReactNode) => (
     <Collapsible open={!!openBlocks[num]} onOpenChange={() => toggleBlock(num)}>
       <CollapsibleTrigger className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
