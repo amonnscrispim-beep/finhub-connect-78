@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { ChevronDown, ChevronRight, Plus, Trash2, MessageSquare, ChevronUp, Calendar } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Trash2, MessageSquare, ChevronUp, Calendar, FileText } from 'lucide-react';
+import { generateConhecerPdf } from '@/lib/pdf-generators';
 import { BirthDatePicker } from '@/components/ui/birth-date-picker';
 import { Badge } from '@/components/ui/badge';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
@@ -21,8 +22,10 @@ const genId = () => Math.random().toString(36).substring(2, 10);
 interface Props {
   data: ConhecerClienteData;
   onChange: (data: ConhecerClienteData) => void;
-  hasChildrenFromBloco1?: boolean; // for Bloco 4 conditional
-  clientAge?: number; // for retirement calc
+  hasChildrenFromBloco1?: boolean;
+  clientAge?: number;
+  clientName?: string;
+  advisorName?: string;
 }
 
 // === Shared UI helpers ===
@@ -52,7 +55,7 @@ const REVENUE_SOURCES = ['Salário', 'Pró-labore', 'Distribuição de lucros', 
 const PRIORITIES = ['Segurança / preservação', 'Crescimento do patrimônio', 'Renda passiva', 'Liquidez', 'Planejamento sucessório', 'Proteção patrimonial', 'Diversificação internacional'];
 const PIE_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#3b82f6', '#a855f7', '#64748b'];
 
-export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, clientAge = 0 }: Props) {
+export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, clientAge = 0, clientName = '', advisorName = '' }: Props) {
   const update = (partial: Partial<ConhecerClienteData>) => onChange({ ...data, ...partial });
 
   const progress = useMemo(() => calculateProgress(data), [data]);
@@ -178,6 +181,10 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
           <Progress value={progress} className="h-2" />
         </div>
         <span className={`text-sm font-bold ${progressColor}`}>{progress}% completo</span>
+        <Button type="button" variant="outline" size="sm" className="gap-2 ml-2" onClick={() => generateConhecerPdf(data, clientName || data.fullName, advisorName)}>
+          <FileText className="w-4 h-4" />
+          Gerar PDF Resumo
+        </Button>
       </div>
 
       <Tabs defaultValue="reuniao1" className="w-full">

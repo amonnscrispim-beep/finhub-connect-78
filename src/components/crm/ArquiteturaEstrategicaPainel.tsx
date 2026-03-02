@@ -1,19 +1,20 @@
-import { useMemo } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { useMemo, useCallback } from 'react';
+import { AlertTriangle, FileText } from 'lucide-react';
+import { generateArquiteturaPdf } from '@/lib/pdf-generators';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import type { ArquiteturaCarteiraData } from './ArquiteturaCarteira';
 import type { ArquiteturaEstrategicaData } from './ArquiteturaEstrategicaCarteira';
 
 interface Props {
-  /** Data from "Conhecer o Cliente > Arquitetura Carteira" sub-module */
   arquiteturaCarteira: ArquiteturaCarteiraData;
-  /** Legacy data from old ArquiteturaEstrategicaCarteira (section 7) */
   arquiteturaEstrategica: ArquiteturaEstrategicaData;
-  /** Consultant observation (the only editable field) */
   consultantNote: string;
   onConsultantNoteChange: (value: string) => void;
+  clientName?: string;
+  advisorName?: string;
 }
 
 function InfoRow({ label, value }: { label: string; value: string | undefined }) {
@@ -47,6 +48,8 @@ export function ArquiteturaEstrategicaPainel({
   arquiteturaEstrategica,
   consultantNote,
   onConsultantNoteChange,
+  clientName = '',
+  advisorName = '',
 }: Props) {
   // Resolve values: prefer arquiteturaCarteira (Conhecer o Cliente), fallback to legacy arquiteturaEstrategica
   const objective = arquiteturaCarteira.dominantObjective || arquiteturaEstrategica.dominantObjective || '';
@@ -167,6 +170,16 @@ export function ArquiteturaEstrategicaPainel({
           placeholder="Ex: ajustar exposição a renda variável após próxima revisão trimestral..."
           className="crm-input min-h-[100px]"
         />
+      </div>
+
+      {/* Gerar PDF */}
+      <div className="flex justify-end">
+        <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => generateArquiteturaPdf({
+          clientName, advisorName, objective, riskLevel, liquidity, horizon, taxDirective, pillars, macroFields, consultantNote,
+        })}>
+          <FileText className="w-4 h-4" />
+          Gerar PDF
+        </Button>
       </div>
     </div>
   );
