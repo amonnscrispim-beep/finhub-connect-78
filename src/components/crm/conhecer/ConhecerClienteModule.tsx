@@ -77,6 +77,17 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
     return { label: '✅ Adequado', color: 'text-green-500 bg-green-500/10' };
   }, [data.emergencyMonths]);
 
+  // Calculate age from birthDate
+  const calculatedAge = useMemo(() => {
+    if (!data.birthDate) return null;
+    const birth = new Date(data.birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return age;
+  }, [data.birthDate]);
+
   // Retirement calculator
   const effectiveAge = useMemo(() => calculatedAge ?? clientAge, [calculatedAge, clientAge]);
 
@@ -143,17 +154,6 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
       setOpenBlocks(prev => ({ ...prev, 6: true }));
     }
   }, [data.successionThought]);
-
-  // Calculate age from birthDate
-  const calculatedAge = useMemo(() => {
-    if (!data.birthDate) return null;
-    const birth = new Date(data.birthDate);
-    const today = new Date();
-    let age = today.getFullYear() - birth.getFullYear();
-    const m = today.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-    return age;
-  }, [data.birthDate]);
 
   const renderBlock = (num: number, title: string, content: React.ReactNode) => (
     <Collapsible open={!!openBlocks[num]} onOpenChange={() => toggleBlock(num)}>
