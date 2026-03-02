@@ -189,6 +189,31 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
           {renderBlock(1, 'Quem é você?', <>
             <div className="p-4 bg-muted/20 rounded-lg border border-border space-y-3">
               <div className="space-y-2">
+                <Label>Nome completo</Label>
+                <Input value={data.fullName} onChange={(e) => update({ fullName: e.target.value })} className="crm-input" placeholder="Nome completo do cliente" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Data de nascimento</Label>
+                  <BirthDatePicker
+                    value={data.birthDate ? new Date(data.birthDate + 'T00:00:00') : null}
+                    onChange={(date) => update({ birthDate: date ? date.toISOString().split('T')[0] : '' })}
+                    className="w-full"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Idade</Label>
+                  <div className="flex items-center h-10 px-3 rounded-md border border-input bg-muted/50 text-sm">
+                    {calculatedAge !== null ? <span className="font-medium">{calculatedAge} anos</span> : <span className="text-muted-foreground">—</span>}
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>O que você faz profissionalmente hoje?</Label>
+                <Input value={data.profession} onChange={(e) => update({ profession: e.target.value })} className="crm-input" placeholder="Profissão / atividade" />
+              </div>
+
+              <div className="space-y-2">
                 <Label>Você é casado(a)?</Label>
                 <RadioGroup value={data.isMarried} onValueChange={(v) => update({ isMarried: v })} className="flex gap-4">
                   <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Sim" /> Sim</label>
