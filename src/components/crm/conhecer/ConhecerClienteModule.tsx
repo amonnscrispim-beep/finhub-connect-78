@@ -181,6 +181,10 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
           <Progress value={progress} className="h-2" />
         </div>
         <span className={`text-sm font-bold ${progressColor}`}>{progress}% completo</span>
+        <Button type="button" variant="outline" size="sm" className="gap-2 ml-2" onClick={() => generateConhecerPdf(data, clientName || data.fullName, advisorName)}>
+          <FileText className="w-4 h-4" />
+          Gerar PDF Resumo
+        </Button>
       </div>
 
       <Tabs defaultValue="reuniao1" className="w-full">
