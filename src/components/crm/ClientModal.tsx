@@ -880,29 +880,6 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 age={parseInt(formData.age) || 0}
               />
 
-              {/* Score Estratégico (calculado) */}
-              <ScoreEstrategico
-                financialAssets={parseFloat(formData.financialAssets) || 0}
-                materialAssets={parseFloat(formData.materialAssets) || 0}
-                businessAssets={parseFloat(formData.businessAssets) || 0}
-                emergencyReserve={parseFloat(formData.emergencyReserve) || 0}
-                monthlyLivingCost={formData.monthlyLivingCost ? parseFloat(formData.monthlyLivingCost) : null}
-                monthlyRevenue={parseFloat(formData.monthlyRevenue) || 0}
-                monthlyContribution={parseFloat(formData.monthlyContribution) || 0}
-                retirementGoal={formData.retirementAge || formData.retirementIncome ? {
-                  desiredAge: formData.retirementAge ? parseInt(formData.retirementAge) : null,
-                  desiredMonthlyIncome: formData.retirementIncome ? parseFloat(formData.retirementIncome) : null,
-                } : null}
-                age={parseInt(formData.age) || 0}
-                married={formData.married}
-                hasChildren={formData.hasChildren}
-                children={formData.children}
-                financialInstitutions={formData.financialInstitutions}
-                investorProfile={formData.investorProfile}
-                allocationExists={formData.arquiteturaEstrategica.fixedIncomePct > 0 || formData.arquiteturaEstrategica.equitiesPct > 0 || formData.arquiteturaEstrategica.internationalPct > 0}
-                passiveIncome={parseFloat(formData.passiveIncome) || 0}
-                successionPlanning={formData.successionPlanning}
-              />
 
               {/* Collapsible Comments */}
               <CollapsibleComments
