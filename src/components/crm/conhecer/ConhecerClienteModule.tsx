@@ -22,8 +22,10 @@ const genId = () => Math.random().toString(36).substring(2, 10);
 interface Props {
   data: ConhecerClienteData;
   onChange: (data: ConhecerClienteData) => void;
-  hasChildrenFromBloco1?: boolean; // for Bloco 4 conditional
-  clientAge?: number; // for retirement calc
+  hasChildrenFromBloco1?: boolean;
+  clientAge?: number;
+  clientName?: string;
+  advisorName?: string;
 }
 
 // === Shared UI helpers ===
@@ -53,7 +55,7 @@ const REVENUE_SOURCES = ['Salário', 'Pró-labore', 'Distribuição de lucros', 
 const PRIORITIES = ['Segurança / preservação', 'Crescimento do patrimônio', 'Renda passiva', 'Liquidez', 'Planejamento sucessório', 'Proteção patrimonial', 'Diversificação internacional'];
 const PIE_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#3b82f6', '#a855f7', '#64748b'];
 
-export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, clientAge = 0 }: Props) {
+export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, clientAge = 0, clientName = '', advisorName = '' }: Props) {
   const update = (partial: Partial<ConhecerClienteData>) => onChange({ ...data, ...partial });
 
   const progress = useMemo(() => calculateProgress(data), [data]);
