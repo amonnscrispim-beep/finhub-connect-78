@@ -279,6 +279,13 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   const [reportConsultantObs, setReportConsultantObs] = useState('');
   const portfolio = useClientPortfolio(client?.id);
 
+  // Log client visit when modal opens
+  useEffect(() => {
+    if (open && client) {
+      logActivity('visita', 'Cliente visitado', client.id, client.name);
+    }
+  }, [open, client?.id]);
+
   useEffect(() => {
     if (client) {
       setFormData({
