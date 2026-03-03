@@ -42,6 +42,9 @@ export interface ConhecerClienteData {
   hasOtherAssets: string;
   otherAssetsDetails: string;
   totalPatrimony: string; // R$
+  investedAmount: string; // R$ — syncs to financialAssets
+  liquidAmount: string; // R$ — available with immediate liquidity
+  emergencyReserveAmount: string; // R$ — syncs to emergencyReserve
   howBuiltWealth: string;
   hasBusinessParticipation: string;
   businessValue: string;
@@ -162,6 +165,7 @@ export const defaultConhecerCliente: ConhecerClienteData = {
   isMarried: '', marriageRegime: '', civilStatus: '', hasChildren: '', children: [], howFoundUs: '', bloco1Comment: '',
   // Bloco 2
   hasRealEstate: '', realEstateUsage: '', hasOtherAssets: '', otherAssetsDetails: '', totalPatrimony: '',
+  investedAmount: '', liquidAmount: '', emergencyReserveAmount: '',
   howBuiltWealth: '', hasBusinessParticipation: '', businessValue: '', businessPercentage: '', businessEmployees: '',
   pfValue: '', pjValue: '', businessConcerns: '', hasConcentration: '', concentrationDetails: '', concentrationPercentage: '',
   hasOtherInstitutions: '', otherInstitutions: '', otherInstitutionsValue: '', investmentExperience: '', bloco2Comment: '',
