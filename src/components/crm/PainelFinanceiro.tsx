@@ -82,7 +82,7 @@ export function PainelFinanceiro({
   // Revenue from conhecer
   const mainRevenue = parseFloat(conhecerData.monthlyRevenue) || 0;
   const otherIncomesTotal = conhecerData.otherIncomes.reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
-  const totalRevenue = (mainRevenue + otherIncomesTotal) || resolve(undefined, overrides.monthlyRevenue);
+  const totalRevenue = (mainRevenue + otherIncomesTotal) || resolveWithSource(undefined, overrides.monthlyRevenue).value;
   
   const livingCost = resolveWithSource(conhecerData.livingCost, overrides.monthlyLivingCost).value;
   const monthlyContribution = resolveWithSource(conhecerData.monthlyInvestment, overrides.monthlyContribution).value;
