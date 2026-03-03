@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Clock, X, ExternalLink } from 'lucide-react';
+import { Clock, X, ExternalLink, CheckCircle } from 'lucide-react';
 import { differenceInDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { useClients } from '@/contexts/ClientContext';
+import { useActivityLog } from '@/hooks/useActivityLog';
 import { Client } from '@/types/client';
 
 interface InactivityAlert {
@@ -15,7 +16,8 @@ interface InactivityAlertsProps {
 }
 
 export function InactivityAlerts({ onEditClient }: InactivityAlertsProps) {
-  const { clients } = useClients();
+  const { clients, updateClient } = useClients();
+  const { logActivity } = useActivityLog();
   const [alerts, setAlerts] = useState<InactivityAlert[]>([]);
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
 
@@ -24,15 +26,22 @@ export function InactivityAlerts({ onEditClient }: InactivityAlertsProps) {
     const newAlerts: InactivityAlert[] = [];
 
     clients.forEach((client) => {
-      const lastActivity = client.lastActivityAt ? new Date(client.lastActivityAt) : client.updatedAt;
-      const daysSince = differenceInDays(today, lastActivity);
+      // Use max of lastActivityAt and latest completed task date
+      let latestDate = client.lastActivityAt ? new Date(client.lastActivityAt) : client.updatedAt;
 
-      if (daysSince >= 30) {
+      const completedTasks = client.tasks?.filter(t => t.completed && t.completedAt) || [];
+      completedTasks.forEach(t => {
+        const taskDate = new Date(t.completedAt!);
+        if (taskDate > latestDate) latestDate = taskDate;
+      });
+
+      const daysSince = differenceInDays(today, latestDate);
+
+      if (daysSince >= 20) {
         newAlerts.push({ client, daysSinceActivity: daysSince });
       }
     });
 
-    // Sort by days since activity (most inactive first)
     newAlerts.sort((a, b) => b.daysSinceActivity - a.daysSinceActivity);
     setAlerts(newAlerts);
   }, [clients]);
@@ -43,7 +52,14 @@ export function InactivityAlerts({ onEditClient }: InactivityAlertsProps) {
     setDismissedAlerts(prev => new Set([...prev, clientId]));
   };
 
-  // Only show top 3 alerts
+  const handleCheckFollowUp = async (client: Client) => {
+    const now = new Date();
+    await updateClient(client.id, { lastActivityAt: now, updatedAt: now });
+    await logActivity('follow_up', `Acompanhamento registrado para ${client.name}`, client.id, client.name);
+    // Remove from visible alerts immediately
+    setDismissedAlerts(prev => new Set([...prev, client.id]));
+  };
+
   const displayedAlerts = visibleAlerts.slice(0, 3);
 
   if (displayedAlerts.length === 0) return null;
@@ -70,6 +86,15 @@ export function InactivityAlerts({ onEditClient }: InactivityAlertsProps) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => handleCheckFollowUp(alert.client)}
+              className="h-8 text-green-600 hover:text-green-700 hover:bg-green-500/10"
+              title="Marcar acompanhamento"
+            >
+              <CheckCircle className="w-4 h-4" />
+            </Button>
             <Button
               size="sm"
               variant="ghost"

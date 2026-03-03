@@ -42,6 +42,9 @@ export interface ConhecerClienteData {
   hasOtherAssets: string;
   otherAssetsDetails: string;
   totalPatrimony: string; // R$
+  investedAmount: string; // R$ — syncs to financialAssets
+  liquidAmount: string; // R$ — available with immediate liquidity
+  emergencyReserveAmount: string; // R$ — syncs to emergencyReserve
   howBuiltWealth: string;
   hasBusinessParticipation: string;
   businessValue: string;
@@ -162,6 +165,7 @@ export const defaultConhecerCliente: ConhecerClienteData = {
   isMarried: '', marriageRegime: '', civilStatus: '', hasChildren: '', children: [], howFoundUs: '', bloco1Comment: '',
   // Bloco 2
   hasRealEstate: '', realEstateUsage: '', hasOtherAssets: '', otherAssetsDetails: '', totalPatrimony: '',
+  investedAmount: '', liquidAmount: '', emergencyReserveAmount: '',
   howBuiltWealth: '', hasBusinessParticipation: '', businessValue: '', businessPercentage: '', businessEmployees: '',
   pfValue: '', pjValue: '', businessConcerns: '', hasConcentration: '', concentrationDetails: '', concentrationPercentage: '',
   hasOtherInstitutions: '', otherInstitutions: '', otherInstitutionsValue: '', investmentExperience: '', bloco2Comment: '',
@@ -201,7 +205,8 @@ export function migrateFromLegacy(raw: Record<string, any>): ConhecerClienteData
 
   // If already has new fields, use them
   if (raw.bloco1Comment !== undefined || raw.isMarried !== undefined) {
-    return { ...d, ...raw, children: raw.children || [], otherIncomes: raw.otherIncomes || [], annualExpenses: raw.annualExpenses || [], strategicPillars: raw.strategicPillars || [] };
+    return { ...d, ...raw, children: raw.children || [], otherIncomes: raw.otherIncomes || [], annualExpenses: raw.annualExpenses || [], strategicPillars: raw.strategicPillars || [],
+      investedAmount: raw.investedAmount || '', liquidAmount: raw.liquidAmount || '', emergencyReserveAmount: raw.emergencyReserveAmount || '' };
   }
 
   // === Migrate from old structure ===

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2, CalendarPlus, GraduationCap, Users } from 'lucide-react';
+import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2, CalendarPlus, GraduationCap, Users, History } from 'lucide-react';
 import { ClientProvider, useClients } from '@/contexts/ClientContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Client } from '@/types/client';
@@ -21,6 +21,7 @@ import { GoogleCalendarConnect } from '@/components/crm/GoogleCalendarConnect';
 import { ScheduleMeetingModal } from '@/components/crm/ScheduleMeetingModal';
 import { StudiesArea } from '@/components/studies/StudiesArea';
 import { EmAtendimentoDrawer } from '@/components/crm/EmAtendimentoDrawer';
+import { RecentActivityDropdown } from '@/components/crm/RecentActivityDropdown';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -221,6 +222,7 @@ function CRMDashboard() {
                     <Users className="w-4 h-4 mr-1.5" />
                     Em atendimento ({clients.filter(c => c.funnelStage === 'Em atendimento' && !c.consultingFinished).length})
                   </Button>
+                  <RecentActivityDropdown />
                 </div>
                 
                 {searchQuery && (
