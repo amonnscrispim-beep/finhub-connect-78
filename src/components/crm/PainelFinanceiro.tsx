@@ -180,6 +180,7 @@ export function PainelFinanceiro({
           value={effectiveLiquidityMonths > 0 ? `${effectiveLiquidityMonths.toFixed(1)} meses` : 'Sem dados'}
           color={effectiveLiquidityMonths > 0 ? liquidityColor : undefined}
           subtext={effectiveLiquidityMonths > 0 ? (effectiveLiquidityMonths < 3 ? '⚠️ Crítico' : effectiveLiquidityMonths <= 6 ? 'Regular' : '✅ Adequado') : undefined}
+          sourceLabel={emergencyReserveRes.source === 'conhecer' ? 'via Conhecer o Cliente' : emergencyReserveRes.source === 'manual' ? 'Editado manualmente' : undefined}
         />
         <KpiCard
           icon={Activity}
