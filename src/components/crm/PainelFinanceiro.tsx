@@ -35,7 +35,7 @@ const fmt = (v: number) =>
 const PIE_COLORS = ['hsl(var(--primary))', 'hsl(var(--accent-foreground))', '#f59e0b'];
 const BAR_COLORS = ['hsl(var(--primary))', '#ef4444', '#22c55e'];
 
-function KpiCard({ icon: Icon, label, value, color, subtext }: { icon: React.ElementType; label: string; value: string; color?: string; subtext?: string }) {
+function KpiCard({ icon: Icon, label, value, color, subtext, sourceLabel }: { icon: React.ElementType; label: string; value: string; color?: string; subtext?: string; sourceLabel?: string }) {
   return (
     <div className="p-4 bg-card rounded-xl border border-border shadow-sm space-y-1">
       <div className="flex items-center gap-2 text-muted-foreground">
@@ -44,6 +44,7 @@ function KpiCard({ icon: Icon, label, value, color, subtext }: { icon: React.Ele
       </div>
       <p className={`text-lg font-bold ${color || 'text-foreground'}`}>{value}</p>
       {subtext && <p className="text-xs text-muted-foreground">{subtext}</p>}
+      {sourceLabel && <p className="text-[10px] text-muted-foreground/60 italic">{sourceLabel}</p>}
     </div>
   );
 }
@@ -60,17 +61,20 @@ export function PainelFinanceiro({
   const [editMode, setEditMode] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // === DATA RESOLUTION: ConhecerCliente is primary, overrides are fallback ===
-  const resolve = (conhecerVal: string | undefined, overrideVal: string): number => {
-    const c = parseFloat(conhecerVal || '') || 0;
+  // === DATA RESOLUTION: Manual override > ConhecerCliente sync > fallback ===
+  const resolveWithSource = (conhecerVal: string | undefined, overrideVal: string): { value: number; source: 'conhecer' | 'manual' | 'none' } => {
     const o = parseFloat(overrideVal) || 0;
-    return c || o;
+    const c = parseFloat(conhecerVal || '') || 0;
+    if (o > 0) return { value: o, source: 'manual' };
+    if (c > 0) return { value: c, source: 'conhecer' };
+    return { value: 0, source: 'none' };
   };
 
-  const totalPatrimony = resolve(conhecerData.totalPatrimony, '0');
-  const businessValue = resolve(conhecerData.businessValue, overrides.businessAssets);
-  const financialAssets = resolve(undefined, overrides.financialAssets);
-  const materialAssets = resolve(undefined, overrides.materialAssets);
+  const totalPatrimony = parseFloat(conhecerData.totalPatrimony || '') || 0;
+  const businessValue = resolveWithSource(conhecerData.businessValue, overrides.businessAssets).value;
+  const financialAssetsRes = resolveWithSource(conhecerData.investedAmount, overrides.financialAssets);
+  const financialAssets = financialAssetsRes.value;
+  const materialAssets = resolveWithSource(undefined, overrides.materialAssets).value;
 
   // Use totalPatrimony from conhecer as the main figure; fallback to sum of overrides
   const effectivePatrimony = totalPatrimony > 0 ? totalPatrimony : (financialAssets + materialAssets + businessValue);
@@ -80,13 +84,14 @@ export function PainelFinanceiro({
   const otherIncomesTotal = conhecerData.otherIncomes.reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
   const totalRevenue = (mainRevenue + otherIncomesTotal) || resolve(undefined, overrides.monthlyRevenue);
   
-  const livingCost = resolve(conhecerData.livingCost, overrides.monthlyLivingCost);
-  const monthlyContribution = resolve(conhecerData.monthlyInvestment, overrides.monthlyContribution);
+  const livingCost = resolveWithSource(conhecerData.livingCost, overrides.monthlyLivingCost).value;
+  const monthlyContribution = resolveWithSource(conhecerData.monthlyInvestment, overrides.monthlyContribution).value;
   const surplus = totalRevenue - livingCost;
 
   // Liquidity from conhecer emergencyMonths
   const emergencyMonths = parseFloat(conhecerData.emergencyMonths) || 0;
-  const emergencyReserve = resolve(undefined, overrides.emergencyReserve);
+  const emergencyReserveRes = resolveWithSource(conhecerData.emergencyReserveAmount, overrides.emergencyReserve);
+  const emergencyReserve = emergencyReserveRes.value;
   const effectiveLiquidityMonths = emergencyMonths > 0 ? emergencyMonths : (livingCost > 0 ? emergencyReserve / livingCost : 0);
 
   // Savings rate
