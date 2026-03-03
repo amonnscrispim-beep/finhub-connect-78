@@ -205,7 +205,8 @@ export function migrateFromLegacy(raw: Record<string, any>): ConhecerClienteData
 
   // If already has new fields, use them
   if (raw.bloco1Comment !== undefined || raw.isMarried !== undefined) {
-    return { ...d, ...raw, children: raw.children || [], otherIncomes: raw.otherIncomes || [], annualExpenses: raw.annualExpenses || [], strategicPillars: raw.strategicPillars || [] };
+    return { ...d, ...raw, children: raw.children || [], otherIncomes: raw.otherIncomes || [], annualExpenses: raw.annualExpenses || [], strategicPillars: raw.strategicPillars || [],
+      investedAmount: raw.investedAmount || '', liquidAmount: raw.liquidAmount || '', emergencyReserveAmount: raw.emergencyReserveAmount || '' };
   }
 
   // === Migrate from old structure ===
