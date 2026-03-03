@@ -83,6 +83,7 @@ import { ConhecerClienteModule } from './conhecer/ConhecerClienteModule';
 import { defaultConhecerCliente, migrateFromLegacy, ConhecerClienteData } from './conhecer/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useActivityLog } from '@/hooks/useActivityLog';
 import { toast } from 'sonner';
 
 import type { InvestorProfile, FunnelStage, Residence, RenewalStatus, ContractedMeetings, PrivatePensionStatus, PrivatePensionType, OrganizedFinancesStatus, AmortizationSystem, AmortizationStrategy } from '@/types/client';
@@ -269,6 +270,7 @@ const defaultFormData: FormData = {
 export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   const { addClient, updateClient } = useClients();
   const { user } = useAuth();
+  const { logActivity } = useActivityLog();
   const [formData, setFormData] = useState(defaultFormData);
   const [draftGoals, setDraftGoals] = useState<DraftGoal[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -549,9 +551,13 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     try {
       if (client) {
         await updateClient(client.id, clientData);
+        await logActivity('edicao', 'Cliente atualizado', client.id, clientData.name);
       } else {
         // Add new client and save draft goals
         const newClient = await addClient(clientData);
+        if (newClient) {
+          await logActivity('edicao', 'Novo cliente criado', newClient.id, clientData.name);
+        }
         
         // Save draft goals to database
         if (draftGoals.length > 0 && user && newClient) {
