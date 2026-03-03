@@ -323,6 +323,23 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
                 <CurrencyInput value={data.totalPatrimony} onChange={(v) => update({ totalPatrimony: v })} placeholder="R$ 0,00" />
               </div>
 
+              <div className="space-y-2">
+                <Label>Quanto você tem investido ou guardado hoje?</Label>
+                <CurrencyInput value={data.investedAmount} onChange={(v) => update({ investedAmount: v })} placeholder="R$ 0,00" />
+                <ConsultantNote>Sincroniza com "Patrimônio Financeiro" em Situação Financeira</ConsultantNote>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Desse valor, quanto está disponível com liquidez imediata?</Label>
+                <CurrencyInput value={data.liquidAmount} onChange={(v) => update({ liquidAmount: v })} placeholder="R$ 0,00" />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Quanto desse valor é reserva de emergência?</Label>
+                <CurrencyInput value={data.emergencyReserveAmount} onChange={(v) => update({ emergencyReserveAmount: v })} placeholder="R$ 0,00" />
+                <ConsultantNote>Sincroniza com "Reserva de Emergência" em Situação Financeira</ConsultantNote>
+              </div>
+
               {(parseFloat(data.totalPatrimony) || 0) > 0 && (
                 <div className="space-y-2">
                   <Label>Como você construiu esse patrimônio?</Label>
