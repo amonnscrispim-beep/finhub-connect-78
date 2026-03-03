@@ -172,7 +172,7 @@ export function PainelFinanceiro({
 
       {/* === LINHA 1 — 4 Cards principais === */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard icon={DollarSign} label="Patrimônio Total" value={effectivePatrimony > 0 ? fmt(effectivePatrimony) : 'Sem dados'} />
+        <KpiCard icon={DollarSign} label="Patrimônio Total" value={effectivePatrimony > 0 ? fmt(effectivePatrimony) : 'Sem dados'} sourceLabel={financialAssetsRes.source === 'conhecer' ? 'via Conhecer o Cliente' : financialAssetsRes.source === 'manual' ? 'Editado manualmente' : undefined} />
         <KpiCard icon={TrendingUp} label="Taxa de Poupança" value={savingsRate !== null ? `${savingsRate.toFixed(1)}%` : 'Sem dados'} color={savingsColor} />
         <KpiCard
           icon={ShieldAlert}
