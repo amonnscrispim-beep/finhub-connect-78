@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Client, Task, ModuleNotes } from '@/types/client';
 import { useClients } from '@/contexts/ClientContext';
+import { useActivityLog } from '@/hooks/useActivityLog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -26,16 +27,26 @@ interface ClientTasksSectionProps {
 
 export function ClientTasksSection({ client, moduleNotes, onModuleNotesChange }: ClientTasksSectionProps) {
   const { toggleTask, addTask, deleteTask } = useClients();
+  const { logActivity } = useActivityLog();
   const [newTask, setNewTask] = useState('');
   const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
 
   const pendingTasks = client.tasks.filter(t => !t.completed);
   const completedTasks = client.tasks.filter(t => t.completed);
 
-  const handleAddTask = () => {
+  const handleAddTask = async () => {
     if (newTask.trim()) {
-      addTask(client.id, newTask.trim());
+      await addTask(client.id, newTask.trim());
+      await logActivity('tarefa', `Tarefa criada: "${newTask.trim()}"`, client.id, client.name);
       setNewTask('');
+    }
+  };
+
+  const handleToggleTask = async (taskId: string) => {
+    const task = client.tasks.find(t => t.id === taskId);
+    await toggleTask(client.id, taskId);
+    if (task && !task.completed) {
+      await logActivity('tarefa', `Tarefa concluída: "${task.description}"`, client.id, client.name);
     }
   };
 
@@ -89,7 +100,7 @@ export function ClientTasksSection({ client, moduleNotes, onModuleNotesChange }:
                   className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted transition-colors group"
                 >
                   <button 
-                    onClick={() => toggleTask(client.id, task.id)} 
+                    onClick={() => handleToggleTask(task.id)} 
                     className="flex-shrink-0"
                     title="Marcar como concluída"
                   >
@@ -123,7 +134,7 @@ export function ClientTasksSection({ client, moduleNotes, onModuleNotesChange }:
                   className="flex items-start gap-3 p-3 rounded-lg bg-success/5 border border-success/20"
                 >
                   <button
-                    onClick={() => toggleTask(client.id, task.id)}
+                    onClick={() => handleToggleTask(task.id)}
                     className="flex-shrink-0 mt-0.5"
                     title="Restaurar tarefa"
                   >
@@ -144,7 +155,7 @@ export function ClientTasksSection({ client, moduleNotes, onModuleNotesChange }:
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-muted-foreground hover:text-primary"
-                    onClick={() => toggleTask(client.id, task.id)}
+                    onClick={() => handleToggleTask(task.id)}
                     title="Restaurar tarefa"
                   >
                     <RotateCcw className="w-4 h-4" />

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Client } from '@/types/client';
 import { useClients } from '@/contexts/ClientContext';
+import { useActivityLog } from '@/hooks/useActivityLog';
 import { cn } from '@/lib/utils';
 import {
   Check,
@@ -25,6 +26,7 @@ interface ClientTasksDrawerProps {
 
 export function ClientTasksDrawer({ open, onOpenChange, client }: ClientTasksDrawerProps) {
   const { toggleTask, addTask, deleteTask } = useClients();
+  const { logActivity } = useActivityLog();
   const [newTaskText, setNewTaskText] = useState('');
   const [activeTab, setActiveTab] = useState<string>('pending');
 
@@ -38,11 +40,21 @@ export function ClientTasksDrawer({ open, onOpenChange, client }: ClientTasksDra
     [client?.tasks]
   );
 
-  const handleAddTask = useCallback(() => {
+  const handleAddTask = useCallback(async () => {
     if (!client || !newTaskText.trim()) return;
-    addTask(client.id, newTaskText.trim());
+    await addTask(client.id, newTaskText.trim());
+    await logActivity('tarefa', `Tarefa criada: "${newTaskText.trim()}"`, client.id, client.name);
     setNewTaskText('');
-  }, [client, newTaskText, addTask]);
+  }, [client, newTaskText, addTask, logActivity]);
+
+  const handleToggleTask = useCallback(async (taskId: string) => {
+    if (!client) return;
+    const task = (client.tasks ?? []).find(t => t.id === taskId);
+    await toggleTask(client.id, taskId);
+    if (task && !task.completed) {
+      await logActivity('tarefa', `Tarefa concluída: "${task.description}"`, client.id, client.name);
+    }
+  }, [client, toggleTask, logActivity]);
 
   const progressPct = client && client.tasks.length > 0
     ? Math.round((completedTasks.length / client.tasks.length) * 100)
@@ -120,7 +132,7 @@ export function ClientTasksDrawer({ open, onOpenChange, client }: ClientTasksDra
                     className="flex items-center gap-2.5 p-2.5 rounded-lg hover:bg-muted/50 transition-colors group"
                   >
                     <button
-                      onClick={() => toggleTask(client.id, task.id)}
+                      onClick={() => handleToggleTask(task.id)}
                       className="flex-shrink-0 hover:scale-110 transition-transform"
                     >
                       <Circle className="w-4.5 h-4.5 text-muted-foreground hover:text-primary" />
@@ -157,7 +169,7 @@ export function ClientTasksDrawer({ open, onOpenChange, client }: ClientTasksDra
                     className="flex items-center gap-2.5 p-2.5 rounded-lg hover:bg-muted/50 transition-colors group"
                   >
                     <button
-                      onClick={() => toggleTask(client.id, task.id)}
+                      onClick={() => handleToggleTask(task.id)}
                       className="flex-shrink-0 hover:scale-110 transition-transform"
                       title="Reabrir tarefa"
                     >
