@@ -70,13 +70,19 @@ export function PainelFinanceiro({
     return { value: 0, source: 'none' };
   };
 
-  const totalPatrimony = parseFloat(conhecerData.totalPatrimony || '') || 0;
-  const businessValue = resolveWithSource(conhecerData.businessValue, overrides.businessAssets).value;
-  const financialAssetsRes = resolveWithSource(conhecerData.investedAmount, overrides.financialAssets);
+  // Use patrimonioFinanceiro (new) or investedAmount (legacy) from conhecer
+  const conhecerFinanceiro = conhecerData.patrimonioFinanceiro || conhecerData.investedAmount || '';
+  const financialAssetsRes = resolveWithSource(conhecerFinanceiro, overrides.financialAssets);
   const financialAssets = financialAssetsRes.value;
-  const materialAssets = resolveWithSource(undefined, overrides.materialAssets).value;
 
-  // Use totalPatrimony from conhecer as the main figure; fallback to sum of overrides
+  const materialAssetsRes = resolveWithSource(conhecerData.patrimonioImobiliario, overrides.materialAssets);
+  const materialAssets = materialAssetsRes.value;
+
+  const businessAssetsRes = resolveWithSource(conhecerData.participacoesSocietarias || conhecerData.businessValue, overrides.businessAssets);
+  const businessValue = businessAssetsRes.value;
+
+  // Use auto-calculated totalPatrimony from conhecer or sum of overrides
+  const totalPatrimony = parseFloat(conhecerData.totalPatrimony || '') || 0;
   const effectivePatrimony = totalPatrimony > 0 ? totalPatrimony : (financialAssets + materialAssets + businessValue);
 
   // Revenue from conhecer
@@ -84,8 +90,18 @@ export function PainelFinanceiro({
   const otherIncomesTotal = conhecerData.otherIncomes.reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
   const totalRevenue = (mainRevenue + otherIncomesTotal) || resolveWithSource(undefined, overrides.monthlyRevenue).value;
   
-  const livingCost = resolveWithSource(conhecerData.livingCost, overrides.monthlyLivingCost).value;
-  const monthlyContribution = resolveWithSource(conhecerData.monthlyInvestment, overrides.monthlyContribution).value;
+  const monthlyContributionRes = resolveWithSource(conhecerData.monthlyInvestment, overrides.monthlyContribution);
+  const monthlyContribution = monthlyContributionRes.value;
+
+  // === MELHORIA 5: Custo Mensal = Receita - Aporte (auto-calculated) ===
+  const autoLivingCost = totalRevenue > 0 && monthlyContribution > 0 ? totalRevenue - monthlyContribution : 0;
+  const overrideLivingCost = parseFloat(overrides.monthlyLivingCost) || 0;
+  const conhecerLivingCost = parseFloat(conhecerData.livingCost) || 0;
+  
+  // Priority: manual override > conhecer > auto-calculated
+  const livingCost = overrideLivingCost > 0 ? overrideLivingCost : conhecerLivingCost > 0 ? conhecerLivingCost : autoLivingCost;
+  const livingCostSource = overrideLivingCost > 0 ? 'manual' : conhecerLivingCost > 0 ? 'conhecer' : autoLivingCost > 0 ? 'calculado' : 'none';
+
   const surplus = totalRevenue - livingCost;
 
   // Liquidity from conhecer emergencyMonths
@@ -113,8 +129,8 @@ export function PainelFinanceiro({
   const pieData = useMemo(() => {
     const items = [
       { name: 'Financeiro', value: financialAssets },
-      { name: 'Material', value: materialAssets },
-      { name: 'Empresarial', value: businessValue },
+      { name: 'Imobiliário', value: materialAssets },
+      { name: 'Societário', value: businessValue },
     ].filter(i => i.value > 0);
     return items;
   }, [financialAssets, materialAssets, businessValue]);
@@ -160,6 +176,14 @@ export function PainelFinanceiro({
 
   const lastUpdate = new Date().toLocaleDateString('pt-BR');
 
+  // Source label helper
+  const getSourceLabel = (source: string) => {
+    if (source === 'conhecer') return 'via Conhecer o Cliente';
+    if (source === 'manual') return 'Editado manualmente';
+    if (source === 'calculado') return 'Calculado: Receita − Aporte';
+    return undefined;
+  };
+
   return (
     <div className="space-y-5">
       {/* Source indicator */}
@@ -193,7 +217,12 @@ export function PainelFinanceiro({
       {/* === LINHA 2 — 3 Cards secundários === */}
       <div className="grid grid-cols-3 gap-3">
         <KpiCard icon={Wallet} label="Receita Total Mensal" value={totalRevenue > 0 ? fmt(totalRevenue) : 'Sem dados'} />
-        <KpiCard icon={Wallet} label="Custo de Vida Mensal" value={livingCost > 0 ? fmt(livingCost) : 'Sem dados'} />
+        <KpiCard
+          icon={Wallet}
+          label="Custo de Vida Mensal"
+          value={livingCost > 0 ? fmt(livingCost) : 'Sem dados'}
+          sourceLabel={getSourceLabel(livingCostSource)}
+        />
         <KpiCard
           icon={Wallet}
           label="Sobra + Aporte"
@@ -205,7 +234,6 @@ export function PainelFinanceiro({
       {/* === LINHA 3 — 2 Gráficos lado a lado === */}
       {(pieData.length > 0 || totalRevenue > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Donut - Distribuição do Patrimônio */}
           {pieData.length > 0 && (
             <div className="p-4 bg-card rounded-xl border border-border">
               <h4 className="text-sm font-medium mb-3">Distribuição do Patrimônio</h4>
@@ -223,7 +251,6 @@ export function PainelFinanceiro({
             </div>
           )}
 
-          {/* Bar - Receita vs Custo vs Aporte */}
           {totalRevenue > 0 && (
             <div className="p-4 bg-card rounded-xl border border-border">
               <h4 className="text-sm font-medium mb-3">Receita vs Custo vs Aporte</h4>
@@ -283,11 +310,17 @@ export function PainelFinanceiro({
           <p className="text-xs text-muted-foreground">Edição manual — sobrescreve dados de "Conhecer o Cliente" apenas neste painel.</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="space-y-1"><Label className="text-xs">Patrimônio Financeiro</Label><CurrencyInput value={overrides.financialAssets} onChange={(v) => onOverrideChange('financialAssets', v)} /></div>
-            <div className="space-y-1"><Label className="text-xs">Patrimônio Material</Label><CurrencyInput value={overrides.materialAssets} onChange={(v) => onOverrideChange('materialAssets', v)} /></div>
-            <div className="space-y-1"><Label className="text-xs">Patrimônio Empresarial</Label><CurrencyInput value={overrides.businessAssets} onChange={(v) => onOverrideChange('businessAssets', v)} /></div>
+            <div className="space-y-1"><Label className="text-xs">Patrimônio Imobiliário</Label><CurrencyInput value={overrides.materialAssets} onChange={(v) => onOverrideChange('materialAssets', v)} /></div>
+            <div className="space-y-1"><Label className="text-xs">Patrimônio Societário</Label><CurrencyInput value={overrides.businessAssets} onChange={(v) => onOverrideChange('businessAssets', v)} /></div>
             <div className="space-y-1"><Label className="text-xs">Reserva de Emergência</Label><CurrencyInput value={overrides.emergencyReserve} onChange={(v) => onOverrideChange('emergencyReserve', v)} /></div>
             <div className="space-y-1"><Label className="text-xs">Receita Mensal</Label><CurrencyInput value={overrides.monthlyRevenue} onChange={(v) => onOverrideChange('monthlyRevenue', v)} /></div>
-            <div className="space-y-1"><Label className="text-xs">Custo Mensal</Label><CurrencyInput value={overrides.monthlyLivingCost} onChange={(v) => onOverrideChange('monthlyLivingCost', v)} /></div>
+            <div className="space-y-1">
+              <Label className="text-xs">Custo Mensal</Label>
+              <CurrencyInput value={overrides.monthlyLivingCost} onChange={(v) => onOverrideChange('monthlyLivingCost', v)} />
+              {!overrideLivingCost && autoLivingCost > 0 && (
+                <p className="text-[10px] text-muted-foreground/60 italic">Auto: Receita − Aporte = {fmt(autoLivingCost)}</p>
+              )}
+            </div>
             <div className="space-y-1"><Label className="text-xs">Aporte Mensal</Label><CurrencyInput value={overrides.monthlyContribution} onChange={(v) => onOverrideChange('monthlyContribution', v)} /></div>
             <div className="space-y-1"><Label className="text-xs">Renda Passiva</Label><CurrencyInput value={overrides.passiveIncome} onChange={(v) => onOverrideChange('passiveIncome', v)} /></div>
           </div>

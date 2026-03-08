@@ -14,10 +14,19 @@ import { generateConhecerPdf } from '@/lib/pdf-generators';
 import { BirthDatePicker } from '@/components/ui/birth-date-picker';
 import { Badge } from '@/components/ui/badge';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import type { ConhecerClienteData, ConhecerChildInfo, OtherIncomeItem, AnnualExpenseItem, StrategicPillar } from './types';
+import type { ConhecerClienteData, ConhecerChildInfo, OtherIncomeItem, AnnualExpenseItem, StrategicPillar, OtherInstitutionItem } from './types';
 import { calculateProgress, getProgressColor, getProgressBgColor } from './types';
 
 const genId = () => Math.random().toString(36).substring(2, 10);
+
+// FX rates (editable constant)
+const FX_RATES: Record<string, { rate: number; symbol: string; label: string }> = {
+  BRL: { rate: 1, symbol: 'R$', label: 'BRL (R$)' },
+  USD: { rate: 5.24, symbol: '$', label: 'USD ($)' },
+  EUR: { rate: 6.09, symbol: '€', label: 'EUR (€)' },
+  GBP: { rate: 7.03, symbol: '£', label: 'GBP (£)' },
+  ARS: { rate: 0.0037, symbol: '$', label: 'ARS ($)' },
+};
 
 interface Props {
   data: ConhecerClienteData;
@@ -49,18 +58,34 @@ function CommentButton({ value, onChange }: { value: string; onChange: (v: strin
   );
 }
 
-// BlocoHeader removed — inlined into renderBlock's CollapsibleTrigger
+function BrlEquivalent({ value, currency }: { value: string; currency: string }) {
+  if (currency === 'BRL' || !value) return null;
+  const num = parseFloat(value) || 0;
+  if (num === 0) return null;
+  const brlValue = num * (FX_RATES[currency]?.rate || 1);
+  const fmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(brlValue);
+  return <p className="text-[11px] text-muted-foreground mt-0.5">≈ {fmt}</p>;
+}
 
 const REVENUE_SOURCES = ['Salário', 'Pró-labore', 'Distribuição de lucros', 'Dividendos', 'Aluguéis', 'Honorários', 'Outros'];
 const PRIORITIES = ['Segurança / preservação', 'Crescimento do patrimônio', 'Renda passiva', 'Liquidez', 'Planejamento sucessório', 'Proteção patrimonial', 'Diversificação internacional'];
-const PIE_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#3b82f6', '#a855f7', '#64748b'];
+const PIE_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#3b82f6', '#a855f7', '#64748b', '#ef4444', '#06b6d4'];
 
 export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, clientAge = 0, clientName = '', advisorName = '' }: Props) {
   const update = (partial: Partial<ConhecerClienteData>) => onChange({ ...data, ...partial });
 
   const progress = useMemo(() => calculateProgress(data), [data]);
   const progressColor = getProgressColor(progress);
-  const progressBg = getProgressBgColor(progress);
+
+  const selectedCurrency = data.selectedCurrency || 'BRL';
+  const fxRate = FX_RATES[selectedCurrency]?.rate || 1;
+  const currencySymbol = FX_RATES[selectedCurrency]?.symbol || 'R$';
+
+  // Convert foreign currency value to BRL for internal storage
+  const toBRL = (foreignValue: string) => {
+    const num = parseFloat(foreignValue) || 0;
+    return (num * fxRate).toString();
+  };
 
   // Auto-calculations
   const totalRevenue = useMemo(() => {
@@ -91,7 +116,6 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
     return age;
   }, [data.birthDate]);
 
-  // Retirement calculator
   const effectiveAge = useMemo(() => calculatedAge ?? clientAge, [calculatedAge, clientAge]);
 
   const retirementCalc = useMemo(() => {
@@ -106,15 +130,35 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
     return { correctedIncome, annualCorrected, requiredPatrimony, retirementAge };
   }, [data.retirementIncome, data.retirementYears, data.retirementWithdrawalRate, effectiveAge]);
 
-  // Bloco 8 allocation total
+  // Bloco 2 — Patrimônio Total auto-sum
+  const patrimonioTotal = useMemo(() => {
+    const imob = parseFloat(data.patrimonioImobiliario) || 0;
+    const fin = parseFloat(data.patrimonioFinanceiro) || 0;
+    const soc = parseFloat(data.participacoesSocietarias) || 0;
+    return imob + fin + soc;
+  }, [data.patrimonioImobiliario, data.patrimonioFinanceiro, data.participacoesSocietarias]);
+
+  // Auto-update totalPatrimony when sub-blocks change
+  useEffect(() => {
+    if (patrimonioTotal > 0) {
+      const current = parseFloat(data.totalPatrimony) || 0;
+      if (Math.abs(current - patrimonioTotal) > 0.01) {
+        update({ totalPatrimony: patrimonioTotal.toString() });
+      }
+    }
+  }, [patrimonioTotal]);
+
+  // Bloco 8 allocation total — now with 3 subcategories instead of rendaFixa
   const allocationTotal = useMemo(() => {
-    return [data.rendaFixaPct, data.rendaVariavelPct, data.rendaPassivaPct, data.internacionalPct, data.alternativosPct, data.caixaPct]
+    return [data.posFixadoPct, data.preFixadoPct, data.indexadoInflacaoPct, data.rendaVariavelPct, data.rendaPassivaPct, data.internacionalPct, data.alternativosPct, data.caixaPct]
       .reduce((s, v) => s + (parseFloat(v) || 0), 0);
-  }, [data.rendaFixaPct, data.rendaVariavelPct, data.rendaPassivaPct, data.internacionalPct, data.alternativosPct, data.caixaPct]);
+  }, [data.posFixadoPct, data.preFixadoPct, data.indexadoInflacaoPct, data.rendaVariavelPct, data.rendaPassivaPct, data.internacionalPct, data.alternativosPct, data.caixaPct]);
 
   const pieData = useMemo(() => {
     const items = [
-      { name: 'Renda Fixa', value: parseFloat(data.rendaFixaPct) || 0 },
+      { name: 'Pós-Fixado', value: parseFloat(data.posFixadoPct) || 0 },
+      { name: 'Pré-Fixado', value: parseFloat(data.preFixadoPct) || 0 },
+      { name: 'Inflação', value: parseFloat(data.indexadoInflacaoPct) || 0 },
       { name: 'Renda Variável', value: parseFloat(data.rendaVariavelPct) || 0 },
       { name: 'Renda Passiva', value: parseFloat(data.rendaPassivaPct) || 0 },
       { name: 'Internacional', value: parseFloat(data.internacionalPct) || 0 },
@@ -122,7 +166,7 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
       { name: 'Caixa', value: parseFloat(data.caixaPct) || 0 },
     ];
     return items.filter(i => i.value > 0);
-  }, [data.rendaFixaPct, data.rendaVariavelPct, data.rendaPassivaPct, data.internacionalPct, data.alternativosPct, data.caixaPct]);
+  }, [data.posFixadoPct, data.preFixadoPct, data.indexadoInflacaoPct, data.rendaVariavelPct, data.rendaPassivaPct, data.internacionalPct, data.alternativosPct, data.caixaPct]);
 
   const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
@@ -146,6 +190,13 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
   const removePillar = (id: string) => update({ strategicPillars: data.strategicPillars.filter(p => p.id !== id) });
   const updatePillar = (id: string, name: string) =>
     update({ strategicPillars: data.strategicPillars.map(p => p.id === id ? { ...p, name } : p) });
+
+  // Multi-institution helpers
+  const institutionsList = data.otherInstitutionsList || [];
+  const addInstitution = () => update({ otherInstitutionsList: [...institutionsList, { id: genId(), institution: '', value: '' }] });
+  const removeInstitution = (id: string) => update({ otherInstitutionsList: institutionsList.filter(i => i.id !== id) });
+  const updateInstitution = (id: string, field: keyof OtherInstitutionItem, value: string) =>
+    update({ otherInstitutionsList: institutionsList.map(i => i.id === id ? { ...i, [field]: value } : i) });
 
   // Collapsible state per block
   const [openBlocks, setOpenBlocks] = useState<Record<number, boolean>>({});
@@ -318,15 +369,33 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label>Qual é seu patrimônio total aproximado hoje? (financeiro + imóveis + participações + outros)</Label>
-                <CurrencyInput value={data.totalPatrimony} onChange={(v) => update({ totalPatrimony: v })} placeholder="R$ 0,00" />
-              </div>
+              {/* === MELHORIA 1: 3 sub-blocos de patrimônio === */}
+              <div className="space-y-3">
+                <h5 className="text-sm font-medium text-foreground border-t border-border pt-3">Composição do Patrimônio</h5>
+                
+                <div className="p-3 bg-card rounded-lg border border-border space-y-2">
+                  <Label className="text-xs font-medium">Patrimônio Imobiliário</Label>
+                  <CurrencyInput value={data.patrimonioImobiliario} onChange={(v) => update({ patrimonioImobiliario: v })} placeholder="R$ 0,00" />
+                  <Input value={data.patrimonioImobiliarioDesc} onChange={(e) => update({ patrimonioImobiliarioDesc: e.target.value })} className="crm-input" placeholder="Descrição dos imóveis (opcional)" />
+                </div>
 
-              <div className="space-y-2">
-                <Label>Quanto você tem investido ou guardado hoje?</Label>
-                <CurrencyInput value={data.investedAmount} onChange={(v) => update({ investedAmount: v })} placeholder="R$ 0,00" />
-                <ConsultantNote>Sincroniza com "Patrimônio Financeiro" em Situação Financeira</ConsultantNote>
+                <div className="p-3 bg-card rounded-lg border border-border space-y-2">
+                  <Label className="text-xs font-medium">Patrimônio Financeiro</Label>
+                  <CurrencyInput value={data.patrimonioFinanceiro} onChange={(v) => update({ patrimonioFinanceiro: v })} placeholder="R$ 0,00" />
+                  <ConsultantNote>Sincroniza com "Patrimônio Financeiro" em Situação Financeira</ConsultantNote>
+                </div>
+
+                <div className="p-3 bg-card rounded-lg border border-border space-y-2">
+                  <Label className="text-xs font-medium">Participações Societárias</Label>
+                  <CurrencyInput value={data.participacoesSocietarias} onChange={(v) => update({ participacoesSocietarias: v })} placeholder="R$ 0,00" />
+                  <Input value={data.participacoesSocietariasDesc} onChange={(e) => update({ participacoesSocietariasDesc: e.target.value })} className="crm-input" placeholder="Empresas / cotas (opcional)" />
+                </div>
+
+                {/* Patrimônio Total (read-only) */}
+                <div className="p-3 bg-primary/5 rounded-lg border-2 border-primary/30 flex items-center justify-between">
+                  <span className="text-sm font-medium text-foreground">Patrimônio Total</span>
+                  <span className="text-lg font-bold text-primary">{patrimonioTotal > 0 ? fmt(patrimonioTotal) : 'R$ 0,00'}</span>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -340,7 +409,7 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
                 <ConsultantNote>Sincroniza com "Reserva de Emergência" em Situação Financeira</ConsultantNote>
               </div>
 
-              {(parseFloat(data.totalPatrimony) || 0) > 0 && (
+              {patrimonioTotal > 0 && (
                 <div className="space-y-2">
                   <Label>Como você construiu esse patrimônio?</Label>
                   <Textarea value={data.howBuiltWealth} onChange={(e) => update({ howBuiltWealth: e.target.value })} className="crm-input min-h-[80px]" />
@@ -386,6 +455,7 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
                 )}
               </div>
 
+              {/* === MELHORIA 2: Multi-entry institutions === */}
               <div className="space-y-2">
                 <Label>Investimentos em outras instituições financeiras?</Label>
                 <RadioGroup value={data.hasOtherInstitutions} onValueChange={(v) => update({ hasOtherInstitutions: v })} className="flex gap-4">
@@ -393,15 +463,19 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
                   <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Não" /> Não</label>
                 </RadioGroup>
                 {data.hasOtherInstitutions === 'Sim' && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1"><Label className="text-xs">Quais instituições</Label><Input value={data.otherInstitutions} onChange={(e) => update({ otherInstitutions: e.target.value })} className="crm-input" /></div>
-                    <div className="space-y-1"><Label className="text-xs">Valor aproximado (R$)</Label><CurrencyInput value={data.otherInstitutionsValue} onChange={(v) => update({ otherInstitutionsValue: v })} /></div>
-                  </div>
-                )}
-                {data.hasOtherInstitutions === 'Sim' && (
-                  <div className="space-y-1 mt-2">
-                    <Label className="text-xs">Como foi sua experiência com esses investimentos?</Label>
-                    <Textarea value={data.investmentExperience} onChange={(e) => update({ investmentExperience: e.target.value })} className="crm-input min-h-[60px]" />
+                  <div className="space-y-2">
+                    {institutionsList.map((item) => (
+                      <div key={item.id} className="flex gap-2 items-end">
+                        <div className="flex-1 space-y-1"><Label className="text-xs">Qual instituição</Label><Input value={item.institution} onChange={(e) => updateInstitution(item.id, 'institution', e.target.value)} className="crm-input" placeholder="Nome da instituição" /></div>
+                        <div className="w-40 space-y-1"><Label className="text-xs">Valor aproximado (R$)</Label><CurrencyInput value={item.value} onChange={(v) => updateInstitution(item.id, 'value', v)} /></div>
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removeInstitution(item.id)} className="h-9 w-9 text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                      </div>
+                    ))}
+                    <Button type="button" variant="outline" size="sm" onClick={addInstitution}><Plus className="w-4 h-4 mr-1" />Adicionar instituição</Button>
+                    <div className="space-y-1 mt-2">
+                      <Label className="text-xs">Como foi sua experiência com esses investimentos?</Label>
+                      <Textarea value={data.investmentExperience} onChange={(e) => update({ investmentExperience: e.target.value })} className="crm-input min-h-[60px]" />
+                    </div>
                   </div>
                 )}
               </div>
@@ -412,8 +486,28 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
           {/* === BLOCO 3 === */}
           {renderBlock(3, 'Fluxo de Caixa e Estilo de Vida', <>
             <div className="p-4 bg-muted/20 rounded-lg border border-border space-y-4">
+              {/* === MELHORIA 3: Currency selector === */}
+              <div className="flex items-center gap-3 p-2 bg-card rounded-lg border border-border">
+                <Label className="text-xs font-medium whitespace-nowrap">Moeda dos campos abaixo:</Label>
+                <Select value={selectedCurrency} onValueChange={(v) => update({ selectedCurrency: v })}>
+                  <SelectTrigger className="crm-input w-[160px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(FX_RATES).map(([key, { label }]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedCurrency !== 'BRL' && (
+                  <span className="text-[11px] text-muted-foreground">Taxa: 1 {selectedCurrency} = R$ {fxRate.toFixed(4)}</span>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1"><Label>Receita média mensal (últimos 12 meses)</Label><CurrencyInput value={data.monthlyRevenue} onChange={(v) => update({ monthlyRevenue: v })} /></div>
+                <div className="space-y-1">
+                  <Label>Receita média mensal (últimos 12 meses)</Label>
+                  <CurrencyInput value={data.monthlyRevenue} onChange={(v) => update({ monthlyRevenue: v })} placeholder={`${currencySymbol} 0,00`} />
+                  <BrlEquivalent value={data.monthlyRevenue} currency={selectedCurrency} />
+                </div>
                 <div className="space-y-1">
                   <Label>Fonte principal</Label>
                   <Select value={data.revenueSource} onValueChange={(v) => update({ revenueSource: v })}>
@@ -434,7 +528,11 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
                     {data.otherIncomes.map((item, i) => (
                       <div key={item.id} className="flex gap-2 items-end">
                         <div className="flex-1 space-y-1"><Label className="text-xs">Descrição</Label><Input value={item.description} onChange={(e) => updateOtherIncome(item.id, 'description', e.target.value)} className="crm-input" /></div>
-                        <div className="w-40 space-y-1"><Label className="text-xs">Valor (R$)</Label><CurrencyInput value={item.value} onChange={(v) => updateOtherIncome(item.id, 'value', v)} /></div>
+                        <div className="w-40 space-y-1">
+                          <Label className="text-xs">Valor ({currencySymbol})</Label>
+                          <CurrencyInput value={item.value} onChange={(v) => updateOtherIncome(item.id, 'value', v)} />
+                          <BrlEquivalent value={item.value} currency={selectedCurrency} />
+                        </div>
                         <Button type="button" variant="ghost" size="icon" onClick={() => removeOtherIncome(item.id)} className="h-9 w-9 text-destructive"><Trash2 className="w-4 h-4" /></Button>
                       </div>
                     ))}
@@ -454,7 +552,11 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
                 </RadioGroup>
               </div>
 
-              <div className="space-y-1"><Label>Custo de vida mensal médio</Label><CurrencyInput value={data.livingCost} onChange={(v) => update({ livingCost: v })} /></div>
+              <div className="space-y-1">
+                <Label>Custo de vida mensal médio</Label>
+                <CurrencyInput value={data.livingCost} onChange={(v) => update({ livingCost: v })} />
+                <BrlEquivalent value={data.livingCost} currency={selectedCurrency} />
+              </div>
               <div className="space-y-1"><Label className="text-xs text-muted-foreground">Algo não recorrente inflando esse custo? (opcional)</Label><Textarea value={data.nonRecurrentCost} onChange={(e) => update({ nonRecurrentCost: e.target.value })} className="crm-input min-h-[50px]" /></div>
 
               {monthlySurplus !== 0 && totalRevenue > 0 && (
@@ -463,8 +565,15 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
                 </div>
               )}
 
-              <div className="space-y-1"><Label>Viagens — frequência e gasto aproximado</Label><Textarea value={data.travelDetails} onChange={(e) => update({ travelDetails: e.target.value })} className="crm-input min-h-[50px]" /></div>
-              <div className="space-y-1"><Label>Gasto anual com viagens (R$)</Label><CurrencyInput value={data.travelAnnualCost} onChange={(v) => update({ travelAnnualCost: v })} /></div>
+              <div className="space-y-1">
+                <Label>Viagens — frequência e gasto aproximado</Label>
+                <Textarea value={data.travelDetails} onChange={(e) => update({ travelDetails: e.target.value })} className="crm-input min-h-[50px]" />
+              </div>
+              <div className="space-y-1">
+                <Label>Gasto anual com viagens ({currencySymbol})</Label>
+                <CurrencyInput value={data.travelAnnualCost} onChange={(v) => update({ travelAnnualCost: v })} />
+                <BrlEquivalent value={data.travelAnnualCost} currency={selectedCurrency} />
+              </div>
 
               <div className="space-y-2">
                 <Label>Gastos anuais relevantes (educação, saúde, etc.)</Label>
@@ -479,7 +588,11 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1"><Label>Quanto investe mensalmente?</Label><CurrencyInput value={data.monthlyInvestment} onChange={(v) => update({ monthlyInvestment: v })} /></div>
+                <div className="space-y-1">
+                  <Label>Quanto investe mensalmente?</Label>
+                  <CurrencyInput value={data.monthlyInvestment} onChange={(v) => update({ monthlyInvestment: v })} />
+                  <BrlEquivalent value={data.monthlyInvestment} currency={selectedCurrency} />
+                </div>
                 <div className="space-y-1">
                   <Label>Já está investindo?</Label>
                   <RadioGroup value={data.alreadyInvesting} onValueChange={(v) => update({ alreadyInvesting: v })} className="flex gap-3">
@@ -506,9 +619,15 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
                     <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Não" /> Não</label>
                   </RadioGroup>
                 </div>
-                <div className="space-y-1"><Label className="text-xs">Como imagina organizar o patrimônio para a próxima geração?</Label><Textarea value={data.successionOrganization} onChange={(e) => update({ successionOrganization: e.target.value })} className="crm-input min-h-[60px]" /></div>
+                {/* === MELHORIA 4: Conditional succession field === */}
                 {data.successionThought === 'Sim' && (
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <Label className="text-xs">Como imagina organizar o patrimônio para a próxima geração?</Label>
+                    <Textarea value={data.successionOrganization} onChange={(e) => update({ successionOrganization: e.target.value })} className="crm-input min-h-[60px]" />
+                  </div>
+                )}
+                {data.successionThought === 'Sim' && (
+                  <div className="grid grid-cols-3 gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
                     <div className="space-y-1"><Label className="text-xs">Tem testamento?</Label>
                       <RadioGroup value={data.hasTestament} onValueChange={(v) => update({ hasTestament: v })} className="flex gap-3">
                         <label className="flex items-center gap-1 text-xs cursor-pointer"><RadioGroupItem value="Sim" /> Sim</label>
@@ -547,27 +666,35 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
               {/* Aposentadoria */}
               <div className="pt-3 border-t border-border space-y-3">
                 <Label className="font-medium">Aposentadoria</Label>
-                <RadioGroup value={data.wantsRetirement} onValueChange={(v) => update({ wantsRetirement: v })} className="flex gap-4">
-                  <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Sim" /> Sim, já pensei</label>
-                  <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Não" /> Não</label>
-                </RadioGroup>
+                <div className="space-y-2">
+                  <Label>Quer se aposentar?</Label>
+                  <RadioGroup value={data.wantsRetirement} onValueChange={(v) => update({ wantsRetirement: v })} className="flex gap-4">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Sim" /> Sim</label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Não" /> Não</label>
+                  </RadioGroup>
+                </div>
                 {data.wantsRetirement === 'Sim' && (
-                  <div className="space-y-3 p-3 bg-card rounded-lg border border-border">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1"><Label className="text-xs">Renda mensal desejada (R$/mês)</Label><CurrencyInput value={data.retirementIncome} onChange={(v) => update({ retirementIncome: v })} /></div>
-                      <div className="space-y-1"><Label className="text-xs">Em quantos anos quer se aposentar?</Label><Input type="number" value={data.retirementYears} onChange={(e) => update({ retirementYears: e.target.value })} className="crm-input" /></div>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Taxa de retirada anual</Label>
-                      <RadioGroup value={data.retirementWithdrawalRate} onValueChange={(v) => update({ retirementWithdrawalRate: v })} className="flex gap-4">
-                        {['4', '5', '6'].map(r => <label key={r} className="flex items-center gap-1 text-sm cursor-pointer"><RadioGroupItem value={r} /> {r}%</label>)}
-                      </RadioGroup>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="space-y-1"><Label className="text-xs">Renda desejada (R$/mês)</Label><CurrencyInput value={data.retirementIncome} onChange={(v) => update({ retirementIncome: v })} /></div>
+                      <div className="space-y-1"><Label className="text-xs">Em quantos anos?</Label><Input type="number" value={data.retirementYears} onChange={(e) => update({ retirementYears: e.target.value })} className="crm-input" /></div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Taxa de retirada (%)</Label>
+                        <Select value={data.retirementWithdrawalRate} onValueChange={(v) => update({ retirementWithdrawalRate: v })}>
+                          <SelectTrigger className="crm-input"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="4">4% (conservador)</SelectItem>
+                            <SelectItem value="5">5% (moderado)</SelectItem>
+                            <SelectItem value="6">6% (agressivo)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     {retirementCalc && (
-                      <div className="p-3 bg-primary/10 rounded-lg border border-primary/30 space-y-1">
-                        <p className="text-xs text-muted-foreground">Idade na aposentadoria: <strong className="text-foreground">{retirementCalc.retirementAge} anos</strong></p>
-                        <p className="text-xs text-muted-foreground">Renda corrigida (4,5% a.a.): <strong className="text-foreground">{fmt(retirementCalc.correctedIncome)}/mês</strong></p>
-                        <p className="text-sm font-bold text-primary">Patrimônio necessário: {fmt(retirementCalc.requiredPatrimony)}</p>
+                      <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 space-y-1 text-sm">
+                        <p>🎯 Idade de aposentadoria: <strong>{retirementCalc.retirementAge} anos</strong></p>
+                        <p>📈 Renda corrigida (inflação 4,5% a.a.): <strong>{fmt(retirementCalc.correctedIncome)}/mês</strong></p>
+                        <p>💰 Patrimônio necessário: <strong>{fmt(retirementCalc.requiredPatrimony)}</strong></p>
                       </div>
                     )}
                   </div>
@@ -575,28 +702,28 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
               </div>
 
               <div className="space-y-2">
-                <Label>Interesse em morar fora do país?</Label>
+                <Label>Quer morar fora do Brasil?</Label>
                 <RadioGroup value={data.wantsToLiveAbroad} onValueChange={(v) => update({ wantsToLiveAbroad: v })} className="flex gap-4">
                   <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Sim" /> Sim</label>
                   <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Não" /> Não</label>
                 </RadioGroup>
-                {data.wantsToLiveAbroad === 'Sim' && <Textarea value={data.abroadDetails} onChange={(e) => update({ abroadDetails: e.target.value })} className="crm-input min-h-[50px]" placeholder="Detalhes..." />}
+                {data.wantsToLiveAbroad === 'Sim' && <Textarea value={data.abroadDetails} onChange={(e) => update({ abroadDetails: e.target.value })} className="crm-input min-h-[50px]" placeholder="Onde? Quando?" />}
               </div>
 
-              {(data.hasChildren === 'Sim' || hasChildrenFromBloco1) && (
-                <div className="space-y-1"><Label>Planejamento educacional dos filhos</Label><Textarea value={data.childrenEducation} onChange={(e) => update({ childrenEducation: e.target.value })} className="crm-input min-h-[60px]" /></div>
+              {(hasChildrenFromBloco1 || data.hasChildren === 'Sim') && (
+                <div className="space-y-1"><Label>Educação dos filhos — plano e custos estimados</Label><Textarea value={data.childrenEducation} onChange={(e) => update({ childrenEducation: e.target.value })} className="crm-input min-h-[60px]" /></div>
               )}
 
-              <div className="space-y-1"><Label>O que NÃO quer fazer com seu dinheiro? (restrições)</Label><Textarea value={data.restrictions} onChange={(e) => update({ restrictions: e.target.value })} className="crm-input min-h-[60px]" /></div>
+              <div className="space-y-1"><Label>Restrições ou preferências (ESG, religião, setores...)</Label><Textarea value={data.restrictions} onChange={(e) => update({ restrictions: e.target.value })} className="crm-input min-h-[50px]" /></div>
 
-              <div className="space-y-2">
-                <Label>Se tivesse que priorizar, o que vem primeiro?</Label>
-                <div className="grid gap-2">
-                  {['1ª', '2ª', '3ª'].map((label, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-muted-foreground w-8">{label}</span>
-                      <Select value={[data.priority1, data.priority2, data.priority3][i]} onValueChange={(v) => update({ [`priority${i + 1}`]: v } as any)}>
-                        <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <div className="pt-3 border-t border-border space-y-3">
+                <Label className="font-medium">Top 3 prioridades</Label>
+                <div className="grid grid-cols-3 gap-3">
+                  {[1, 2, 3].map(n => (
+                    <div key={n} className="space-y-1">
+                      <Label className="text-xs">Prioridade {n}</Label>
+                      <Select value={(data as any)[`priority${n}`]} onValueChange={(v) => update({ [`priority${n}`]: v } as any)}>
+                        <SelectTrigger className="crm-input"><SelectValue placeholder={`${n}ª`} /></SelectTrigger>
                         <SelectContent>{PRIORITIES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
@@ -806,16 +933,18 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
                 <div className="space-y-1"><Label>Justificativa</Label><Input value={data.minLiquidityJustification} onChange={(e) => update({ minLiquidityJustification: e.target.value })} className="crm-input" /></div>
               </div>
 
-              {/* Distribuição macro */}
+              {/* === MELHORIA 6: Distribuição macro — 8 campos === */}
               <div className="pt-3 border-t border-border space-y-3">
                 <div className="flex items-center justify-between">
                   <Label className="font-medium">Distribuição macro por pilares (soma = 100%)</Label>
                   <span className={`text-sm font-bold ${allocationTotal === 100 ? 'text-green-500' : 'text-red-500'}`}>{allocationTotal}%</span>
                 </div>
                 {allocationTotal !== 100 && <p className="text-xs text-red-500">⚠️ A soma deve ser exatamente 100% (atual: {allocationTotal}%)</p>}
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-4 gap-3">
                   {[
-                    { key: 'rendaFixaPct', label: 'Renda Fixa (%)' },
+                    { key: 'posFixadoPct', label: 'Pós-Fixado (%)' },
+                    { key: 'preFixadoPct', label: 'Pré-Fixado (%)' },
+                    { key: 'indexadoInflacaoPct', label: 'Indexado à Inflação (%)' },
                     { key: 'rendaVariavelPct', label: 'Renda Variável (%)' },
                     { key: 'rendaPassivaPct', label: 'Renda Passiva / FIIs (%)' },
                     { key: 'internacionalPct', label: 'Internacional (%)' },
