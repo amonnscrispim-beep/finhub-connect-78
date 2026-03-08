@@ -23,6 +23,12 @@ export interface StrategicPillar {
   name: string;
 }
 
+export interface OtherInstitutionItem {
+  id: string;
+  institution: string;
+  value: string;
+}
+
 export interface ConhecerClienteData {
   // === BLOCO 1 — Quem é você? ===
   fullName: string;
@@ -41,8 +47,14 @@ export interface ConhecerClienteData {
   realEstateUsage: string; // Morar | Alugar | Ambos
   hasOtherAssets: string;
   otherAssetsDetails: string;
-  totalPatrimony: string; // R$
-  investedAmount: string; // R$ — syncs to financialAssets
+  totalPatrimony: string; // R$ (read-only, auto-calculated)
+  // New: 3 sub-blocks for patrimônio
+  patrimonioImobiliario: string; // R$
+  patrimonioImobiliarioDesc: string;
+  patrimonioFinanceiro: string; // R$ — syncs to financialAssets in Situação Financeira
+  participacoesSocietarias: string; // R$
+  participacoesSocietariasDesc: string;
+  investedAmount: string; // R$ — syncs to financialAssets (legacy, now use patrimonioFinanceiro)
   liquidAmount: string; // R$ — available with immediate liquidity
   emergencyReserveAmount: string; // R$ — syncs to emergencyReserve
   howBuiltWealth: string;
@@ -57,12 +69,14 @@ export interface ConhecerClienteData {
   concentrationDetails: string;
   concentrationPercentage: string;
   hasOtherInstitutions: string;
-  otherInstitutions: string;
-  otherInstitutionsValue: string;
+  otherInstitutions: string; // legacy single field
+  otherInstitutionsValue: string; // legacy single field
+  otherInstitutionsList: OtherInstitutionItem[]; // new multi-entry
   investmentExperience: string;
   bloco2Comment: string;
 
   // === BLOCO 3 — Fluxo de Caixa e Estilo de Vida ===
+  selectedCurrency: string; // BRL | USD | EUR | GBP | ARS
   monthlyRevenue: string;
   revenueSource: string;
   hasOtherIncome: string;
@@ -144,7 +158,11 @@ export interface ConhecerClienteData {
   recommendedRisk: string;
   minLiquidityPct: string;
   minLiquidityJustification: string;
-  rendaFixaPct: string;
+  // Replaced rendaFixaPct with 3 subcategories
+  rendaFixaPct: string; // legacy — kept for backward compat
+  posFixadoPct: string;
+  preFixadoPct: string;
+  indexadoInflacaoPct: string;
   rendaVariavelPct: string;
   rendaPassivaPct: string;
   internacionalPct: string;
@@ -165,11 +183,15 @@ export const defaultConhecerCliente: ConhecerClienteData = {
   isMarried: '', marriageRegime: '', civilStatus: '', hasChildren: '', children: [], howFoundUs: '', bloco1Comment: '',
   // Bloco 2
   hasRealEstate: '', realEstateUsage: '', hasOtherAssets: '', otherAssetsDetails: '', totalPatrimony: '',
+  patrimonioImobiliario: '', patrimonioImobiliarioDesc: '',
+  patrimonioFinanceiro: '', participacoesSocietarias: '', participacoesSocietariasDesc: '',
   investedAmount: '', liquidAmount: '', emergencyReserveAmount: '',
   howBuiltWealth: '', hasBusinessParticipation: '', businessValue: '', businessPercentage: '', businessEmployees: '',
   pfValue: '', pjValue: '', businessConcerns: '', hasConcentration: '', concentrationDetails: '', concentrationPercentage: '',
-  hasOtherInstitutions: '', otherInstitutions: '', otherInstitutionsValue: '', investmentExperience: '', bloco2Comment: '',
+  hasOtherInstitutions: '', otherInstitutions: '', otherInstitutionsValue: '', otherInstitutionsList: [],
+  investmentExperience: '', bloco2Comment: '',
   // Bloco 3
+  selectedCurrency: 'BRL',
   monthlyRevenue: '', revenueSource: '', hasOtherIncome: '', otherIncomes: [], revenueStability: '', livingCost: '',
   nonRecurrentCost: '', travelDetails: '', travelAnnualCost: '', annualExpenses: [], monthlyInvestment: '',
   alreadyInvesting: '', emergencyMonths: '', successionThought: '', successionDetails: '', successionOrganization: '',
@@ -189,7 +211,9 @@ export const defaultConhecerCliente: ConhecerClienteData = {
   advisorExperience: '', managementPreference: '', followUpFrequency: '', successCriteria: '', bloco7Comment: '',
   // Bloco 8
   strategicPriority: '', complexityLevel: '', identifiedRisks: '', portfolioObjective: '', recommendedRisk: '',
-  minLiquidityPct: '', minLiquidityJustification: '', rendaFixaPct: '', rendaVariavelPct: '', rendaPassivaPct: '',
+  minLiquidityPct: '', minLiquidityJustification: '',
+  rendaFixaPct: '', posFixadoPct: '', preFixadoPct: '', indexadoInflacaoPct: '',
+  rendaVariavelPct: '', rendaPassivaPct: '',
   internacionalPct: '', alternativosPct: '', caixaPct: '', strategicPillars: [], taxEfficiency: '',
   taxEfficiencyNotes: '', rebalancingRule: '', recommendedStructure: '', planningPdfUrl: '', bloco8Comment: '',
 };
@@ -198,19 +222,35 @@ const genId = () => Math.random().toString(36).substring(2, 10);
 
 /**
  * Migrate data from old strategic_diagnostic structure to new ConhecerClienteData.
- * Reads old field names and maps to new ones, preserving existing data.
  */
 export function migrateFromLegacy(raw: Record<string, any>): ConhecerClienteData {
   const d = { ...defaultConhecerCliente };
 
   // If already has new fields, use them
   if (raw.bloco1Comment !== undefined || raw.isMarried !== undefined) {
-    return { ...d, ...raw, children: raw.children || [], otherIncomes: raw.otherIncomes || [], annualExpenses: raw.annualExpenses || [], strategicPillars: raw.strategicPillars || [],
-      investedAmount: raw.investedAmount || '', liquidAmount: raw.liquidAmount || '', emergencyReserveAmount: raw.emergencyReserveAmount || '' };
+    return {
+      ...d, ...raw,
+      children: raw.children || [],
+      otherIncomes: raw.otherIncomes || [],
+      annualExpenses: raw.annualExpenses || [],
+      strategicPillars: raw.strategicPillars || [],
+      otherInstitutionsList: raw.otherInstitutionsList || [],
+      investedAmount: raw.investedAmount || '',
+      liquidAmount: raw.liquidAmount || '',
+      emergencyReserveAmount: raw.emergencyReserveAmount || '',
+      patrimonioImobiliario: raw.patrimonioImobiliario || '',
+      patrimonioImobiliarioDesc: raw.patrimonioImobiliarioDesc || '',
+      patrimonioFinanceiro: raw.patrimonioFinanceiro || '',
+      participacoesSocietarias: raw.participacoesSocietarias || '',
+      participacoesSocietariasDesc: raw.participacoesSocietariasDesc || '',
+      selectedCurrency: raw.selectedCurrency || 'BRL',
+      posFixadoPct: raw.posFixadoPct || '',
+      preFixadoPct: raw.preFixadoPct || '',
+      indexadoInflacaoPct: raw.indexadoInflacaoPct || '',
+    };
   }
 
   // === Migrate from old structure ===
-  // Bloco 1 (from old DiagnosticoEstrategico.family + client fields)
   const fam = raw.family || {};
   d.isMarried = fam.maritalStatus === 'Casado(a)' || fam.maritalStatus === 'União estável' ? 'Sim' : (fam.maritalStatus ? 'Não' : '');
   d.marriageRegime = fam.propertyRegime || '';
@@ -225,7 +265,6 @@ export function migrateFromLegacy(raw: Record<string, any>): ConhecerClienteData
     }));
   }
 
-  // Bloco 2 (from old EstruturaPatrimonial)
   const ep = raw.estruturaPatrimonial || {};
   d.totalPatrimony = ep.totalPatrimony || '';
   d.pfValue = ep.pfValue || '';
@@ -233,7 +272,6 @@ export function migrateFromLegacy(raw: Record<string, any>): ConhecerClienteData
   d.hasConcentration = ep.hasConcentration || '';
   d.concentrationDetails = ep.concentrationDetail || ep.concentrationNotes || '';
 
-  // Bloco 3 (from old FluxoCaixa)
   const fc = raw.fluxoCaixa || {};
   d.monthlyRevenue = fc.monthlyRevenue || '';
   d.revenueSource = fc.revenueSource || '';
@@ -243,7 +281,6 @@ export function migrateFromLegacy(raw: Record<string, any>): ConhecerClienteData
   d.alreadyInvesting = fc.alreadyInvesting || '';
   d.emergencyMonths = fc.autonomyMonths || '';
 
-  // Bloco 4 (from old ObjetivosMetas)
   const om = raw.objetivosMetas || {};
   d.financialGoals = om.mainObjective || '';
   d.successNumber = om.goalMonthlyIncome || om.goalTargetWealth || om.goalEstimatedValue || '';
@@ -253,7 +290,6 @@ export function migrateFromLegacy(raw: Record<string, any>): ConhecerClienteData
   d.priority2 = om.priority2 || '';
   d.priority3 = om.priority3 || '';
 
-  // Bloco 5 (from old PerfilRisco)
   const pr = raw.perfilRisco || {};
   d.hasExperiencedDrops = pr.volatilityExperience || '';
   d.dropReaction = pr.volatilityReaction || '';
@@ -263,18 +299,15 @@ export function migrateFromLegacy(raw: Record<string, any>): ConhecerClienteData
   d.impulseDecision = pr.pressureSelling || '';
   d.impulseDetails = pr.pressureMotivation || '';
 
-  // Bloco 6 (from old ProtecaoSucessao)
   const ps = raw.protecaoSucessao || {};
   d.hasSuccessionPlan = ps.successionPlanning || '';
 
-  // Bloco 7 (from old HistoricoMercado)
   const hm = raw.historicoMercado || {};
   d.hasInvestmentHistory = hm.investmentHistory || '';
   d.managementPreference = hm.managementPreference || '';
   d.followUpFrequency = hm.followUpFrequency || '';
   d.successCriteria = hm.successCriteria || '';
 
-  // Bloco 8 (from old ArquiteturaCarteira + DirecionamentoEstrategico)
   const de = raw.direcionamentoEstrategico || {};
   const ac = raw.arquiteturaCarteira || {};
   d.strategicPriority = de.strategicPriority || ac.strategicPriority || '';
@@ -286,7 +319,6 @@ export function migrateFromLegacy(raw: Record<string, any>): ConhecerClienteData
   d.alternativosPct = ac.alternativosPct || '';
   d.caixaPct = ac.caixaPct || '';
 
-  // Preserve old consultant comments
   d.bloco1Comment = raw.consultantComment || fam.familySynthesis || '';
   d.bloco2Comment = ep.consultantComment || '';
   d.bloco3Comment = fc.consultantComment || '';
@@ -301,14 +333,13 @@ export function migrateFromLegacy(raw: Record<string, any>): ConhecerClienteData
 
 /**
  * Calculate profile completeness percentage.
- * Returns 0-100.
  */
 export function calculateProgress(data: ConhecerClienteData): number {
   const fields = [
     // Bloco 1
     data.isMarried, data.hasChildren,
     // Bloco 2
-    data.totalPatrimony, data.hasBusinessParticipation,
+    data.patrimonioFinanceiro || data.totalPatrimony, data.hasBusinessParticipation,
     // Bloco 3
     data.monthlyRevenue, data.livingCost, data.monthlyInvestment, data.emergencyMonths,
     // Bloco 4
