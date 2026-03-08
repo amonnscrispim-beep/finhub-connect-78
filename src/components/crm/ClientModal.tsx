@@ -78,6 +78,7 @@ import { ResumoRelatorio } from './ResumoRelatorio';
 import { ClientFormLink } from './ClientFormLink';
 import { useClientPortfolio } from '@/hooks/useClientPortfolio';
 import { DirecionamentoEstrategico, defaultDirecionamentoEstrategico, DirecionamentoEstrategicoData } from './DirecionamentoEstrategico';
+import { CarteiraFarolModule } from './farol/CarteiraFarolModule';
 import { ArquiteturaCarteira, defaultArquiteturaCarteira, ArquiteturaCarteiraData } from './ArquiteturaCarteira';
 import { ConhecerClienteModule } from './conhecer/ConhecerClienteModule';
 import { defaultConhecerCliente, migrateFromLegacy, ConhecerClienteData } from './conhecer/types';
@@ -1279,6 +1280,15 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
             {/* SECTION 10.5: Relatório de Performance */}
             <CollapsibleSection title="Relatório de Performance" defaultOpen={false}>
               <RelatorioPerformance clientId={client?.id} investorProfile={formData.investorProfile} />
+            </CollapsibleSection>
+
+            {/* SECTION 10.6: Carteira Farol */}
+            <CollapsibleSection title="Carteira Farol" defaultOpen={false}>
+              <CarteiraFarolModule
+                clientId={client?.id}
+                financialAssets={parseFloat(formData.financialAssets) || 0}
+                monthlyContribution={parseFloat(formData.monthlyContribution) || 0}
+              />
             </CollapsibleSection>
 
             {/* SECTION 11: Resultado da Consultoria */}
