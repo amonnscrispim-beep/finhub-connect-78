@@ -191,7 +191,7 @@ export function FarolProfileTab({
                               <td className="py-2 px-2">
                                 <CurrencyInput
                                   value={asset.ceiling_price ?? 0}
-                                  onChange={v => onUpdateAsset(asset.id, { ceiling_price: v })}
+                                  onChange={v => onUpdateAsset(asset.id, { ceiling_price: parseFloat(v) || 0 })}
                                   className="h-7 text-xs w-28"
                                 />
                               </td>

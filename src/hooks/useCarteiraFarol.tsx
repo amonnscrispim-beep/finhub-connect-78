@@ -142,7 +142,7 @@ export function useCarteiraFarol(clientId: string | undefined) {
       setAssets(prev => prev.map(a => {
         const price = quotes[a.ticker];
         if (price != null && price !== a.current_price) {
-          const p: Promise<void> = supabase.from('farol_assets').update({ current_price: price } as any).eq('id', a.id).then(() => {});
+          const p = supabase.from('farol_assets').update({ current_price: price } as any).eq('id', a.id).then(() => undefined) as unknown as Promise<void>;
           updates.push(p);
           return { ...a, current_price: price };
         }
