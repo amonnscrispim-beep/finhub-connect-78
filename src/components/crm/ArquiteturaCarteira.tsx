@@ -11,8 +11,11 @@ export interface ArquiteturaCarteiraData {
   riskLevel: string;
   minLiquidity: string;
   liquidityJustification: string;
-  // Distribution pillars
-  fixedIncomePct: string;
+  // Distribution pillars — new subcategories
+  fixedIncomePct: string; // legacy
+  posFixadoPct: string;
+  preFixadoPct: string;
+  indexadoInflacaoPct: string;
   equitiesPct: string;
   passiveIncomePct: string;
   internationalPct: string;
