@@ -1283,11 +1283,11 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
             </CollapsibleSection>
 
             {/* SECTION 10.6: Carteira Farol */}
-            <CollapsibleSection title="Carteira Farol" icon={Compass} defaultOpen={false}>
+            <CollapsibleSection title="Carteira Farol" defaultOpen={false}>
               <CarteiraFarolModule
                 clientId={client?.id}
-                financialAssets={parseFloat(formData.painelOverrides?.financialAssets || '0') || (formData.conhecerCliente?.investedAmount ? parseFloat(formData.conhecerCliente.investedAmount) : 0) || formData.financialAssets || 0}
-                monthlyContribution={parseFloat(formData.painelOverrides?.monthlyContribution || '0') || formData.monthlyContribution || 0}
+                financialAssets={parseFloat(formData.financialAssets) || 0}
+                monthlyContribution={parseFloat(formData.monthlyContribution) || 0}
               />
             </CollapsibleSection>
 
