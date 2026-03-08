@@ -59,10 +59,12 @@ export function ArquiteturaEstrategicaPainel({
   const taxDirective = arquiteturaCarteira.taxDirective || '';
   const pillars = arquiteturaEstrategica.pillars || [];
 
-  // Macro allocation from Conhecer o Cliente
+  // Macro allocation from Conhecer o Cliente — now with 3 RF subcategories
   const macroFields = useMemo(() => {
     const fromCarteira = [
-      { label: 'Renda Fixa', value: arquiteturaCarteira.fixedIncomePct },
+      { label: 'Pós-Fixado', value: arquiteturaCarteira.posFixadoPct },
+      { label: 'Pré-Fixado', value: arquiteturaCarteira.preFixadoPct },
+      { label: 'Indexado à Inflação', value: arquiteturaCarteira.indexadoInflacaoPct },
       { label: 'Renda Variável', value: arquiteturaCarteira.equitiesPct },
       { label: 'Renda Passiva (FIIs)', value: arquiteturaCarteira.passiveIncomePct },
       { label: 'Internacional', value: arquiteturaCarteira.internationalPct },
@@ -72,7 +74,7 @@ export function ArquiteturaEstrategicaPainel({
     const hasData = fromCarteira.some(f => f.value && parseFloat(f.value) > 0);
     if (hasData) return { source: 'carteira' as const, fields: fromCarteira };
 
-    // Fallback to legacy
+    // Fallback to legacy (old rendaFixaPct)
     const fromLegacy = [
       { label: 'Renda Fixa', value: String(arquiteturaEstrategica.fixedIncomePct || 0) },
       { label: 'Renda Variável', value: String(arquiteturaEstrategica.equitiesPct || 0) },
