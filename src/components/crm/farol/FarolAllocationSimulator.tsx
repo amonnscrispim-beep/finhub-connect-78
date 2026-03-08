@@ -96,7 +96,7 @@ export function FarolAllocationSimulator({ pillars, financialAssets, monthlyCont
         {baseType === 'personalizado' && (
           <div className="space-y-1">
             <Label className="text-xs">Valor</Label>
-            <CurrencyInput value={customValue} onChange={setCustomValue} className="w-40 h-9 text-xs" />
+            <CurrencyInput value={customValue} onChange={(v) => setCustomValue(typeof v === 'string' ? parseFloat(v) || 0 : v)} className="w-40 h-9 text-xs" />
           </div>
         )}
       </div>

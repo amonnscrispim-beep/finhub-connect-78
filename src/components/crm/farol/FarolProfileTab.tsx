@@ -216,7 +216,7 @@ export function FarolProfileTab({
                               <Input
                                 type="number"
                                 value={asset.allocation_pct || ''}
-                                onChange={e => onUpdateAsset(asset.id, { allocation_pct: parseFloat(e.target.value) || 0 })}
+                                onChange={e => onUpdateAsset(asset.id, { allocation_pct: Number(parseFloat(e.target.value) || 0) })}
                                 className="h-7 text-xs w-16 text-right"
                                 min={0}
                                 max={100}
