@@ -701,6 +701,116 @@ export type Database = {
           },
         ]
       }
+      farol_assets: {
+        Row: {
+          allocation_pct: number
+          bias: string
+          ceiling_price: number | null
+          client_id: string
+          created_at: string
+          current_price: number | null
+          display_order: number
+          id: string
+          name: string
+          pillar_id: string
+          sector: string | null
+          ticker: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allocation_pct?: number
+          bias?: string
+          ceiling_price?: number | null
+          client_id: string
+          created_at?: string
+          current_price?: number | null
+          display_order?: number
+          id?: string
+          name?: string
+          pillar_id: string
+          sector?: string | null
+          ticker?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allocation_pct?: number
+          bias?: string
+          ceiling_price?: number | null
+          client_id?: string
+          created_at?: string
+          current_price?: number | null
+          display_order?: number
+          id?: string
+          name?: string
+          pillar_id?: string
+          sector?: string | null
+          ticker?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "farol_assets_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "farol_assets_pillar_id_fkey"
+            columns: ["pillar_id"]
+            isOneToOne: false
+            referencedRelation: "farol_pillars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      farol_pillars: {
+        Row: {
+          allocation_pct: number
+          client_id: string
+          created_at: string
+          display_order: number
+          id: string
+          pillar_name: string
+          profile_tab: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allocation_pct?: number
+          client_id: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          pillar_name: string
+          profile_tab?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allocation_pct?: number
+          client_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          pillar_name?: string
+          profile_tab?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "farol_pillars_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financial_goals: {
         Row: {
           annual_interest_rate: number | null
