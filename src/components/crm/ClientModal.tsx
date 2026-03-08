@@ -1282,6 +1282,15 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               <RelatorioPerformance clientId={client?.id} investorProfile={formData.investorProfile} />
             </CollapsibleSection>
 
+            {/* SECTION 10.6: Carteira Farol */}
+            <CollapsibleSection title="Carteira Farol" icon={Compass} defaultOpen={false}>
+              <CarteiraFarolModule
+                clientId={client?.id}
+                financialAssets={parseFloat(formData.painelOverrides?.financialAssets || '0') || (formData.conhecerCliente?.investedAmount ? parseFloat(formData.conhecerCliente.investedAmount) : 0) || formData.financialAssets || 0}
+                monthlyContribution={parseFloat(formData.painelOverrides?.monthlyContribution || '0') || formData.monthlyContribution || 0}
+              />
+            </CollapsibleSection>
+
             {/* SECTION 11: Resultado da Consultoria */}
             <CollapsibleSection title="Resultado da Consultoria" icon={TrendingUp} defaultOpen={false}>
               <div className="grid grid-cols-2 gap-4">
