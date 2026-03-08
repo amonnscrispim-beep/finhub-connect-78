@@ -78,7 +78,7 @@ import { ResumoRelatorio } from './ResumoRelatorio';
 import { ClientFormLink } from './ClientFormLink';
 import { useClientPortfolio } from '@/hooks/useClientPortfolio';
 import { DirecionamentoEstrategico, defaultDirecionamentoEstrategico, DirecionamentoEstrategicoData } from './DirecionamentoEstrategico';
-import { CarteiraFarolModule } from './farol/CarteiraFarolModule';
+
 import { ArquiteturaCarteira, defaultArquiteturaCarteira, ArquiteturaCarteiraData } from './ArquiteturaCarteira';
 import { ConhecerClienteModule } from './conhecer/ConhecerClienteModule';
 import { defaultConhecerCliente, migrateFromLegacy, ConhecerClienteData } from './conhecer/types';
