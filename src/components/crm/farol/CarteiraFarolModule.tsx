@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Loader2, Compass } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCarteiraFarol, PROFILE_TABS, ProfileTab } from '@/hooks/useCarteiraFarol';
@@ -28,11 +28,9 @@ export function CarteiraFarolModule({ clientId, financialAssets = 0, monthlyCont
   }
 
   const activePillars = farol.pillars.filter(p => p.profile_tab === activeTab);
-  const activeAssets = farol.assets;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-6" onClick={e => e.stopPropagation()}>
       <div className="space-y-1">
         <div className="flex items-center gap-2">
           <Compass className="w-5 h-5 text-primary" />
@@ -41,7 +39,6 @@ export function CarteiraFarolModule({ clientId, financialAssets = 0, monthlyCont
         <p className="text-sm text-muted-foreground">Confira as carteiras de acordo com o seu perfil</p>
       </div>
 
-      {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ProfileTab)}>
         <TabsList className="bg-muted/50 w-full justify-start flex-wrap">
           {PROFILE_TABS.map(tab => (
@@ -57,6 +54,7 @@ export function CarteiraFarolModule({ clientId, financialAssets = 0, monthlyCont
               profileTab={tab}
               pillars={farol.pillars.filter(p => p.profile_tab === tab)}
               assets={farol.assets}
+              financialAssets={financialAssets}
               onAddPillar={(name) => farol.addPillar(tab, name)}
               onUpdatePillar={farol.updatePillar}
               onDeletePillar={farol.deletePillar}
@@ -69,7 +67,6 @@ export function CarteiraFarolModule({ clientId, financialAssets = 0, monthlyCont
         ))}
       </Tabs>
 
-      {/* Allocation Simulator */}
       <FarolAllocationSimulator
         pillars={activePillars}
         financialAssets={financialAssets}
