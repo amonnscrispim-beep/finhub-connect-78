@@ -1,17 +1,23 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Plus, Trash2, RefreshCw, ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { CurrencyInput } from '@/components/ui/currency-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
 import { FarolPillar, FarolAsset, PILLAR_OPTIONS, isRendaVariavel } from '@/hooks/useCarteiraFarol';
+import { FarolAssetRow } from './FarolAssetRow';
+
+const FIXED_INCOME_PILLARS = ['Pós-Fixado', 'Pré-Fixado', 'Indexado à Inflação'];
+
+function isFixedIncome(pillarName: string) {
+  return FIXED_INCOME_PILLARS.includes(pillarName);
+}
 
 interface Props {
   profileTab: string;
   pillars: FarolPillar[];
   assets: FarolAsset[];
+  financialAssets?: number;
   onAddPillar: (name: string) => void;
   onUpdatePillar: (id: string, updates: Partial<FarolPillar>) => void;
   onDeletePillar: (id: string) => void;
@@ -21,18 +27,11 @@ interface Props {
   onFetchQuotes: (tickers: string[]) => void;
 }
 
-const BIAS_OPTIONS = ['COMPRAR', 'AGUARDAR', 'VENDER'];
-const BIAS_COLORS: Record<string, string> = {
-  COMPRAR: 'bg-green-500/15 text-green-700 border-green-500/30',
-  AGUARDAR: 'bg-amber-500/15 text-amber-700 border-amber-500/30',
-  VENDER: 'bg-red-500/15 text-red-700 border-red-500/30',
-};
-
 const fmt = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
 export function FarolProfileTab({
-  profileTab, pillars, assets,
+  profileTab, pillars, assets, financialAssets = 0,
   onAddPillar, onUpdatePillar, onDeletePillar,
   onAddAsset, onUpdateAsset, onDeleteAsset, onFetchQuotes,
 }: Props) {
@@ -43,30 +42,53 @@ export function FarolProfileTab({
   const allocValid = totalAlloc >= 99.99 && totalAlloc <= 100.01;
 
   const usedPillars = useMemo(() => new Set(pillars.map(p => p.pillar_name)), [pillars]);
-  const availablePillars = PILLAR_OPTIONS.filter(p => !usedPillars.has(p));
+  const availablePillars = useMemo(() => PILLAR_OPTIONS.filter(p => !usedPillars.has(p)), [usedPillars]);
 
-  const toggleExpand = (id: string) => {
+  const toggleExpand = useCallback((id: string) => {
     setExpandedPillars(prev => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
-  };
+  }, []);
 
-  const handleAddPillar = () => {
+  const handleAddPillar = useCallback(() => {
     if (!selectedPillar) return;
     onAddPillar(selectedPillar);
     setSelectedPillar('');
-  };
+  }, [selectedPillar, onAddPillar]);
 
-  const handleRefreshQuotes = (pillarId: string) => {
+  const handleRefreshQuotes = useCallback((pillarId: string) => {
     const pillarAssets = assets.filter(a => a.pillar_id === pillarId && a.ticker.trim());
     const tickers = pillarAssets.map(a => a.ticker.trim().toUpperCase());
     if (tickers.length > 0) onFetchQuotes(tickers);
-  };
+  }, [assets, onFetchQuotes]);
+
+  // Recalculate weights for fixed income when values change
+  const handleUpdateAsset = useCallback((id: string, updates: Partial<FarolAsset>) => {
+    // If ceiling_price changed on a fixed income asset and no allocation_pct in updates,
+    // recalculate allocation_pct based on total values in pillar
+    const asset = assets.find(a => a.id === id);
+    if (asset && isFixedIncome(pillars.find(p => p.id === asset.pillar_id)?.pillar_name || '') && 'ceiling_price' in updates && !('allocation_pct' in updates)) {
+      const pillarAssets = assets.filter(a => a.pillar_id === asset.pillar_id);
+      const newVal = updates.ceiling_price ?? 0;
+      const totalVal = pillarAssets.reduce((s, a) => s + (a.id === id ? newVal : (a.ceiling_price ?? 0)), 0);
+      if (totalVal > 0) {
+        updates.allocation_pct = (newVal / totalVal) * 100;
+        // Also recalc other assets' weights
+        pillarAssets.forEach(a => {
+          if (a.id !== id) {
+            const aVal = a.ceiling_price ?? 0;
+            onUpdateAsset(a.id, { allocation_pct: (aVal / totalVal) * 100 });
+          }
+        });
+      }
+    }
+    onUpdateAsset(id, updates);
+  }, [assets, pillars, onUpdateAsset]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" onClick={e => e.stopPropagation()}>
       {/* Total allocation indicator */}
       <div className="flex items-center justify-between">
         <span className={`text-sm font-medium ${allocValid ? 'text-green-600' : 'text-red-500'}`}>
@@ -84,7 +106,9 @@ export function FarolProfileTab({
         const pillarAssets = assets.filter(a => a.pillar_id === pillar.id);
         const isExpanded = expandedPillars.has(pillar.id);
         const isRV = isRendaVariavel(pillar.pillar_name);
+        const isFI = isFixedIncome(pillar.pillar_name);
         const assetAllocTotal = pillarAssets.reduce((s, a) => s + (a.allocation_pct || 0), 0);
+        const assetValueTotal = isFI ? pillarAssets.reduce((s, a) => s + (a.ceiling_price ?? 0), 0) : 0;
 
         return (
           <div key={pillar.id} className="border border-border rounded-xl overflow-hidden bg-card">
@@ -124,7 +148,7 @@ export function FarolProfileTab({
 
             {/* Pillar Content */}
             {isExpanded && (
-              <div className="border-t border-border p-4 space-y-3">
+              <div className="border-t border-border p-4 space-y-3" onClick={e => e.stopPropagation()}>
                 {/* Refresh quotes for RV pillars */}
                 {isRV && (
                   <div className="flex justify-end">
@@ -132,6 +156,13 @@ export function FarolProfileTab({
                       <RefreshCw className="w-3 h-3" /> Atualizar cotações
                     </Button>
                   </div>
+                )}
+
+                {/* No financial assets warning for FI */}
+                {isFI && financialAssets <= 0 && (
+                  <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/30 px-3 py-1.5 rounded-md">
+                    Patrimônio não informado — digite o valor manualmente
+                  </p>
                 )}
 
                 {/* Assets table */}
@@ -148,88 +179,25 @@ export function FarolProfileTab({
                             <th className="text-center py-2 px-2 font-medium">VIÉS</th>
                           </>
                         )}
-                        <th className="text-right py-2 px-2 font-medium">ALOCAÇÃO</th>
+                        {isFI && (
+                          <th className="text-right py-2 px-2 font-medium">VALOR (R$)</th>
+                        )}
+                        <th className="text-right py-2 px-2 font-medium">PESO (%)</th>
                         <th className="w-8"></th>
                       </tr>
                     </thead>
                     <tbody>
                       {pillarAssets.map(asset => (
-                        <tr key={asset.id} className="border-b border-border/50 last:border-0">
-                          <td className="py-2 px-2">
-                            <div className="flex flex-col gap-0.5">
-                              <Input
-                                value={asset.ticker}
-                                onChange={e => onUpdateAsset(asset.id, { ticker: e.target.value.toUpperCase() })}
-                                placeholder="Ticker"
-                                className="h-7 text-xs font-mono w-32"
-                              />
-                              <Input
-                                value={asset.name}
-                                onChange={e => onUpdateAsset(asset.id, { name: e.target.value })}
-                                placeholder="Nome completo"
-                                className="h-7 text-xs w-40"
-                              />
-                            </div>
-                          </td>
-                          {isRV && (
-                            <>
-                              <td className="py-2 px-2">
-                                <Input
-                                  value={asset.sector || ''}
-                                  onChange={e => onUpdateAsset(asset.id, { sector: e.target.value })}
-                                  placeholder="Setor"
-                                  className="h-7 text-xs w-28"
-                                />
-                              </td>
-                              <td className="py-2 px-2 text-right">
-                                {asset.current_price != null ? (
-                                  <span className="text-xs font-medium">{fmt(asset.current_price)}</span>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">—</span>
-                                )}
-                              </td>
-                              <td className="py-2 px-2">
-                                <CurrencyInput
-                                  value={asset.ceiling_price ?? 0}
-                                  onChange={v => onUpdateAsset(asset.id, { ceiling_price: parseFloat(v) || 0 })}
-                                  className="h-7 text-xs w-28"
-                                />
-                              </td>
-                              <td className="py-2 px-2">
-                                <Select value={asset.bias} onValueChange={v => onUpdateAsset(asset.id, { bias: v })}>
-                                  <SelectTrigger className="h-7 text-xs w-28">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {BIAS_OPTIONS.map(b => (
-                                      <SelectItem key={b} value={b}>
-                                        <Badge variant="outline" className={`text-[10px] ${BIAS_COLORS[b]}`}>{b}</Badge>
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </td>
-                            </>
-                          )}
-                          <td className="py-2 px-2">
-                            <div className="flex items-center gap-1 justify-end">
-                              <Input
-                                type="number"
-                                value={asset.allocation_pct || ''}
-                                onChange={e => onUpdateAsset(asset.id, { allocation_pct: Number(parseFloat(e.target.value) || 0) })}
-                                className="h-7 text-xs w-16 text-right"
-                                min={0}
-                                max={100}
-                              />
-                              <span className="text-xs text-muted-foreground">%</span>
-                            </div>
-                          </td>
-                          <td className="py-2 px-2">
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => onDeleteAsset(asset.id)}>
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </td>
-                        </tr>
+                        <FarolAssetRow
+                          key={asset.id}
+                          asset={asset}
+                          isRV={isRV}
+                          isFixedIncome={isFI}
+                          pillarTotalValue={assetValueTotal}
+                          financialAssets={financialAssets}
+                          onUpdate={handleUpdateAsset}
+                          onDelete={onDeleteAsset}
+                        />
                       ))}
                     </tbody>
                   </table>
@@ -238,7 +206,8 @@ export function FarolProfileTab({
                 {/* Asset allocation total */}
                 {pillarAssets.length > 0 && (
                   <div className={`text-xs text-right ${Math.abs(assetAllocTotal - 100) < 0.01 ? 'text-green-600' : 'text-red-500'}`}>
-                    Soma dos ativos: {assetAllocTotal.toFixed(1)}%
+                    {isFI && <>Total alocado: {fmt(assetValueTotal)} | </>}
+                    Peso total: {assetAllocTotal.toFixed(1)}%
                     {Math.abs(assetAllocTotal - 100) >= 0.01 && ' ⚠️'}
                   </div>
                 )}
