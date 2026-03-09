@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2, CalendarPlus, GraduationCap, Users, History } from 'lucide-react';
+import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2, CalendarPlus, GraduationCap, Users, History, Calculator } from 'lucide-react';
 import { ClientProvider, useClients } from '@/contexts/ClientContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Client } from '@/types/client';
@@ -20,6 +20,7 @@ import { DashboardExecutive } from '@/components/crm/DashboardExecutive';
 import { GoogleCalendarConnect } from '@/components/crm/GoogleCalendarConnect';
 import { ScheduleMeetingModal } from '@/components/crm/ScheduleMeetingModal';
 import { StudiesArea } from '@/components/studies/StudiesArea';
+import { CompoundInterestCalculator } from '@/components/calculator/CompoundInterestCalculator';
 import { EmAtendimentoDrawer } from '@/components/crm/EmAtendimentoDrawer';
 import { RecentActivityDropdown } from '@/components/crm/RecentActivityDropdown';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -30,7 +31,7 @@ function CRMDashboard() {
   const { clients, isLoading } = useClients();
   const { user, signOut } = useAuth();
   const [view, setView] = useState<'table' | 'kanban'>('table');
-  const [dashboardTab, setDashboardTab] = useState<'operacional' | 'executivo' | 'estudos'>('operacional');
+  const [dashboardTab, setDashboardTab] = useState<'operacional' | 'executivo' | 'estudos' | 'calculadora'>('operacional');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>();
   const [pendingScheduleModalOpen, setPendingScheduleModalOpen] = useState(false);
@@ -181,6 +182,13 @@ function CRMDashboard() {
               <GraduationCap className="w-4 h-4 mr-2" />
               Estudos
             </TabsTrigger>
+            <TabsTrigger 
+              value="calculadora"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <Calculator className="w-4 h-4 mr-2" />
+              Calculadora de Juros
+            </TabsTrigger>
           </TabsList>
 
           {/* DASHBOARD OPERACIONAL - Existing functionality preserved */}
@@ -252,6 +260,11 @@ function CRMDashboard() {
           {/* ÁREA DE ESTUDOS - Educational content */}
           <TabsContent value="estudos" className="animate-fade-in">
             <StudiesArea />
+          </TabsContent>
+
+          {/* CALCULADORA DE JUROS COMPOSTOS */}
+          <TabsContent value="calculadora" className="animate-fade-in">
+            <CompoundInterestCalculator />
           </TabsContent>
         </Tabs>
       </main>
