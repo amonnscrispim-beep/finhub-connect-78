@@ -18,7 +18,6 @@ interface Props {
 function markdownToHtml(md: string): string {
   return md
     .replace(/^### (.+)$/gm, '<h3 class="text-base font-semibold mt-5 mb-2">$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2 class="text-lg font-bold mt-6 mb-2 border-b border-border pb-1">$2</h2>')
     .replace(/^## (.+)$/gm, '<h2 class="text-lg font-bold mt-6 mb-2 border-b pb-1">$1</h2>')
     .replace(/^# (.+)$/gm, '<h1 class="text-xl font-bold mt-4 mb-3">$1</h1>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -63,7 +62,7 @@ export function ResumoDetailModal({ report, open, onOpenChange, onDelete, onWhat
       </style></head><body>
       <div class="header"><h2>Amonn Crispim — Consultor de Investimentos</h2></div>
       <h1>${report.title}</h1>
-      <p class="text-sm" style="color:#6b7280;font-size:12px;">${formattedDate}</p>
+      <p style="color:#6b7280;font-size:12px;">${formattedDate}</p>
       ${markdownToHtml(report.markdown_content)}
       ${imagesHtml}
       <div class="footer">${formattedDate}</div>
