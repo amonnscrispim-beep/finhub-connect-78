@@ -1033,6 +1033,104 @@ export type Database = {
         }
         Relationships: []
       }
+      recommended_portfolio_assets: {
+        Row: {
+          allocation_pct: number
+          ceiling_price: number
+          company_name: string
+          created_at: string
+          current_price: number | null
+          display_order: number
+          entry_date: string | null
+          entry_price: number
+          id: string
+          is_international: boolean
+          manual_bias: string | null
+          portfolio_id: string
+          sector: string | null
+          ticker: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allocation_pct?: number
+          ceiling_price?: number
+          company_name?: string
+          created_at?: string
+          current_price?: number | null
+          display_order?: number
+          entry_date?: string | null
+          entry_price?: number
+          id?: string
+          is_international?: boolean
+          manual_bias?: string | null
+          portfolio_id: string
+          sector?: string | null
+          ticker: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allocation_pct?: number
+          ceiling_price?: number
+          company_name?: string
+          created_at?: string
+          current_price?: number | null
+          display_order?: number
+          entry_date?: string | null
+          entry_price?: number
+          id?: string
+          is_international?: boolean
+          manual_bias?: string | null
+          portfolio_id?: string
+          sector?: string | null
+          ticker?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommended_portfolio_assets_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "recommended_portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recommended_portfolios: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       study_modules: {
         Row: {
           created_at: string
