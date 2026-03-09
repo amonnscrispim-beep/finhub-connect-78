@@ -318,6 +318,7 @@ const KanbanCard = memo(KanbanCardComponent, (prevProps, nextProps) => {
     prevProps.canMoveUp === nextProps.canMoveUp &&
     prevProps.canMoveDown === nextProps.canMoveDown &&
     prevProps.showPatrimonio === nextProps.showPatrimonio &&
+    prevProps.hasPendency === nextProps.hasPendency &&
     JSON.stringify(prevProps.client.tasks.map(t => ({ id: t.id, completed: t.completed }))) ===
     JSON.stringify(nextProps.client.tasks.map(t => ({ id: t.id, completed: t.completed })))
   );
