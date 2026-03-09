@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2, CalendarPlus, GraduationCap, Users, History, Calculator, Briefcase } from 'lucide-react';
+import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2, CalendarPlus, GraduationCap, Users, History, Calculator, Briefcase, FileText } from 'lucide-react';
 import { ClientProvider, useClients } from '@/contexts/ClientContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Client } from '@/types/client';
@@ -22,6 +22,7 @@ import { ScheduleMeetingModal } from '@/components/crm/ScheduleMeetingModal';
 import { StudiesArea } from '@/components/studies/StudiesArea';
 import { CompoundInterestCalculator } from '@/components/calculator/CompoundInterestCalculator';
 import { CarteirasRecomendadas } from '@/components/crm/carteiras/CarteirasRecomendadas';
+import { GeradorResumos } from '@/components/crm/relatorios/GeradorResumos';
 import { EmAtendimentoDrawer } from '@/components/crm/EmAtendimentoDrawer';
 import { RecentActivityDropdown } from '@/components/crm/RecentActivityDropdown';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -32,7 +33,7 @@ function CRMDashboard() {
   const { clients, isLoading } = useClients();
   const { user, signOut } = useAuth();
   const [view, setView] = useState<'table' | 'kanban'>('table');
-  const [dashboardTab, setDashboardTab] = useState<'operacional' | 'executivo' | 'estudos' | 'calculadora' | 'carteiras'>('operacional');
+  const [dashboardTab, setDashboardTab] = useState<'operacional' | 'executivo' | 'estudos' | 'calculadora' | 'carteiras' | 'gerador'>('operacional');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>();
   const [pendingScheduleModalOpen, setPendingScheduleModalOpen] = useState(false);
@@ -197,6 +198,13 @@ function CRMDashboard() {
               <Briefcase className="w-4 h-4 mr-2" />
               Carteiras Recomendadas
             </TabsTrigger>
+            <TabsTrigger 
+              value="gerador"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Gerador de Resumos
+            </TabsTrigger>
           </TabsList>
 
           {/* DASHBOARD OPERACIONAL - Existing functionality preserved */}
@@ -277,6 +285,11 @@ function CRMDashboard() {
           {/* CARTEIRAS RECOMENDADAS */}
           <TabsContent value="carteiras" className="animate-fade-in">
             <CarteirasRecomendadas />
+          </TabsContent>
+
+          {/* GERADOR DE RESUMOS */}
+          <TabsContent value="gerador" className="animate-fade-in">
+            <GeradorResumos />
           </TabsContent>
         </Tabs>
       </main>

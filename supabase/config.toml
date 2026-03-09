@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.client-form]
 verify_jwt = false
+
+[functions.generate-summary-report]
+verify_jwt = false
