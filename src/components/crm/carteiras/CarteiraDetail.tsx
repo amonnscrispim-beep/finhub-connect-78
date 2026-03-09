@@ -215,7 +215,7 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, onBack, onRef
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <Table>
               <TableHeader>
-                <TableRow className="bg-[hsl(var(--card-header))] hover:bg-[hsl(var(--card-header))]">
+                <TableRow className="bg-primary hover:bg-primary">
                   <TableHead className="w-10 text-primary-foreground" />
                   <TableHead className="text-primary-foreground">Rank</TableHead>
                   <TableHead className="text-primary-foreground">Ticker</TableHead>
