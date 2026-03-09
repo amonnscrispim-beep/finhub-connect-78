@@ -125,6 +125,7 @@ export function GeradorResumos() {
           onOpenChange={(open) => !open && setSelectedReport(null)}
           onDelete={handleDelete}
           onWhatsApp={() => setWhatsAppReport(selectedReport)}
+          onUpdate={handleUpdateContent}
         />
       )}
 
@@ -135,6 +136,7 @@ export function GeradorResumos() {
           onOpenChange={(open) => !open && setLibSelectedReport(null)}
           onDelete={handleDelete}
           onWhatsApp={() => setWhatsAppReport(libSelectedReport)}
+          onUpdate={handleUpdateContent}
         />
       )}
 

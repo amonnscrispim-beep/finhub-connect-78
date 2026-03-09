@@ -90,6 +90,7 @@ export function BibliotecaDetailModal({ report, open, onOpenChange, onDelete, on
   const handleSaveEdit = async () => {
     setCurrentContent(editContent);
     setIsEditing(false);
+    onUpdate?.(report.id, editContent);
     toast.success('Edições salvas!');
     await supabase.from('summary_reports').update({ markdown_content: editContent } as any).eq('id', report.id);
   };
