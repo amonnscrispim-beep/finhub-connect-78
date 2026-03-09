@@ -71,7 +71,7 @@ function FiiIndicators({ ticker }: { ticker: string }) {
   );
 }
 
-export function BibliotecaDetailModal({ report, open, onOpenChange, onDelete, onWhatsApp }: Props) {
+export function BibliotecaDetailModal({ report, open, onOpenChange, onDelete, onWhatsApp, onUpdate }: Props) {
   const cat = categoryConfig[(report as any).category || report.report_type] || categoryConfig.analise_ativo;
   const formattedDate = new Date(report.created_at).toLocaleDateString('pt-BR', {
     day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
