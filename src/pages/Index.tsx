@@ -34,6 +34,7 @@ import { toast } from 'sonner';
 function CRMDashboard() {
   const { clients, isLoading } = useClients();
   const { user, signOut } = useAuth();
+  const { pendencies, isLoading: pendenciesLoading, addPendency, completePendency, removePendency, clientIdsWithPendencies } = useUrgentPendencies();
   const [view, setView] = useState<'table' | 'kanban'>('table');
   const [dashboardTab, setDashboardTab] = useState<'operacional' | 'executivo' | 'estudos' | 'calculadora' | 'carteiras' | 'gerador'>('operacional');
   const [modalOpen, setModalOpen] = useState(false);
