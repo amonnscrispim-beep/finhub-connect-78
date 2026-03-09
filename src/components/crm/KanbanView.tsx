@@ -356,7 +356,7 @@ const COLUMN_BG: Record<string, string> = {
   'START': 'bg-muted/30 border-border/50',
 };
 
-function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
+function KanbanContent({ onEditClient, searchQuery = '', clientIdsWithPendencies = new Set() }: KanbanViewProps) {
   const { clients, moveClientToStage, swapClientOrder, setReorderingFlag, updateClient, refetch } = useClients();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
