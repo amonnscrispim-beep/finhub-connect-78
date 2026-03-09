@@ -31,7 +31,7 @@ function markdownToHtml(md: string): string {
     .replace(/\n/g, '<br/>');
 }
 
-export function ResumoDetailModal({ report, open, onOpenChange, onDelete, onWhatsApp }: Props) {
+export function ResumoDetailModal({ report, open, onOpenChange, onDelete, onWhatsApp, onUpdate }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState('');
   const [currentContent, setCurrentContent] = useState(report.markdown_content);
