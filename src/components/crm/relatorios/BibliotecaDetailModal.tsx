@@ -15,6 +15,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   onDelete: (id: string) => void;
   onWhatsApp: () => void;
+  onUpdate?: (id: string, content: string) => void;
 }
 
 function markdownToHtml(md: string): string {
@@ -70,7 +71,7 @@ function FiiIndicators({ ticker }: { ticker: string }) {
   );
 }
 
-export function BibliotecaDetailModal({ report, open, onOpenChange, onDelete, onWhatsApp }: Props) {
+export function BibliotecaDetailModal({ report, open, onOpenChange, onDelete, onWhatsApp, onUpdate }: Props) {
   const cat = categoryConfig[(report as any).category || report.report_type] || categoryConfig.analise_ativo;
   const formattedDate = new Date(report.created_at).toLocaleDateString('pt-BR', {
     day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -89,6 +90,7 @@ export function BibliotecaDetailModal({ report, open, onOpenChange, onDelete, on
   const handleSaveEdit = async () => {
     setCurrentContent(editContent);
     setIsEditing(false);
+    onUpdate?.(report.id, editContent);
     toast.success('Edições salvas!');
     await supabase.from('summary_reports').update({ markdown_content: editContent } as any).eq('id', report.id);
   };

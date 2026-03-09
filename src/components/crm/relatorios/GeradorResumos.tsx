@@ -72,6 +72,12 @@ export function GeradorResumos() {
     setReports(prev => prev.map(r => r.id === id ? { ...r, is_saved: val } : r));
   };
 
+  const handleUpdateContent = (id: string, content: string) => {
+    setReports(prev => prev.map(r => r.id === id ? { ...r, markdown_content: content } : r));
+    if (selectedReport?.id === id) setSelectedReport(prev => prev ? { ...prev, markdown_content: content } : null);
+    if (libSelectedReport?.id === id) setLibSelectedReport(prev => prev ? { ...prev, markdown_content: content } : null);
+  };
+
   return (
     <div className="space-y-4">
       <Tabs defaultValue="novo" className="w-full">
@@ -119,6 +125,7 @@ export function GeradorResumos() {
           onOpenChange={(open) => !open && setSelectedReport(null)}
           onDelete={handleDelete}
           onWhatsApp={() => setWhatsAppReport(selectedReport)}
+          onUpdate={handleUpdateContent}
         />
       )}
 
@@ -129,6 +136,7 @@ export function GeradorResumos() {
           onOpenChange={(open) => !open && setLibSelectedReport(null)}
           onDelete={handleDelete}
           onWhatsApp={() => setWhatsAppReport(libSelectedReport)}
+          onUpdate={handleUpdateContent}
         />
       )}
 
