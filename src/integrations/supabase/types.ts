@@ -1254,10 +1254,13 @@ export type Database = {
       }
       summary_reports: {
         Row: {
+          category: string | null
           client_name: string | null
           created_at: string
           id: string
           images: string[] | null
+          is_read: boolean | null
+          is_saved: boolean | null
           markdown_content: string
           raw_input: string | null
           ref_date: string | null
@@ -1268,10 +1271,13 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category?: string | null
           client_name?: string | null
           created_at?: string
           id?: string
           images?: string[] | null
+          is_read?: boolean | null
+          is_saved?: boolean | null
           markdown_content?: string
           raw_input?: string | null
           ref_date?: string | null
@@ -1282,10 +1288,13 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category?: string | null
           client_name?: string | null
           created_at?: string
           id?: string
           images?: string[] | null
+          is_read?: boolean | null
+          is_saved?: boolean | null
           markdown_content?: string
           raw_input?: string | null
           ref_date?: string | null
