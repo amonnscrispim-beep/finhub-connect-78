@@ -1252,6 +1252,51 @@ export type Database = {
           },
         ]
       }
+      summary_reports: {
+        Row: {
+          client_name: string | null
+          created_at: string
+          id: string
+          images: string[] | null
+          markdown_content: string
+          raw_input: string | null
+          ref_date: string | null
+          report_type: string
+          ticker: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_name?: string | null
+          created_at?: string
+          id?: string
+          images?: string[] | null
+          markdown_content?: string
+          raw_input?: string | null
+          ref_date?: string | null
+          report_type?: string
+          ticker?: string | null
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_name?: string | null
+          created_at?: string
+          id?: string
+          images?: string[] | null
+          markdown_content?: string
+          raw_input?: string | null
+          ref_date?: string | null
+          report_type?: string
+          ticker?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           client_id: string
