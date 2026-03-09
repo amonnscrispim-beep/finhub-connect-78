@@ -48,6 +48,7 @@ declare const __BUILD_MODE__: string;
 interface KanbanViewProps {
   onEditClient: (client: Client) => void;
   searchQuery?: string;
+  clientIdsWithPendencies?: Set<string>;
 }
 
 interface KanbanCardProps {
@@ -61,6 +62,7 @@ interface KanbanCardProps {
   dragHandleProps?: any;
   isDragging?: boolean;
   showPatrimonio?: boolean;
+  hasPendency?: boolean;
 }
 
 const getCardBorderColor = (client: Client) => {
