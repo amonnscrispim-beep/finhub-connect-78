@@ -730,7 +730,7 @@ export function KanbanView({ onEditClient, searchQuery = '', clientIdsWithPenden
       onReorder={handleReorder}
       onMoveToStage={handleMoveToStage}
     >
-      <KanbanContent onEditClient={onEditClient} searchQuery={searchQuery} />
+      <KanbanContent onEditClient={onEditClient} searchQuery={searchQuery} clientIdsWithPendencies={clientIdsWithPendencies} />
     </KanbanDndProvider>
   );
 }
