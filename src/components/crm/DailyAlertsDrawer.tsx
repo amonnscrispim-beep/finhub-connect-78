@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
-import { format } from 'date-fns';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { format, startOfWeek, addDays, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Trash2, X } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,20 +11,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 type Priority = 'alta' | 'media' | 'baixa';
 
-interface DailyTask {
+interface WeeklyTask {
   id: string;
   title: string;
   priority: Priority;
   time: string;
+  dayIndex: number; // 0=SEG ... 6=DOM
   completed: boolean;
 }
 
-interface DailyAlertsDrawerProps {
+interface WeeklyAlertsDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  tasks: DailyTask[];
-  onTasksChange: (tasks: DailyTask[]) => void;
+  tasks: WeeklyTask[];
+  onTasksChange: (tasks: WeeklyTask[]) => void;
 }
+
+const DAY_LABELS = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB', 'DOM'];
 
 const priorityConfig: Record<Priority, { label: string; className: string }> = {
   alta: { label: 'Alta', className: 'bg-destructive/15 text-destructive border-destructive/30' },
@@ -32,31 +35,90 @@ const priorityConfig: Record<Priority, { label: string; className: string }> = {
   baixa: { label: 'Baixa', className: 'bg-green-500/15 text-green-600 border-green-500/30' },
 };
 
-export function DailyAlertsDrawer({ open, onOpenChange, tasks, onTasksChange }: DailyAlertsDrawerProps) {
+function getTodayDayIndex(): number {
+  const jsDay = new Date().getDay(); // 0=Sun
+  return jsDay === 0 ? 6 : jsDay - 1; // 0=Mon ... 6=Sun
+}
+
+function getWeekRange(): { start: Date; end: Date } {
+  const now = new Date();
+  const start = startOfWeek(now, { weekStartsOn: 1 });
+  const end = addDays(start, 6);
+  return { start, end };
+}
+
+function scheduleNotification(task: WeeklyTask) {
+  if (!task.time || task.completed) return;
+  if (task.dayIndex !== getTodayDayIndex()) return;
+
+  const match = task.time.match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return;
+
+  const now = new Date();
+  const target = new Date();
+  target.setHours(parseInt(match[1], 10), parseInt(match[2], 10), 0, 0);
+
+  const diff = target.getTime() - now.getTime() - 15 * 60 * 1000;
+  if (diff <= 0) return;
+
+  return setTimeout(() => {
+    if (Notification.permission === 'granted') {
+      new Notification('⏰ Tarefa em 15 minutos', { body: task.title });
+    }
+  }, diff);
+}
+
+export function WeeklyAlertsDrawer({ open, onOpenChange, tasks, onTasksChange }: WeeklyAlertsDrawerProps) {
+  const [selectedDay, setSelectedDay] = useState(getTodayDayIndex);
   const [showForm, setShowForm] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newPriority, setNewPriority] = useState<Priority>('media');
   const [newTime, setNewTime] = useState('');
+  const [newDay, setNewDay] = useState(String(getTodayDayIndex()));
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  const sortedTasks = useMemo(() => {
-    const pending = tasks.filter(t => !t.completed);
-    const completed = tasks.filter(t => t.completed);
-    return [...pending, ...completed];
+  // Request notification permission on first open
+  useEffect(() => {
+    if (open && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, [open]);
+
+  // Schedule notifications for today's tasks
+  useEffect(() => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+
+    tasks.forEach(task => {
+      const timer = scheduleNotification(task);
+      if (timer) timersRef.current.push(timer);
+    });
+
+    return () => timersRef.current.forEach(clearTimeout);
   }, [tasks]);
+
+  const dayTasks = useMemo(() => {
+    const filtered = tasks.filter(t => t.dayIndex === selectedDay);
+    const pending = filtered.filter(t => !t.completed);
+    const completed = filtered.filter(t => t.completed);
+    return [...pending, ...completed];
+  }, [tasks, selectedDay]);
 
   const handleAdd = () => {
     if (!newTitle.trim()) return;
-    const task: DailyTask = {
+    const task: WeeklyTask = {
       id: crypto.randomUUID(),
       title: newTitle.trim(),
       priority: newPriority,
-      time: newTime || 'Hoje',
+      time: newTime || '',
+      dayIndex: parseInt(newDay, 10),
       completed: false,
     };
     onTasksChange([...tasks, task]);
     setNewTitle('');
     setNewPriority('media');
     setNewTime('');
+    setNewDay(String(selectedDay));
     setShowForm(false);
   };
 
@@ -68,19 +130,39 @@ export function DailyAlertsDrawer({ open, onOpenChange, tasks, onTasksChange }: 
     onTasksChange(tasks.filter(t => t.id !== id));
   };
 
-  const today = format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR });
+  const { start, end } = getWeekRange();
+  const weekLabel = `${format(start, "dd 'de' MMMM", { locale: ptBR })} — ${format(end, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`;
+  const todayIndex = getTodayDayIndex();
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
-        <SheetHeader className="p-6 pb-4 border-b border-border">
-          <div className="flex items-center justify-between">
-            <div>
-              <SheetTitle className="text-lg font-bold">Alertas Diários</SheetTitle>
-              <p className="text-sm text-muted-foreground capitalize mt-1">{today}</p>
-            </div>
+        <SheetHeader className="p-6 pb-4 border-b border-border space-y-3">
+          <div>
+            <SheetTitle className="text-lg font-bold">Alertas da Semana</SheetTitle>
+            <p className="text-sm text-muted-foreground mt-1">{weekLabel}</p>
           </div>
-          <Button size="sm" onClick={() => setShowForm(true)} className="mt-3 w-full">
+
+          {/* Day selector */}
+          <div className="flex gap-1">
+            {DAY_LABELS.map((label, i) => (
+              <button
+                key={label}
+                onClick={() => setSelectedDay(i)}
+                className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                  selectedDay === i
+                    ? 'bg-[#1e2530] text-white'
+                    : i === todayIndex
+                    ? 'bg-muted text-foreground ring-1 ring-primary/40'
+                    : 'bg-muted/40 text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <Button size="sm" onClick={() => { setShowForm(true); setNewDay(String(selectedDay)); }} className="w-full bg-[#1e2530] hover:bg-[#2a3340] text-white">
             <Plus className="w-4 h-4 mr-2" />
             Nova Tarefa
           </Button>
@@ -106,13 +188,23 @@ export function DailyAlertsDrawer({ open, onOpenChange, tasks, onTasksChange }: 
                     <SelectItem value="baixa">Baixa</SelectItem>
                   </SelectContent>
                 </Select>
-                <Input
-                  placeholder="Horário (ex: 14:00)"
-                  value={newTime}
-                  onChange={e => setNewTime(e.target.value)}
-                  className="flex-1"
-                />
+                <Select value={newDay} onValueChange={setNewDay}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DAY_LABELS.map((label, i) => (
+                      <SelectItem key={i} value={String(i)}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+              <Input
+                type="time"
+                placeholder="Horário"
+                value={newTime}
+                onChange={e => setNewTime(e.target.value)}
+              />
               <div className="flex gap-2">
                 <Button size="sm" onClick={handleAdd} className="flex-1">Salvar</Button>
                 <Button size="sm" variant="outline" onClick={() => setShowForm(false)} className="flex-1">Cancelar</Button>
@@ -120,11 +212,13 @@ export function DailyAlertsDrawer({ open, onOpenChange, tasks, onTasksChange }: 
             </div>
           )}
 
-          {sortedTasks.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8">Nenhuma tarefa para hoje.</p>
+          {dayTasks.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              Nenhuma tarefa para {DAY_LABELS[selectedDay]}.
+            </p>
           )}
 
-          {sortedTasks.map(task => (
+          {dayTasks.map(task => (
             <div
               key={task.id}
               className={`group flex items-center gap-3 p-3 rounded-lg border border-border transition-all hover:bg-muted/30 ${
@@ -143,7 +237,7 @@ export function DailyAlertsDrawer({ open, onOpenChange, tasks, onTasksChange }: 
                   <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${priorityConfig[task.priority].className}`}>
                     {priorityConfig[task.priority].label}
                   </Badge>
-                  <span className="text-xs text-muted-foreground">{task.time}</span>
+                  {task.time && <span className="text-xs text-muted-foreground">{task.time}</span>}
                 </div>
               </div>
               <button
@@ -160,4 +254,4 @@ export function DailyAlertsDrawer({ open, onOpenChange, tasks, onTasksChange }: 
   );
 }
 
-export type { DailyTask };
+export type { WeeklyTask };
