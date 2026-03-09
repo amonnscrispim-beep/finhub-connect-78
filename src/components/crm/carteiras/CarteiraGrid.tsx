@@ -69,21 +69,21 @@ export function CarteiraGrid({ portfolios, allAssets, onSelect }: Props) {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-4 text-sm">
-                  <span className="text-emerald-600 font-medium">
+                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">
                     Comprar: {stats.buyCount}
                   </span>
-                  <span className="text-amber-600 font-medium">
+                  <span className="text-amber-600 dark:text-amber-400 font-medium">
                     Aguardar: {stats.waitCount}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2">
                   {isPositive ? (
-                    <TrendingUp className="w-4 h-4 text-emerald-600" />
+                    <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   ) : (
                     <TrendingDown className="w-4 h-4 text-destructive" />
                   )}
-                  <span className={`text-lg font-bold ${isPositive ? 'text-emerald-600' : 'text-destructive'}`}>
+                  <span className={`text-lg font-bold ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'}`}>
                     {stats.avgReturn.toFixed(2)}%
                   </span>
                   <span className="text-xs text-muted-foreground">rentabilidade</span>
