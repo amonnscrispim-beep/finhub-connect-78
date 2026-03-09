@@ -383,7 +383,7 @@ function KanbanContent({ onEditClient, searchQuery = '', clientIdsWithPendencies
         .sort((a, b) => b.value - a.value);
 
       const withoutPatrimonio = activeClients
-        .filter(c => getPatrimonioValue(c) <= 0 && c.funnelStage !== 'Em atendimento' && c.funnelStage !== 'Pendências Urgentes');
+        .filter(c => getPatrimonioValue(c) <= 0 && c.funnelStage !== 'Em atendimento');
 
       // Distribute: first 10 → PRIVATE, next 10 → SELECT, next 10 → GROWTH, rest → CORE
       const columns: FunnelStage[] = ['PRIVATE', 'SELECT', 'GROWTH', 'CORE'];
