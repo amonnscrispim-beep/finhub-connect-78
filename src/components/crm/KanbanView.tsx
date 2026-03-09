@@ -616,10 +616,11 @@ function KanbanContent({ onEditClient, searchQuery = '', clientIdsWithPendencies
                         canMoveUp={index > 0}
                         canMoveDown={index < stageClients.length - 1}
                         showPatrimonio={isPatrimony}
+                        hasPendency={clientIdsWithPendencies.has(client.id)}
                       />
                     </SortableKanbanCard>
                   ))}
-                  
+
                   {stageClients.length === 0 && (
                     <div className="text-center py-12 text-muted-foreground text-sm border-2 border-dashed border-border/50 rounded-xl">
                       Nenhum cliente
