@@ -198,6 +198,13 @@ function CRMDashboard() {
               <Briefcase className="w-4 h-4 mr-2" />
               Carteiras Recomendadas
             </TabsTrigger>
+            <TabsTrigger 
+              value="gerador"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Gerador de Resumos
+            </TabsTrigger>
           </TabsList>
 
           {/* DASHBOARD OPERACIONAL - Existing functionality preserved */}
