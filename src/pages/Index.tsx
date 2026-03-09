@@ -182,6 +182,13 @@ function CRMDashboard() {
               <GraduationCap className="w-4 h-4 mr-2" />
               Estudos
             </TabsTrigger>
+            <TabsTrigger 
+              value="calculadora"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <Calculator className="w-4 h-4 mr-2" />
+              Calculadora de Juros
+            </TabsTrigger>
           </TabsList>
 
           {/* DASHBOARD OPERACIONAL - Existing functionality preserved */}
