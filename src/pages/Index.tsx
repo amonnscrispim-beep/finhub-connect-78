@@ -261,6 +261,11 @@ function CRMDashboard() {
           <TabsContent value="estudos" className="animate-fade-in">
             <StudiesArea />
           </TabsContent>
+
+          {/* CALCULADORA DE JUROS COMPOSTOS */}
+          <TabsContent value="calculadora" className="animate-fade-in">
+            <CompoundInterestCalculator />
+          </TabsContent>
         </Tabs>
       </main>
 
