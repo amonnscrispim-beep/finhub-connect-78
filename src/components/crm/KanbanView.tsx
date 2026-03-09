@@ -20,12 +20,21 @@ import {
   Cake,
   ListTodo,
   CheckCircle2,
+  X,
+  Calendar,
 } from 'lucide-react';
 import { useClients } from '@/contexts/ClientContext';
 import { Client, FunnelStage, KANBAN_COLUMN_STAGES, PATRIMONY_COLUMNS, Task } from '@/types/client';
 import { getStageDisplayLabel, isLegacyStage } from '@/lib/funnel-utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,6 +50,8 @@ import { DroppableColumn } from './DroppableColumn';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { UrgentPendency } from '@/hooks/useUrgentPendencies';
 
 declare const __BUILD_TIME__: string;
 declare const __BUILD_MODE__: string;
@@ -49,6 +60,11 @@ interface KanbanViewProps {
   onEditClient: (client: Client) => void;
   searchQuery?: string;
   clientIdsWithPendencies?: Set<string>;
+  pendencies?: UrgentPendency[];
+  pendenciesLoading?: boolean;
+  onAddPendency?: (data: { client_id: string; description: string; deadline: string; priority: string }) => Promise<void>;
+  onCompletePendency?: (id: string) => Promise<void>;
+  onRemovePendency?: (id: string) => Promise<void>;
 }
 
 interface KanbanCardProps {
