@@ -26,7 +26,7 @@ import { CarteirasRecomendadas } from '@/components/crm/carteiras/CarteirasRecom
 import { GeradorResumos } from '@/components/crm/relatorios/GeradorResumos';
 import { EmAtendimentoDrawer } from '@/components/crm/EmAtendimentoDrawer';
 import { RecentActivityDropdown } from '@/components/crm/RecentActivityDropdown';
-import { UrgentPendenciesPanel } from '@/components/crm/UrgentPendenciesPanel';
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
