@@ -204,7 +204,7 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, onBack, onRef
             <RefreshCw className={`w-4 h-4 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
             Atualizar Preços
           </Button>
-          <Button size="sm" onClick={handleAdd} className="bg-[hsl(var(--card-header))] hover:bg-[hsl(var(--card-header))]/90">
+          <Button size="sm" onClick={handleAdd} className="bg-primary text-primary-foreground hover:bg-primary/90">
             <Plus className="w-4 h-4 mr-1.5" /> Adicionar Ativo
           </Button>
         </div>
