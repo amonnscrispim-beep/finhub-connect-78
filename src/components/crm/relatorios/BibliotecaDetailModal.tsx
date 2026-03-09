@@ -15,6 +15,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   onDelete: (id: string) => void;
   onWhatsApp: () => void;
+  onUpdate?: (id: string, content: string) => void;
 }
 
 function markdownToHtml(md: string): string {
