@@ -263,8 +263,17 @@ function CRMDashboard() {
               </TabsContent>
 
               <TabsContent value="kanban" className="mt-4 animate-fade-in">
-                <div className="crm-card overflow-hidden">
-                  <KanbanView onEditClient={handleEditClient} searchQuery={searchQuery} />
+                <div className="flex gap-4">
+                  <div className="flex-1 crm-card overflow-hidden">
+                    <KanbanView onEditClient={handleEditClient} searchQuery={searchQuery} clientIdsWithPendencies={clientIdsWithPendencies} />
+                  </div>
+                  <UrgentPendenciesPanel
+                    pendencies={pendencies}
+                    isLoading={pendenciesLoading}
+                    onAdd={addPendency}
+                    onComplete={completePendency}
+                    onRemove={removePendency}
+                  />
                 </div>
               </TabsContent>
             </Tabs>
