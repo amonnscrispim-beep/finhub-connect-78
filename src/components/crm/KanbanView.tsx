@@ -101,7 +101,7 @@ const formatCurrency = (v: number) => {
 const formatCurrencyFull = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 
 const KanbanCardComponent = memo(function KanbanCard({ 
-  client, onEdit, onCardClick, onMoveUp, onMoveDown, canMoveUp = false, canMoveDown = false, dragHandleProps, isDragging, showPatrimonio = false,
+  client, onEdit, onCardClick, onMoveUp, onMoveDown, canMoveUp = false, canMoveDown = false, dragHandleProps, isDragging, showPatrimonio = false, hasPendency = false,
 }: KanbanCardProps) {
   const { toggleTask, addTask, deleteClient, deleteTask } = useClients();
   const [newTask, setNewTask] = useState('');
