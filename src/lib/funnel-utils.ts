@@ -80,7 +80,6 @@ export const FUNNEL_STAGE_OPTIONS = [
   { value: 'SELECT', label: 'SELECT' },
   { value: 'GROWTH', label: 'GROWTH' },
   { value: 'CORE', label: 'CORE' },
-  { value: 'Pendências Urgentes', label: 'PENDÊNCIAS URGENTES' },
   { value: 'START', label: 'START' },
 ] as const;
 

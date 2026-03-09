@@ -1347,6 +1347,53 @@ export type Database = {
           },
         ]
       }
+      urgent_pendencies: {
+        Row: {
+          client_id: string
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          deadline: string
+          description: string
+          id: string
+          priority: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          deadline: string
+          description: string
+          id?: string
+          priority?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          deadline?: string
+          description?: string
+          id?: string
+          priority?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "urgent_pendencies_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_google_oauth: {
         Row: {
           created_at: string

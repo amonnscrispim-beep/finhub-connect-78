@@ -48,6 +48,7 @@ declare const __BUILD_MODE__: string;
 interface KanbanViewProps {
   onEditClient: (client: Client) => void;
   searchQuery?: string;
+  clientIdsWithPendencies?: Set<string>;
 }
 
 interface KanbanCardProps {
@@ -61,6 +62,7 @@ interface KanbanCardProps {
   dragHandleProps?: any;
   isDragging?: boolean;
   showPatrimonio?: boolean;
+  hasPendency?: boolean;
 }
 
 const getCardBorderColor = (client: Client) => {
@@ -99,7 +101,7 @@ const formatCurrency = (v: number) => {
 const formatCurrencyFull = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 
 const KanbanCardComponent = memo(function KanbanCard({ 
-  client, onEdit, onCardClick, onMoveUp, onMoveDown, canMoveUp = false, canMoveDown = false, dragHandleProps, isDragging, showPatrimonio = false,
+  client, onEdit, onCardClick, onMoveUp, onMoveDown, canMoveUp = false, canMoveDown = false, dragHandleProps, isDragging, showPatrimonio = false, hasPendency = false,
 }: KanbanCardProps) {
   const { toggleTask, addTask, deleteClient, deleteTask } = useClients();
   const [newTask, setNewTask] = useState('');
@@ -157,6 +159,12 @@ const KanbanCardComponent = memo(function KanbanCard({
         <div className="flex items-center gap-1.5 mb-3 px-2 py-1.5 bg-destructive/10 rounded-md border border-destructive/20">
           <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
           <span className="text-xs font-medium text-destructive">Agendamento Pendente</span>
+        </div>
+      )}
+      {hasPendency && (
+        <div className="flex items-center gap-1.5 mb-3 px-2 py-1.5 bg-orange-500/10 rounded-md border border-orange-500/20">
+          <AlertTriangle className="w-3.5 h-3.5 text-orange-600" />
+          <span className="text-xs font-medium text-orange-700">⚠️ Pendência Urgente</span>
         </div>
       )}
       
@@ -310,6 +318,7 @@ const KanbanCard = memo(KanbanCardComponent, (prevProps, nextProps) => {
     prevProps.canMoveUp === nextProps.canMoveUp &&
     prevProps.canMoveDown === nextProps.canMoveDown &&
     prevProps.showPatrimonio === nextProps.showPatrimonio &&
+    prevProps.hasPendency === nextProps.hasPendency &&
     JSON.stringify(prevProps.client.tasks.map(t => ({ id: t.id, completed: t.completed }))) ===
     JSON.stringify(nextProps.client.tasks.map(t => ({ id: t.id, completed: t.completed })))
   );
@@ -336,7 +345,6 @@ const COLUMN_COLORS: Record<string, string> = {
   'SELECT': 'bg-blue-500',
   'GROWTH': 'bg-emerald-500',
   'CORE': 'bg-amber-500',
-  'Pendências Urgentes': 'bg-destructive',
   'START': 'bg-slate-400',
 };
 
@@ -345,11 +353,10 @@ const COLUMN_BG: Record<string, string> = {
   'SELECT': 'bg-blue-500/5 border-blue-500/20',
   'GROWTH': 'bg-emerald-500/5 border-emerald-500/20',
   'CORE': 'bg-amber-500/5 border-amber-500/20',
-  'Pendências Urgentes': 'bg-destructive/5 border-destructive/20',
   'START': 'bg-muted/30 border-border/50',
 };
 
-function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
+function KanbanContent({ onEditClient, searchQuery = '', clientIdsWithPendencies = new Set() }: KanbanViewProps) {
   const { clients, moveClientToStage, swapClientOrder, setReorderingFlag, updateClient, refetch } = useClients();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -376,7 +383,7 @@ function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
         .sort((a, b) => b.value - a.value);
 
       const withoutPatrimonio = activeClients
-        .filter(c => getPatrimonioValue(c) <= 0 && c.funnelStage !== 'Em atendimento' && c.funnelStage !== 'Pendências Urgentes');
+        .filter(c => getPatrimonioValue(c) <= 0 && c.funnelStage !== 'Em atendimento');
 
       // Distribute: first 10 → PRIVATE, next 10 → SELECT, next 10 → GROWTH, rest → CORE
       const columns: FunnelStage[] = ['PRIVATE', 'SELECT', 'GROWTH', 'CORE'];
@@ -609,10 +616,11 @@ function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
                         canMoveUp={index > 0}
                         canMoveDown={index < stageClients.length - 1}
                         showPatrimonio={isPatrimony}
+                        hasPendency={clientIdsWithPendencies.has(client.id)}
                       />
                     </SortableKanbanCard>
                   ))}
-                  
+
                   {stageClients.length === 0 && (
                     <div className="text-center py-12 text-muted-foreground text-sm border-2 border-dashed border-border/50 rounded-xl">
                       Nenhum cliente
@@ -650,7 +658,7 @@ function KanbanContent({ onEditClient, searchQuery = '' }: KanbanViewProps) {
   );
 }
 
-export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) {
+export function KanbanView({ onEditClient, searchQuery = '', clientIdsWithPendencies }: KanbanViewProps) {
   const { clients, moveClientToStage, swapClientOrder, setReorderingFlag, updateClient } = useClients();
 
   const clientsByStage = useMemo(() => {
@@ -722,7 +730,7 @@ export function KanbanView({ onEditClient, searchQuery = '' }: KanbanViewProps) 
       onReorder={handleReorder}
       onMoveToStage={handleMoveToStage}
     >
-      <KanbanContent onEditClient={onEditClient} searchQuery={searchQuery} />
+      <KanbanContent onEditClient={onEditClient} searchQuery={searchQuery} clientIdsWithPendencies={clientIdsWithPendencies} />
     </KanbanDndProvider>
   );
 }

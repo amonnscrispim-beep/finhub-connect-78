@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2, CalendarPlus, GraduationCap, Users, History, Calculator, Briefcase, FileText } from 'lucide-react';
 import { ClientProvider, useClients } from '@/contexts/ClientContext';
 import { useAuth } from '@/hooks/useAuth';
+import { useUrgentPendencies } from '@/hooks/useUrgentPendencies';
 import { Client } from '@/types/client';
 import { CRMHeader } from '@/components/crm/CRMHeader';
 import { StatsCards } from '@/components/crm/StatsCards';
@@ -25,6 +26,7 @@ import { CarteirasRecomendadas } from '@/components/crm/carteiras/CarteirasRecom
 import { GeradorResumos } from '@/components/crm/relatorios/GeradorResumos';
 import { EmAtendimentoDrawer } from '@/components/crm/EmAtendimentoDrawer';
 import { RecentActivityDropdown } from '@/components/crm/RecentActivityDropdown';
+import { UrgentPendenciesPanel } from '@/components/crm/UrgentPendenciesPanel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -32,6 +34,7 @@ import { toast } from 'sonner';
 function CRMDashboard() {
   const { clients, isLoading } = useClients();
   const { user, signOut } = useAuth();
+  const { pendencies, isLoading: pendenciesLoading, addPendency, completePendency, removePendency, clientIdsWithPendencies } = useUrgentPendencies();
   const [view, setView] = useState<'table' | 'kanban'>('table');
   const [dashboardTab, setDashboardTab] = useState<'operacional' | 'executivo' | 'estudos' | 'calculadora' | 'carteiras' | 'gerador'>('operacional');
   const [modalOpen, setModalOpen] = useState(false);
@@ -260,8 +263,17 @@ function CRMDashboard() {
               </TabsContent>
 
               <TabsContent value="kanban" className="mt-4 animate-fade-in">
-                <div className="crm-card overflow-hidden">
-                  <KanbanView onEditClient={handleEditClient} searchQuery={searchQuery} />
+                <div className="flex gap-4">
+                  <div className="flex-1 crm-card overflow-hidden">
+                    <KanbanView onEditClient={handleEditClient} searchQuery={searchQuery} clientIdsWithPendencies={clientIdsWithPendencies} />
+                  </div>
+                  <UrgentPendenciesPanel
+                    pendencies={pendencies}
+                    isLoading={pendenciesLoading}
+                    onAdd={addPendency}
+                    onComplete={completePendency}
+                    onRemove={removePendency}
+                  />
                 </div>
               </TabsContent>
             </Tabs>

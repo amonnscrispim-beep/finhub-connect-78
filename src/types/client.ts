@@ -270,7 +270,6 @@ export const KANBAN_COLUMN_STAGES: FunnelStage[] = [
   'PRIVATE',
   'SELECT',
   'GROWTH',
-  'Pendências Urgentes',
   'CORE',
   'START',
 ];
