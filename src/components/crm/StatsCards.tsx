@@ -1,24 +1,26 @@
-import { Users, RefreshCw, DollarSign, AlertTriangle, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { Users, RefreshCw, DollarSign, Bell, Clock } from 'lucide-react';
 import { useClients } from '@/contexts/ClientContext';
 import { differenceInDays } from 'date-fns';
+import { DailyAlertsDrawer, type DailyTask } from './DailyAlertsDrawer';
 
 interface StatsCardsProps {
-  onPendingScheduleClick: () => void;
   onTotalClientsClick: () => void;
   onRenewalsClick: () => void;
   onFinancialAssetsClick: () => void;
+  onPendingScheduleClick?: () => void;
 }
 
-export function StatsCards({ onPendingScheduleClick, onTotalClientsClick, onRenewalsClick, onFinancialAssetsClick }: StatsCardsProps) {
+export function StatsCards({ onTotalClientsClick, onRenewalsClick, onFinancialAssetsClick }: StatsCardsProps) {
   const { clients } = useClients();
+  const [dailyTasks, setDailyTasks] = useState<DailyTask[]>([]);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Only count active clients (not finalized)
   const activeClients = clients.filter(c => !c.consultingFinished);
-
   const totalClients = activeClients.length;
-  const pendingScheduleCount = activeClients.filter(c => c.pendingSchedule).length;
-  
-  // Unified renewals count (only active clients)
+  const pendingCount = dailyTasks.filter(t => !t.completed).length;
+
+  // Unified renewals count
   const renewedCount = activeClients.filter(
     c => c.renewalStatus === 'Renovação' || c.renewed
   ).length;
@@ -27,18 +29,13 @@ export function StatsCards({ onPendingScheduleClick, onTotalClientsClick, onRene
   ).length;
   const totalRenewals = renewedCount + renewalPotentialCount;
 
-  // Total financial assets using canonical field (only active clients)
   const totalFinancialAssets = activeClients.reduce((sum, client) => sum + (client.patrimonioFinanceiroLiquido ?? 0), 0);
   const formatCurrency = (value: number) => {
-    if (value >= 1000000) {
-      return `R$ ${(value / 1000000).toFixed(1)}M`;
-    } else if (value >= 1000) {
-      return `R$ ${(value / 1000).toFixed(0)}K`;
-    }
+    if (value >= 1000000) return `R$ ${(value / 1000000).toFixed(1)}M`;
+    if (value >= 1000) return `R$ ${(value / 1000).toFixed(0)}K`;
     return `R$ ${value}`;
   };
 
-  // Inactivity count (30+ days) - only active clients
   const today = new Date();
   const inactiveCount = activeClients.filter(client => {
     const lastActivity = client.lastActivityAt ? new Date(client.lastActivityAt) : client.updatedAt;
@@ -54,12 +51,12 @@ export function StatsCards({ onPendingScheduleClick, onTotalClientsClick, onRene
       onClick: onTotalClientsClick,
     },
     {
-      label: 'Agendamento Pendente',
-      value: pendingScheduleCount,
-      icon: AlertTriangle,
-      color: pendingScheduleCount > 0 ? 'bg-destructive/10 text-destructive' : 'bg-muted/10 text-muted-foreground',
-      highlight: pendingScheduleCount > 0,
-      onClick: onPendingScheduleClick,
+      label: 'Alertas Diários',
+      value: pendingCount,
+      icon: Bell,
+      color: pendingCount > 0 ? 'bg-destructive/10 text-destructive' : 'bg-muted/10 text-muted-foreground',
+      highlight: pendingCount > 0,
+      onClick: () => setDrawerOpen(true),
     },
     {
       label: 'Renovações',
@@ -104,8 +101,7 @@ export function StatsCards({ onPendingScheduleClick, onTotalClientsClick, onRene
           </div>
         ))}
       </div>
-      
-      {/* Inactivity indicator */}
+
       {inactiveCount > 0 && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border border-muted-foreground/20">
           <Clock className="w-4 h-4 text-muted-foreground" />
@@ -114,6 +110,13 @@ export function StatsCards({ onPendingScheduleClick, onTotalClientsClick, onRene
           </span>
         </div>
       )}
+
+      <DailyAlertsDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        tasks={dailyTasks}
+        onTasksChange={setDailyTasks}
+      />
     </div>
   );
 }
