@@ -926,7 +926,7 @@ function KanbanContent({ onEditClient, searchQuery = '', clientIdsWithPendencies
   );
 }
 
-export function KanbanView({ onEditClient, searchQuery = '', clientIdsWithPendencies }: KanbanViewProps) {
+export function KanbanView({ onEditClient, searchQuery = '', clientIdsWithPendencies, pendencies, pendenciesLoading, onAddPendency, onCompletePendency, onRemovePendency }: KanbanViewProps) {
   const { clients, moveClientToStage, swapClientOrder, setReorderingFlag, updateClient } = useClients();
 
   const clientsByStage = useMemo(() => {
