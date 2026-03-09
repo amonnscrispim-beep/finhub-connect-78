@@ -1,5 +1,7 @@
-import { FileText, Copy, MessageCircle, FileDown } from 'lucide-react';
+import { useState } from 'react';
+import { FileText, Copy, MessageCircle, FileDown, PenLine, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 
@@ -8,6 +10,7 @@ interface Props {
   isGenerating: boolean;
   images: string[];
   onOpenWhatsApp: () => void;
+  onMarkdownChange?: (md: string) => void;
 }
 
 function markdownToHtml(md: string): string {
@@ -25,7 +28,10 @@ function markdownToHtml(md: string): string {
   return `<div class="prose-report"><p class="text-sm leading-relaxed mb-3 text-foreground/90">${html}</p></div>`;
 }
 
-export function PreviewRelatorio({ markdown, isGenerating, images, onOpenWhatsApp }: Props) {
+export function PreviewRelatorio({ markdown, isGenerating, images, onOpenWhatsApp, onMarkdownChange }: Props) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState('');
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(markdown);
@@ -35,11 +41,29 @@ export function PreviewRelatorio({ markdown, isGenerating, images, onOpenWhatsAp
     }
   };
 
+  const handleStartEdit = () => {
+    setEditContent(markdown);
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = () => {
+    onMarkdownChange?.(editContent);
+    setIsEditing(false);
+    toast.success('Edições salvas!');
+  };
+
+  const handleCancelEdit = () => {
+    setEditContent('');
+    setIsEditing(false);
+  };
+
   const handleExportPDF = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) { toast.error('Popup bloqueado. Permita popups.'); return; }
 
+    const currentContent = markdown;
     const imagesHtml = images.map(src => `<img src="${src}" style="max-width:100%;margin:16px 0;border-radius:8px;border:1px solid #e5e7eb;" />`).join('');
+    const today = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -56,11 +80,13 @@ export function PreviewRelatorio({ markdown, isGenerating, images, onOpenWhatsAp
         hr { border: none; border-top: 1px solid #d1d5db; margin: 24px 0; }
         .header { text-align: center; margin-bottom: 32px; padding: 20px; background: #f8f9fa; border-radius: 8px; }
         .header h2 { border: none; margin: 0; font-size: 14px; color: #6b7280; font-family: 'Inter', sans-serif; font-weight: 500; }
+        .footer { text-align: center; margin-top: 40px; padding-top: 16px; border-top: 1px solid #d1d5db; font-size: 11px; color: #9ca3af; }
         @media print { body { padding: 20px; } }
       </style></head><body>
       <div class="header"><h2>Amonn Crispim — Consultor de Investimentos</h2></div>
-      ${markdownToHtml(markdown).replace(/class="[^"]*"/g, '')}
+      ${markdownToHtml(currentContent).replace(/class="[^"]*"/g, '')}
       ${imagesHtml}
+      <div class="footer">${today}</div>
       <script>setTimeout(()=>{ window.print(); window.close(); }, 500);</script>
       </body></html>
     `);
@@ -74,32 +100,51 @@ export function PreviewRelatorio({ markdown, isGenerating, images, onOpenWhatsAp
           <FileText className="w-5 h-5" />
           Preview do Relatório
         </CardTitle>
+        {markdown && !isEditing && (
+          <Button variant="ghost" size="sm" onClick={handleStartEdit}
+            className="text-primary-foreground hover:bg-primary-foreground/10 gap-1.5">
+            <PenLine className="w-4 h-4" /> Editar
+          </Button>
+        )}
+        {isEditing && (
+          <div className="flex gap-1.5">
+            <Button variant="ghost" size="sm" onClick={handleSaveEdit}
+              className="text-primary-foreground hover:bg-primary-foreground/10 gap-1">
+              <Check className="w-4 h-4" /> Salvar
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleCancelEdit}
+              className="text-primary-foreground hover:bg-primary-foreground/10 gap-1">
+              <X className="w-4 h-4" /> Cancelar
+            </Button>
+          </div>
+        )}
       </CardHeader>
 
       <CardContent className="flex-1 p-0 flex flex-col">
-        {/* Report Content */}
         <div className="flex-1 overflow-auto p-6">
           {isGenerating ? (
             <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
               <div className="animate-spin rounded-full h-10 w-10 border-4 border-primary border-t-transparent" />
               <p className="text-sm">Gerando relatório com IA...</p>
             </div>
+          ) : isEditing ? (
+            <Textarea
+              value={editContent}
+              onChange={e => setEditContent(e.target.value)}
+              className="min-h-[400px] resize-y font-mono text-sm"
+              placeholder="Edite o conteúdo em Markdown..."
+            />
           ) : markdown ? (
             <div className="space-y-4">
-              {/* Report Header */}
               <div className="text-center pb-4 border-b border-border">
                 <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
                   Amonn Crispim — Consultor de Investimentos
                 </p>
               </div>
-
-              {/* Rendered Markdown */}
               <div
                 className="report-content"
                 dangerouslySetInnerHTML={{ __html: markdownToHtml(markdown) }}
               />
-
-              {/* Embedded Images */}
               {images.length > 0 && (
                 <div className="space-y-3 pt-4 border-t border-border">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Anexos visuais</p>
@@ -119,8 +164,7 @@ export function PreviewRelatorio({ markdown, isGenerating, images, onOpenWhatsAp
           )}
         </div>
 
-        {/* Action Bar */}
-        {markdown && (
+        {markdown && !isEditing && (
           <div className="border-t border-border p-3 flex gap-2 flex-wrap">
             <Button variant="outline" size="sm" onClick={handleExportPDF}>
               <FileDown className="w-4 h-4 mr-1.5" /> Exportar PDF
