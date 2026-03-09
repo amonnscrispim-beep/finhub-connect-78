@@ -336,7 +336,6 @@ const COLUMN_COLORS: Record<string, string> = {
   'SELECT': 'bg-blue-500',
   'GROWTH': 'bg-emerald-500',
   'CORE': 'bg-amber-500',
-  'Pendências Urgentes': 'bg-destructive',
   'START': 'bg-slate-400',
 };
 
@@ -345,7 +344,6 @@ const COLUMN_BG: Record<string, string> = {
   'SELECT': 'bg-blue-500/5 border-blue-500/20',
   'GROWTH': 'bg-emerald-500/5 border-emerald-500/20',
   'CORE': 'bg-amber-500/5 border-amber-500/20',
-  'Pendências Urgentes': 'bg-destructive/5 border-destructive/20',
   'START': 'bg-muted/30 border-border/50',
 };
 
