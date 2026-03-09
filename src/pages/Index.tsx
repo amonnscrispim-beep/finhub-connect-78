@@ -190,6 +190,13 @@ function CRMDashboard() {
               <Calculator className="w-4 h-4 mr-2" />
               Calculadora de Juros
             </TabsTrigger>
+            <TabsTrigger 
+              value="carteiras"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <Briefcase className="w-4 h-4 mr-2" />
+              Carteiras Recomendadas
+            </TabsTrigger>
           </TabsList>
 
           {/* DASHBOARD OPERACIONAL - Existing functionality preserved */}
