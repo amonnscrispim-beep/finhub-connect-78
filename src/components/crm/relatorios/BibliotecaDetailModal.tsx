@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { FileDown, Copy, MessageCircle, Trash2, Loader2 } from 'lucide-react';
+import { FileDown, Copy, MessageCircle, Trash2, Loader2, PenLine, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { categoryConfig } from './BibliotecaResumos';
 import type { SummaryReport } from './GeradorResumos';
 
@@ -13,16 +15,6 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   onDelete: (id: string) => void;
   onWhatsApp: () => void;
-}
-
-interface FiiData {
-  regularMarketPrice?: number;
-  bookValue?: number;
-  priceToBook?: number;
-  averageDailyVolume10Day?: number;
-  numberOfSharesOutstanding?: number;
-  dividendsData?: { yield?: number; yield12m?: number; lastPayment?: number };
-  patrimonio?: number;
 }
 
 function markdownToHtml(md: string): string {
@@ -47,9 +39,7 @@ function FiiIndicators({ ticker }: { ticker: string }) {
     if (!firstTicker) { setLoading(false); return; }
     fetch(`https://brapi.dev/api/quote/${firstTicker}?token=demo&fundamental=true`)
       .then(r => r.json())
-      .then(d => {
-        if (d.results?.[0]) setData(d.results[0]);
-      })
+      .then(d => { if (d.results?.[0]) setData(d.results[0]); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [ticker]);
@@ -87,8 +77,25 @@ export function BibliotecaDetailModal({ report, open, onOpenChange, onDelete, on
   });
   const isFii = ((report as any).category || report.report_type) === 'radar_fiis';
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState('');
+  const [currentContent, setCurrentContent] = useState(report.markdown_content);
+
+  if (currentContent !== report.markdown_content && !isEditing) {
+    setCurrentContent(report.markdown_content);
+  }
+
+  const handleStartEdit = () => { setEditContent(currentContent); setIsEditing(true); };
+  const handleSaveEdit = async () => {
+    setCurrentContent(editContent);
+    setIsEditing(false);
+    toast.success('Edições salvas!');
+    await supabase.from('summary_reports').update({ markdown_content: editContent } as any).eq('id', report.id);
+  };
+  const handleCancelEdit = () => setIsEditing(false);
+
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(report.markdown_content);
+    await navigator.clipboard.writeText(currentContent);
     toast.success('Texto copiado!');
   };
 
@@ -98,6 +105,7 @@ export function BibliotecaDetailModal({ report, open, onOpenChange, onDelete, on
     const imagesHtml = (report.images || []).map(src =>
       `<img src="${src}" style="max-width:100%;margin:16px 0;border-radius:8px;border:1px solid #e5e7eb;" />`
     ).join('');
+    const today = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
     printWindow.document.write(`<!DOCTYPE html><html><head><title>${report.title}</title>
       <style>
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap');
@@ -109,15 +117,15 @@ export function BibliotecaDetailModal({ report, open, onOpenChange, onDelete, on
         li { font-size: 14px; margin-left: 20px; }
         .header { text-align: center; margin-bottom: 28px; padding: 16px; background: #f8f9fa; border-radius: 8px; }
         .header h2 { border: none; margin: 0; font-size: 13px; color: #6b7280; font-family: 'Inter', sans-serif; }
-        .footer { text-align: center; margin-top: 32px; font-size: 11px; color: #9ca3af; }
+        .footer { text-align: center; margin-top: 32px; padding-top: 16px; border-top: 1px solid #d1d5db; font-size: 11px; color: #9ca3af; }
         @media print { body { padding: 20px; } }
       </style></head><body>
       <div class="header"><h2>Amonn Crispim — Consultor de Investimentos</h2></div>
       <h1>${report.title}</h1>
       <p style="color:#6b7280;font-size:12px;">${formattedDate}</p>
-      ${markdownToHtml(report.markdown_content)}
+      ${markdownToHtml(currentContent)}
       ${imagesHtml}
-      <div class="footer">${formattedDate}</div>
+      <div class="footer">${today}</div>
       <script>setTimeout(()=>{ window.print(); window.close(); }, 500);</script>
       </body></html>`);
     printWindow.document.close();
@@ -127,59 +135,89 @@ export function BibliotecaDetailModal({ report, open, onOpenChange, onDelete, on
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-3 border-b border-border">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>{cat.emoji}</span>
-            <span>{cat.label}</span>
-            <span className="text-xs">• {formattedDate}</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>{cat.emoji}</span>
+              <span>{cat.label}</span>
+              <span className="text-xs">• {formattedDate}</span>
+            </div>
+            {!isEditing && currentContent && (
+              <Button variant="outline" size="sm" onClick={handleStartEdit} className="gap-1.5">
+                <PenLine className="w-4 h-4" /> Editar
+              </Button>
+            )}
+            {isEditing && (
+              <div className="flex gap-1.5">
+                <Button variant="default" size="sm" onClick={handleSaveEdit} className="gap-1">
+                  <Check className="w-4 h-4" /> Salvar
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleCancelEdit} className="gap-1">
+                  <X className="w-4 h-4" /> Cancelar
+                </Button>
+              </div>
+            )}
           </div>
           <DialogTitle className="text-lg font-bold mt-1">{report.title}</DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-auto p-6">
-          {isFii && report.ticker && <FiiIndicators ticker={report.ticker} />}
-          <div dangerouslySetInnerHTML={{ __html: `<div class="text-sm leading-relaxed">${markdownToHtml(report.markdown_content)}</div>` }} />
-          {report.images?.length > 0 && (
-            <div className="mt-4 space-y-3 pt-4 border-t border-border">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Anexos visuais</p>
-              <div className="grid grid-cols-2 gap-3">
-                {report.images.map((src, i) => (
-                  <img key={i} src={src} alt={`Anexo ${i + 1}`} className="rounded-lg border border-border w-full" />
-                ))}
-              </div>
-            </div>
+          {isEditing ? (
+            <Textarea
+              value={editContent}
+              onChange={e => setEditContent(e.target.value)}
+              className="min-h-[350px] resize-y font-mono text-sm"
+              placeholder="Edite o conteúdo em Markdown..."
+            />
+          ) : (
+            <>
+              {isFii && report.ticker && <FiiIndicators ticker={report.ticker} />}
+              <div dangerouslySetInnerHTML={{ __html: `<div class="text-sm leading-relaxed">${markdownToHtml(currentContent)}</div>` }} />
+              {report.images?.length > 0 && (
+                <div className="mt-4 space-y-3 pt-4 border-t border-border">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Anexos visuais</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {report.images.map((src, i) => (
+                      <img key={i} src={src} alt={`Anexo ${i + 1}`} className="rounded-lg border border-border w-full" />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 
-        <div className="border-t border-border p-4 flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={handleExportPDF}>
-            <FileDown className="w-4 h-4 mr-1.5" /> Exportar PDF
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleCopy}>
-            <Copy className="w-4 h-4 mr-1.5" /> Copiar Texto
-          </Button>
-          <Button variant="outline" size="sm" onClick={onWhatsApp}>
-            <MessageCircle className="w-4 h-4 mr-1.5" /> WhatsApp
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline" size="sm" className="ml-auto text-destructive hover:text-destructive">
-                <Trash2 className="w-4 h-4 mr-1.5" /> Excluir
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Excluir relatório?</AlertDialogTitle>
-                <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={() => onDelete(report.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  Excluir
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
+        {!isEditing && (
+          <div className="border-t border-border p-4 flex gap-2 flex-wrap">
+            <Button variant="outline" size="sm" onClick={handleExportPDF}>
+              <FileDown className="w-4 h-4 mr-1.5" /> Exportar PDF
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleCopy}>
+              <Copy className="w-4 h-4 mr-1.5" /> Copiar Texto
+            </Button>
+            <Button variant="outline" size="sm" onClick={onWhatsApp}>
+              <MessageCircle className="w-4 h-4 mr-1.5" /> WhatsApp
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="ml-auto text-destructive hover:text-destructive">
+                  <Trash2 className="w-4 h-4 mr-1.5" /> Excluir
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir relatório?</AlertDialogTitle>
+                  <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onDelete(report.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Excluir
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
