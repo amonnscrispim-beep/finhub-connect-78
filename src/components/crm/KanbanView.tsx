@@ -565,6 +565,7 @@ function PendencyAddModal({ open, onOpenChange, clients, clientId, setClientId, 
   );
 }
 
+function KanbanContent({ onEditClient, searchQuery = '', clientIdsWithPendencies = new Set(), pendencies = [], pendenciesLoading = false, onAddPendency, onCompletePendency, onRemovePendency }: KanbanViewProps) {
   const { clients, moveClientToStage, swapClientOrder, setReorderingFlag, updateClient, refetch } = useClients();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
