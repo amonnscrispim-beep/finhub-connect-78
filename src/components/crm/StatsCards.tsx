@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Users, RefreshCw, DollarSign, Bell, Clock } from 'lucide-react';
 import { useClients } from '@/contexts/ClientContext';
 import { differenceInDays } from 'date-fns';
-import { DailyAlertsDrawer, type DailyTask } from './DailyAlertsDrawer';
+import { WeeklyAlertsDrawer, type WeeklyTask } from './DailyAlertsDrawer';
 
 interface StatsCardsProps {
   onTotalClientsClick: () => void;
@@ -13,14 +13,13 @@ interface StatsCardsProps {
 
 export function StatsCards({ onTotalClientsClick, onRenewalsClick, onFinancialAssetsClick }: StatsCardsProps) {
   const { clients } = useClients();
-  const [dailyTasks, setDailyTasks] = useState<DailyTask[]>([]);
+  const [weeklyTasks, setWeeklyTasks] = useState<WeeklyTask[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const activeClients = clients.filter(c => !c.consultingFinished);
   const totalClients = activeClients.length;
-  const pendingCount = dailyTasks.filter(t => !t.completed).length;
+  const pendingCount = weeklyTasks.filter(t => !t.completed).length;
 
-  // Unified renewals count
   const renewedCount = activeClients.filter(
     c => c.renewalStatus === 'Renovação' || c.renewed
   ).length;
@@ -51,7 +50,7 @@ export function StatsCards({ onTotalClientsClick, onRenewalsClick, onFinancialAs
       onClick: onTotalClientsClick,
     },
     {
-      label: 'Alertas Diários',
+      label: 'Alertas da Semana',
       value: pendingCount,
       icon: Bell,
       color: pendingCount > 0 ? 'bg-destructive/10 text-destructive' : 'bg-muted/10 text-muted-foreground',
@@ -111,11 +110,11 @@ export function StatsCards({ onTotalClientsClick, onRenewalsClick, onFinancialAs
         </div>
       )}
 
-      <DailyAlertsDrawer
+      <WeeklyAlertsDrawer
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
-        tasks={dailyTasks}
-        onTasksChange={setDailyTasks}
+        tasks={weeklyTasks}
+        onTasksChange={setWeeklyTasks}
       />
     </div>
   );
