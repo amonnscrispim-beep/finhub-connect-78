@@ -790,79 +790,86 @@ function KanbanContent({ onEditClient, searchQuery = '', clientIdsWithPendencies
 
       <div ref={scrollContainerRef} onScroll={checkScrollability} className="overflow-x-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
         <div className="flex gap-4 p-4 min-w-max">
-          {KANBAN_COLUMN_STAGES.map((stage) => {
+          {KANBAN_COLUMN_STAGES.map((stage, stageIndex) => {
             const stageClients = clientsByStage[stage] || [];
             const clientIds = stageClients.map(c => c.id);
             const isPatrimony = isPatrimonyColumn(stage);
             const patrimonioSum = columnPatrimonioSums[stage] || 0;
             const columnBg = COLUMN_BG[stage] || 'bg-muted/30 border-border/50';
             const dotColor = COLUMN_COLORS[stage] || 'bg-primary';
+
+            // Insert Pendências Urgentes column after GROWTH (index of GROWTH in the array)
+            const growthIndex = KANBAN_COLUMN_STAGES.indexOf('GROWTH' as FunnelStage);
+            const renderPendenciasAfter = stageIndex === growthIndex;
             
             return (
-              <div key={stage} className={cn("rounded-2xl p-4 min-h-[500px] w-80 flex-shrink-0 border transition-all duration-200", columnBg)}>
-                {/* Column Header */}
-                <button
-                  onClick={() => handleColumnHeaderClick(stage)}
-                  className="w-full flex items-center justify-between mb-4 pb-3 border-b border-border/50 hover:bg-muted/50 -mx-4 px-4 pt-1 -mt-1 rounded-t-xl transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${dotColor} shadow-sm`} />
-                    <h3 className="font-bold text-sm text-foreground tracking-wide">{getStageDisplayLabel(stage)}</h3>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    {isPatrimony && patrimonioSum > 0 && (
-                      <span className="text-xs font-medium text-muted-foreground">
-                        {formatCurrency(patrimonioSum)}
-                      </span>
-                    )}
-                    <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-                      {stageClients.length}
-                    </span>
-                  </div>
-                </button>
-
-                <DroppableColumn stage={stage} clientIds={clientIds}>
-                  {stageClients.map((client, index) => (
-                    <SortableKanbanCard key={client.id} client={client}>
-                      <KanbanCard
-                        client={client}
-                        onEdit={() => onEditClient(client)}
-                        onCardClick={() => handleCardClick(client)}
-                        onMoveUp={() => handleMoveUp(client.id, stage)}
-                        onMoveDown={() => handleMoveDown(client.id, stage)}
-                        canMoveUp={index > 0}
-                        canMoveDown={index < stageClients.length - 1}
-                        showPatrimonio={isPatrimony}
-                        hasPendency={clientIdsWithPendencies.has(client.id)}
-                      />
-                    </SortableKanbanCard>
-                  ))}
-
-                  {stageClients.length === 0 && (
-                    <div className="text-center py-12 text-muted-foreground text-sm border-2 border-dashed border-border/50 rounded-xl">
-                      Nenhum cliente
+              <React.Fragment key={stage}>
+                <div className={cn("rounded-2xl p-4 min-h-[500px] w-80 flex-shrink-0 border transition-all duration-200", columnBg)}>
+                  {/* Column Header */}
+                  <button
+                    onClick={() => handleColumnHeaderClick(stage)}
+                    className="w-full flex items-center justify-between mb-4 pb-3 border-b border-border/50 hover:bg-muted/50 -mx-4 px-4 pt-1 -mt-1 rounded-t-xl transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${dotColor} shadow-sm`} />
+                      <h3 className="font-bold text-sm text-foreground tracking-wide">{getStageDisplayLabel(stage)}</h3>
                     </div>
-                  )}
-                </DroppableColumn>
-              </div>
+                    <div className="flex items-center gap-1.5">
+                      {isPatrimony && patrimonioSum > 0 && (
+                        <span className="text-xs font-medium text-muted-foreground">
+                          {formatCurrency(patrimonioSum)}
+                        </span>
+                      )}
+                      <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                        {stageClients.length}
+                      </span>
+                    </div>
+                  </button>
+
+                  <DroppableColumn stage={stage} clientIds={clientIds}>
+                    {stageClients.map((client, index) => (
+                      <SortableKanbanCard key={client.id} client={client}>
+                        <KanbanCard
+                          client={client}
+                          onEdit={() => onEditClient(client)}
+                          onCardClick={() => handleCardClick(client)}
+                          onMoveUp={() => handleMoveUp(client.id, stage)}
+                          onMoveDown={() => handleMoveDown(client.id, stage)}
+                          canMoveUp={index > 0}
+                          canMoveDown={index < stageClients.length - 1}
+                          showPatrimonio={isPatrimony}
+                          hasPendency={clientIdsWithPendencies.has(client.id)}
+                        />
+                      </SortableKanbanCard>
+                    ))}
+
+                    {stageClients.length === 0 && (
+                      <div className="text-center py-12 text-muted-foreground text-sm border-2 border-dashed border-border/50 rounded-xl">
+                        Nenhum cliente
+                      </div>
+                    )}
+                  </DroppableColumn>
+                </div>
+
+                {renderPendenciasAfter && (
+                  <PendenciasUrgentesColumn
+                    pendencies={pendencies}
+                    pendenciesLoading={pendenciesLoading}
+                    animatingPendencyId={animatingPendencyId}
+                    onOpenModal={() => setPendencyModalOpen(true)}
+                    onComplete={(id) => {
+                      setAnimatingPendencyId(id);
+                      setTimeout(async () => {
+                        await onCompletePendency?.(id);
+                        setAnimatingPendencyId(null);
+                      }, 300);
+                    }}
+                    onRemove={(id) => onRemovePendency?.(id)}
+                  />
+                )}
+              </React.Fragment>
             );
           })}
-
-          {/* Pendências Urgentes Column */}
-          <PendenciasUrgentesColumn
-            pendencies={pendencies}
-            pendenciesLoading={pendenciesLoading}
-            animatingPendencyId={animatingPendencyId}
-            onOpenModal={() => setPendencyModalOpen(true)}
-            onComplete={(id) => {
-              setAnimatingPendencyId(id);
-              setTimeout(async () => {
-                await onCompletePendency?.(id);
-                setAnimatingPendencyId(null);
-              }, 300);
-            }}
-            onRemove={(id) => onRemovePendency?.(id)}
-          />
         </div>
       </div>
 
