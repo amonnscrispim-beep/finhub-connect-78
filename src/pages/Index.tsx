@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2, CalendarPlus, GraduationCap, Users, History } from 'lucide-react';
+import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2, CalendarPlus, GraduationCap, Users, History, Calculator } from 'lucide-react';
 import { ClientProvider, useClients } from '@/contexts/ClientContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Client } from '@/types/client';
