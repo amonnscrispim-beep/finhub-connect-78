@@ -36,7 +36,7 @@ export function PainelEntrada({
       const reader = new FileReader();
       reader.onload = (e) => {
         if (e.target?.result) {
-          setUploadedImages(prev => [...prev, e.target!.result as string]);
+          setUploadedImages([...uploadedImages, e.target!.result as string]);
         }
       };
       reader.readAsDataURL(file);
