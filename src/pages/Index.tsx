@@ -273,6 +273,11 @@ function CRMDashboard() {
           <TabsContent value="calculadora" className="animate-fade-in">
             <CompoundInterestCalculator />
           </TabsContent>
+
+          {/* CARTEIRAS RECOMENDADAS */}
+          <TabsContent value="carteiras" className="animate-fade-in">
+            <CarteirasRecomendadas />
+          </TabsContent>
         </Tabs>
       </main>
 
