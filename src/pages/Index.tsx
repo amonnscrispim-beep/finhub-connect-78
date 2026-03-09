@@ -201,7 +201,6 @@ function CRMDashboard() {
 
             {/* Stats */}
             <StatsCards 
-              onPendingScheduleClick={() => setPendingScheduleModalOpen(true)}
               onTotalClientsClick={() => setTotalClientsModalOpen(true)}
               onRenewalsClick={() => setRenewalsModalOpen(true)}
               onFinancialAssetsClick={() => setFinancialAssetsModalOpen(true)}
