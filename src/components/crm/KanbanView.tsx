@@ -654,8 +654,59 @@ function KanbanContent({ onEditClient, searchQuery = '', clientIdsWithPendencies
               </div>
             );
           })}
+
+          {/* Pendências Urgentes Column */}
+          <PendenciasUrgentesColumn
+            pendencies={pendencies}
+            pendenciesLoading={pendenciesLoading}
+            animatingPendencyId={animatingPendencyId}
+            onOpenModal={() => setPendencyModalOpen(true)}
+            onComplete={(id) => {
+              setAnimatingPendencyId(id);
+              setTimeout(async () => {
+                await onCompletePendency?.(id);
+                setAnimatingPendencyId(null);
+              }, 300);
+            }}
+            onRemove={(id) => onRemovePendency?.(id)}
+          />
         </div>
       </div>
+
+      {/* Pendency Add Modal */}
+      <PendencyAddModal
+        open={pendencyModalOpen}
+        onOpenChange={setPendencyModalOpen}
+        clients={clients}
+        clientId={pendencyClientId}
+        setClientId={setPendencyClientId}
+        clientSearch={pendencyClientSearch}
+        setClientSearch={setPendencyClientSearch}
+        description={pendencyDescription}
+        setDescription={setPendencyDescription}
+        deadline={pendencyDeadline}
+        setDeadline={setPendencyDeadline}
+        priority={pendencyPriority}
+        setPriority={setPendencyPriority}
+        isSaving={isSavingPendency}
+        onSave={async () => {
+          if (!pendencyClientId || !pendencyDescription.trim() || !pendencyDeadline || !onAddPendency) return;
+          setIsSavingPendency(true);
+          await onAddPendency({
+            client_id: pendencyClientId,
+            description: pendencyDescription.trim(),
+            deadline: format(pendencyDeadline, 'yyyy-MM-dd'),
+            priority: pendencyPriority,
+          });
+          setIsSavingPendency(false);
+          setPendencyModalOpen(false);
+          setPendencyClientId('');
+          setPendencyDescription('');
+          setPendencyDeadline(undefined);
+          setPendencyPriority('media');
+          setPendencyClientSearch('');
+        }}
+      />
       
       <DragOverlay dropAnimation={{ duration: 200, easing: 'ease' }}>
         {activeClient ? <DragOverlayCard client={activeClient} /> : null}
