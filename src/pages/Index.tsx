@@ -286,6 +286,11 @@ function CRMDashboard() {
           <TabsContent value="carteiras" className="animate-fade-in">
             <CarteirasRecomendadas />
           </TabsContent>
+
+          {/* GERADOR DE RESUMOS */}
+          <TabsContent value="gerador" className="animate-fade-in">
+            <GeradorResumos />
+          </TabsContent>
         </Tabs>
       </main>
 
