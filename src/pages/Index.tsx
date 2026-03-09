@@ -32,7 +32,7 @@ function CRMDashboard() {
   const { clients, isLoading } = useClients();
   const { user, signOut } = useAuth();
   const [view, setView] = useState<'table' | 'kanban'>('table');
-  const [dashboardTab, setDashboardTab] = useState<'operacional' | 'executivo' | 'estudos' | 'calculadora'>('operacional');
+  const [dashboardTab, setDashboardTab] = useState<'operacional' | 'executivo' | 'estudos' | 'calculadora' | 'carteiras'>('operacional');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>();
   const [pendingScheduleModalOpen, setPendingScheduleModalOpen] = useState(false);
