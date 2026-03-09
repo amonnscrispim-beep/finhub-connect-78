@@ -21,6 +21,7 @@ import { GoogleCalendarConnect } from '@/components/crm/GoogleCalendarConnect';
 import { ScheduleMeetingModal } from '@/components/crm/ScheduleMeetingModal';
 import { StudiesArea } from '@/components/studies/StudiesArea';
 import { CompoundInterestCalculator } from '@/components/calculator/CompoundInterestCalculator';
+import { CarteirasRecomendadas } from '@/components/crm/carteiras/CarteirasRecomendadas';
 import { EmAtendimentoDrawer } from '@/components/crm/EmAtendimentoDrawer';
 import { RecentActivityDropdown } from '@/components/crm/RecentActivityDropdown';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
