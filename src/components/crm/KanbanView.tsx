@@ -386,6 +386,13 @@ function KanbanContent({ onEditClient, searchQuery = '', clientIdsWithPendencies
   const [pendencyPriority, setPendencyPriority] = useState('media');
   const [pendencyClientSearch, setPendencyClientSearch] = useState('');
   const [isSavingPendency, setIsSavingPendency] = useState(false);
+  
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerStage, setDrawerStage] = useState<FunnelStage | null>(null);
+  const [tasksDrawerOpen, setTasksDrawerOpen] = useState(false);
+  const [tasksDrawerClient, setTasksDrawerClient] = useState<Client | null>(null);
+  
+  const { activeClient } = useKanbanDnd();
 
   // Auto-distribute clients into PRIVATE/SELECT/GROWTH/CORE/START
   const handleAutoDistribute = useCallback(async () => {
