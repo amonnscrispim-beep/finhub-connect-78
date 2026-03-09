@@ -26,7 +26,7 @@ import { CarteirasRecomendadas } from '@/components/crm/carteiras/CarteirasRecom
 import { GeradorResumos } from '@/components/crm/relatorios/GeradorResumos';
 import { EmAtendimentoDrawer } from '@/components/crm/EmAtendimentoDrawer';
 import { RecentActivityDropdown } from '@/components/crm/RecentActivityDropdown';
-import { UrgentPendenciesPanel } from '@/components/crm/UrgentPendenciesPanel';
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -263,16 +263,16 @@ function CRMDashboard() {
               </TabsContent>
 
               <TabsContent value="kanban" className="mt-4 animate-fade-in">
-                <div className="flex gap-4">
-                  <div className="flex-1 crm-card overflow-hidden">
-                    <KanbanView onEditClient={handleEditClient} searchQuery={searchQuery} clientIdsWithPendencies={clientIdsWithPendencies} />
-                  </div>
-                  <UrgentPendenciesPanel
+                <div className="crm-card overflow-hidden">
+                  <KanbanView
+                    onEditClient={handleEditClient}
+                    searchQuery={searchQuery}
+                    clientIdsWithPendencies={clientIdsWithPendencies}
                     pendencies={pendencies}
-                    isLoading={pendenciesLoading}
-                    onAdd={addPendency}
-                    onComplete={completePendency}
-                    onRemove={removePendency}
+                    pendenciesLoading={pendenciesLoading}
+                    onAddPendency={addPendency}
+                    onCompletePendency={completePendency}
+                    onRemovePendency={removePendency}
                   />
                 </div>
               </TabsContent>
