@@ -161,6 +161,12 @@ const KanbanCardComponent = memo(function KanbanCard({
           <span className="text-xs font-medium text-destructive">Agendamento Pendente</span>
         </div>
       )}
+      {hasPendency && (
+        <div className="flex items-center gap-1.5 mb-3 px-2 py-1.5 bg-orange-500/10 rounded-md border border-orange-500/20">
+          <AlertTriangle className="w-3.5 h-3.5 text-orange-600" />
+          <span className="text-xs font-medium text-orange-700">⚠️ Pendência Urgente</span>
+        </div>
+      )}
       
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
