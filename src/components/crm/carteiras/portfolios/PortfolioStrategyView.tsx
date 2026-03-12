@@ -302,7 +302,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                         <TableHead className="text-xs text-right">Alocação %</TableHead>
                         <TableHead className="text-xs text-right">Valor R$</TableHead>
                         {!isRf && <TableHead className="text-xs text-right">Qtd. Cotas</TableHead>}
-                        <TableHead className="text-xs text-right">{isFii ? 'DY Mês %' : 'DY Ano %'}</TableHead>
+                        <TableHead className="text-xs text-right">{isFii ? 'DY R$/cota mês' : isRf ? 'Taxa % a.a.' : 'DY R$/cota ano'}</TableHead>
                         <TableHead className="text-xs text-right">Div. Mês R$</TableHead>
                         <TableHead className="text-xs text-right">Div. Ano R$</TableHead>
                         <TableHead className="text-xs w-10" />
