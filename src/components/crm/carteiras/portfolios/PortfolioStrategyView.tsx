@@ -225,20 +225,39 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
 
       <CardContent className="space-y-4">
         {/* Class allocations */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {ASSET_CLASSES.map(cls => (
-            <div key={cls.key} className="space-y-1">
-              <Label className="text-xs">{cls.label}</Label>
-              <div className="flex items-center gap-1">
-                <Input type="number" step="0.1" className="h-8 text-sm"
-                  value={localPcts[cls.pctField]}
-                  onChange={e => handlePctChange(cls.pctField, e.target.value)}
-                  onBlur={() => handlePctBlur(cls.pctField)}
-                />
-                <span className="text-xs text-muted-foreground">%</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          {ASSET_CLASSES.map(cls => {
+            const classPctVal = localPcts[cls.pctField];
+            const classValueCalc = investAmount * (classPctVal / 100);
+            return (
+              <div key={cls.key} className="space-y-1">
+                <Label className="text-xs">{cls.label}</Label>
+                <div className="flex items-center gap-1">
+                  <Input type="number" step="0.1" className="h-8 text-sm w-20"
+                    value={classPctVal}
+                    onChange={e => handlePctChange(cls.pctField, e.target.value)}
+                    onBlur={() => handlePctBlur(cls.pctField)}
+                  />
+                  <span className="text-xs text-muted-foreground">%</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground">R$</span>
+                  <Input type="text" className="h-8 text-sm w-28"
+                    key={`clsval-${cls.key}-${investAmount}-${classPctVal}`}
+                    defaultValue={formatBRL(classValueCalc)}
+                    onBlur={e => {
+                      const raw = parseFloat(e.target.value.replace(/\./g, '').replace(',', '.')) || 0;
+                      if (investAmount > 0) {
+                        const newPct = (raw / investAmount) * 100;
+                        setLocalPcts(prev => ({ ...prev, [cls.pctField]: parseFloat(newPct.toFixed(2)) }));
+                        onUpdatePortfolio(portfolio.id, { [cls.pctField]: parseFloat(newPct.toFixed(2)) } as any);
+                      }
+                    }}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* RF subtypes */}
