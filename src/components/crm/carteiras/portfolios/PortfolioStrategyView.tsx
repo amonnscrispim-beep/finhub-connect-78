@@ -53,10 +53,13 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     await onUpdatePortfolio(portfolio.id, { [field]: num } as any);
   };
 
-  const handleInvestAmountChange = async (value: string) => {
+  const handleInvestAmountChange = (value: string) => {
     const num = parseFloat(value.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
     setInvestAmount(num);
-    await onUpdatePortfolio(portfolio.id, { invest_amount: num });
+  };
+
+  const handleInvestAmountBlur = () => {
+    onUpdatePortfolio(portfolio.id, { invest_amount: investAmount });
   };
 
   const openAddAsset = (assetClass: string) => {
