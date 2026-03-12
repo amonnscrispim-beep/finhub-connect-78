@@ -128,6 +128,9 @@ export function GeradorResumos() {
             onNewReport={() => setShowNewModal(true)}
             onToggleRead={handleToggleRead}
             onToggleSaved={handleToggleSaved}
+            isMaster={isMaster}
+            userId={user?.id}
+            onToggleShare={handleToggleShare}
           />
         </TabsContent>
       </Tabs>
