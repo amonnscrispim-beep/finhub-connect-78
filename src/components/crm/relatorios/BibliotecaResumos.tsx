@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
-import { Search, Plus, Clock, Check, Bookmark, BookmarkCheck, BarChart3, Building2, Globe, TrendingUp, FolderOpen, DollarSign, Newspaper } from 'lucide-react';
+import { Search, Plus, Clock, Check, Bookmark, BookmarkCheck, BarChart3, Building2, Globe, TrendingUp, FolderOpen, DollarSign, Newspaper, Share2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SharedBadge } from '@/components/ui/shared-badge';
 import type { SummaryReport } from './GeradorResumos';
 
 interface Props {
@@ -13,6 +14,9 @@ interface Props {
   onNewReport: () => void;
   onToggleRead: (id: string, val: boolean) => void;
   onToggleSaved: (id: string, val: boolean) => void;
+  isMaster?: boolean;
+  userId?: string;
+  onToggleShare?: (id: string, val: boolean) => void;
 }
 
 const categories = [
@@ -71,7 +75,7 @@ function parseTickers(report: SummaryReport): string[] {
   return tickers;
 }
 
-export function BibliotecaResumos({ reports, isLoading, onViewReport, onNewReport, onToggleRead, onToggleSaved }: Props) {
+export function BibliotecaResumos({ reports, isLoading, onViewReport, onNewReport, onToggleRead, onToggleSaved, isMaster, userId, onToggleShare }: Props) {
   const [activeCategory, setActiveCategory] = useState('todos');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -196,10 +200,20 @@ export function BibliotecaResumos({ reports, isLoading, onViewReport, onNewRepor
 
                 {/* Footer */}
                 <div className="flex items-center justify-between mt-auto pt-2">
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap gap-1 items-center">
                     {tickers.map(t => (
                       <Badge key={t} variant="secondary" className="text-[10px] px-1.5 py-0">{t}</Badge>
                     ))}
+                    {report.shared && (report as any).user_id !== userId && <SharedBadge />}
+                    {isMaster && (report as any).user_id === userId && onToggleShare && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onToggleShare(report.id, !report.shared); }}
+                        className={`p-1 rounded hover:bg-muted transition-colors ${report.shared ? 'text-blue-500' : 'text-muted-foreground/40'}`}
+                        title={report.shared ? 'Remover compartilhamento' : 'Compartilhar'}
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                   <Button
                     variant="outline"

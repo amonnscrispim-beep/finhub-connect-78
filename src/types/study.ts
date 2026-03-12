@@ -7,6 +7,8 @@ export interface StudyModule {
   displayOrder: number;
   createdAt: Date;
   updatedAt: Date;
+  shared?: boolean;
+  isOwn?: boolean;
 }
 
 export interface StudySubmodule {
@@ -17,6 +19,8 @@ export interface StudySubmodule {
   displayOrder: number;
   createdAt: Date;
   updatedAt: Date;
+  shared?: boolean;
+  isOwn?: boolean;
 }
 
 export interface StudySlide {
@@ -31,6 +35,8 @@ export interface StudySlide {
   displayOrder: number;
   createdAt: Date;
   updatedAt: Date;
+  shared?: boolean;
+  isOwn?: boolean;
 }
 
 export const DEFAULT_MODULES = [

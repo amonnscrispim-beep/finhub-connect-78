@@ -45,7 +45,7 @@ export function useStudyModules() {
   const queryClient = useQueryClient();
   const userId = user?.id;
 
-  // Fetch all modules
+  // Fetch own + shared modules
   const { data: modules = [], isLoading: modulesLoading } = useQuery({
     queryKey: ['study-modules', userId],
     queryFn: async () => {
@@ -53,11 +53,11 @@ export function useStudyModules() {
       const { data, error } = await supabase
         .from('study_modules')
         .select('*')
-        .eq('user_id', userId)
+        .or(`user_id.eq.${userId},shared.eq.true`)
         .order('display_order', { ascending: true });
       
       if (error) throw error;
-      return (data || []).map(transformModule);
+      return (data || []).map((row: any) => ({ ...transformModule(row), shared: row.shared || false, isOwn: row.user_id === userId }));
     },
     enabled: !!userId,
   });
@@ -184,11 +184,11 @@ export function useStudySubmodules(moduleId: string | null) {
         .from('study_submodules')
         .select('*')
         .eq('module_id', moduleId)
-        .eq('user_id', userId)
+        .or(`user_id.eq.${userId},shared.eq.true`)
         .order('display_order', { ascending: true });
       
       if (error) throw error;
-      return (data || []).map(transformSubmodule);
+      return (data || []).map((row: any) => ({ ...transformSubmodule(row), shared: row.shared || false, isOwn: row.user_id === userId }));
     },
     enabled: !!moduleId && !!userId,
   });
@@ -277,11 +277,11 @@ export function useStudySlides(submoduleId: string | null) {
         .from('study_slides')
         .select('*')
         .eq('submodule_id', submoduleId)
-        .eq('user_id', userId)
+        .or(`user_id.eq.${userId},shared.eq.true`)
         .order('display_order', { ascending: true });
       
       if (error) throw error;
-      return (data || []).map(transformSlide);
+      return (data || []).map((row: any) => ({ ...transformSlide(row), shared: row.shared || false, isOwn: row.user_id === userId }));
     },
     enabled: !!submoduleId && !!userId,
   });

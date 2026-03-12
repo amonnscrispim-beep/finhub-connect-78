@@ -1215,6 +1215,7 @@ export type Database = {
           manual_bias: string | null
           portfolio_id: string
           sector: string | null
+          shared: boolean
           sub_classification: string | null
           ticker: string
           updated_at: string
@@ -1234,6 +1235,7 @@ export type Database = {
           manual_bias?: string | null
           portfolio_id: string
           sector?: string | null
+          shared?: boolean
           sub_classification?: string | null
           ticker: string
           updated_at?: string
@@ -1253,6 +1255,7 @@ export type Database = {
           manual_bias?: string | null
           portfolio_id?: string
           sector?: string | null
+          shared?: boolean
           sub_classification?: string | null
           ticker?: string
           updated_at?: string
@@ -1275,6 +1278,7 @@ export type Database = {
           display_order: number
           id: string
           name: string
+          shared: boolean
           slug: string
           updated_at: string
           user_id: string
@@ -1285,6 +1289,7 @@ export type Database = {
           display_order?: number
           id?: string
           name: string
+          shared?: boolean
           slug: string
           updated_at?: string
           user_id: string
@@ -1295,6 +1300,7 @@ export type Database = {
           display_order?: number
           id?: string
           name?: string
+          shared?: boolean
           slug?: string
           updated_at?: string
           user_id?: string
@@ -1308,6 +1314,7 @@ export type Database = {
           display_order: number
           icon: string | null
           id: string
+          shared: boolean
           title: string
           updated_at: string
           user_id: string
@@ -1318,6 +1325,7 @@ export type Database = {
           display_order?: number
           icon?: string | null
           id?: string
+          shared?: boolean
           title: string
           updated_at?: string
           user_id: string
@@ -1328,6 +1336,7 @@ export type Database = {
           display_order?: number
           icon?: string | null
           id?: string
+          shared?: boolean
           title?: string
           updated_at?: string
           user_id?: string
@@ -1343,6 +1352,7 @@ export type Database = {
           file_type: string | null
           id: string
           image_url: string | null
+          shared: boolean
           submodule_id: string
           title: string
           updated_at: string
@@ -1356,6 +1366,7 @@ export type Database = {
           file_type?: string | null
           id?: string
           image_url?: string | null
+          shared?: boolean
           submodule_id: string
           title: string
           updated_at?: string
@@ -1369,6 +1380,7 @@ export type Database = {
           file_type?: string | null
           id?: string
           image_url?: string | null
+          shared?: boolean
           submodule_id?: string
           title?: string
           updated_at?: string
@@ -1390,6 +1402,7 @@ export type Database = {
           display_order: number
           id: string
           module_id: string
+          shared: boolean
           title: string
           updated_at: string
           user_id: string
@@ -1399,6 +1412,7 @@ export type Database = {
           display_order?: number
           id?: string
           module_id: string
+          shared?: boolean
           title: string
           updated_at?: string
           user_id: string
@@ -1408,6 +1422,7 @@ export type Database = {
           display_order?: number
           id?: string
           module_id?: string
+          shared?: boolean
           title?: string
           updated_at?: string
           user_id?: string
@@ -1435,6 +1450,7 @@ export type Database = {
           raw_input: string | null
           ref_date: string | null
           report_type: string
+          shared: boolean
           ticker: string | null
           title: string
           updated_at: string
@@ -1452,6 +1468,7 @@ export type Database = {
           raw_input?: string | null
           ref_date?: string | null
           report_type?: string
+          shared?: boolean
           ticker?: string | null
           title?: string
           updated_at?: string
@@ -1469,6 +1486,7 @@ export type Database = {
           raw_input?: string | null
           ref_date?: string | null
           report_type?: string
+          shared?: boolean
           ticker?: string | null
           title?: string
           updated_at?: string
@@ -1602,6 +1620,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      is_master_user: { Args: { p_user_id: string }; Returns: boolean }
       normalize_kanban_order: {
         Args: { p_stage: string; p_user_id: string }
         Returns: Json

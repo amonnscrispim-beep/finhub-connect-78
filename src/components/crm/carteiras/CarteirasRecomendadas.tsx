@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useIsMaster } from '@/hooks/useIsMaster';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { CarteiraGrid } from './CarteiraGrid';
@@ -47,6 +48,7 @@ const DEFAULT_PORTFOLIOS = [
 
 export function CarteirasRecomendadas() {
   const { user } = useAuth();
+  const isMaster = useIsMaster();
   const [portfolios, setPortfolios] = useState<RecommendedPortfolio[]>([]);
   const [allAssets, setAllAssets] = useState<PortfolioAsset[]>([]);
   const [selectedPortfolio, setSelectedPortfolio] = useState<RecommendedPortfolio | null>(null);
@@ -63,7 +65,7 @@ export function CarteirasRecomendadas() {
     const { data: existingPortfolios } = await supabase
       .from('recommended_portfolios')
       .select('*')
-      .eq('user_id', user.id)
+      .or(`user_id.eq.${user.id},shared.eq.true`)
       .order('display_order');
 
     let portfolioList = (existingPortfolios || []) as unknown as RecommendedPortfolio[];
@@ -135,7 +137,7 @@ export function CarteirasRecomendadas() {
     const { data: assets } = await supabase
       .from('recommended_portfolio_assets')
       .select('*')
-      .eq('user_id', user.id)
+      .or(`user_id.eq.${user.id},shared.eq.true`)
       .order('display_order');
 
     setAllAssets((assets || []) as unknown as PortfolioAsset[]);
@@ -147,7 +149,7 @@ export function CarteirasRecomendadas() {
     const { data } = await supabase
       .from('recommended_portfolio_assets')
       .select('*')
-      .eq('user_id', user.id)
+      .or(`user_id.eq.${user.id},shared.eq.true`)
       .order('display_order');
     setAllAssets((data || []) as unknown as PortfolioAsset[]);
   };
@@ -161,6 +163,7 @@ export function CarteirasRecomendadas() {
   }
 
   if (selectedPortfolio) {
+    const isOwnPortfolio = selectedPortfolio.user_id === user?.id;
     return (
       <CarteiraDetail
         portfolio={selectedPortfolio}
@@ -168,6 +171,8 @@ export function CarteirasRecomendadas() {
         allPortfolios={portfolios}
         onBack={() => setSelectedPortfolio(null)}
         onRefresh={refreshAssets}
+        isMaster={isMaster}
+        readOnly={!isOwnPortfolio}
       />
     );
   }
@@ -178,6 +183,8 @@ export function CarteirasRecomendadas() {
         portfolios={portfolios}
         allAssets={allAssets}
         onSelect={setSelectedPortfolio}
+        isMaster={isMaster}
+        userId={user?.id}
       />
       <PortfoliosSection recommendedAssets={allAssets} portfolioNameMap={Object.fromEntries(portfolios.map(p => [p.id, p.name]))} />
     </div>

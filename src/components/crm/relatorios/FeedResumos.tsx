@@ -1,9 +1,10 @@
-import { BarChart3, User, Globe, Clock } from 'lucide-react';
+import { BarChart3, User, Globe, Clock, Share2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { SharedBadge } from '@/components/ui/shared-badge';
 import type { SummaryReport } from './GeradorResumos';
 
 interface Props {
@@ -11,6 +12,9 @@ interface Props {
   isLoading: boolean;
   generatingId: string | null;
   onViewReport: (report: SummaryReport) => void;
+  isMaster?: boolean;
+  userId?: string;
+  onToggleShare?: (id: string, val: boolean) => void;
 }
 
 const typeConfig: Record<string, { icon: React.ReactNode; label: string }> = {
@@ -42,7 +46,7 @@ function getPreview(md: string, lines = 3): string {
   return clean.slice(0, lines).join(' ').slice(0, 200) + (clean.length > lines ? '...' : '');
 }
 
-export function FeedResumos({ reports, isLoading, generatingId, onViewReport }: Props) {
+export function FeedResumos({ reports, isLoading, generatingId, onViewReport, isMaster, userId, onToggleShare }: Props) {
   return (
     <Card className="h-full border-border flex flex-col">
       <CardHeader className="bg-primary text-primary-foreground rounded-t-lg">
@@ -124,6 +128,16 @@ export function FeedResumos({ reports, isLoading, generatingId, onViewReport }: 
                   )}
                   {report.client_name && (
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{report.client_name}</Badge>
+                  )}
+                  {report.shared && report.user_id !== userId && <SharedBadge />}
+                  {isMaster && report.user_id === userId && onToggleShare && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onToggleShare(report.id, !report.shared); }}
+                      className={`ml-1 p-1 rounded hover:bg-muted transition-colors ${report.shared ? 'text-blue-500' : 'text-muted-foreground/40'}`}
+                      title={report.shared ? 'Remover compartilhamento' : 'Compartilhar'}
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                    </button>
                   )}
                   <Button variant="link" size="sm" className="ml-auto text-xs p-0 h-auto text-primary opacity-0 group-hover:opacity-100 transition-opacity">
                     ver mais →

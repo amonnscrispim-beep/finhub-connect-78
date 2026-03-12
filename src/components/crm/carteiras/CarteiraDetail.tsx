@@ -33,6 +33,8 @@ interface Props {
   allPortfolios: RecommendedPortfolio[];
   onBack: () => void;
   onRefresh: () => Promise<void>;
+  isMaster?: boolean;
+  readOnly?: boolean;
 }
 
 function SortableRow({
@@ -42,6 +44,7 @@ function SortableRow({
   onDelete,
   onMove,
   onViewReports,
+  readOnly,
 }: {
   asset: PortfolioAsset;
   isCrescimento: boolean;
@@ -49,6 +52,7 @@ function SortableRow({
   onDelete: (id: string) => void;
   onMove: (a: PortfolioAsset) => void;
   onViewReports: (ticker: string) => void;
+  readOnly?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: asset.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
@@ -96,24 +100,26 @@ function SortableRow({
           )}
         </TableCell>
       )}
-      <TableCell>
-        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(asset)} title="Editar">
-            <Pencil className="w-3.5 h-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onMove(asset)} title="Mover para outra carteira">
-            <ArrowRightLeft className="w-3.5 h-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(asset.id)} title="Excluir">
-            <Trash2 className="w-3.5 h-3.5" />
-          </Button>
-        </div>
-      </TableCell>
+      {!readOnly && (
+        <TableCell>
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(asset)} title="Editar">
+              <Pencil className="w-3.5 h-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onMove(asset)} title="Mover para outra carteira">
+              <ArrowRightLeft className="w-3.5 h-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(asset.id)} title="Excluir">
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        </TableCell>
+      )}
     </TableRow>
   );
 }
 
-export function CarteiraDetail({ portfolio, assets: initialAssets, allPortfolios, onBack, onRefresh }: Props) {
+export function CarteiraDetail({ portfolio, assets: initialAssets, allPortfolios, onBack, onRefresh, isMaster, readOnly }: Props) {
   const { user } = useAuth();
   const [assets, setAssets] = useState<PortfolioAsset[]>(initialAssets);
   const [modalOpen, setModalOpen] = useState(false);
@@ -235,6 +241,11 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, allPortfolios
             <ArrowLeft className="w-4 h-4 mr-1" /> Voltar
           </Button>
           <h2 className="text-xl font-semibold text-foreground">{portfolio.name}</h2>
+          {readOnly && (
+            <Badge variant="outline" className="text-[10px] gap-1 px-1.5 py-0 border-blue-300 text-blue-600 bg-blue-50 ml-2">
+              Compartilhado
+            </Badge>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {isCrescimento && (
@@ -253,9 +264,11 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, allPortfolios
             <RefreshCw className={`w-4 h-4 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
             Atualizar Preços
           </Button>
-          <Button size="sm" onClick={handleAdd} className="bg-primary text-primary-foreground hover:bg-primary/90">
-            <Plus className="w-4 h-4 mr-1.5" /> Adicionar Ativo
-          </Button>
+          {!readOnly && (
+            <Button size="sm" onClick={handleAdd} className="bg-primary text-primary-foreground hover:bg-primary/90">
+              <Plus className="w-4 h-4 mr-1.5" /> Adicionar Ativo
+            </Button>
+          )}
         </div>
       </div>
 
@@ -273,7 +286,7 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, allPortfolios
                   <TableHead className="text-right text-primary-foreground">Preço Teto</TableHead>
                   <TableHead className="text-primary-foreground">Viés</TableHead>
                   {isCrescimento && <TableHead className="text-primary-foreground">Classificação</TableHead>}
-                  <TableHead className="text-primary-foreground w-24">Ações</TableHead>
+                  {!readOnly && <TableHead className="text-primary-foreground w-24">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
               <SortableContext items={filteredAssets.map(a => a.id)} strategy={verticalListSortingStrategy}>
@@ -281,7 +294,7 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, allPortfolios
                   {filteredAssets.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={isCrescimento ? 9 : 8} className="text-center py-12 text-muted-foreground">
-                        Nenhum ativo cadastrado. Clique em "+ Adicionar Ativo" para começar.
+                        Nenhum ativo cadastrado.
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -294,6 +307,7 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, allPortfolios
                         onDelete={handleDelete}
                         onMove={setMoveAsset}
                         onViewReports={setReportsTicker}
+                        readOnly={readOnly}
                       />
                     ))
                   )}

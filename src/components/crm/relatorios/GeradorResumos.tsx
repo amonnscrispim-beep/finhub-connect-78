@@ -9,6 +9,7 @@ import { BibliotecaDetailModal } from './BibliotecaDetailModal';
 import { NovoRelatorioModal } from './NovoRelatorioModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useIsMaster } from '@/hooks/useIsMaster';
 import { toast } from 'sonner';
 
 export interface SummaryReport {
@@ -24,10 +25,13 @@ export interface SummaryReport {
   category?: string;
   is_read?: boolean;
   is_saved?: boolean;
+  shared?: boolean;
+  user_id?: string;
 }
 
 export function GeradorResumos() {
   const { user } = useAuth();
+  const isMaster = useIsMaster();
   const [reports, setReports] = useState<SummaryReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
@@ -41,12 +45,19 @@ export function GeradorResumos() {
   }, [user]);
 
   const fetchReports = async () => {
+    // RLS now returns own + shared reports
     const { data, error } = await supabase
       .from('summary_reports')
       .select('*')
       .order('created_at', { ascending: false });
     if (!error && data) setReports(data as any as SummaryReport[]);
     setIsLoading(false);
+  };
+
+  const handleToggleShare = async (id: string, val: boolean) => {
+    await supabase.from('summary_reports').update({ shared: val } as any).eq('id', id);
+    setReports(prev => prev.map(r => r.id === id ? { ...r, shared: val } : r));
+    toast.success(val ? 'Resumo compartilhado!' : 'Compartilhamento removido.');
   };
 
   const handleNewReport = (report: SummaryReport) => {
@@ -101,6 +112,9 @@ export function GeradorResumos() {
                 isLoading={isLoading}
                 generatingId={generatingId}
                 onViewReport={setSelectedReport}
+                isMaster={isMaster}
+                userId={user?.id}
+                onToggleShare={handleToggleShare}
               />
             </div>
           </div>
@@ -114,6 +128,9 @@ export function GeradorResumos() {
             onNewReport={() => setShowNewModal(true)}
             onToggleRead={handleToggleRead}
             onToggleSaved={handleToggleSaved}
+            isMaster={isMaster}
+            userId={user?.id}
+            onToggleShare={handleToggleShare}
           />
         </TabsContent>
       </Tabs>
