@@ -470,33 +470,42 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
 
               {/* Class totals panel */}
               {classValue > 0 && (
-                <div className="bg-emerald-50 rounded-lg p-3 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
-                  <div>
-                    <p className="text-emerald-700/70 text-xs">Valor Investido</p>
-                    <p className="font-semibold text-emerald-700">R$ {formatBRL(classValue)}</p>
+                isRf ? (
+                  <div className="bg-emerald-50 rounded-lg p-3 text-sm">
+                    <div>
+                      <p className="text-emerald-700/70 text-xs">Valor Investido</p>
+                      <p className="font-semibold text-emerald-700">R$ {formatBRL(classValue)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-emerald-700/70 text-xs">Dividendo Mês</p>
-                    <p className="font-semibold text-emerald-700">R$ {formatBRL(classDvMonth)}</p>
+                ) : (
+                  <div className="bg-emerald-50 rounded-lg p-3 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+                    <div>
+                      <p className="text-emerald-700/70 text-xs">Valor Investido</p>
+                      <p className="font-semibold text-emerald-700">R$ {formatBRL(classValue)}</p>
+                    </div>
+                    <div>
+                      <p className="text-emerald-700/70 text-xs">Dividendo Mês</p>
+                      <p className="font-semibold text-emerald-700">R$ {formatBRL(classDvMonth)}</p>
+                    </div>
+                    <div>
+                      <p className="text-emerald-700/70 text-xs">Dividendo Ano</p>
+                      <p className="font-semibold text-emerald-700">R$ {formatBRL(classDvYear)}</p>
+                    </div>
+                    <div>
+                      <p className="text-emerald-700/70 text-xs">DY Mês %</p>
+                      <p className="font-semibold text-emerald-700">{(classValue > 0 ? (classDvMonth / classValue) * 100 : 0).toFixed(2)}%</p>
+                    </div>
+                    <div>
+                      <p className="text-emerald-700/70 text-xs">DY Ano %</p>
+                      <p className="font-semibold text-emerald-700">
+                        {(() => {
+                          const dyMonthPct = classValue > 0 ? classDvMonth / classValue : 0;
+                          return ((Math.pow(1 + dyMonthPct, 12) - 1) * 100).toFixed(2);
+                        })()}%
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-emerald-700/70 text-xs">Dividendo Ano</p>
-                    <p className="font-semibold text-emerald-700">R$ {formatBRL(classDvYear)}</p>
-                  </div>
-                  <div>
-                    <p className="text-emerald-700/70 text-xs">DY Mês %</p>
-                    <p className="font-semibold text-emerald-700">{(classValue > 0 ? (classDvMonth / classValue) * 100 : 0).toFixed(2)}%</p>
-                  </div>
-                  <div>
-                    <p className="text-emerald-700/70 text-xs">DY Ano %</p>
-                    <p className="font-semibold text-emerald-700">
-                      {(() => {
-                        const dyMonthPct = classValue > 0 ? classDvMonth / classValue : 0;
-                        return ((Math.pow(1 + dyMonthPct, 12) - 1) * 100).toFixed(2);
-                      })()}%
-                    </p>
-                  </div>
-                </div>
+                )
               )}
             </div>
           );
