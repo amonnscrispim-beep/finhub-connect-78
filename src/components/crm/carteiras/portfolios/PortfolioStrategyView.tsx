@@ -425,21 +425,27 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                           <TableCell className="text-right text-sm">R$ {formatBRL(c.assetValue)}</TableCell>
                           {!isRf && <TableCell className="text-right text-sm font-medium">{c.cotas !== null ? c.cotas : '—'}</TableCell>}
                           <TableCell className="text-right">
-                            <Input type="number" step="0.01" className="h-7 w-20 text-sm text-right inline-block"
-                              defaultValue={c.dyInput.toFixed(2)}
-                              key={`dy-${c.asset.id}`}
-                              onBlur={e => {
-                                const val = parseFloat(e.target.value) || 0;
-                                if (Math.abs(val - c.dyInput) > 0.001) handleUpdateAssetField(c.asset.id, 'dy_pct', val);
-                              }}
-                            />
+                            {isConservador ? (
+                              <Input type="number" step="0.01" className="h-7 w-20 text-sm text-right inline-block"
+                                defaultValue={c.dyInput.toFixed(2)}
+                                key={`dy-${c.asset.id}`}
+                                onBlur={e => {
+                                  const val = parseFloat(e.target.value) || 0;
+                                  if (Math.abs(val - c.dyInput) > 0.001) handleUpdateAssetField(c.asset.id, 'dy_pct', val);
+                                }}
+                              />
+                            ) : (
+                              <span className="text-sm">{c.dyInput.toFixed(2)}</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-right text-sm text-emerald-600">R$ {formatBRL(c.dvMonth)}</TableCell>
                           <TableCell className="text-right text-sm text-emerald-600">R$ {formatBRL(c.dvYear)}</TableCell>
                           <TableCell>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteAsset(c.asset.id)}>
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
+                            {isConservador && (
+                              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteAsset(c.asset.id)}>
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
