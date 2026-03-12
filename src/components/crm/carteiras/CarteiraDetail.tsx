@@ -40,12 +40,14 @@ function SortableRow({
   onEdit,
   onDelete,
   onMove,
+  onViewReports,
 }: {
   asset: PortfolioAsset;
   isCrescimento: boolean;
   onEdit: (a: PortfolioAsset) => void;
   onDelete: (id: string) => void;
   onMove: (a: PortfolioAsset) => void;
+  onViewReports: (ticker: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: asset.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
