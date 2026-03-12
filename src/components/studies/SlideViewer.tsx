@@ -238,7 +238,7 @@ export function SlideViewer({ submodule, onBack }: SlideViewerProps) {
           )}
         </div>
         <div className="flex items-center gap-2">
-          {currentSlide && (
+          {currentSlide && currentSlide.isOwn !== false && (
             <>
               <Button size="sm" variant="outline" onClick={() => openEditor(currentSlide)}>
                 <Pencil className="w-4 h-4 mr-2" />
@@ -249,6 +249,9 @@ export function SlideViewer({ submodule, onBack }: SlideViewerProps) {
                 Excluir
               </Button>
             </>
+          )}
+          {currentSlide && currentSlide.isOwn === false && currentSlide.shared && (
+            <SharedBadge />
           )}
           <Button size="sm" onClick={() => openEditor()}>
             <Plus className="w-4 h-4 mr-2" />
