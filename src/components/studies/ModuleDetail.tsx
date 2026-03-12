@@ -48,7 +48,6 @@ export function ModuleDetail({ module, onSubmoduleClick }: ModuleDetailProps) {
     e.stopPropagation();
     const newVal = !(sub as any).shared;
     await supabase.from('study_submodules').update({ shared: newVal } as any).eq('id', sub.id);
-    // Also share/unshare all slides
     const { data: slides } = await supabase.from('study_slides').select('id').eq('submodule_id', sub.id);
     if (slides && slides.length > 0) {
       await supabase.from('study_slides').update({ shared: newVal } as any).in('id', slides.map(s => s.id));
@@ -105,13 +104,15 @@ export function ModuleDetail({ module, onSubmoduleClick }: ModuleDetailProps) {
 
   return (
     <div className="space-y-4">
-      {/* Add button */}
-      <div className="flex justify-end">
-        <Button onClick={() => setIsAdding(true)} disabled={isAdding}>
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Aula
-        </Button>
-      </div>
+      {/* Add button - only for own modules */}
+      {isOwnModule && (
+        <div className="flex justify-end">
+          <Button onClick={() => setIsAdding(true)} disabled={isAdding}>
+            <Plus className="w-4 h-4 mr-2" />
+            Nova Aula
+          </Button>
+        </div>
+      )}
 
       {/* Add form */}
       {isAdding && (
@@ -142,60 +143,79 @@ export function ModuleDetail({ module, onSubmoduleClick }: ModuleDetailProps) {
           <BookOpen className="w-12 h-12 text-muted-foreground/50 mb-3" />
           <h3 className="text-lg font-medium text-foreground">Nenhuma aula ainda</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            Clique em "Nova Aula" para adicionar conteúdo a este módulo.
+            {isOwnModule ? 'Clique em "Nova Aula" para adicionar conteúdo a este módulo.' : 'Nenhum conteúdo compartilhado neste módulo.'}
           </p>
         </div>
       ) : (
         <div className="space-y-2">
-          {submodules.map((submodule, index) => (
-            <Card 
-              key={submodule.id}
-              className="group hover:shadow-sm transition-shadow"
-            >
-              <CardContent className="p-4">
-                {editingId === submodule.id ? (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={editingTitle}
-                      onChange={(e) => setEditingTitle(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleUpdate(submodule.id)}
-                      autoFocus
-                    />
-                    <Button size="icon" onClick={() => handleUpdate(submodule.id)} disabled={updateSubmodule.isPending}>
-                      <Check className="w-4 h-4" />
-                    </Button>
-                    <Button size="icon" variant="ghost" onClick={() => setEditingId(null)}>
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3">
-                    <GripVertical className="w-4 h-4 text-muted-foreground/50" />
-                    <span className="text-sm font-medium text-muted-foreground w-8">
-                      {String(index + 1).padStart(2, '0')}
-                    </span>
-                    <button 
-                      className="flex-1 text-left font-medium text-foreground hover:text-primary transition-colors"
-                      onClick={() => onSubmoduleClick(submodule)}
-                    >
-                      {submodule.title}
-                    </button>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button size="icon" variant="ghost" onClick={() => onSubmoduleClick(submodule)}>
-                        <Play className="w-4 h-4" />
+          {submodules.map((submodule, index) => {
+            const subIsOwn = submodule.userId === user?.id;
+            const subIsShared = (submodule as any).shared;
+            return (
+              <Card 
+                key={submodule.id}
+                className="group hover:shadow-sm transition-shadow"
+              >
+                <CardContent className="p-4">
+                  {editingId === submodule.id && subIsOwn ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={editingTitle}
+                        onChange={(e) => setEditingTitle(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleUpdate(submodule.id)}
+                        autoFocus
+                      />
+                      <Button size="icon" onClick={() => handleUpdate(submodule.id)} disabled={updateSubmodule.isPending}>
+                        <Check className="w-4 h-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" onClick={() => startEditing(submodule)}>
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={() => setDeletingId(submodule.id)}>
-                        <Trash2 className="w-4 h-4 text-destructive" />
+                      <Button size="icon" variant="ghost" onClick={() => setEditingId(null)}>
+                        <X className="w-4 h-4" />
                       </Button>
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      {subIsOwn && <GripVertical className="w-4 h-4 text-muted-foreground/50" />}
+                      <span className="text-sm font-medium text-muted-foreground w-8">
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                      <button 
+                        className="flex-1 text-left font-medium text-foreground hover:text-primary transition-colors"
+                        onClick={() => onSubmoduleClick(submodule)}
+                      >
+                        {submodule.title}
+                      </button>
+                      {!subIsOwn && subIsShared && <SharedBadge />}
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button size="icon" variant="ghost" onClick={() => onSubmoduleClick(submodule)}>
+                          <Play className="w-4 h-4" />
+                        </Button>
+                        {subIsOwn && (
+                          <>
+                            {isMaster && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={(e) => toggleShareSubmodule(e, submodule)}
+                                title={subIsShared ? 'Remover compartilhamento' : 'Compartilhar'}
+                              >
+                                <Share2 className={`w-4 h-4 ${subIsShared ? 'text-blue-500' : ''}`} />
+                              </Button>
+                            )}
+                            <Button size="icon" variant="ghost" onClick={() => startEditing(submodule)}>
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => setDeletingId(submodule.id)}>
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
