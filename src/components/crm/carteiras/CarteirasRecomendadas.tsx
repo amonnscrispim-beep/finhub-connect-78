@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { CarteiraGrid } from './CarteiraGrid';
 import { CarteiraDetail } from './CarteiraDetail';
+import { PortfoliosSection } from './portfolios/PortfoliosSection';
 
 export interface RecommendedPortfolio {
   id: string;
