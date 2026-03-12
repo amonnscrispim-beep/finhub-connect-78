@@ -1,14 +1,20 @@
 import { useState } from 'react';
 import { StudyModule, StudySubmodule } from '@/types/study';
 import { useStudySubmodules } from '@/hooks/useStudyModules';
+import { useAuth } from '@/hooks/useAuth';
+import { useIsMaster } from '@/hooks/useIsMaster';
+import { SharedBadge } from '@/components/ui/shared-badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Plus, Play, Pencil, Trash2, Check, X, 
-  GripVertical, BookOpen 
+  GripVertical, BookOpen, Share2 
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   AlertDialog,
   AlertDialogAction,
