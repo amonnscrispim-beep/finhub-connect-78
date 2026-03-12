@@ -299,6 +299,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <h4 className="text-sm font-medium">{cls.label} ({data.classPct}%)</h4>
+                  <span className="text-xs text-muted-foreground font-medium">R$ {formatBRL(investAmount * (data.classPct / 100))}</span>
                   {!classAllocValid && data.calcs.length > 0 && (
                     <Badge variant="destructive" className="text-[10px] h-5">
                       <AlertTriangle className="w-3 h-3 mr-0.5" />
