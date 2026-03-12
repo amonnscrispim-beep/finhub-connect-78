@@ -241,6 +241,53 @@ export type Database = {
           },
         ]
       }
+      client_portfolio_config: {
+        Row: {
+          client_id: string
+          created_at: string
+          custom_allocations: Json | null
+          id: string
+          invest_amount: number
+          is_customized: boolean
+          profile: string
+          strategy: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          custom_allocations?: Json | null
+          id?: string
+          invest_amount?: number
+          is_customized?: boolean
+          profile?: string
+          strategy?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          custom_allocations?: Json | null
+          id?: string
+          invest_amount?: number
+          is_customized?: boolean
+          profile?: string
+          strategy?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portfolio_config_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_portfolio_performance: {
         Row: {
           client_id: string
