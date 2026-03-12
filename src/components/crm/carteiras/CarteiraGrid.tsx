@@ -59,6 +59,8 @@ export function CarteiraGrid({ portfolios, allAssets, onSelect, isMaster, userId
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {portfolios.map(portfolio => {
           const stats = getPortfolioStats(portfolio.id);
+          const isShared = (portfolio as any).shared;
+          const isOwnPortfolio = portfolio.user_id === userId;
 
           return (
             <Card
@@ -69,9 +71,12 @@ export function CarteiraGrid({ portfolios, allAssets, onSelect, isMaster, userId
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center justify-between">
                   {portfolio.name}
-                  <Badge variant="outline" className="text-xs">
-                    {stats.totalAssets} ativos
-                  </Badge>
+                  <div className="flex items-center gap-1">
+                    {isShared && !isOwnPortfolio && <SharedBadge />}
+                    <Badge variant="outline" className="text-xs">
+                      {stats.totalAssets} ativos
+                    </Badge>
+                  </div>
                 </CardTitle>
                 {portfolio.description && (
                   <p className="text-xs text-muted-foreground">{portfolio.description}</p>
@@ -92,6 +97,18 @@ export function CarteiraGrid({ portfolios, allAssets, onSelect, isMaster, userId
                     <Calendar className="w-3.5 h-3.5" />
                     Atualizado em {format(new Date(stats.lastUpdated), "dd/MM/yyyy", { locale: ptBR })}
                   </div>
+                )}
+
+                {isMaster && isOwnPortfolio && (
+                  <Button
+                    variant={isShared ? 'default' : 'outline'}
+                    size="sm"
+                    className="text-xs h-7 w-full"
+                    onClick={(e) => toggleShare(e, portfolio)}
+                  >
+                    <Share2 className="w-3 h-3 mr-1" />
+                    {isShared ? 'Compartilhado' : 'Compartilhar'}
+                  </Button>
                 )}
               </CardContent>
             </Card>
