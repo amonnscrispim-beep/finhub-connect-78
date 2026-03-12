@@ -361,9 +361,11 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                   <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleCopyClass(cls.key)}>
                     <Copy className="w-3 h-3 mr-1" /> Copiar
                   </Button>
-                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => openAddAsset(cls.key)}>
-                    <Plus className="w-3 h-3 mr-1" /> Adicionar
-                  </Button>
+                  {isConservador && (
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => openAddAsset(cls.key)}>
+                      <Plus className="w-3 h-3 mr-1" /> Adicionar
+                    </Button>
+                  )}
                 </div>
               </div>
 
