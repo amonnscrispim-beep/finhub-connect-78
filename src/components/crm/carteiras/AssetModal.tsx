@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PortfolioAsset, RecommendedPortfolio } from './CarteirasRecomendadas';
 
-const SECTORS = [
+const SECTOR_SUGGESTIONS = [
   'Financeiro e Outros',
   'Bens Industriais',
   'Materiais Básicos',
