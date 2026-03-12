@@ -88,14 +88,11 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     const deletedAsset = assets.find(a => a.id === id);
     await supabase.from('portfolio_assets').delete().eq('id', id);
 
-    // Redistribute equally among remaining assets in same class
+    // Reset remaining assets to 0 so UI auto-distributes equally
     if (deletedAsset) {
       const remaining = assets.filter(a => a.id !== id && a.asset_class === deletedAsset.asset_class);
-      if (remaining.length > 0) {
-        const equalPct = parseFloat((100 / remaining.length).toFixed(2));
-        for (const a of remaining) {
-          await supabase.from('portfolio_assets').update({ allocation_pct: equalPct }).eq('id', a.id);
-        }
+      for (const a of remaining) {
+        await supabase.from('portfolio_assets').update({ allocation_pct: 0 }).eq('id', a.id);
       }
     }
 
