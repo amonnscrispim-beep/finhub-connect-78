@@ -60,36 +60,37 @@ function computeAsset(
   recommendedAssets: PortfolioAsset[],
   classKey: string,
 ): AssetCalc {
-  const autoTotalPct = classPct / classCount;
-  const storedPct = Number(asset.allocation_pct);
-  const displayPct = storedPct > 0 ? storedPct : autoTotalPct;
-  const assetValue = investAmount * (displayPct / 100);
+  // allocation_pct stores the weight within the class (e.g. 10% of the class)
+  const storedClassPct = Number(asset.allocation_pct);
+  const autoClassPct = classCount > 0 ? 100 / classCount : 0;
+  const allocClassPct = storedClassPct > 0 ? storedClassPct : autoClassPct;
+  
+  // Total portfolio % = class% × classWeight/100
+  const totalPct = classPct * (allocClassPct / 100);
+  const assetValue = investAmount * (totalPct / 100);
+  
   const source = asset.source_asset_id ? recommendedAssets.find(a => a.id === asset.source_asset_id) || null : null;
   const currentPrice = source?.current_price ? Number(source.current_price) : null;
   const isRf = classKey === 'renda_fixa';
   const isFii = classKey === 'fiis';
   const cotas = !isRf && currentPrice && currentPrice > 0 ? Math.floor(assetValue / currentPrice) : null;
 
-  // dy_pct now stores R$ per cota
   const dyInput = Number(asset.dy_pct) || 0;
   let dvMonth: number;
   let dvYear: number;
 
   if (isFii) {
-    // FII: input is R$/cota/mês
     dvMonth = dyInput * (cotas || 0);
     dvYear = dvMonth * 12;
   } else if (isRf) {
-    // RF: input is taxa anual % → dividendo = valor * taxa/100
     dvYear = assetValue * (dyInput / 100);
     dvMonth = dvYear / 12;
   } else {
-    // Ações/Internacional: input is R$/cota/ano
     dvYear = dyInput * (cotas || 0);
     dvMonth = dvYear / 12;
   }
 
-  return { asset, displayPct, assetValue, cotas, dyInput, dvMonth, dvYear, source, isFii, isRf };
+  return { asset, allocClassPct, totalPct, assetValue, cotas, dyInput, dvMonth, dvYear, source, isFii, isRf };
 }
 
 function formatBRL(v: number): string {
