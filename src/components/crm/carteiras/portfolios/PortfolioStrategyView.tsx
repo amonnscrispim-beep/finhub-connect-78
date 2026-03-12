@@ -180,6 +180,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
           if (classPct === 0 && classAssets.length === 0) return null;
 
           const classValue = investAmount * (classPct / 100);
+          const equalPctWithinClass = classAssets.length > 0 ? 100 / classAssets.length : 0;
 
           return (
             <div key={cls.key} className="space-y-2">
@@ -202,16 +203,20 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                         {cls.key !== 'renda_fixa' && <TableHead className="text-xs text-right">Preço Teto</TableHead>}
                         {cls.key !== 'renda_fixa' && <TableHead className="text-xs text-right">Preço Atual</TableHead>}
                         <TableHead className="text-xs text-right">Alocação %</TableHead>
-                        {investAmount > 0 && <TableHead className="text-xs text-right">Valor (R$)</TableHead>}
-                        {investAmount > 0 && cls.key !== 'renda_fixa' && <TableHead className="text-xs text-right">Qtd. Cotas</TableHead>}
+                        <TableHead className="text-xs text-right">Valor (R$)</TableHead>
+                        {cls.key !== 'renda_fixa' && <TableHead className="text-xs text-right">Qtd. Cotas</TableHead>}
                         <TableHead className="text-xs w-10" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {classAssets.map(asset => {
                         const source = getSourceAsset(asset.source_asset_id);
-                        const pct = Number(asset.allocation_pct);
-                        const assetValue = classValue * (pct / 100);
+                        // Use stored pct if manually set, otherwise equal distribution
+                        const storedPct = Number(asset.allocation_pct);
+                        const effectivePct = storedPct > 0 ? storedPct : equalPctWithinClass;
+                        // Actual % of total = classPct * effectivePct / 100
+                        const actualPctOfTotal = classPct * effectivePct / 100;
+                        const assetValue = investAmount * (actualPctOfTotal / 100);
                         const currentPrice = source?.current_price;
                         const cotas = currentPrice && currentPrice > 0 ? Math.floor(assetValue / currentPrice) : null;
 
@@ -236,17 +241,16 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                                 type="number"
                                 step="0.01"
                                 className="h-7 w-20 text-sm text-right inline-block"
-                                defaultValue={pct.toFixed(2)}
+                                defaultValue={effectivePct.toFixed(2)}
+                                key={`${asset.id}-${classAssets.length}-${effectivePct.toFixed(2)}`}
                                 onBlur={e => {
                                   const val = parseFloat(e.target.value) || 0;
-                                  if (val !== pct) handleUpdateAssetPct(asset.id, val);
+                                  if (Math.abs(val - effectivePct) > 0.001) handleUpdateAssetPct(asset.id, val);
                                 }}
                               />
                             </TableCell>
-                            {investAmount > 0 && (
-                              <TableCell className="text-right text-sm">R$ {assetValue.toFixed(2)}</TableCell>
-                            )}
-                            {investAmount > 0 && cls.key !== 'renda_fixa' && (
+                            <TableCell className="text-right text-sm">R$ {assetValue.toFixed(2)}</TableCell>
+                            {cls.key !== 'renda_fixa' && (
                               <TableCell className="text-right text-sm font-medium">{cotas !== null ? cotas : '—'}</TableCell>
                             )}
                             <TableCell>
