@@ -127,27 +127,32 @@ export function AssetModal({ open, onOpenChange, portfolioId, portfolioSlug, ass
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className={`grid ${isFIIs ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
             <div className="space-y-1.5">
               <Label>Ticker *</Label>
               <Input value={ticker} onChange={e => setTicker(e.target.value)} placeholder="PETR4" />
             </div>
-            <div className="space-y-1.5">
-              <Label>Nome</Label>
-              <Input value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="Petrobras" />
-            </div>
+            {!isFIIs && (
+              <div className="space-y-1.5">
+                <Label>Nome</Label>
+                <Input value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="Petrobras" />
+              </div>
+            )}
           </div>
 
           <div className="space-y-1.5">
             <Label>Setor</Label>
-            <Select value={sector} onValueChange={setSector}>
-              <SelectTrigger><SelectValue placeholder="Selecionar setor" /></SelectTrigger>
-              <SelectContent>
-                {SECTORS.map(s => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input
+              value={sector}
+              onChange={e => setSector(e.target.value)}
+              placeholder="Digite o setor"
+              list="sector-suggestions"
+            />
+            <datalist id="sector-suggestions">
+              {SECTOR_SUGGESTIONS.map(s => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
           </div>
 
           <div className="space-y-1.5">
