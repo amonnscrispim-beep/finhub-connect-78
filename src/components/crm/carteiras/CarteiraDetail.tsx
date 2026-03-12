@@ -10,6 +10,7 @@ import { ArrowLeft, Plus, Pencil, Trash2, GripVertical, RefreshCw, ArrowRightLef
 import { RecommendedPortfolio, PortfolioAsset } from './CarteirasRecomendadas';
 import { AssetModal } from './AssetModal';
 import { MoveAssetModal } from './MoveAssetModal';
+import { TickerReportsModal } from './TickerReportsModal';
 import {
   DndContext,
   closestCenter,
