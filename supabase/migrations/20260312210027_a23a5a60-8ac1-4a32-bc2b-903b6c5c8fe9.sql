@@ -1,0 +1,1 @@
+ALTER TABLE public.recommended_portfolio_assets ADD COLUMN IF NOT EXISTS sub_classification text DEFAULT NULL;

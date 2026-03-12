@@ -1048,6 +1048,7 @@ export type Database = {
           manual_bias: string | null
           portfolio_id: string
           sector: string | null
+          sub_classification: string | null
           ticker: string
           updated_at: string
           user_id: string
@@ -1066,6 +1067,7 @@ export type Database = {
           manual_bias?: string | null
           portfolio_id: string
           sector?: string | null
+          sub_classification?: string | null
           ticker: string
           updated_at?: string
           user_id: string
@@ -1084,6 +1086,7 @@ export type Database = {
           manual_bias?: string | null
           portfolio_id?: string
           sector?: string | null
+          sub_classification?: string | null
           ticker?: string
           updated_at?: string
           user_id?: string
