@@ -292,6 +292,7 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, allPortfolios
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                         onMove={setMoveAsset}
+                        onViewReports={setReportsTicker}
                       />
                     ))
                   )}
