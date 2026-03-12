@@ -98,7 +98,7 @@ export function PortfolioAssetModal({ open, onOpenChange, portfolioId, assetClas
         } as any);
       }
 
-      // Redistribute allocation equally among all assets in this class
+      // Reset all assets in class to 0 so the UI auto-calculates equal distribution
       const { data: classAssets } = await supabase
         .from('portfolio_assets')
         .select('id')
@@ -106,9 +106,8 @@ export function PortfolioAssetModal({ open, onOpenChange, portfolioId, assetClas
         .eq('asset_class', assetClass);
 
       if (classAssets && classAssets.length > 0) {
-        const equalPct = parseFloat((100 / classAssets.length).toFixed(2));
         for (const a of classAssets) {
-          await supabase.from('portfolio_assets').update({ allocation_pct: equalPct }).eq('id', a.id);
+          await supabase.from('portfolio_assets').update({ allocation_pct: 0 }).eq('id', a.id);
         }
       }
 
