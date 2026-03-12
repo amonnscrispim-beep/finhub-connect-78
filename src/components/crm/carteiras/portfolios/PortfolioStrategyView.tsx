@@ -24,6 +24,10 @@ interface Props {
   onRefreshAssets: () => Promise<void>;
   isConservador?: boolean;
   conservadorPortfolioId?: string;
+  isMaster?: boolean;
+  isOwnPortfolio?: boolean;
+  readOnly?: boolean;
+  onToggleShareStrategy?: () => void;
 }
 
 const ASSET_CLASSES = [
