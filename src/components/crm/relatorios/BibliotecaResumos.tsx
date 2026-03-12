@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
-import { Search, Plus, Clock, Check, Bookmark, BookmarkCheck, BarChart3, Building2, Globe, TrendingUp, FolderOpen, DollarSign, Newspaper } from 'lucide-react';
+import { Search, Plus, Clock, Check, Bookmark, BookmarkCheck, BarChart3, Building2, Globe, TrendingUp, FolderOpen, DollarSign, Newspaper, Share2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SharedBadge } from '@/components/ui/shared-badge';
 import type { SummaryReport } from './GeradorResumos';
 
 interface Props {
@@ -13,6 +14,9 @@ interface Props {
   onNewReport: () => void;
   onToggleRead: (id: string, val: boolean) => void;
   onToggleSaved: (id: string, val: boolean) => void;
+  isMaster?: boolean;
+  userId?: string;
+  onToggleShare?: (id: string, val: boolean) => void;
 }
 
 const categories = [
