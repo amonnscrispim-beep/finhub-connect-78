@@ -67,6 +67,55 @@ export function CarteirasRecomendadas() {
 
     let portfolioList = (existingPortfolios || []) as unknown as RecommendedPortfolio[];
 
+    // Migrate old structure: merge Small Caps + Valor into Crescimento
+    const slugs = portfolioList.map(p => p.slug);
+    const hasOldStructure = (slugs.includes('small-caps') || slugs.includes('valor')) && !slugs.includes('crescimento');
+
+    if (hasOldStructure) {
+      // Create Crescimento portfolio
+      const { data: crescimento } = await supabase
+        .from('recommended_portfolios')
+        .insert({ name: 'Crescimento', slug: 'crescimento', display_order: 0, user_id: user.id, description: 'Small Caps + Valor' })
+        .select()
+        .single();
+
+      if (crescimento) {
+        const crescimentoId = crescimento.id;
+        // Migrate Small Caps assets
+        const smallCaps = portfolioList.find(p => p.slug === 'small-caps');
+        if (smallCaps) {
+          await supabase
+            .from('recommended_portfolio_assets')
+            .update({ portfolio_id: crescimentoId, sub_classification: 'Small Caps' } as any)
+            .eq('portfolio_id', smallCaps.id);
+          await supabase.from('recommended_portfolios').delete().eq('id', smallCaps.id);
+        }
+        // Migrate Valor assets
+        const valor = portfolioList.find(p => p.slug === 'valor');
+        if (valor) {
+          await supabase
+            .from('recommended_portfolio_assets')
+            .update({ portfolio_id: crescimentoId, sub_classification: 'Valor' } as any)
+            .eq('portfolio_id', valor.id);
+          await supabase.from('recommended_portfolios').delete().eq('id', valor.id);
+        }
+        // Update display_order of remaining portfolios
+        for (const p of portfolioList) {
+          if (p.slug === 'dividendos') await supabase.from('recommended_portfolios').update({ display_order: 1 }).eq('id', p.id);
+          if (p.slug === 'fiis') await supabase.from('recommended_portfolios').update({ display_order: 2 }).eq('id', p.id);
+          if (p.slug === 'internacional') await supabase.from('recommended_portfolios').update({ display_order: 3 }).eq('id', p.id);
+        }
+      }
+
+      // Reload after migration
+      const { data: refreshed } = await supabase
+        .from('recommended_portfolios')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('display_order');
+      portfolioList = (refreshed || []) as unknown as RecommendedPortfolio[];
+    }
+
     // Seed defaults if none exist
     if (portfolioList.length === 0) {
       const toInsert = DEFAULT_PORTFOLIOS.map(p => ({
