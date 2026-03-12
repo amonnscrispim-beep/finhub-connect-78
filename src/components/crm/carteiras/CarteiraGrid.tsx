@@ -1,14 +1,20 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BarChart3, Calendar } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { SharedBadge } from '@/components/ui/shared-badge';
+import { BarChart3, Calendar, Share2 } from 'lucide-react';
 import { RecommendedPortfolio, PortfolioAsset } from './CarteirasRecomendadas';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface Props {
   portfolios: RecommendedPortfolio[];
   allAssets: PortfolioAsset[];
   onSelect: (p: RecommendedPortfolio) => void;
+  isMaster?: boolean;
+  userId?: string;
 }
 
 export function CarteiraGrid({ portfolios, allAssets, onSelect }: Props) {
