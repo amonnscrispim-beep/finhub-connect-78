@@ -98,6 +98,20 @@ export function PortfolioAssetModal({ open, onOpenChange, portfolioId, assetClas
         } as any);
       }
 
+      // Redistribute allocation equally among all assets in this class
+      const { data: classAssets } = await supabase
+        .from('portfolio_assets')
+        .select('id')
+        .eq('portfolio_id', portfolioId)
+        .eq('asset_class', assetClass);
+
+      if (classAssets && classAssets.length > 0) {
+        const equalPct = parseFloat((100 / classAssets.length).toFixed(2));
+        for (const a of classAssets) {
+          await supabase.from('portfolio_assets').update({ allocation_pct: equalPct }).eq('id', a.id);
+        }
+      }
+
       toast.success('Ativo adicionado ao portfólio');
       onSaved();
     } catch (e: any) {
