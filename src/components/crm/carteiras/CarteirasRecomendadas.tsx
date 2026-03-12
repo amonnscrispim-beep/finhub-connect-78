@@ -183,6 +183,8 @@ export function CarteirasRecomendadas() {
         portfolios={portfolios}
         allAssets={allAssets}
         onSelect={setSelectedPortfolio}
+        isMaster={isMaster}
+        userId={user?.id}
       />
       <PortfoliosSection recommendedAssets={allAssets} portfolioNameMap={Object.fromEntries(portfolios.map(p => [p.id, p.name]))} />
     </div>
