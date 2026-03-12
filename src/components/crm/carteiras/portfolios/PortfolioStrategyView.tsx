@@ -88,14 +88,11 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     const deletedAsset = assets.find(a => a.id === id);
     await supabase.from('portfolio_assets').delete().eq('id', id);
 
-    // Redistribute equally among remaining assets in same class
+    // Reset remaining assets to 0 so UI auto-distributes equally
     if (deletedAsset) {
       const remaining = assets.filter(a => a.id !== id && a.asset_class === deletedAsset.asset_class);
-      if (remaining.length > 0) {
-        const equalPct = parseFloat((100 / remaining.length).toFixed(2));
-        for (const a of remaining) {
-          await supabase.from('portfolio_assets').update({ allocation_pct: equalPct }).eq('id', a.id);
-        }
+      for (const a of remaining) {
+        await supabase.from('portfolio_assets').update({ allocation_pct: 0 }).eq('id', a.id);
       }
     }
 
@@ -211,12 +208,13 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                     <TableBody>
                       {classAssets.map(asset => {
                         const source = getSourceAsset(asset.source_asset_id);
-                        // Use stored pct if manually set, otherwise equal distribution
+                        // % do total = classe% / número de ativos (distribuição igual)
+                        const autoTotalPct = classPct / classAssets.length;
+                        // Se o usuário editou manualmente (stored > 0 e diferente do auto), usar o stored
                         const storedPct = Number(asset.allocation_pct);
-                        const effectivePct = storedPct > 0 ? storedPct : equalPctWithinClass;
-                        // Actual % of total = classPct * effectivePct / 100
-                        const actualPctOfTotal = classPct * effectivePct / 100;
-                        const assetValue = investAmount * (actualPctOfTotal / 100);
+                        const displayPct = storedPct > 0 ? storedPct : autoTotalPct;
+                        // Valor R$ = (% do ativo / 100) × valor total
+                        const assetValue = investAmount * (displayPct / 100);
                         const currentPrice = source?.current_price;
                         const cotas = currentPrice && currentPrice > 0 ? Math.floor(assetValue / currentPrice) : null;
 
@@ -241,11 +239,11 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                                 type="number"
                                 step="0.01"
                                 className="h-7 w-20 text-sm text-right inline-block"
-                                defaultValue={effectivePct.toFixed(2)}
-                                key={`${asset.id}-${classAssets.length}-${effectivePct.toFixed(2)}`}
+                                defaultValue={displayPct.toFixed(2)}
+                                key={`${asset.id}-${classAssets.length}-${classPct}`}
                                 onBlur={e => {
                                   const val = parseFloat(e.target.value) || 0;
-                                  if (Math.abs(val - effectivePct) > 0.001) handleUpdateAssetPct(asset.id, val);
+                                  if (Math.abs(val - displayPct) > 0.001) handleUpdateAssetPct(asset.id, val);
                                 }}
                               />
                             </TableCell>

@@ -79,7 +79,7 @@ export function PortfolioAssetModal({ open, onOpenChange, portfolioId, assetClas
           rf_type: rfType,
           indexador: rfIndexador.trim(),
           vencimento: rfVencimento || null,
-          allocation_pct: parseFloat(rfAllocationPct) || 0,
+          allocation_pct: 0,
           display_order: nextOrder,
         } as any);
       } else {
@@ -92,13 +92,13 @@ export function PortfolioAssetModal({ open, onOpenChange, portfolioId, assetClas
           asset_class: assetClass,
           ticker: source.ticker,
           name: source.company_name,
-          allocation_pct: parseFloat(allocationPct) || 0,
+          allocation_pct: 0,
           source_asset_id: source.id,
           display_order: nextOrder,
         } as any);
       }
 
-      // Redistribute allocation equally among all assets in this class
+      // Reset all assets in class to 0 so the UI auto-calculates equal distribution
       const { data: classAssets } = await supabase
         .from('portfolio_assets')
         .select('id')
@@ -106,9 +106,8 @@ export function PortfolioAssetModal({ open, onOpenChange, portfolioId, assetClas
         .eq('asset_class', assetClass);
 
       if (classAssets && classAssets.length > 0) {
-        const equalPct = parseFloat((100 / classAssets.length).toFixed(2));
         for (const a of classAssets) {
-          await supabase.from('portfolio_assets').update({ allocation_pct: equalPct }).eq('id', a.id);
+          await supabase.from('portfolio_assets').update({ allocation_pct: 0 }).eq('id', a.id);
         }
       }
 
