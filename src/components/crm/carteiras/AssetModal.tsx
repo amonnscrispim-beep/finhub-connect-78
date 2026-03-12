@@ -55,7 +55,7 @@ export function AssetModal({ open, onOpenChange, portfolioId, portfolioSlug, ass
       setCompanyName(asset.company_name);
       setSector(asset.sector || '');
       setCeilingPrice(String(asset.ceiling_price));
-      setBias(asset.manual_bias || 'Comprar');
+      
       setSubClassification(asset.sub_classification || 'Small Caps');
       setDestinationPortfolioId(asset.portfolio_id);
     } else {
