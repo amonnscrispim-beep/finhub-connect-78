@@ -1,9 +1,10 @@
-import { BarChart3, User, Globe, Clock } from 'lucide-react';
+import { BarChart3, User, Globe, Clock, Share2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { SharedBadge } from '@/components/ui/shared-badge';
 import type { SummaryReport } from './GeradorResumos';
 
 interface Props {
@@ -11,6 +12,9 @@ interface Props {
   isLoading: boolean;
   generatingId: string | null;
   onViewReport: (report: SummaryReport) => void;
+  isMaster?: boolean;
+  userId?: string;
+  onToggleShare?: (id: string, val: boolean) => void;
 }
 
 const typeConfig: Record<string, { icon: React.ReactNode; label: string }> = {
