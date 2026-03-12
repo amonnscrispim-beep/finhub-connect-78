@@ -48,6 +48,7 @@ const DEFAULT_PORTFOLIOS = [
 
 export function CarteirasRecomendadas() {
   const { user } = useAuth();
+  const isMaster = useIsMaster();
   const [portfolios, setPortfolios] = useState<RecommendedPortfolio[]>([]);
   const [allAssets, setAllAssets] = useState<PortfolioAsset[]>([]);
   const [selectedPortfolio, setSelectedPortfolio] = useState<RecommendedPortfolio | null>(null);
