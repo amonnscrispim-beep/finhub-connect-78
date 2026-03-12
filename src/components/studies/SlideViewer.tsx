@@ -3,6 +3,7 @@ import { StudySubmodule, StudySlide } from '@/types/study';
 import { useStudySlides } from '@/hooks/useStudyModules';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { SharedBadge } from '@/components/ui/shared-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
