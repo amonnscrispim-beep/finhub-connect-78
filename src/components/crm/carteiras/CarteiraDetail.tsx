@@ -50,7 +50,9 @@ function SortableRow({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: asset.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
 
-  const bias = asset.manual_bias || 'Aguardar';
+  // Auto-calculate bias: current_price < ceiling_price → Comprar
+  const bias = (asset.current_price !== null && asset.ceiling_price > 0 && asset.current_price < asset.ceiling_price)
+    ? 'Comprar' : 'Aguardar';
   const biasColor = bias === 'Comprar'
     ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
     : 'bg-amber-100 text-amber-700 border-amber-300';
