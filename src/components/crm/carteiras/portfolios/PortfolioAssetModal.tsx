@@ -26,7 +26,7 @@ const CLASS_TO_SLUGS: Record<string, string[]> = {
   internacional: ['internacional'],
 };
 
-export function PortfolioAssetModal({ open, onOpenChange, portfolioId, assetClass, recommendedAssets, nextOrder, onSaved }: Props) {
+export function PortfolioAssetModal({ open, onOpenChange, portfolioId, assetClass, recommendedAssets, portfolioNameMap, nextOrder, onSaved }: Props) {
   const { user } = useAuth();
   const isRendaFixa = assetClass === 'renda_fixa';
 
