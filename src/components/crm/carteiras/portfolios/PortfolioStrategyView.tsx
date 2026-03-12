@@ -210,7 +210,8 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                     <TableBody>
                       {classAssets.map(asset => {
                         const source = getSourceAsset(asset.source_asset_id);
-                        const assetValue = classValue * (Number(asset.allocation_pct) / 100);
+                        const pct = Number(asset.allocation_pct);
+                        const assetValue = classValue * (pct / 100);
                         const currentPrice = source?.current_price;
                         const cotas = currentPrice && currentPrice > 0 ? Math.floor(assetValue / currentPrice) : null;
 
@@ -230,7 +231,18 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                                 {source?.current_price != null ? `R$ ${Number(source.current_price).toFixed(2)}` : '...'}
                               </TableCell>
                             )}
-                            <TableCell className="text-right text-sm font-medium">{Number(asset.allocation_pct).toFixed(1)}%</TableCell>
+                            <TableCell className="text-right">
+                              <Input
+                                type="number"
+                                step="0.01"
+                                className="h-7 w-20 text-sm text-right inline-block"
+                                defaultValue={pct.toFixed(2)}
+                                onBlur={e => {
+                                  const val = parseFloat(e.target.value) || 0;
+                                  if (val !== pct) handleUpdateAssetPct(asset.id, val);
+                                }}
+                              />
+                            </TableCell>
                             {investAmount > 0 && (
                               <TableCell className="text-right text-sm">R$ {assetValue.toFixed(2)}</TableCell>
                             )}
