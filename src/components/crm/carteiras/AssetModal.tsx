@@ -104,7 +104,7 @@ export function AssetModal({ open, onOpenChange, portfolioId, portfolioSlug, ass
         await supabase.from('recommended_portfolio_assets').update(record).eq('id', asset.id);
         toast.success('Ativo atualizado');
       } else {
-        await supabase.from('recommended_portfolio_assets').insert(record);
+        await supabase.from('recommended_portfolio_assets').insert(record as any);
         toast.success('Ativo adicionado');
       }
 
