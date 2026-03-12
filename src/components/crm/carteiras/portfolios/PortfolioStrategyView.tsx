@@ -423,31 +423,70 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                   </Table>
                 </div>
               )}
+
+              {/* Class totals panel */}
+              {classValue > 0 && (
+                <div className="bg-emerald-50 rounded-lg p-3 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+                  <div>
+                    <p className="text-emerald-700/70 text-xs">Valor Investido</p>
+                    <p className="font-semibold text-emerald-700">R$ {formatBRL(classValue)}</p>
+                  </div>
+                  <div>
+                    <p className="text-emerald-700/70 text-xs">Dividendo Mês</p>
+                    <p className="font-semibold text-emerald-700">R$ {formatBRL(classDvMonth)}</p>
+                  </div>
+                  <div>
+                    <p className="text-emerald-700/70 text-xs">Dividendo Ano</p>
+                    <p className="font-semibold text-emerald-700">R$ {formatBRL(classDvYear)}</p>
+                  </div>
+                  <div>
+                    <p className="text-emerald-700/70 text-xs">DY Mês %</p>
+                    <p className="font-semibold text-emerald-700">{(classValue > 0 ? (classDvMonth / classValue) * 100 : 0).toFixed(2)}%</p>
+                  </div>
+                  <div>
+                    <p className="text-emerald-700/70 text-xs">DY Ano %</p>
+                    <p className="font-semibold text-emerald-700">
+                      {(() => {
+                        const dyMonthPct = classValue > 0 ? classDvMonth / classValue : 0;
+                        return ((Math.pow(1 + dyMonthPct, 12) - 1) * 100).toFixed(2);
+                      })()}%
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
 
         {/* Portfolio totals */}
-        {grandValue > 0 && (
-          <div className="bg-muted/40 rounded-lg p-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-            <div>
-              <p className="text-muted-foreground text-xs">Valor Investido</p>
-              <p className="font-semibold">R$ {formatBRL(grandValue)}</p>
+        {grandValue > 0 && (() => {
+          const grandDyMonthPct = grandValue > 0 ? grandDvMonth / grandValue : 0;
+          const grandDyYearPct = (Math.pow(1 + grandDyMonthPct, 12) - 1) * 100;
+          return (
+            <div className="bg-emerald-50 rounded-lg p-3 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+              <div>
+                <p className="text-emerald-700/70 text-xs">Valor Investido</p>
+                <p className="font-semibold text-emerald-700">R$ {formatBRL(grandValue)}</p>
+              </div>
+              <div>
+                <p className="text-emerald-700/70 text-xs">Dividendo Mês</p>
+                <p className="font-semibold text-emerald-700">R$ {formatBRL(grandDvMonth)}</p>
+              </div>
+              <div>
+                <p className="text-emerald-700/70 text-xs">Dividendo Ano</p>
+                <p className="font-semibold text-emerald-700">R$ {formatBRL(grandDvYear)}</p>
+              </div>
+              <div>
+                <p className="text-emerald-700/70 text-xs">DY Mês %</p>
+                <p className="font-semibold text-emerald-700">{(grandDyMonthPct * 100).toFixed(2)}%</p>
+              </div>
+              <div>
+                <p className="text-emerald-700/70 text-xs">DY Ano %</p>
+                <p className="font-semibold text-emerald-700">{grandDyYearPct.toFixed(2)}%</p>
+              </div>
             </div>
-            <div>
-              <p className="text-muted-foreground text-xs">Dividendo Mês</p>
-              <p className="font-semibold text-emerald-600">R$ {formatBRL(grandDvMonth)}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-xs">Dividendo Ano</p>
-              <p className="font-semibold text-emerald-600">R$ {formatBRL(grandDvYear)}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-xs">DY Carteira</p>
-              <p className="font-semibold text-emerald-600">{dyCarteira.toFixed(2)}%</p>
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Calculator */}
         <div className="flex items-center gap-3 pt-2 border-t border-border">
