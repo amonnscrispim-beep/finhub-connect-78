@@ -228,6 +228,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
               value={investAmount || ''}
               placeholder="0"
               onChange={e => handleInvestAmountChange(e.target.value)}
+              onBlur={handleInvestAmountBlur}
             />
           </div>
         </div>

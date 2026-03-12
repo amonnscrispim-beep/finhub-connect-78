@@ -254,6 +254,7 @@ export function ClientPortfolioSection({ clientId }: Props) {
               value={investAmount || ''}
               placeholder="0"
               onChange={e => handleInvestAmountChange(e.target.value)}
+              onBlur={handleInvestAmountBlur}
             />
           </div>
         </div>
