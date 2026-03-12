@@ -33,6 +33,8 @@ interface Props {
   allPortfolios: RecommendedPortfolio[];
   onBack: () => void;
   onRefresh: () => Promise<void>;
+  isMaster?: boolean;
+  readOnly?: boolean;
 }
 
 function SortableRow({
