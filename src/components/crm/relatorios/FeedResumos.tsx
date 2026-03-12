@@ -129,6 +129,16 @@ export function FeedResumos({ reports, isLoading, generatingId, onViewReport, is
                   {report.client_name && (
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{report.client_name}</Badge>
                   )}
+                  {report.shared && report.user_id !== userId && <SharedBadge />}
+                  {isMaster && report.user_id === userId && onToggleShare && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onToggleShare(report.id, !report.shared); }}
+                      className={`ml-1 p-1 rounded hover:bg-muted transition-colors ${report.shared ? 'text-blue-500' : 'text-muted-foreground/40'}`}
+                      title={report.shared ? 'Remover compartilhamento' : 'Compartilhar'}
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                   <Button variant="link" size="sm" className="ml-auto text-xs p-0 h-auto text-primary opacity-0 group-hover:opacity-100 transition-opacity">
                     ver mais →
                   </Button>

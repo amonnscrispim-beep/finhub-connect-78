@@ -75,7 +75,7 @@ function parseTickers(report: SummaryReport): string[] {
   return tickers;
 }
 
-export function BibliotecaResumos({ reports, isLoading, onViewReport, onNewReport, onToggleRead, onToggleSaved }: Props) {
+export function BibliotecaResumos({ reports, isLoading, onViewReport, onNewReport, onToggleRead, onToggleSaved, isMaster, userId, onToggleShare }: Props) {
   const [activeCategory, setActiveCategory] = useState('todos');
   const [searchQuery, setSearchQuery] = useState('');
 
