@@ -219,10 +219,10 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, on
           <div className="flex items-center gap-1">
             <span className="text-sm text-muted-foreground">R$</span>
             <Input
-              type="text"
-              className="h-8 w-40 text-sm"
-              value={investAmount > 0 ? investAmount.toLocaleString('pt-BR') : ''}
-              placeholder="0,00"
+              type="number"
+              className="h-8 w-48 text-sm"
+              value={investAmount || ''}
+              placeholder="0"
               onChange={e => handleInvestAmountChange(e.target.value)}
             />
           </div>
