@@ -4,5 +4,7 @@ const MASTER_EMAIL = 'amoncrispimufrj@gmail.com';
 
 export function useIsMaster(): boolean {
   const { user } = useAuth();
-  return user?.email === MASTER_EMAIL;
+  const result = user?.email === MASTER_EMAIL;
+  console.log('[useIsMaster] email:', user?.email, 'isMaster:', result);
+  return result;
 }
