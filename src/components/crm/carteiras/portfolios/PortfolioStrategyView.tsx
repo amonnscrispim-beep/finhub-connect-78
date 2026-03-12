@@ -419,15 +419,6 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                         <TableCell className="text-right text-emerald-600">R$ {formatBRL(classDvYear)}</TableCell>
                         <TableCell />
                       </TableRow>
-                      {classValue > 0 && (classDvMonth > 0 || classDvYear > 0) && (
-                        <TableRow className="bg-emerald-50 text-xs">
-                          <TableCell colSpan={isRf ? 11 : 12}>
-                            <span className="font-semibold text-emerald-700">
-                              DY Mês: {((classDvMonth / classValue) * 100).toFixed(2)}% | DY Ano: {((classDvYear / classValue) * 100).toFixed(2)}%
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      )}
                     </TableFooter>
                   </Table>
                 </div>
