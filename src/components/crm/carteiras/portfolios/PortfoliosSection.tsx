@@ -127,6 +127,47 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
     setPortfolios(prev => prev.map(p => p.id === id ? { ...p, ...updates } as InvestorPortfolio : p));
   };
 
+  // Build effective assets for a portfolio: Conservador owns assets, others inherit
+  const getEffectiveAssets = useCallback((portfolio: InvestorPortfolio): PortfolioAssetItem[] => {
+    if (portfolio.profile === 'Conservador') {
+      return portfolioAssets.filter(a => a.portfolio_id === portfolio.id);
+    }
+
+    // Find the Conservador portfolio with same strategy
+    const conservador = portfolios.find(
+      p => p.profile === 'Conservador' && p.strategy === portfolio.strategy
+    );
+    if (!conservador) return [];
+
+    const conservadorAssets = portfolioAssets.filter(a => a.portfolio_id === conservador.id);
+    const ownAssets = portfolioAssets.filter(a => a.portfolio_id === portfolio.id);
+
+    // Use Conservador's assets but override allocation_pct from own records if they exist
+    return conservadorAssets.map(ca => {
+      // Find matching own asset by same source_asset_id + asset_class, or ticker+class for RF
+      const ownMatch = ownAssets.find(oa =>
+        oa.asset_class === ca.asset_class &&
+        ((ca.source_asset_id && oa.source_asset_id === ca.source_asset_id) ||
+         (!ca.source_asset_id && oa.ticker === ca.ticker && oa.name === ca.name))
+      );
+
+      return {
+        ...ca,
+        // Keep Conservador's data (ticker, name, dy_pct, source_asset_id, rf_type, etc.)
+        // But use own allocation_pct if exists, otherwise use Conservador's
+        allocation_pct: ownMatch ? ownMatch.allocation_pct : ca.allocation_pct,
+        // Store a reference to the own asset id for updates, or use a virtual id
+        id: ownMatch ? ownMatch.id : `virtual-${ca.id}`,
+        portfolio_id: portfolio.id,
+      };
+    });
+  }, [portfolios, portfolioAssets]);
+
+  // Get the conservador portfolio id for a given strategy
+  const getConservadorId = useCallback((strategy: string): string | undefined => {
+    return portfolios.find(p => p.profile === 'Conservador' && p.strategy === strategy)?.id;
+  }, [portfolios]);
+
   if (loading) return null;
 
   return (
@@ -151,16 +192,20 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
             {STRATEGIES.map(strategy => {
               const portfolio = portfolios.find(p => p.profile === profile && p.strategy === strategy);
               if (!portfolio) return null;
-              const assets = portfolioAssets.filter(a => a.portfolio_id === portfolio.id);
+              const isConservador = profile === 'Conservador';
+              const effectiveAssets = getEffectiveAssets(portfolio);
+              const conservadorPortfolioId = isConservador ? undefined : getConservadorId(strategy);
               return (
                 <PortfolioStrategyView
                   key={portfolio.id}
                   portfolio={portfolio}
-                  assets={assets}
+                  assets={effectiveAssets}
                   recommendedAssets={recommendedAssets}
                   portfolioNameMap={portfolioNameMap}
                   onUpdatePortfolio={updatePortfolio}
                   onRefreshAssets={refreshPortfolioAssets}
+                  isConservador={isConservador}
+                  conservadorPortfolioId={conservadorPortfolioId}
                 />
               );
             })}
