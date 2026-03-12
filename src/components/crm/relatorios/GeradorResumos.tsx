@@ -112,6 +112,9 @@ export function GeradorResumos() {
                 isLoading={isLoading}
                 generatingId={generatingId}
                 onViewReport={setSelectedReport}
+                isMaster={isMaster}
+                userId={user?.id}
+                onToggleShare={handleToggleShare}
               />
             </div>
           </div>
