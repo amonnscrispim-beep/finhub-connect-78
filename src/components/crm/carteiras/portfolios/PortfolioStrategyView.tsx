@@ -251,16 +251,30 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CardTitle className="text-lg">{portfolio.strategy}</CardTitle>
-            {!isConservador && (
+            {!isConservador && isOwnPortfolio && (
               <Badge variant="outline" className="text-[10px] h-5 border-muted-foreground/30 text-muted-foreground">
                 Ativos do Conservador
               </Badge>
             )}
+            {readOnly && <SharedBadge />}
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleCopyAll}>
-              <Copy className="w-3 h-3 mr-1" /> Copiar portfólio
-            </Button>
+            {isMaster && isOwnPortfolio && onToggleShareStrategy && (
+              <Button
+                variant={portfolio.shared ? 'default' : 'outline'}
+                size="sm"
+                className="h-7 text-xs"
+                onClick={onToggleShareStrategy}
+              >
+                <Share2 className="w-3 h-3 mr-1" />
+                {portfolio.shared ? 'Compartilhado' : `Compartilhar ${portfolio.strategy}`}
+              </Button>
+            )}
+            {!readOnly && (
+              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleCopyAll}>
+                <Copy className="w-3 h-3 mr-1" /> Copiar portfólio
+              </Button>
+            )}
             <Badge variant={isValid ? 'default' : 'destructive'} className={isValid ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : ''}>
               {isValid ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <AlertTriangle className="w-3 h-3 mr-1" />}
               {totalPct.toFixed(1)}%
