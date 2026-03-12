@@ -38,23 +38,12 @@ const RF_SUBTYPES = [
 
 type PctField = 'acoes_pct' | 'fiis_pct' | 'internacional_pct' | 'renda_fixa_pct' | 'rf_pos_pct' | 'rf_pre_pct' | 'rf_ipca_pct';
 
-// DY helpers
-function dyAnnualToMonthly(dyAnnual: number): number {
-  return (Math.pow(1 + dyAnnual / 100, 1 / 12) - 1) * 100;
-}
-
-function dyMonthlyToAnnual(dyMonthly: number): number {
-  return (Math.pow(1 + dyMonthly / 100, 12) - 1) * 100;
-}
-
 interface AssetCalc {
   asset: PortfolioAssetItem;
   displayPct: number;
   assetValue: number;
   cotas: number | null;
-  dyInput: number;
-  dyMonthly: number;
-  dyAnnual: number;
+  dyInput: number; // R$ per cota (monthly for FIIs, annual for others)
   dvMonth: number;
   dvYear: number;
   source: PortfolioAsset | null;
@@ -80,24 +69,26 @@ function computeAsset(
   const isFii = classKey === 'fiis';
   const cotas = !isRf && currentPrice && currentPrice > 0 ? Math.floor(assetValue / currentPrice) : null;
 
+  // dy_pct now stores R$ per cota
   const dyInput = Number(asset.dy_pct) || 0;
-  let dyMonthly: number;
-  let dyAnnual: number;
+  let dvMonth: number;
+  let dvYear: number;
 
   if (isFii) {
-    // FII: input is monthly
-    dyMonthly = dyInput;
-    dyAnnual = dyMonthlyToAnnual(dyInput);
+    // FII: input is R$/cota/mês
+    dvMonth = dyInput * (cotas || 0);
+    dvYear = dvMonth * 12;
+  } else if (isRf) {
+    // RF: input is taxa anual % → dividendo = valor * taxa/100
+    dvYear = assetValue * (dyInput / 100);
+    dvMonth = dvYear / 12;
   } else {
-    // Ações, Internacional, RF: input is annual
-    dyAnnual = dyInput;
-    dyMonthly = dyAnnualToMonthly(dyInput);
+    // Ações/Internacional: input is R$/cota/ano
+    dvYear = dyInput * (cotas || 0);
+    dvMonth = dvYear / 12;
   }
 
-  const dvMonth = assetValue * (dyMonthly / 100);
-  const dvYear = assetValue * (dyAnnual / 100);
-
-  return { asset, displayPct, assetValue, cotas, dyInput, dyMonthly, dyAnnual, dvMonth, dvYear, source, isFii, isRf };
+  return { asset, displayPct, assetValue, cotas, dyInput, dvMonth, dvYear, source, isFii, isRf };
 }
 
 function formatBRL(v: number): string {
