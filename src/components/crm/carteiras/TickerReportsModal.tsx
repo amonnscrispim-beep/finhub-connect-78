@@ -5,7 +5,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Clock, BarChart3 } from 'lucide-react';
 import { categoryConfig } from '../relatorios/BibliotecaResumos';
-import { ResumoDetailModal } from '../relatorios/ResumoDetailModal';
 
 interface Props {
   open: boolean;
