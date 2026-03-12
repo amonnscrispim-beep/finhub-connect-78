@@ -924,6 +924,7 @@ export type Database = {
           rf_ipca_pct: number
           rf_pos_pct: number
           rf_pre_pct: number
+          shared: boolean
           strategy: string
           updated_at: string
           user_id: string
@@ -940,6 +941,7 @@ export type Database = {
           rf_ipca_pct?: number
           rf_pos_pct?: number
           rf_pre_pct?: number
+          shared?: boolean
           strategy?: string
           updated_at?: string
           user_id: string
@@ -956,6 +958,7 @@ export type Database = {
           rf_ipca_pct?: number
           rf_pos_pct?: number
           rf_pre_pct?: number
+          shared?: boolean
           strategy?: string
           updated_at?: string
           user_id?: string
@@ -1116,6 +1119,7 @@ export type Database = {
           name: string | null
           portfolio_id: string
           rf_type: string | null
+          shared: boolean
           source_asset_id: string | null
           ticker: string | null
           updated_at: string
@@ -1133,6 +1137,7 @@ export type Database = {
           name?: string | null
           portfolio_id: string
           rf_type?: string | null
+          shared?: boolean
           source_asset_id?: string | null
           ticker?: string | null
           updated_at?: string
@@ -1150,6 +1155,7 @@ export type Database = {
           name?: string | null
           portfolio_id?: string
           rf_type?: string | null
+          shared?: boolean
           source_asset_id?: string | null
           ticker?: string | null
           updated_at?: string

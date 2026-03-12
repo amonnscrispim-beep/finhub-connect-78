@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
+import { SharedBadge } from '@/components/ui/shared-badge';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Calculator, AlertTriangle, CheckCircle2, Trash2, Copy } from 'lucide-react';
+import { Plus, Calculator, AlertTriangle, CheckCircle2, Trash2, Copy, Share2 } from 'lucide-react';
 import { InvestorPortfolio, PortfolioAssetItem } from './PortfoliosSection';
 import { PortfolioAsset } from '../CarteirasRecomendadas';
 import { PortfolioAssetModal } from './PortfolioAssetModal';
@@ -23,6 +24,10 @@ interface Props {
   onRefreshAssets: () => Promise<void>;
   isConservador?: boolean;
   conservadorPortfolioId?: string;
+  isMaster?: boolean;
+  isOwnPortfolio?: boolean;
+  readOnly?: boolean;
+  onToggleShareStrategy?: () => void;
 }
 
 const ASSET_CLASSES = [
@@ -99,7 +104,7 @@ function formatBRL(v: number): string {
   return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, portfolioNameMap, onUpdatePortfolio, onRefreshAssets, isConservador = true, conservadorPortfolioId }: Props) {
+export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, portfolioNameMap, onUpdatePortfolio, onRefreshAssets, isConservador = true, conservadorPortfolioId, isMaster = false, isOwnPortfolio = true, readOnly = false, onToggleShareStrategy }: Props) {
   const { user } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalClass, setModalClass] = useState('acoes_brasileiras');
@@ -246,16 +251,30 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CardTitle className="text-lg">{portfolio.strategy}</CardTitle>
-            {!isConservador && (
+            {!isConservador && isOwnPortfolio && (
               <Badge variant="outline" className="text-[10px] h-5 border-muted-foreground/30 text-muted-foreground">
                 Ativos do Conservador
               </Badge>
             )}
+            {readOnly && <SharedBadge />}
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleCopyAll}>
-              <Copy className="w-3 h-3 mr-1" /> Copiar portfólio
-            </Button>
+            {isMaster && isOwnPortfolio && onToggleShareStrategy && (
+              <Button
+                variant={portfolio.shared ? 'default' : 'outline'}
+                size="sm"
+                className="h-7 text-xs"
+                onClick={onToggleShareStrategy}
+              >
+                <Share2 className="w-3 h-3 mr-1" />
+                {portfolio.shared ? 'Compartilhado' : `Compartilhar ${portfolio.strategy}`}
+              </Button>
+            )}
+            {!readOnly && (
+              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleCopyAll}>
+                <Copy className="w-3 h-3 mr-1" /> Copiar portfólio
+              </Button>
+            )}
             <Badge variant={isValid ? 'default' : 'destructive'} className={isValid ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : ''}>
               {isValid ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <AlertTriangle className="w-3 h-3 mr-1" />}
               {totalPct.toFixed(1)}%
