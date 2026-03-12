@@ -147,21 +147,10 @@ export function AssetModal({ open, onOpenChange, portfolioId, portfolioSlug, ass
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Preço Teto (R$) *</Label>
-              <Input type="number" step="0.01" value={ceilingPrice} onChange={e => setCeilingPrice(e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Viés *</Label>
-              <Select value={bias} onValueChange={setBias}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Comprar">Comprar</SelectItem>
-                  <SelectItem value="Aguardar">Aguardar</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-1.5">
+            <Label>Preço Teto (R$) *</Label>
+            <Input type="number" step="0.01" value={ceilingPrice} onChange={e => setCeilingPrice(e.target.value)} />
+            <p className="text-[11px] text-muted-foreground">O viés (Comprar/Aguardar) é calculado automaticamente comparando o preço atual com o preço teto.</p>
           </div>
 
           {!isEditing && (

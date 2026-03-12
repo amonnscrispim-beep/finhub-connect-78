@@ -180,7 +180,15 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, allPortfolios
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from('recommended_portfolio_assets').delete().eq('id', id);
+    // Optimistic: remove from local state immediately
+    setAssets(prev => prev.filter(a => a.id !== id));
+    const { error } = await supabase.from('recommended_portfolio_assets').delete().eq('id', id);
+    if (error) {
+      toast.error('Erro ao remover ativo');
+      // Revert on error
+      await onRefresh();
+      return;
+    }
     toast.success('Ativo removido');
     await onRefresh();
   };
