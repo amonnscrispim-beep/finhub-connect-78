@@ -100,19 +100,21 @@ function SortableRow({
           )}
         </TableCell>
       )}
-      <TableCell>
-        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(asset)} title="Editar">
-            <Pencil className="w-3.5 h-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onMove(asset)} title="Mover para outra carteira">
-            <ArrowRightLeft className="w-3.5 h-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(asset.id)} title="Excluir">
-            <Trash2 className="w-3.5 h-3.5" />
-          </Button>
-        </div>
-      </TableCell>
+      {!readOnly && (
+        <TableCell>
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(asset)} title="Editar">
+              <Pencil className="w-3.5 h-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onMove(asset)} title="Mover para outra carteira">
+              <ArrowRightLeft className="w-3.5 h-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(asset.id)} title="Excluir">
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        </TableCell>
+      )}
     </TableRow>
   );
 }
