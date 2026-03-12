@@ -181,7 +181,10 @@ export function ClientPortfolioSection({ clientId }: Props) {
   const handleInvestAmountChange = (val: string) => {
     const num = parseFloat(val.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
     setInvestAmount(num);
-    saveConfig({ invest_amount: num });
+  };
+
+  const handleInvestAmountBlur = () => {
+    saveConfig({ invest_amount: investAmount });
   };
 
   const handleCustomAllocation = (assetId: string, value: number) => {
@@ -251,6 +254,7 @@ export function ClientPortfolioSection({ clientId }: Props) {
               value={investAmount || ''}
               placeholder="0"
               onChange={e => handleInvestAmountChange(e.target.value)}
+              onBlur={handleInvestAmountBlur}
             />
           </div>
         </div>
