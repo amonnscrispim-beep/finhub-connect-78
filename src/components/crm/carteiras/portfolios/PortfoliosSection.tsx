@@ -157,6 +157,7 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
                   portfolio={portfolio}
                   assets={assets}
                   recommendedAssets={recommendedAssets}
+                  portfolioNameMap={portfolioNameMap}
                   onUpdatePortfolio={updatePortfolio}
                   onRefreshAssets={refreshPortfolioAssets}
                 />
