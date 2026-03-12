@@ -115,7 +115,7 @@ function SortableRow({
   );
 }
 
-export function CarteiraDetail({ portfolio, assets: initialAssets, allPortfolios, onBack, onRefresh }: Props) {
+export function CarteiraDetail({ portfolio, assets: initialAssets, allPortfolios, onBack, onRefresh, isMaster, readOnly }: Props) {
   const { user } = useAuth();
   const [assets, setAssets] = useState<PortfolioAsset[]>(initialAssets);
   const [modalOpen, setModalOpen] = useState(false);
