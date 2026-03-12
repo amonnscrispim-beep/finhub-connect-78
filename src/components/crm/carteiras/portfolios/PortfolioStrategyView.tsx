@@ -236,6 +236,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
         portfolioId={portfolio.id}
         assetClass={modalClass}
         recommendedAssets={recommendedAssets}
+        portfolioNameMap={portfolioNameMap}
         nextOrder={assets.filter(a => a.asset_class === modalClass).length}
         onSaved={async () => { setModalOpen(false); await onRefreshAssets(); }}
       />
