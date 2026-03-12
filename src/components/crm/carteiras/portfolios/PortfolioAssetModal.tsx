@@ -92,7 +92,7 @@ export function PortfolioAssetModal({ open, onOpenChange, portfolioId, assetClas
           asset_class: assetClass,
           ticker: source.ticker,
           name: source.company_name,
-          allocation_pct: parseFloat(allocationPct) || 0,
+          allocation_pct: 0,
           source_asset_id: source.id,
           display_order: nextOrder,
         } as any);
