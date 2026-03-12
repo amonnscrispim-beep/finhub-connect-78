@@ -237,6 +237,11 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, allPortfolios
             <ArrowLeft className="w-4 h-4 mr-1" /> Voltar
           </Button>
           <h2 className="text-xl font-semibold text-foreground">{portfolio.name}</h2>
+          {readOnly && (
+            <Badge variant="outline" className="text-[10px] gap-1 px-1.5 py-0 border-blue-300 text-blue-600 bg-blue-50 ml-2">
+              Compartilhado
+            </Badge>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {isCrescimento && (
@@ -255,9 +260,11 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, allPortfolios
             <RefreshCw className={`w-4 h-4 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
             Atualizar Preços
           </Button>
-          <Button size="sm" onClick={handleAdd} className="bg-primary text-primary-foreground hover:bg-primary/90">
-            <Plus className="w-4 h-4 mr-1.5" /> Adicionar Ativo
-          </Button>
+          {!readOnly && (
+            <Button size="sm" onClick={handleAdd} className="bg-primary text-primary-foreground hover:bg-primary/90">
+              <Plus className="w-4 h-4 mr-1.5" /> Adicionar Ativo
+            </Button>
+          )}
         </div>
       </div>
 
