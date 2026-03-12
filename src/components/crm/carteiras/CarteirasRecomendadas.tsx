@@ -149,7 +149,7 @@ export function CarteirasRecomendadas() {
     const { data } = await supabase
       .from('recommended_portfolio_assets')
       .select('*')
-      .eq('user_id', user.id)
+      .or(`user_id.eq.${user.id},shared.eq.true`)
       .order('display_order');
     setAllAssets((data || []) as unknown as PortfolioAsset[]);
   };
