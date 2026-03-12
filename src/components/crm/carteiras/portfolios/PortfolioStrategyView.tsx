@@ -300,6 +300,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                         {!isRf && <TableHead className="text-xs text-right">Preço Teto</TableHead>}
                         {!isRf && <TableHead className="text-xs text-right">Preço Atual</TableHead>}
                         <TableHead className="text-xs text-right">Alocação %</TableHead>
+                        <TableHead className="text-xs text-right">Aloc. Classe %</TableHead>
                         <TableHead className="text-xs text-right">Valor R$</TableHead>
                         {!isRf && <TableHead className="text-xs text-right">Qtd. Cotas</TableHead>}
                         <TableHead className="text-xs text-right">{isFii ? 'DY R$/cota mês' : isRf ? 'Taxa % a.a.' : 'DY R$/cota ano'}</TableHead>
@@ -309,7 +310,9 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {data.calcs.map(c => (
+                      {data.calcs.map(c => {
+                        const classPctOfAsset = classValue > 0 ? (c.assetValue / classValue) * 100 : 0;
+                        return (
                         <TableRow key={c.asset.id}>
                           <TableCell className="font-mono text-sm font-semibold">{c.asset.ticker || c.asset.name}</TableCell>
                           {isRf && <TableCell className="text-xs">{c.asset.rf_type || '—'}</TableCell>}
@@ -335,6 +338,11 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                               }}
                             />
                           </TableCell>
+                          <TableCell className="text-right">
+                            <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">
+                              {classPctOfAsset.toFixed(2)}%
+                            </span>
+                          </TableCell>
                           <TableCell className="text-right text-sm">R$ {formatBRL(c.assetValue)}</TableCell>
                           {!isRf && <TableCell className="text-right text-sm font-medium">{c.cotas !== null ? c.cotas : '—'}</TableCell>}
                           <TableCell className="text-right">
@@ -355,13 +363,15 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                             </Button>
                           </TableCell>
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </TableBody>
                     <TableFooter>
                       <TableRow className="bg-muted/30 font-medium text-xs">
                         <TableCell colSpan={isRf ? 4 : 3}>Total {cls.label}</TableCell>
                         {!isRf && <TableCell />}
                         <TableCell className="text-right">{data.classPct.toFixed(2)}%</TableCell>
+                        <TableCell className="text-right">100,00%</TableCell>
                         <TableCell className="text-right">R$ {formatBRL(classValue)}</TableCell>
                         {!isRf && <TableCell />}
                         <TableCell />
@@ -369,6 +379,15 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                         <TableCell className="text-right text-emerald-600">R$ {formatBRL(classDvYear)}</TableCell>
                         <TableCell />
                       </TableRow>
+                      {classValue > 0 && (classDvMonth > 0 || classDvYear > 0) && (
+                        <TableRow className="bg-emerald-50 text-xs">
+                          <TableCell colSpan={isRf ? (4 + 1 + 1 + 1 + 1 + 1 + 1 + 1) : (3 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)}>
+                            <span className="font-semibold text-emerald-700">
+                              DY Mês: {((classDvMonth / classValue) * 100).toFixed(2)}% | DY Ano: {((classDvYear / classValue) * 100).toFixed(2)}%
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableFooter>
                   </Table>
                 </div>
