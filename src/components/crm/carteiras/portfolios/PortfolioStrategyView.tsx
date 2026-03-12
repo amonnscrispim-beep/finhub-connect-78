@@ -85,8 +85,26 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
   };
 
   const handleDeleteAsset = async (id: string) => {
+    const deletedAsset = assets.find(a => a.id === id);
     await supabase.from('portfolio_assets').delete().eq('id', id);
+
+    // Redistribute equally among remaining assets in same class
+    if (deletedAsset) {
+      const remaining = assets.filter(a => a.id !== id && a.asset_class === deletedAsset.asset_class);
+      if (remaining.length > 0) {
+        const equalPct = parseFloat((100 / remaining.length).toFixed(2));
+        for (const a of remaining) {
+          await supabase.from('portfolio_assets').update({ allocation_pct: equalPct }).eq('id', a.id);
+        }
+      }
+    }
+
     toast.success('Ativo removido');
+    await onRefreshAssets();
+  };
+
+  const handleUpdateAssetPct = async (assetId: string, newPct: number) => {
+    await supabase.from('portfolio_assets').update({ allocation_pct: newPct }).eq('id', assetId);
     await onRefreshAssets();
   };
 
