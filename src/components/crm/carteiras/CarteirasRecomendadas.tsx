@@ -173,10 +173,13 @@ export function CarteirasRecomendadas() {
   }
 
   return (
-    <CarteiraGrid
-      portfolios={portfolios}
-      allAssets={allAssets}
-      onSelect={setSelectedPortfolio}
-    />
+    <div className="space-y-8">
+      <CarteiraGrid
+        portfolios={portfolios}
+        allAssets={allAssets}
+        onSelect={setSelectedPortfolio}
+      />
+      <PortfoliosSection recommendedAssets={allAssets} />
+    </div>
   );
 }
