@@ -40,7 +40,7 @@ export function AssetModal({ open, onOpenChange, portfolioId, portfolioSlug, ass
   const [companyName, setCompanyName] = useState('');
   const [sector, setSector] = useState('');
   const [ceilingPrice, setCeilingPrice] = useState('');
-  const [bias, setBias] = useState('Comprar');
+  
   const [subClassification, setSubClassification] = useState<string>('Small Caps');
   const [destinationPortfolioId, setDestinationPortfolioId] = useState(portfolioId);
   const [saving, setSaving] = useState(false);
