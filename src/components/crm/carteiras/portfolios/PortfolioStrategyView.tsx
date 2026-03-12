@@ -36,7 +36,7 @@ const RF_SUBTYPES = [
   { key: 'ipca', label: 'Indexado à Inflação', pctField: 'rf_ipca_pct' as const },
 ];
 
-export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, onUpdatePortfolio, onRefreshAssets }: Props) {
+export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, portfolioNameMap, onUpdatePortfolio, onRefreshAssets }: Props) {
   const { user } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalClass, setModalClass] = useState('acoes_brasileiras');
