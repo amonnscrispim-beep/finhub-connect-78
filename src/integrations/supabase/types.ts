@@ -864,6 +864,57 @@ export type Database = {
           },
         ]
       }
+      investor_portfolios: {
+        Row: {
+          acoes_pct: number
+          created_at: string
+          fiis_pct: number
+          id: string
+          internacional_pct: number
+          invest_amount: number
+          profile: string
+          renda_fixa_pct: number
+          rf_ipca_pct: number
+          rf_pos_pct: number
+          rf_pre_pct: number
+          strategy: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          acoes_pct?: number
+          created_at?: string
+          fiis_pct?: number
+          id?: string
+          internacional_pct?: number
+          invest_amount?: number
+          profile?: string
+          renda_fixa_pct?: number
+          rf_ipca_pct?: number
+          rf_pos_pct?: number
+          rf_pre_pct?: number
+          strategy?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          acoes_pct?: number
+          created_at?: string
+          fiis_pct?: number
+          id?: string
+          internacional_pct?: number
+          invest_amount?: number
+          profile?: string
+          renda_fixa_pct?: number
+          rf_ipca_pct?: number
+          rf_pos_pct?: number
+          rf_pre_pct?: number
+          strategy?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       performance_positions: {
         Row: {
           ativo: string | null
@@ -1002,6 +1053,72 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portfolio_assets: {
+        Row: {
+          allocation_pct: number
+          asset_class: string
+          created_at: string
+          display_order: number
+          id: string
+          indexador: string | null
+          name: string | null
+          portfolio_id: string
+          rf_type: string | null
+          source_asset_id: string | null
+          ticker: string | null
+          updated_at: string
+          user_id: string
+          vencimento: string | null
+        }
+        Insert: {
+          allocation_pct?: number
+          asset_class?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          indexador?: string | null
+          name?: string | null
+          portfolio_id: string
+          rf_type?: string | null
+          source_asset_id?: string | null
+          ticker?: string | null
+          updated_at?: string
+          user_id: string
+          vencimento?: string | null
+        }
+        Update: {
+          allocation_pct?: number
+          asset_class?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          indexador?: string | null
+          name?: string | null
+          portfolio_id?: string
+          rf_type?: string | null
+          source_asset_id?: string | null
+          ticker?: string | null
+          updated_at?: string
+          user_id?: string
+          vencimento?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_assets_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "investor_portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portfolio_assets_source_asset_id_fkey"
+            columns: ["source_asset_id"]
+            isOneToOne: false
+            referencedRelation: "recommended_portfolio_assets"
             referencedColumns: ["id"]
           },
         ]
