@@ -171,42 +171,37 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
 
   const dyCarteira = grandValue > 0 ? (grandDvYear / grandValue) * 100 : 0;
 
-  // Copy helpers
-  const buildClassTable = (classKey: string): string => {
+  // Copy helpers — simplified format: TICKER (Setor): X cotas (R$ Y)
+  const buildClassLines = (classKey: string): string => {
     const data = classDataMap[classKey];
     if (!data || data.calcs.length === 0) return '';
-    const isRf = classKey === 'renda_fixa';
-    const header = isRf
-      ? 'Ativo\tTipo\tIndexador\tValor R$\tAlocação %\tDY %\tDiv. Mês R$\tDiv. Ano R$'
-      : 'Ativo\tSetor\tQtd. Cotas\tValor R$\tAlocação %\tDY %\tDiv. Mês R$\tDiv. Ano R$';
-    const rows = data.calcs.map(c => {
-      const sector = c.source?.sector || '—';
-      if (isRf) {
-        return `${c.asset.name || c.asset.ticker}\t${c.asset.rf_type || '—'}\t${c.asset.indexador || '—'}\tR$ ${formatBRL(c.assetValue)}\t${c.displayPct.toFixed(2)}%\t${c.dyInput.toFixed(2)}%\tR$ ${formatBRL(c.dvMonth)}\tR$ ${formatBRL(c.dvYear)}`;
+    return data.calcs.map(c => {
+      const name = c.asset.ticker || c.asset.name;
+      const sector = c.source?.sector || c.asset.rf_type || '';
+      const sectorPart = sector ? ` (${sector})` : '';
+      const cotasPart = c.cotas !== null ? `${c.cotas} cotas` : '';
+      const valuePart = `R$ ${formatBRL(c.assetValue)}`;
+      if (c.isRf) {
+        return `${name}${sectorPart}: ${valuePart}`;
       }
-      return `${c.asset.ticker || c.asset.name}\t${sector}\t${c.cotas ?? '—'}\tR$ ${formatBRL(c.assetValue)}\t${c.displayPct.toFixed(2)}%\t${c.dyInput.toFixed(2)}%\tR$ ${formatBRL(c.dvMonth)}\tR$ ${formatBRL(c.dvYear)}`;
-    });
-    const totalDvMonth = data.calcs.reduce((s, c) => s + c.dvMonth, 0);
-    const totalDvYear = data.calcs.reduce((s, c) => s + c.dvYear, 0);
-    const totalValue = data.calcs.reduce((s, c) => s + c.assetValue, 0);
-    const footer = isRf
-      ? `TOTAL\t\t\tR$ ${formatBRL(totalValue)}\t${data.classPct.toFixed(2)}%\t\tR$ ${formatBRL(totalDvMonth)}\tR$ ${formatBRL(totalDvYear)}`
-      : `TOTAL\t\t\tR$ ${formatBRL(totalValue)}\t${data.classPct.toFixed(2)}%\t\tR$ ${formatBRL(totalDvMonth)}\tR$ ${formatBRL(totalDvYear)}`;
-    return `${data.classLabel}\n${header}\n${rows.join('\n')}\n${footer}`;
+      return `${name}${sectorPart}: ${cotasPart} (${valuePart})`;
+    }).join('\n');
   };
 
   const handleCopyClass = (classKey: string) => {
-    const text = buildClassTable(classKey);
+    const text = buildClassLines(classKey);
     if (!text) { toast.info('Nenhum ativo nesta classe'); return; }
     navigator.clipboard.writeText(text);
     toast.success('Copiado!');
   };
 
   const handleCopyAll = () => {
-    const sections = ASSET_CLASSES.map(cls => buildClassTable(cls.key)).filter(Boolean);
+    const sections = ASSET_CLASSES.map(cls => {
+      const lines = buildClassLines(cls.key);
+      return lines ? `${classDataMap[cls.key].classLabel}\n${lines}` : '';
+    }).filter(Boolean);
     if (sections.length === 0) { toast.info('Nenhum ativo no portfólio'); return; }
-    const footer = `\nRESUMO CARTEIRA\nDividendo Mês Total\tR$ ${formatBRL(grandDvMonth)}\nDividendo Ano Total\tR$ ${formatBRL(grandDvYear)}\nDY Carteira\t${dyCarteira.toFixed(2)}%`;
-    navigator.clipboard.writeText(sections.join('\n\n') + footer);
+    navigator.clipboard.writeText(sections.join('\n\n'));
     toast.success('Portfólio completo copiado!');
   };
 
