@@ -44,6 +44,7 @@ function SortableRow({
   onDelete,
   onMove,
   onViewReports,
+  readOnly,
 }: {
   asset: PortfolioAsset;
   isCrescimento: boolean;
@@ -51,6 +52,7 @@ function SortableRow({
   onDelete: (id: string) => void;
   onMove: (a: PortfolioAsset) => void;
   onViewReports: (ticker: string) => void;
+  readOnly?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: asset.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
