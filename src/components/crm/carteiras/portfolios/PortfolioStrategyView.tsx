@@ -136,6 +136,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
   const openAddAsset = (assetClass: string) => { setModalClass(assetClass); setModalOpen(true); };
 
   const handleDeleteAsset = async (id: string) => {
+    if (!isConservador) return; // Only Conservador can delete
     const deletedAsset = assets.find(a => a.id === id);
     await supabase.from('portfolio_assets').delete().eq('id', id);
     if (deletedAsset) {
@@ -149,6 +150,34 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
   };
 
   const handleUpdateAssetField = async (assetId: string, field: string, value: number) => {
+    // For non-Conservador, only allow allocation_pct updates
+    if (!isConservador && field !== 'allocation_pct') return;
+    
+    // For virtual assets (non-Conservador with no own record yet), create one
+    if (assetId.startsWith('virtual-') && field === 'allocation_pct') {
+      const originalId = assetId.replace('virtual-', '');
+      const sourceAsset = assets.find(a => a.id === assetId);
+      if (sourceAsset && user) {
+        const { error } = await supabase.from('portfolio_assets').insert({
+          portfolio_id: portfolio.id,
+          user_id: user.id,
+          asset_class: sourceAsset.asset_class,
+          ticker: sourceAsset.ticker,
+          name: sourceAsset.name,
+          source_asset_id: sourceAsset.source_asset_id,
+          rf_type: sourceAsset.rf_type,
+          indexador: sourceAsset.indexador,
+          vencimento: sourceAsset.vencimento,
+          display_order: sourceAsset.display_order,
+          allocation_pct: value,
+          dy_pct: 0,
+        } as any);
+        if (error) console.error(error);
+        await onRefreshAssets();
+        return;
+      }
+    }
+    
     await supabase.from('portfolio_assets').update({ [field]: value } as any).eq('id', assetId);
     await onRefreshAssets();
   };
