@@ -1135,6 +1135,13 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               />
             </CollapsibleSection>
 
+            {/* SECTION 7.5: Arquitetura da Carteira (Portfólio do Cliente) */}
+            {client?.id && (
+              <CollapsibleSection title="Arquitetura da Carteira" icon={Briefcase} defaultOpen={false}>
+                <ClientPortfolioSection clientId={client.id} />
+              </CollapsibleSection>
+            )}
+
 
             {/* SECTION 9: Contrato, Reuniões e Entregas */}
             <CollapsibleSection title="Contrato, Reuniões e Entregas" icon={Calendar} defaultOpen={false}>
