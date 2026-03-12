@@ -49,6 +49,7 @@ export function AssetModal({ open, onOpenChange, portfolioId, portfolioSlug, ass
   const isEditing = !!asset;
   const targetSlug = allPortfolios.find(p => p.id === destinationPortfolioId)?.slug || portfolioSlug;
   const showSubClassification = targetSlug === 'crescimento';
+  const isFIIs = targetSlug === 'fiis';
 
   useEffect(() => {
     if (asset) {
