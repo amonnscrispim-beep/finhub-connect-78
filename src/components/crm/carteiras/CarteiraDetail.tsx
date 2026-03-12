@@ -323,6 +323,12 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, allPortfolios
         allPortfolios={allPortfolios}
         onMoved={handleMoveComplete}
       />
+
+      <TickerReportsModal
+        open={!!reportsTicker}
+        onOpenChange={(v) => { if (!v) setReportsTicker(null); }}
+        ticker={reportsTicker || ''}
+      />
     </div>
   );
 }
