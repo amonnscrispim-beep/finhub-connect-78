@@ -4,11 +4,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, Plus, Pencil, Trash2, GripVertical, RefreshCw } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, Plus, Pencil, Trash2, GripVertical, RefreshCw, ArrowRightLeft } from 'lucide-react';
 import { RecommendedPortfolio, PortfolioAsset } from './CarteirasRecomendadas';
 import { AssetModal } from './AssetModal';
+import { MoveAssetModal } from './MoveAssetModal';
 import {
   DndContext,
   closestCenter,
@@ -28,24 +29,35 @@ import { CSS } from '@dnd-kit/utilities';
 interface Props {
   portfolio: RecommendedPortfolio;
   assets: PortfolioAsset[];
+  allPortfolios: RecommendedPortfolio[];
   onBack: () => void;
   onRefresh: () => Promise<void>;
 }
 
-function SortableRow({ asset, onEdit, onDelete }: { asset: PortfolioAsset; index: number; onEdit: (a: PortfolioAsset) => void; onDelete: (id: string) => void }) {
+function SortableRow({
+  asset,
+  isCrescimento,
+  onEdit,
+  onDelete,
+  onMove,
+}: {
+  asset: PortfolioAsset;
+  isCrescimento: boolean;
+  onEdit: (a: PortfolioAsset) => void;
+  onDelete: (id: string) => void;
+  onMove: (a: PortfolioAsset) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: asset.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
 
-  const rentabilidade = asset.current_price && asset.entry_price > 0
-    ? ((asset.current_price - asset.entry_price) / asset.entry_price) * 100
-    : null;
+  const bias = asset.manual_bias || 'Aguardar';
+  const biasColor = bias === 'Comprar'
+    ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
+    : 'bg-amber-100 text-amber-700 border-amber-300';
 
-  const bias = asset.manual_bias || (
-    asset.current_price !== null
-      ? (asset.current_price < asset.ceiling_price ? 'Comprar' : 'Aguardar')
-      : '—'
-  );
-  const biasColor = bias === 'Comprar' ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : bias === 'Aguardar' ? 'bg-amber-100 text-amber-700 border-amber-300' : '';
+  const subBadgeColor = asset.sub_classification === 'Small Caps'
+    ? 'bg-blue-100 text-blue-700 border-blue-300'
+    : 'bg-purple-100 text-purple-700 border-purple-300';
 
   return (
     <TableRow ref={setNodeRef} style={style} className="group">
@@ -54,37 +66,32 @@ function SortableRow({ asset, onEdit, onDelete }: { asset: PortfolioAsset; index
           <GripVertical className="w-4 h-4" />
         </button>
       </TableCell>
-      <TableCell className="font-medium">{asset.display_order + 1}</TableCell>
       <TableCell className="font-mono font-semibold">{asset.ticker}</TableCell>
-      <TableCell>{asset.company_name}</TableCell>
+      <TableCell>{asset.company_name || '—'}</TableCell>
       <TableCell className="text-muted-foreground">{asset.sector || '—'}</TableCell>
-      <TableCell className="text-right">R$ {Number(asset.entry_price).toFixed(2)}</TableCell>
-      <TableCell className="text-right font-medium">
+      <TableCell className="text-right">
         {asset.current_price !== null ? `R$ ${Number(asset.current_price).toFixed(2)}` : '...'}
       </TableCell>
       <TableCell className="text-right">R$ {Number(asset.ceiling_price).toFixed(2)}</TableCell>
       <TableCell>
-        <div className="flex items-center gap-2">
-          <Progress value={Number(asset.allocation_pct)} className="h-2 w-16" />
-          <span className="text-xs font-medium">{Number(asset.allocation_pct).toFixed(1)}%</span>
-        </div>
-      </TableCell>
-      <TableCell className="text-right">
-        {rentabilidade !== null ? (
-          <span className={`font-semibold ${rentabilidade >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
-            {rentabilidade >= 0 ? '+' : ''}{rentabilidade.toFixed(2)}%
-          </span>
-        ) : '—'}
-      </TableCell>
-      <TableCell>
         <Badge variant="outline" className={biasColor}>{bias}</Badge>
       </TableCell>
+      {isCrescimento && (
+        <TableCell>
+          {asset.sub_classification && (
+            <Badge variant="outline" className={subBadgeColor}>{asset.sub_classification}</Badge>
+          )}
+        </TableCell>
+      )}
       <TableCell>
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(asset)}>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(asset)} title="Editar">
             <Pencil className="w-3.5 h-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(asset.id)}>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onMove(asset)} title="Mover para outra carteira">
+            <ArrowRightLeft className="w-3.5 h-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(asset.id)} title="Excluir">
             <Trash2 className="w-3.5 h-3.5" />
           </Button>
         </div>
@@ -93,14 +100,17 @@ function SortableRow({ asset, onEdit, onDelete }: { asset: PortfolioAsset; index
   );
 }
 
-export function CarteiraDetail({ portfolio, assets: initialAssets, onBack, onRefresh }: Props) {
+export function CarteiraDetail({ portfolio, assets: initialAssets, allPortfolios, onBack, onRefresh }: Props) {
   const { user } = useAuth();
   const [assets, setAssets] = useState<PortfolioAsset[]>(initialAssets);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<PortfolioAsset | undefined>();
+  const [moveAsset, setMoveAsset] = useState<PortfolioAsset | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [subFilter, setSubFilter] = useState<string>('all');
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
 
+  const isCrescimento = portfolio.slug === 'crescimento';
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   useEffect(() => {
@@ -124,7 +134,6 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, onBack, onRef
       });
       setAssets(updates);
 
-      // Persist prices
       for (const a of updates) {
         if (a.current_price !== null) {
           await supabase
@@ -147,8 +156,9 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, onBack, onRef
     return () => clearInterval(intervalRef.current);
   }, []);
 
-  const totalAllocation = assets.reduce((sum, a) => sum + Number(a.allocation_pct), 0);
-  const allocationOk = Math.abs(totalAllocation - 100) < 0.01;
+  const filteredAssets = isCrescimento && subFilter !== 'all'
+    ? assets.filter(a => a.sub_classification === subFilter)
+    : assets;
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -190,9 +200,14 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, onBack, onRef
     setTimeout(fetchPrices, 500);
   };
 
+  const handleMoveComplete = async () => {
+    setMoveAsset(null);
+    await onRefresh();
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={onBack}>
             <ArrowLeft className="w-4 h-4 mr-1" /> Voltar
@@ -200,6 +215,18 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, onBack, onRef
           <h2 className="text-xl font-semibold text-foreground">{portfolio.name}</h2>
         </div>
         <div className="flex items-center gap-2">
+          {isCrescimento && (
+            <Select value={subFilter} onValueChange={setSubFilter}>
+              <SelectTrigger className="w-[140px] h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="Small Caps">Small Caps</SelectItem>
+                <SelectItem value="Valor">Valor</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
           <Button variant="outline" size="sm" onClick={fetchPrices} disabled={refreshing}>
             <RefreshCw className={`w-4 h-4 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
             Atualizar Preços
@@ -217,43 +244,40 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, onBack, onRef
               <TableHeader>
                 <TableRow className="bg-primary hover:bg-primary">
                   <TableHead className="w-10 text-primary-foreground" />
-                  <TableHead className="text-primary-foreground">Rank</TableHead>
                   <TableHead className="text-primary-foreground">Ticker</TableHead>
                   <TableHead className="text-primary-foreground">Empresa</TableHead>
                   <TableHead className="text-primary-foreground">Setor</TableHead>
-                  <TableHead className="text-right text-primary-foreground">Entrada</TableHead>
-                  <TableHead className="text-right text-primary-foreground">Atual</TableHead>
-                  <TableHead className="text-right text-primary-foreground">Teto</TableHead>
-                  <TableHead className="text-primary-foreground">Alocação</TableHead>
-                  <TableHead className="text-right text-primary-foreground">Rent.</TableHead>
+                  <TableHead className="text-right text-primary-foreground">Preço Atual</TableHead>
+                  <TableHead className="text-right text-primary-foreground">Preço Teto</TableHead>
                   <TableHead className="text-primary-foreground">Viés</TableHead>
-                  <TableHead className="text-primary-foreground w-20" />
+                  {isCrescimento && <TableHead className="text-primary-foreground">Classificação</TableHead>}
+                  <TableHead className="text-primary-foreground w-24">Ações</TableHead>
                 </TableRow>
               </TableHeader>
-              <SortableContext items={assets.map(a => a.id)} strategy={verticalListSortingStrategy}>
+              <SortableContext items={filteredAssets.map(a => a.id)} strategy={verticalListSortingStrategy}>
                 <TableBody>
-                  {assets.length === 0 ? (
+                  {filteredAssets.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={12} className="text-center py-12 text-muted-foreground">
+                      <TableCell colSpan={isCrescimento ? 9 : 8} className="text-center py-12 text-muted-foreground">
                         Nenhum ativo cadastrado. Clique em "+ Adicionar Ativo" para começar.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    assets.map((asset, index) => (
-                      <SortableRow key={asset.id} asset={asset} index={index} onEdit={handleEdit} onDelete={handleDelete} />
+                    filteredAssets.map(asset => (
+                      <SortableRow
+                        key={asset.id}
+                        asset={asset}
+                        isCrescimento={isCrescimento}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                        onMove={setMoveAsset}
+                      />
                     ))
                   )}
                 </TableBody>
               </SortableContext>
             </Table>
           </DndContext>
-        </div>
-
-        {/* Footer allocation indicator */}
-        <div className={`px-4 py-3 border-t flex items-center justify-between text-sm font-medium ${allocationOk ? 'bg-emerald-50 text-emerald-700' : 'bg-destructive/10 text-destructive'}`}>
-          <span>Alocação total: {totalAllocation.toFixed(1)}%</span>
-          {!allocationOk && <span className="text-xs">⚠️ A soma deve ser exatamente 100%</span>}
-          {allocationOk && <span className="text-xs">✓ Alocação correta</span>}
         </div>
       </div>
 
@@ -265,6 +289,16 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, onBack, onRef
         asset={editingAsset}
         nextOrder={assets.length}
         onSaved={handleSaved}
+        allPortfolios={allPortfolios}
+      />
+
+      <MoveAssetModal
+        open={!!moveAsset}
+        onOpenChange={(v) => { if (!v) setMoveAsset(null); }}
+        asset={moveAsset}
+        currentPortfolioId={portfolio.id}
+        allPortfolios={allPortfolios}
+        onMoved={handleMoveComplete}
       />
     </div>
   );

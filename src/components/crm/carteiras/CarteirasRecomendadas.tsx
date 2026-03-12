@@ -32,16 +32,16 @@ export interface PortfolioAsset {
   manual_bias: string | null;
   display_order: number;
   is_international: boolean;
+  sub_classification: string | null;
   created_at: string;
   updated_at: string;
 }
 
 const DEFAULT_PORTFOLIOS = [
-  { name: 'Small Caps', slug: 'small-caps', display_order: 0 },
-  { name: 'Valor', slug: 'valor', display_order: 1 },
-  { name: 'Dividendos', slug: 'dividendos', display_order: 2 },
-  { name: 'FIIs', slug: 'fiis', display_order: 3 },
-  { name: 'Internacional', slug: 'internacional', display_order: 4 },
+  { name: 'Crescimento', slug: 'crescimento', display_order: 0, description: 'Small Caps + Valor' },
+  { name: 'Dividendos', slug: 'dividendos', display_order: 1, description: 'Ações pagadoras de dividendos' },
+  { name: 'FIIs', slug: 'fiis', display_order: 2, description: 'Fundos Imobiliários' },
+  { name: 'Internacional', slug: 'internacional', display_order: 3, description: 'Ativos internacionais' },
 ];
 
 export function CarteirasRecomendadas() {
@@ -59,7 +59,6 @@ export function CarteirasRecomendadas() {
     if (!user) return;
     setLoading(true);
 
-    // Load portfolios
     const { data: existingPortfolios } = await supabase
       .from('recommended_portfolios')
       .select('*')
@@ -73,7 +72,6 @@ export function CarteirasRecomendadas() {
       const toInsert = DEFAULT_PORTFOLIOS.map(p => ({
         ...p,
         user_id: user.id,
-        description: '',
       }));
       const { data: inserted } = await supabase
         .from('recommended_portfolios')
@@ -84,7 +82,6 @@ export function CarteirasRecomendadas() {
 
     setPortfolios(portfolioList);
 
-    // Load all assets
     const { data: assets } = await supabase
       .from('recommended_portfolio_assets')
       .select('*')
@@ -118,6 +115,7 @@ export function CarteirasRecomendadas() {
       <CarteiraDetail
         portfolio={selectedPortfolio}
         assets={allAssets.filter(a => a.portfolio_id === selectedPortfolio.id)}
+        allPortfolios={portfolios}
         onBack={() => setSelectedPortfolio(null)}
         onRefresh={refreshAssets}
       />
