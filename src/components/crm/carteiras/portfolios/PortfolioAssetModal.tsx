@@ -15,6 +15,7 @@ interface Props {
   portfolioId: string;
   assetClass: string;
   recommendedAssets: PortfolioAsset[];
+  portfolioNameMap: Record<string, string>;
   nextOrder: number;
   onSaved: () => void;
 }
