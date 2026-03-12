@@ -277,11 +277,11 @@ export function useStudySlides(submoduleId: string | null) {
         .from('study_slides')
         .select('*')
         .eq('submodule_id', submoduleId)
-        .eq('user_id', userId)
+        .or(`user_id.eq.${userId},shared.eq.true`)
         .order('display_order', { ascending: true });
       
       if (error) throw error;
-      return (data || []).map(transformSlide);
+      return (data || []).map((row: any) => ({ ...transformSlide(row), shared: row.shared || false, isOwn: row.user_id === userId }));
     },
     enabled: !!submoduleId && !!userId,
   });
