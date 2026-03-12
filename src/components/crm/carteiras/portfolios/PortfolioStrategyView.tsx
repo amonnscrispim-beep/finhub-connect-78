@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -36,21 +36,38 @@ const RF_SUBTYPES = [
   { key: 'ipca', label: 'Indexado à Inflação', pctField: 'rf_ipca_pct' as const },
 ];
 
+type PctField = 'acoes_pct' | 'fiis_pct' | 'internacional_pct' | 'renda_fixa_pct' | 'rf_pos_pct' | 'rf_pre_pct' | 'rf_ipca_pct';
+
 export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, portfolioNameMap, onUpdatePortfolio, onRefreshAssets }: Props) {
   const { user } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalClass, setModalClass] = useState('acoes_brasileiras');
   const [investAmount, setInvestAmount] = useState(portfolio.invest_amount || 0);
 
-  const totalPct = Number(portfolio.acoes_pct) + Number(portfolio.fiis_pct) + Number(portfolio.internacional_pct) + Number(portfolio.renda_fixa_pct);
+  // Local state for all pct fields to avoid controlled input lag
+  const [localPcts, setLocalPcts] = useState<Record<PctField, number>>({
+    acoes_pct: Number(portfolio.acoes_pct),
+    fiis_pct: Number(portfolio.fiis_pct),
+    internacional_pct: Number(portfolio.internacional_pct),
+    renda_fixa_pct: Number(portfolio.renda_fixa_pct),
+    rf_pos_pct: Number(portfolio.rf_pos_pct),
+    rf_pre_pct: Number(portfolio.rf_pre_pct),
+    rf_ipca_pct: Number(portfolio.rf_ipca_pct),
+  });
+
+  const totalPct = localPcts.acoes_pct + localPcts.fiis_pct + localPcts.internacional_pct + localPcts.renda_fixa_pct;
   const isValid = Math.abs(totalPct - 100) < 0.01;
 
-  const rfTotal = Number(portfolio.rf_pos_pct) + Number(portfolio.rf_pre_pct) + Number(portfolio.rf_ipca_pct);
-  const rfValid = Number(portfolio.renda_fixa_pct) === 0 || Math.abs(rfTotal - 100) < 0.01;
+  const rfTotal = localPcts.rf_pos_pct + localPcts.rf_pre_pct + localPcts.rf_ipca_pct;
+  const rfValid = localPcts.renda_fixa_pct === 0 || Math.abs(rfTotal - 100) < 0.01;
 
-  const handlePctChange = async (field: string, value: string) => {
+  const handlePctChange = (field: PctField, value: string) => {
     const num = parseFloat(value) || 0;
-    await onUpdatePortfolio(portfolio.id, { [field]: num } as any);
+    setLocalPcts(prev => ({ ...prev, [field]: num }));
+  };
+
+  const handlePctBlur = (field: PctField) => {
+    onUpdatePortfolio(portfolio.id, { [field]: localPcts[field] } as any);
   };
 
   const handleInvestAmountChange = (value: string) => {
@@ -103,8 +120,9 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                   type="number"
                   step="0.1"
                   className="h-8 text-sm"
-                  value={Number(portfolio[cls.pctField])}
+                  value={localPcts[cls.pctField]}
                   onChange={e => handlePctChange(cls.pctField, e.target.value)}
+                  onBlur={() => handlePctBlur(cls.pctField)}
                 />
                 <span className="text-xs text-muted-foreground">%</span>
               </div>
@@ -113,7 +131,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
         </div>
 
         {/* RF subtypes */}
-        {Number(portfolio.renda_fixa_pct) > 0 && (
+        {localPcts.renda_fixa_pct > 0 && (
           <div className="pl-4 border-l-2 border-muted space-y-2">
             <p className="text-xs font-medium text-muted-foreground">Distribuição Renda Fixa {!rfValid && <span className="text-destructive">(soma: {rfTotal.toFixed(1)}% — deve ser 100%)</span>}</p>
             <div className="grid grid-cols-3 gap-3">
@@ -125,8 +143,9 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                       type="number"
                       step="0.1"
                       className="h-8 text-sm"
-                      value={Number(portfolio[rf.pctField])}
+                      value={localPcts[rf.pctField]}
                       onChange={e => handlePctChange(rf.pctField, e.target.value)}
+                      onBlur={() => handlePctBlur(rf.pctField)}
                     />
                     <span className="text-xs text-muted-foreground">%</span>
                   </div>
@@ -139,9 +158,9 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
         {/* Assets per class */}
         {ASSET_CLASSES.map(cls => {
           const classAssets = assets.filter(a => a.asset_class === cls.key);
-          if (Number(portfolio[cls.pctField]) === 0 && classAssets.length === 0) return null;
+          const classPct = localPcts[cls.pctField];
+          if (classPct === 0 && classAssets.length === 0) return null;
 
-          const classPct = Number(portfolio[cls.pctField]);
           const classValue = investAmount * (classPct / 100);
 
           return (
