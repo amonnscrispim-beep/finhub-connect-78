@@ -104,7 +104,7 @@ function formatBRL(v: number): string {
   return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, portfolioNameMap, onUpdatePortfolio, onRefreshAssets, isConservador = true, conservadorPortfolioId }: Props) {
+export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, portfolioNameMap, onUpdatePortfolio, onRefreshAssets, isConservador = true, conservadorPortfolioId, isMaster = false, isOwnPortfolio = true, readOnly = false, onToggleShareStrategy }: Props) {
   const { user } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalClass, setModalClass] = useState('acoes_brasileiras');
