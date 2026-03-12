@@ -21,6 +21,8 @@ interface Props {
   portfolioNameMap: Record<string, string>;
   onUpdatePortfolio: (id: string, updates: Partial<InvestorPortfolio>) => Promise<void>;
   onRefreshAssets: () => Promise<void>;
+  isConservador?: boolean;
+  conservadorPortfolioId?: string;
 }
 
 const ASSET_CLASSES = [
@@ -97,7 +99,7 @@ function formatBRL(v: number): string {
   return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, portfolioNameMap, onUpdatePortfolio, onRefreshAssets }: Props) {
+export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, portfolioNameMap, onUpdatePortfolio, onRefreshAssets, isConservador = true, conservadorPortfolioId }: Props) {
   const { user } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalClass, setModalClass] = useState('acoes_brasileiras');
@@ -134,6 +136,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
   const openAddAsset = (assetClass: string) => { setModalClass(assetClass); setModalOpen(true); };
 
   const handleDeleteAsset = async (id: string) => {
+    if (!isConservador) return; // Only Conservador can delete
     const deletedAsset = assets.find(a => a.id === id);
     await supabase.from('portfolio_assets').delete().eq('id', id);
     if (deletedAsset) {
@@ -147,14 +150,43 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
   };
 
   const handleUpdateAssetField = async (assetId: string, field: string, value: number) => {
+    // For non-Conservador, only allow allocation_pct updates
+    if (!isConservador && field !== 'allocation_pct') return;
+    
+    // For virtual assets (non-Conservador with no own record yet), create one
+    if (assetId.startsWith('virtual-') && field === 'allocation_pct') {
+      const originalId = assetId.replace('virtual-', '');
+      const sourceAsset = assets.find(a => a.id === assetId);
+      if (sourceAsset && user) {
+        const { error } = await supabase.from('portfolio_assets').insert({
+          portfolio_id: portfolio.id,
+          user_id: user.id,
+          asset_class: sourceAsset.asset_class,
+          ticker: sourceAsset.ticker,
+          name: sourceAsset.name,
+          source_asset_id: sourceAsset.source_asset_id,
+          rf_type: sourceAsset.rf_type,
+          indexador: sourceAsset.indexador,
+          vencimento: sourceAsset.vencimento,
+          display_order: sourceAsset.display_order,
+          allocation_pct: value,
+          dy_pct: 0,
+        } as any);
+        if (error) console.error(error);
+        await onRefreshAssets();
+        return;
+      }
+    }
+    
     await supabase.from('portfolio_assets').update({ [field]: value } as any).eq('id', assetId);
     await onRefreshAssets();
   };
 
-  // Compute all class data
+  // Compute all class data — grand totals exclude RF for dividends
   let grandDvMonth = 0;
   let grandDvYear = 0;
   let grandValue = 0;
+  let grandValueNonRf = 0;
 
   const classDataMap: Record<string, { calcs: AssetCalc[]; classPct: number; classLabel: string }> = {};
 
@@ -165,8 +197,12 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     const classDvMonth = calcs.reduce((s, c) => s + c.dvMonth, 0);
     const classDvYear = calcs.reduce((s, c) => s + c.dvYear, 0);
     const classValue = calcs.reduce((s, c) => s + c.assetValue, 0);
-    grandDvMonth += classDvMonth;
-    grandDvYear += classDvYear;
+    const isRf = cls.key === 'renda_fixa';
+    if (!isRf) {
+      grandDvMonth += classDvMonth;
+      grandDvYear += classDvYear;
+      grandValueNonRf += classValue;
+    }
     grandValue += classValue;
     classDataMap[cls.key] = { calcs, classPct, classLabel: cls.label };
   });
@@ -208,7 +244,14 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     <Card className="border-border">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">{portfolio.strategy}</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-lg">{portfolio.strategy}</CardTitle>
+            {!isConservador && (
+              <Badge variant="outline" className="text-[10px] h-5 border-muted-foreground/30 text-muted-foreground">
+                Ativos do Conservador
+              </Badge>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleCopyAll}>
               <Copy className="w-3 h-3 mr-1" /> Copiar portfólio
@@ -325,9 +368,11 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                   <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleCopyClass(cls.key)}>
                     <Copy className="w-3 h-3 mr-1" /> Copiar
                   </Button>
-                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => openAddAsset(cls.key)}>
-                    <Plus className="w-3 h-3 mr-1" /> Adicionar
-                  </Button>
+                  {isConservador && (
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => openAddAsset(cls.key)}>
+                      <Plus className="w-3 h-3 mr-1" /> Adicionar
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -387,21 +432,27 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                           <TableCell className="text-right text-sm">R$ {formatBRL(c.assetValue)}</TableCell>
                           {!isRf && <TableCell className="text-right text-sm font-medium">{c.cotas !== null ? c.cotas : '—'}</TableCell>}
                           <TableCell className="text-right">
-                            <Input type="number" step="0.01" className="h-7 w-20 text-sm text-right inline-block"
-                              defaultValue={c.dyInput.toFixed(2)}
-                              key={`dy-${c.asset.id}`}
-                              onBlur={e => {
-                                const val = parseFloat(e.target.value) || 0;
-                                if (Math.abs(val - c.dyInput) > 0.001) handleUpdateAssetField(c.asset.id, 'dy_pct', val);
-                              }}
-                            />
+                            {isConservador ? (
+                              <Input type="number" step="0.01" className="h-7 w-20 text-sm text-right inline-block"
+                                defaultValue={c.dyInput.toFixed(2)}
+                                key={`dy-${c.asset.id}`}
+                                onBlur={e => {
+                                  const val = parseFloat(e.target.value) || 0;
+                                  if (Math.abs(val - c.dyInput) > 0.001) handleUpdateAssetField(c.asset.id, 'dy_pct', val);
+                                }}
+                              />
+                            ) : (
+                              <span className="text-sm">{c.dyInput.toFixed(2)}</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-right text-sm text-emerald-600">R$ {formatBRL(c.dvMonth)}</TableCell>
                           <TableCell className="text-right text-sm text-emerald-600">R$ {formatBRL(c.dvYear)}</TableCell>
                           <TableCell>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteAsset(c.asset.id)}>
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
+                            {isConservador && (
+                              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteAsset(c.asset.id)}>
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -426,33 +477,42 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
 
               {/* Class totals panel */}
               {classValue > 0 && (
-                <div className="bg-emerald-50 rounded-lg p-3 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
-                  <div>
-                    <p className="text-emerald-700/70 text-xs">Valor Investido</p>
-                    <p className="font-semibold text-emerald-700">R$ {formatBRL(classValue)}</p>
+                isRf ? (
+                  <div className="bg-emerald-50 rounded-lg p-3 text-sm">
+                    <div>
+                      <p className="text-emerald-700/70 text-xs">Valor Investido</p>
+                      <p className="font-semibold text-emerald-700">R$ {formatBRL(classValue)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-emerald-700/70 text-xs">Dividendo Mês</p>
-                    <p className="font-semibold text-emerald-700">R$ {formatBRL(classDvMonth)}</p>
+                ) : (
+                  <div className="bg-emerald-50 rounded-lg p-3 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+                    <div>
+                      <p className="text-emerald-700/70 text-xs">Valor Investido</p>
+                      <p className="font-semibold text-emerald-700">R$ {formatBRL(classValue)}</p>
+                    </div>
+                    <div>
+                      <p className="text-emerald-700/70 text-xs">Dividendo Mês</p>
+                      <p className="font-semibold text-emerald-700">R$ {formatBRL(classDvMonth)}</p>
+                    </div>
+                    <div>
+                      <p className="text-emerald-700/70 text-xs">Dividendo Ano</p>
+                      <p className="font-semibold text-emerald-700">R$ {formatBRL(classDvYear)}</p>
+                    </div>
+                    <div>
+                      <p className="text-emerald-700/70 text-xs">DY Mês %</p>
+                      <p className="font-semibold text-emerald-700">{(classValue > 0 ? (classDvMonth / classValue) * 100 : 0).toFixed(2)}%</p>
+                    </div>
+                    <div>
+                      <p className="text-emerald-700/70 text-xs">DY Ano %</p>
+                      <p className="font-semibold text-emerald-700">
+                        {(() => {
+                          const dyMonthPct = classValue > 0 ? classDvMonth / classValue : 0;
+                          return ((Math.pow(1 + dyMonthPct, 12) - 1) * 100).toFixed(2);
+                        })()}%
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-emerald-700/70 text-xs">Dividendo Ano</p>
-                    <p className="font-semibold text-emerald-700">R$ {formatBRL(classDvYear)}</p>
-                  </div>
-                  <div>
-                    <p className="text-emerald-700/70 text-xs">DY Mês %</p>
-                    <p className="font-semibold text-emerald-700">{(classValue > 0 ? (classDvMonth / classValue) * 100 : 0).toFixed(2)}%</p>
-                  </div>
-                  <div>
-                    <p className="text-emerald-700/70 text-xs">DY Ano %</p>
-                    <p className="font-semibold text-emerald-700">
-                      {(() => {
-                        const dyMonthPct = classValue > 0 ? classDvMonth / classValue : 0;
-                        return ((Math.pow(1 + dyMonthPct, 12) - 1) * 100).toFixed(2);
-                      })()}%
-                    </p>
-                  </div>
-                </div>
+                )
               )}
             </div>
           );
@@ -460,12 +520,12 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
 
         {/* Portfolio totals */}
         {grandValue > 0 && (() => {
-          const grandDyMonthPct = grandValue > 0 ? grandDvMonth / grandValue : 0;
+          const grandDyMonthPct = grandValueNonRf > 0 ? grandDvMonth / grandValueNonRf : 0;
           const grandDyYearPct = (Math.pow(1 + grandDyMonthPct, 12) - 1) * 100;
           return (
-            <div className="bg-emerald-50 rounded-lg p-3 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+            <div className="bg-emerald-50 rounded-lg p-3 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm border-2 border-emerald-200">
               <div>
-                <p className="text-emerald-700/70 text-xs">Valor Investido</p>
+                <p className="text-emerald-700/70 text-xs">Valor Investido Total</p>
                 <p className="font-semibold text-emerald-700">R$ {formatBRL(grandValue)}</p>
               </div>
               <div>
