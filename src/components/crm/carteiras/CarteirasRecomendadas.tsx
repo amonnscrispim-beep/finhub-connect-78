@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { CarteiraGrid } from './CarteiraGrid';
 import { CarteiraDetail } from './CarteiraDetail';
+import { PortfoliosSection } from './portfolios/PortfoliosSection';
 
 export interface RecommendedPortfolio {
   id: string;
@@ -172,10 +173,13 @@ export function CarteirasRecomendadas() {
   }
 
   return (
-    <CarteiraGrid
-      portfolios={portfolios}
-      allAssets={allAssets}
-      onSelect={setSelectedPortfolio}
-    />
+    <div className="space-y-8">
+      <CarteiraGrid
+        portfolios={portfolios}
+        allAssets={allAssets}
+        onSelect={setSelectedPortfolio}
+      />
+      <PortfoliosSection recommendedAssets={allAssets} />
+    </div>
   );
 }
