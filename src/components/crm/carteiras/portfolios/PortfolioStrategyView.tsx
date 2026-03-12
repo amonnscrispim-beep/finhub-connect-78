@@ -504,7 +504,6 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                       </p>
                     </div>
                   </div>
-                )
               )}
             </div>
           );
