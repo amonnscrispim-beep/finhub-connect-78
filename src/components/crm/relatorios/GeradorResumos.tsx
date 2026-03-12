@@ -54,6 +54,12 @@ export function GeradorResumos() {
     setIsLoading(false);
   };
 
+  const handleToggleShare = async (id: string, val: boolean) => {
+    await supabase.from('summary_reports').update({ shared: val } as any).eq('id', id);
+    setReports(prev => prev.map(r => r.id === id ? { ...r, shared: val } : r));
+    toast.success(val ? 'Resumo compartilhado!' : 'Compartilhamento removido.');
+  };
+
   const handleNewReport = (report: SummaryReport) => {
     setReports(prev => [report, ...prev]);
   };
