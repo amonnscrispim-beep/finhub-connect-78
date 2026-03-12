@@ -35,6 +35,7 @@ export interface PortfolioAssetItem {
   ticker: string;
   name: string;
   allocation_pct: number;
+  dy_pct: number;
   source_asset_id: string | null;
   rf_type: string | null;
   indexador: string | null;

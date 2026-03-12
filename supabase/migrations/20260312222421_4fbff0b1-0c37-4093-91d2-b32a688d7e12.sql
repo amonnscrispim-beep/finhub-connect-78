@@ -1,0 +1,1 @@
+ALTER TABLE public.portfolio_assets ADD COLUMN dy_pct numeric DEFAULT 0;

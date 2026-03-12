@@ -1110,6 +1110,7 @@ export type Database = {
           asset_class: string
           created_at: string
           display_order: number
+          dy_pct: number | null
           id: string
           indexador: string | null
           name: string | null
@@ -1126,6 +1127,7 @@ export type Database = {
           asset_class?: string
           created_at?: string
           display_order?: number
+          dy_pct?: number | null
           id?: string
           indexador?: string | null
           name?: string | null
@@ -1142,6 +1144,7 @@ export type Database = {
           asset_class?: string
           created_at?: string
           display_order?: number
+          dy_pct?: number | null
           id?: string
           indexador?: string | null
           name?: string | null

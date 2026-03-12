@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Calculator, AlertTriangle, CheckCircle2, Trash2 } from 'lucide-react';
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Plus, Calculator, AlertTriangle, CheckCircle2, Trash2, Copy } from 'lucide-react';
 import { InvestorPortfolio, PortfolioAssetItem } from './PortfoliosSection';
 import { PortfolioAsset } from '../CarteirasRecomendadas';
 import { PortfolioAssetModal } from './PortfolioAssetModal';
@@ -38,13 +38,78 @@ const RF_SUBTYPES = [
 
 type PctField = 'acoes_pct' | 'fiis_pct' | 'internacional_pct' | 'renda_fixa_pct' | 'rf_pos_pct' | 'rf_pre_pct' | 'rf_ipca_pct';
 
+// DY helpers
+function dyAnnualToMonthly(dyAnnual: number): number {
+  return (Math.pow(1 + dyAnnual / 100, 1 / 12) - 1) * 100;
+}
+
+function dyMonthlyToAnnual(dyMonthly: number): number {
+  return (Math.pow(1 + dyMonthly / 100, 12) - 1) * 100;
+}
+
+interface AssetCalc {
+  asset: PortfolioAssetItem;
+  displayPct: number;
+  assetValue: number;
+  cotas: number | null;
+  dyInput: number;
+  dyMonthly: number;
+  dyAnnual: number;
+  dvMonth: number;
+  dvYear: number;
+  source: PortfolioAsset | null;
+  isFii: boolean;
+  isRf: boolean;
+}
+
+function computeAsset(
+  asset: PortfolioAssetItem,
+  classPct: number,
+  classCount: number,
+  investAmount: number,
+  recommendedAssets: PortfolioAsset[],
+  classKey: string,
+): AssetCalc {
+  const autoTotalPct = classPct / classCount;
+  const storedPct = Number(asset.allocation_pct);
+  const displayPct = storedPct > 0 ? storedPct : autoTotalPct;
+  const assetValue = investAmount * (displayPct / 100);
+  const source = asset.source_asset_id ? recommendedAssets.find(a => a.id === asset.source_asset_id) || null : null;
+  const currentPrice = source?.current_price ? Number(source.current_price) : null;
+  const isRf = classKey === 'renda_fixa';
+  const isFii = classKey === 'fiis';
+  const cotas = !isRf && currentPrice && currentPrice > 0 ? Math.floor(assetValue / currentPrice) : null;
+
+  const dyInput = Number(asset.dy_pct) || 0;
+  let dyMonthly: number;
+  let dyAnnual: number;
+
+  if (isFii) {
+    // FII: input is monthly
+    dyMonthly = dyInput;
+    dyAnnual = dyMonthlyToAnnual(dyInput);
+  } else {
+    // Ações, Internacional, RF: input is annual
+    dyAnnual = dyInput;
+    dyMonthly = dyAnnualToMonthly(dyInput);
+  }
+
+  const dvMonth = assetValue * (dyMonthly / 100);
+  const dvYear = assetValue * (dyAnnual / 100);
+
+  return { asset, displayPct, assetValue, cotas, dyInput, dyMonthly, dyAnnual, dvMonth, dvYear, source, isFii, isRf };
+}
+
+function formatBRL(v: number): string {
+  return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, portfolioNameMap, onUpdatePortfolio, onRefreshAssets }: Props) {
   const { user } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalClass, setModalClass] = useState('acoes_brasileiras');
   const [investAmount, setInvestAmount] = useState(portfolio.invest_amount || 0);
 
-  // Local state for all pct fields to avoid controlled input lag
   const [localPcts, setLocalPcts] = useState<Record<PctField, number>>({
     acoes_pct: Number(portfolio.acoes_pct),
     fiis_pct: Number(portfolio.fiis_pct),
@@ -57,57 +122,101 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
 
   const totalPct = localPcts.acoes_pct + localPcts.fiis_pct + localPcts.internacional_pct + localPcts.renda_fixa_pct;
   const isValid = Math.abs(totalPct - 100) < 0.01;
-
   const rfTotal = localPcts.rf_pos_pct + localPcts.rf_pre_pct + localPcts.rf_ipca_pct;
   const rfValid = localPcts.renda_fixa_pct === 0 || Math.abs(rfTotal - 100) < 0.01;
 
   const handlePctChange = (field: PctField, value: string) => {
-    const num = parseFloat(value) || 0;
-    setLocalPcts(prev => ({ ...prev, [field]: num }));
+    setLocalPcts(prev => ({ ...prev, [field]: parseFloat(value) || 0 }));
   };
-
   const handlePctBlur = (field: PctField) => {
     onUpdatePortfolio(portfolio.id, { [field]: localPcts[field] } as any);
   };
-
   const handleInvestAmountChange = (value: string) => {
-    const num = parseFloat(value.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
-    setInvestAmount(num);
+    setInvestAmount(parseFloat(value.replace(/[^\d.,]/g, '').replace(',', '.')) || 0);
   };
-
   const handleInvestAmountBlur = () => {
     onUpdatePortfolio(portfolio.id, { invest_amount: investAmount });
   };
 
-  const openAddAsset = (assetClass: string) => {
-    setModalClass(assetClass);
-    setModalOpen(true);
-  };
+  const openAddAsset = (assetClass: string) => { setModalClass(assetClass); setModalOpen(true); };
 
   const handleDeleteAsset = async (id: string) => {
     const deletedAsset = assets.find(a => a.id === id);
     await supabase.from('portfolio_assets').delete().eq('id', id);
-
-    // Reset remaining assets to 0 so UI auto-distributes equally
     if (deletedAsset) {
       const remaining = assets.filter(a => a.id !== id && a.asset_class === deletedAsset.asset_class);
       for (const a of remaining) {
         await supabase.from('portfolio_assets').update({ allocation_pct: 0 }).eq('id', a.id);
       }
     }
-
     toast.success('Ativo removido');
     await onRefreshAssets();
   };
 
-  const handleUpdateAssetPct = async (assetId: string, newPct: number) => {
-    await supabase.from('portfolio_assets').update({ allocation_pct: newPct }).eq('id', assetId);
+  const handleUpdateAssetField = async (assetId: string, field: string, value: number) => {
+    await supabase.from('portfolio_assets').update({ [field]: value } as any).eq('id', assetId);
     await onRefreshAssets();
   };
 
-  const getSourceAsset = (sourceId: string | null) => {
-    if (!sourceId) return null;
-    return recommendedAssets.find(a => a.id === sourceId);
+  // Compute all class data
+  let grandDvMonth = 0;
+  let grandDvYear = 0;
+  let grandValue = 0;
+
+  const classDataMap: Record<string, { calcs: AssetCalc[]; classPct: number; classLabel: string }> = {};
+
+  ASSET_CLASSES.forEach(cls => {
+    const classAssets = assets.filter(a => a.asset_class === cls.key);
+    const classPct = localPcts[cls.pctField];
+    const calcs = classAssets.map(a => computeAsset(a, classPct, classAssets.length, investAmount, recommendedAssets, cls.key));
+    const classDvMonth = calcs.reduce((s, c) => s + c.dvMonth, 0);
+    const classDvYear = calcs.reduce((s, c) => s + c.dvYear, 0);
+    const classValue = calcs.reduce((s, c) => s + c.assetValue, 0);
+    grandDvMonth += classDvMonth;
+    grandDvYear += classDvYear;
+    grandValue += classValue;
+    classDataMap[cls.key] = { calcs, classPct, classLabel: cls.label };
+  });
+
+  const dyCarteira = grandValue > 0 ? (grandDvYear / grandValue) * 100 : 0;
+
+  // Copy helpers
+  const buildClassTable = (classKey: string): string => {
+    const data = classDataMap[classKey];
+    if (!data || data.calcs.length === 0) return '';
+    const isRf = classKey === 'renda_fixa';
+    const header = isRf
+      ? 'Ativo\tTipo\tIndexador\tValor R$\tAlocação %\tDY %\tDiv. Mês R$\tDiv. Ano R$'
+      : 'Ativo\tSetor\tQtd. Cotas\tValor R$\tAlocação %\tDY %\tDiv. Mês R$\tDiv. Ano R$';
+    const rows = data.calcs.map(c => {
+      const sector = c.source?.sector || '—';
+      if (isRf) {
+        return `${c.asset.name || c.asset.ticker}\t${c.asset.rf_type || '—'}\t${c.asset.indexador || '—'}\tR$ ${formatBRL(c.assetValue)}\t${c.displayPct.toFixed(2)}%\t${c.dyInput.toFixed(2)}%\tR$ ${formatBRL(c.dvMonth)}\tR$ ${formatBRL(c.dvYear)}`;
+      }
+      return `${c.asset.ticker || c.asset.name}\t${sector}\t${c.cotas ?? '—'}\tR$ ${formatBRL(c.assetValue)}\t${c.displayPct.toFixed(2)}%\t${c.dyInput.toFixed(2)}%\tR$ ${formatBRL(c.dvMonth)}\tR$ ${formatBRL(c.dvYear)}`;
+    });
+    const totalDvMonth = data.calcs.reduce((s, c) => s + c.dvMonth, 0);
+    const totalDvYear = data.calcs.reduce((s, c) => s + c.dvYear, 0);
+    const totalValue = data.calcs.reduce((s, c) => s + c.assetValue, 0);
+    const footer = isRf
+      ? `TOTAL\t\t\tR$ ${formatBRL(totalValue)}\t${data.classPct.toFixed(2)}%\t\tR$ ${formatBRL(totalDvMonth)}\tR$ ${formatBRL(totalDvYear)}`
+      : `TOTAL\t\t\tR$ ${formatBRL(totalValue)}\t${data.classPct.toFixed(2)}%\t\tR$ ${formatBRL(totalDvMonth)}\tR$ ${formatBRL(totalDvYear)}`;
+    return `${data.classLabel}\n${header}\n${rows.join('\n')}\n${footer}`;
+  };
+
+  const handleCopyClass = (classKey: string) => {
+    const text = buildClassTable(classKey);
+    if (!text) { toast.info('Nenhum ativo nesta classe'); return; }
+    navigator.clipboard.writeText(text);
+    toast.success('Copiado!');
+  };
+
+  const handleCopyAll = () => {
+    const sections = ASSET_CLASSES.map(cls => buildClassTable(cls.key)).filter(Boolean);
+    if (sections.length === 0) { toast.info('Nenhum ativo no portfólio'); return; }
+    const footer = `\nRESUMO CARTEIRA\nDividendo Mês Total\tR$ ${formatBRL(grandDvMonth)}\nDividendo Ano Total\tR$ ${formatBRL(grandDvYear)}\nDY Carteira\t${dyCarteira.toFixed(2)}%`;
+    navigator.clipboard.writeText(sections.join('\n\n') + footer);
+    toast.success('Portfólio completo copiado!');
   };
 
   return (
@@ -115,10 +224,15 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">{portfolio.strategy}</CardTitle>
-          <Badge variant={isValid ? 'default' : 'destructive'} className={isValid ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : ''}>
-            {isValid ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <AlertTriangle className="w-3 h-3 mr-1" />}
-            {totalPct.toFixed(1)}%
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleCopyAll}>
+              <Copy className="w-3 h-3 mr-1" /> Copiar portfólio
+            </Button>
+            <Badge variant={isValid ? 'default' : 'destructive'} className={isValid ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : ''}>
+              {isValid ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <AlertTriangle className="w-3 h-3 mr-1" />}
+              {totalPct.toFixed(1)}%
+            </Badge>
+          </div>
         </div>
         <Progress value={Math.min(totalPct, 100)} className="h-2" />
         {!isValid && <p className="text-xs text-destructive mt-1">A soma das alocações deve ser exatamente 100%</p>}
@@ -131,10 +245,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
             <div key={cls.key} className="space-y-1">
               <Label className="text-xs">{cls.label}</Label>
               <div className="flex items-center gap-1">
-                <Input
-                  type="number"
-                  step="0.1"
-                  className="h-8 text-sm"
+                <Input type="number" step="0.1" className="h-8 text-sm"
                   value={localPcts[cls.pctField]}
                   onChange={e => handlePctChange(cls.pctField, e.target.value)}
                   onBlur={() => handlePctBlur(cls.pctField)}
@@ -154,10 +265,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                 <div key={rf.key} className="space-y-1">
                   <Label className="text-xs">{rf.label}</Label>
                   <div className="flex items-center gap-1">
-                    <Input
-                      type="number"
-                      step="0.1"
-                      className="h-8 text-sm"
+                    <Input type="number" step="0.1" className="h-8 text-sm"
                       value={localPcts[rf.pctField]}
                       onChange={e => handlePctChange(rf.pctField, e.target.value)}
                       onBlur={() => handlePctBlur(rf.pctField)}
@@ -172,94 +280,110 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
 
         {/* Assets per class */}
         {ASSET_CLASSES.map(cls => {
-          const classAssets = assets.filter(a => a.asset_class === cls.key);
-          const classPct = localPcts[cls.pctField];
-          if (classPct === 0 && classAssets.length === 0) return null;
-
-          const classValue = investAmount * (classPct / 100);
-          const equalPctWithinClass = classAssets.length > 0 ? 100 / classAssets.length : 0;
+          const data = classDataMap[cls.key];
+          if (!data || (data.classPct === 0 && data.calcs.length === 0)) return null;
+          const isRf = cls.key === 'renda_fixa';
+          const isFii = cls.key === 'fiis';
+          const classDvMonth = data.calcs.reduce((s, c) => s + c.dvMonth, 0);
+          const classDvYear = data.calcs.reduce((s, c) => s + c.dvYear, 0);
+          const classValue = data.calcs.reduce((s, c) => s + c.assetValue, 0);
 
           return (
             <div key={cls.key} className="space-y-2">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium">{cls.label} ({classPct}%)</h4>
-                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => openAddAsset(cls.key)}>
-                  <Plus className="w-3 h-3 mr-1" /> Adicionar
-                </Button>
+                <h4 className="text-sm font-medium">{cls.label} ({data.classPct}%)</h4>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleCopyClass(cls.key)}>
+                    <Copy className="w-3 h-3 mr-1" /> Copiar
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => openAddAsset(cls.key)}>
+                    <Plus className="w-3 h-3 mr-1" /> Adicionar
+                  </Button>
+                </div>
               </div>
 
-              {classAssets.length > 0 && (
+              {data.calcs.length > 0 && (
                 <div className="border border-border rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
                         <TableHead className="text-xs">Ativo</TableHead>
-                        {cls.key === 'renda_fixa' && <TableHead className="text-xs">Tipo</TableHead>}
-                        {cls.key === 'renda_fixa' && <TableHead className="text-xs">Indexador</TableHead>}
-                        {cls.key === 'renda_fixa' && <TableHead className="text-xs">Vencimento</TableHead>}
-                        {cls.key !== 'renda_fixa' && <TableHead className="text-xs text-right">Preço Teto</TableHead>}
-                        {cls.key !== 'renda_fixa' && <TableHead className="text-xs text-right">Preço Atual</TableHead>}
+                        {isRf && <TableHead className="text-xs">Tipo</TableHead>}
+                        {isRf && <TableHead className="text-xs">Indexador</TableHead>}
+                        {isRf && <TableHead className="text-xs">Vencimento</TableHead>}
+                        {!isRf && <TableHead className="text-xs text-right">Preço Teto</TableHead>}
+                        {!isRf && <TableHead className="text-xs text-right">Preço Atual</TableHead>}
                         <TableHead className="text-xs text-right">Alocação %</TableHead>
-                        <TableHead className="text-xs text-right">Valor (R$)</TableHead>
-                        {cls.key !== 'renda_fixa' && <TableHead className="text-xs text-right">Qtd. Cotas</TableHead>}
+                        <TableHead className="text-xs text-right">Valor R$</TableHead>
+                        {!isRf && <TableHead className="text-xs text-right">Qtd. Cotas</TableHead>}
+                        <TableHead className="text-xs text-right">{isFii ? 'DY Mês %' : 'DY Ano %'}</TableHead>
+                        <TableHead className="text-xs text-right">Div. Mês R$</TableHead>
+                        <TableHead className="text-xs text-right">Div. Ano R$</TableHead>
                         <TableHead className="text-xs w-10" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {classAssets.map(asset => {
-                        const source = getSourceAsset(asset.source_asset_id);
-                        // % do total = classe% / número de ativos (distribuição igual)
-                        const autoTotalPct = classPct / classAssets.length;
-                        // Se o usuário editou manualmente (stored > 0 e diferente do auto), usar o stored
-                        const storedPct = Number(asset.allocation_pct);
-                        const displayPct = storedPct > 0 ? storedPct : autoTotalPct;
-                        // Valor R$ = (% do ativo / 100) × valor total
-                        const assetValue = investAmount * (displayPct / 100);
-                        const currentPrice = source?.current_price;
-                        const cotas = currentPrice && currentPrice > 0 ? Math.floor(assetValue / currentPrice) : null;
-
-                        return (
-                          <TableRow key={asset.id}>
-                            <TableCell className="font-mono text-sm font-semibold">{asset.ticker || asset.name}</TableCell>
-                            {cls.key === 'renda_fixa' && <TableCell className="text-xs">{asset.rf_type || '—'}</TableCell>}
-                            {cls.key === 'renda_fixa' && <TableCell className="text-xs">{asset.indexador || '—'}</TableCell>}
-                            {cls.key === 'renda_fixa' && <TableCell className="text-xs">{asset.vencimento || '—'}</TableCell>}
-                            {cls.key !== 'renda_fixa' && (
-                              <TableCell className="text-right text-sm">
-                                {source ? `R$ ${Number(source.ceiling_price).toFixed(2)}` : '—'}
-                              </TableCell>
-                            )}
-                            {cls.key !== 'renda_fixa' && (
-                              <TableCell className="text-right text-sm">
-                                {source?.current_price != null ? `R$ ${Number(source.current_price).toFixed(2)}` : '...'}
-                              </TableCell>
-                            )}
-                            <TableCell className="text-right">
-                              <Input
-                                type="number"
-                                step="0.01"
-                                className="h-7 w-20 text-sm text-right inline-block"
-                                defaultValue={displayPct.toFixed(2)}
-                                key={`${asset.id}-${classAssets.length}-${classPct}`}
-                                onBlur={e => {
-                                  const val = parseFloat(e.target.value) || 0;
-                                  if (Math.abs(val - displayPct) > 0.001) handleUpdateAssetPct(asset.id, val);
-                                }}
-                              />
+                      {data.calcs.map(c => (
+                        <TableRow key={c.asset.id}>
+                          <TableCell className="font-mono text-sm font-semibold">{c.asset.ticker || c.asset.name}</TableCell>
+                          {isRf && <TableCell className="text-xs">{c.asset.rf_type || '—'}</TableCell>}
+                          {isRf && <TableCell className="text-xs">{c.asset.indexador || '—'}</TableCell>}
+                          {isRf && <TableCell className="text-xs">{c.asset.vencimento || '—'}</TableCell>}
+                          {!isRf && (
+                            <TableCell className="text-right text-sm">
+                              {c.source ? `R$ ${Number(c.source.ceiling_price).toFixed(2)}` : '—'}
                             </TableCell>
-                            <TableCell className="text-right text-sm">R$ {assetValue.toFixed(2)}</TableCell>
-                            {cls.key !== 'renda_fixa' && (
-                              <TableCell className="text-right text-sm font-medium">{cotas !== null ? cotas : '—'}</TableCell>
-                            )}
-                            <TableCell>
-                              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteAsset(asset.id)}>
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
+                          )}
+                          {!isRf && (
+                            <TableCell className="text-right text-sm">
+                              {c.source?.current_price != null ? `R$ ${Number(c.source.current_price).toFixed(2)}` : '...'}
                             </TableCell>
-                          </TableRow>
-                        );
-                      })}
+                          )}
+                          <TableCell className="text-right">
+                            <Input type="number" step="0.01" className="h-7 w-20 text-sm text-right inline-block"
+                              defaultValue={c.displayPct.toFixed(2)}
+                              key={`pct-${c.asset.id}-${data.calcs.length}-${data.classPct}`}
+                              onBlur={e => {
+                                const val = parseFloat(e.target.value) || 0;
+                                if (Math.abs(val - c.displayPct) > 0.001) handleUpdateAssetField(c.asset.id, 'allocation_pct', val);
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell className="text-right text-sm">R$ {formatBRL(c.assetValue)}</TableCell>
+                          {!isRf && <TableCell className="text-right text-sm font-medium">{c.cotas !== null ? c.cotas : '—'}</TableCell>}
+                          <TableCell className="text-right">
+                            <Input type="number" step="0.01" className="h-7 w-20 text-sm text-right inline-block"
+                              defaultValue={c.dyInput.toFixed(2)}
+                              key={`dy-${c.asset.id}`}
+                              onBlur={e => {
+                                const val = parseFloat(e.target.value) || 0;
+                                if (Math.abs(val - c.dyInput) > 0.001) handleUpdateAssetField(c.asset.id, 'dy_pct', val);
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell className="text-right text-sm text-emerald-600">R$ {formatBRL(c.dvMonth)}</TableCell>
+                          <TableCell className="text-right text-sm text-emerald-600">R$ {formatBRL(c.dvYear)}</TableCell>
+                          <TableCell>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteAsset(c.asset.id)}>
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
                     </TableBody>
+                    <TableFooter>
+                      <TableRow className="bg-muted/30 font-medium text-xs">
+                        <TableCell colSpan={isRf ? 4 : 3}>Total {cls.label}</TableCell>
+                        {!isRf && <TableCell />}
+                        <TableCell className="text-right">{data.classPct.toFixed(2)}%</TableCell>
+                        <TableCell className="text-right">R$ {formatBRL(classValue)}</TableCell>
+                        {!isRf && <TableCell />}
+                        <TableCell />
+                        <TableCell className="text-right text-emerald-600">R$ {formatBRL(classDvMonth)}</TableCell>
+                        <TableCell className="text-right text-emerald-600">R$ {formatBRL(classDvYear)}</TableCell>
+                        <TableCell />
+                      </TableRow>
+                    </TableFooter>
                   </Table>
                 </div>
               )}
@@ -267,15 +391,35 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
           );
         })}
 
+        {/* Portfolio totals */}
+        {grandValue > 0 && (
+          <div className="bg-muted/40 rounded-lg p-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <div>
+              <p className="text-muted-foreground text-xs">Valor Investido</p>
+              <p className="font-semibold">R$ {formatBRL(grandValue)}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Dividendo Mês</p>
+              <p className="font-semibold text-emerald-600">R$ {formatBRL(grandDvMonth)}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Dividendo Ano</p>
+              <p className="font-semibold text-emerald-600">R$ {formatBRL(grandDvYear)}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">DY Carteira</p>
+              <p className="font-semibold text-emerald-600">{dyCarteira.toFixed(2)}%</p>
+            </div>
+          </div>
+        )}
+
         {/* Calculator */}
         <div className="flex items-center gap-3 pt-2 border-t border-border">
           <Calculator className="w-4 h-4 text-primary" />
           <Label className="text-sm font-medium whitespace-nowrap">Valor a investir:</Label>
           <div className="flex items-center gap-1">
             <span className="text-sm text-muted-foreground">R$</span>
-            <Input
-              type="number"
-              className="h-8 w-48 text-sm"
+            <Input type="number" className="h-8 w-48 text-sm"
               value={investAmount || ''}
               placeholder="0"
               onChange={e => handleInvestAmountChange(e.target.value)}
