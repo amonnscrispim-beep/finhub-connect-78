@@ -1,6 +1,6 @@
 import { useAuth } from '@/hooks/useAuth';
 
-const MASTER_EMAIL = 'amoncrispimufrj@gmail.com';
+const MASTER_EMAIL = 'amonncrispimufrj@gmail.com';
 
 export function useIsMaster(): boolean {
   const { user } = useAuth();
