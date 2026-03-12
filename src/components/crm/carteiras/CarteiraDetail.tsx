@@ -118,6 +118,7 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, allPortfolios
   const [modalOpen, setModalOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<PortfolioAsset | undefined>();
   const [moveAsset, setMoveAsset] = useState<PortfolioAsset | null>(null);
+  const [reportsTicker, setReportsTicker] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [subFilter, setSubFilter] = useState<string>('all');
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
