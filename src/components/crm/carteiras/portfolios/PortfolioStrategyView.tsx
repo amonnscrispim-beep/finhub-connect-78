@@ -173,20 +173,17 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
 
   const dyCarteira = grandValue > 0 ? (grandDvYear / grandValue) * 100 : 0;
 
-  // Copy helpers — simplified format: TICKER (Setor): X cotas (R$ Y)
+  // Copy helpers — format: TICKER: X cotas (R$ Y)
   const buildClassLines = (classKey: string): string => {
     const data = classDataMap[classKey];
     if (!data || data.calcs.length === 0) return '';
     return data.calcs.map(c => {
       const name = c.asset.ticker || c.asset.name;
-      const sector = c.source?.sector || c.asset.rf_type || '';
-      const sectorPart = sector ? ` (${sector})` : '';
-      const cotasPart = c.cotas !== null ? `${c.cotas} cotas` : '';
       const valuePart = `R$ ${formatBRL(c.assetValue)}`;
       if (c.isRf) {
-        return `${name}${sectorPart}: ${valuePart}`;
+        return `${name}: ${valuePart}`;
       }
-      return `${name}${sectorPart}: ${cotasPart} (${valuePart})`;
+      return `${name}: ${c.cotas ?? 0} cotas (${valuePart})`;
     }).join('\n');
   };
 
