@@ -163,6 +163,7 @@ export function CarteirasRecomendadas() {
   }
 
   if (selectedPortfolio) {
+    const isOwnPortfolio = selectedPortfolio.user_id === user?.id;
     return (
       <CarteiraDetail
         portfolio={selectedPortfolio}
@@ -170,6 +171,8 @@ export function CarteirasRecomendadas() {
         allPortfolios={portfolios}
         onBack={() => setSelectedPortfolio(null)}
         onRefresh={refreshAssets}
+        isMaster={isMaster}
+        readOnly={!isOwnPortfolio}
       />
     );
   }
