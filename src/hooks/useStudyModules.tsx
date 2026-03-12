@@ -184,11 +184,11 @@ export function useStudySubmodules(moduleId: string | null) {
         .from('study_submodules')
         .select('*')
         .eq('module_id', moduleId)
-        .eq('user_id', userId)
+        .or(`user_id.eq.${userId},shared.eq.true`)
         .order('display_order', { ascending: true });
       
       if (error) throw error;
-      return (data || []).map(transformSubmodule);
+      return (data || []).map((row: any) => ({ ...transformSubmodule(row), shared: row.shared || false, isOwn: row.user_id === userId }));
     },
     enabled: !!moduleId && !!userId,
   });
