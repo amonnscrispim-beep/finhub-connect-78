@@ -10,6 +10,7 @@ import { ArrowLeft, Plus, Pencil, Trash2, GripVertical, RefreshCw, ArrowRightLef
 import { RecommendedPortfolio, PortfolioAsset } from './CarteirasRecomendadas';
 import { AssetModal } from './AssetModal';
 import { MoveAssetModal } from './MoveAssetModal';
+import { TickerReportsModal } from './TickerReportsModal';
 import {
   DndContext,
   closestCenter,
@@ -40,17 +41,21 @@ function SortableRow({
   onEdit,
   onDelete,
   onMove,
+  onViewReports,
 }: {
   asset: PortfolioAsset;
   isCrescimento: boolean;
   onEdit: (a: PortfolioAsset) => void;
   onDelete: (id: string) => void;
   onMove: (a: PortfolioAsset) => void;
+  onViewReports: (ticker: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: asset.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
 
-  const bias = asset.manual_bias || 'Aguardar';
+  // Auto-calculate bias: current_price < ceiling_price → Comprar
+  const bias = (asset.current_price !== null && asset.ceiling_price > 0 && asset.current_price < asset.ceiling_price)
+    ? 'Comprar' : 'Aguardar';
   const biasColor = bias === 'Comprar'
     ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
     : 'bg-amber-100 text-amber-700 border-amber-300';
@@ -66,7 +71,15 @@ function SortableRow({
           <GripVertical className="w-4 h-4" />
         </button>
       </TableCell>
-      <TableCell className="font-mono font-semibold">{asset.ticker}</TableCell>
+      <TableCell>
+        <div className="font-mono font-semibold">{asset.ticker}</div>
+        <button
+          onClick={() => onViewReports(asset.ticker)}
+          className="text-[10px] text-primary hover:underline mt-0.5"
+        >
+          Ver relatórios
+        </button>
+      </TableCell>
       <TableCell>{asset.company_name || '—'}</TableCell>
       <TableCell className="text-muted-foreground">{asset.sector || '—'}</TableCell>
       <TableCell className="text-right">
@@ -106,6 +119,7 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, allPortfolios
   const [modalOpen, setModalOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<PortfolioAsset | undefined>();
   const [moveAsset, setMoveAsset] = useState<PortfolioAsset | null>(null);
+  const [reportsTicker, setReportsTicker] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [subFilter, setSubFilter] = useState<string>('all');
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
@@ -178,7 +192,15 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, allPortfolios
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from('recommended_portfolio_assets').delete().eq('id', id);
+    // Optimistic: remove from local state immediately
+    setAssets(prev => prev.filter(a => a.id !== id));
+    const { error } = await supabase.from('recommended_portfolio_assets').delete().eq('id', id);
+    if (error) {
+      toast.error('Erro ao remover ativo');
+      // Revert on error
+      await onRefresh();
+      return;
+    }
     toast.success('Ativo removido');
     await onRefresh();
   };
@@ -271,6 +293,7 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, allPortfolios
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                         onMove={setMoveAsset}
+                        onViewReports={setReportsTicker}
                       />
                     ))
                   )}
@@ -299,6 +322,12 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, allPortfolios
         currentPortfolioId={portfolio.id}
         allPortfolios={allPortfolios}
         onMoved={handleMoveComplete}
+      />
+
+      <TickerReportsModal
+        open={!!reportsTicker}
+        onOpenChange={(v) => { if (!v) setReportsTicker(null); }}
+        ticker={reportsTicker || ''}
       />
     </div>
   );

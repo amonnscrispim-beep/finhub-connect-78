@@ -40,7 +40,7 @@ export function AssetModal({ open, onOpenChange, portfolioId, portfolioSlug, ass
   const [companyName, setCompanyName] = useState('');
   const [sector, setSector] = useState('');
   const [ceilingPrice, setCeilingPrice] = useState('');
-  const [bias, setBias] = useState('Comprar');
+  
   const [subClassification, setSubClassification] = useState<string>('Small Caps');
   const [destinationPortfolioId, setDestinationPortfolioId] = useState(portfolioId);
   const [saving, setSaving] = useState(false);
@@ -55,7 +55,7 @@ export function AssetModal({ open, onOpenChange, portfolioId, portfolioSlug, ass
       setCompanyName(asset.company_name);
       setSector(asset.sector || '');
       setCeilingPrice(String(asset.ceiling_price));
-      setBias(asset.manual_bias || 'Comprar');
+      
       setSubClassification(asset.sub_classification || 'Small Caps');
       setDestinationPortfolioId(asset.portfolio_id);
     } else {
@@ -63,7 +63,7 @@ export function AssetModal({ open, onOpenChange, portfolioId, portfolioSlug, ass
       setCompanyName('');
       setSector('');
       setCeilingPrice('');
-      setBias('Comprar');
+      
       setSubClassification('Small Caps');
       setDestinationPortfolioId(portfolioId);
     }
@@ -91,7 +91,9 @@ export function AssetModal({ open, onOpenChange, portfolioId, portfolioSlug, ass
         company_name: companyName.trim(),
         sector: sector,
         ceiling_price: parseFloat(ceilingPrice) || 0,
-        manual_bias: bias,
+        manual_bias: currentPrice !== null && (parseFloat(ceilingPrice) || 0) > 0
+          ? (currentPrice < (parseFloat(ceilingPrice) || 0) ? 'Comprar' : 'Aguardar')
+          : 'Aguardar',
         is_international: isInternational,
         current_price: currentPrice,
         display_order: asset?.display_order ?? nextOrder,
@@ -147,21 +149,10 @@ export function AssetModal({ open, onOpenChange, portfolioId, portfolioSlug, ass
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Preço Teto (R$) *</Label>
-              <Input type="number" step="0.01" value={ceilingPrice} onChange={e => setCeilingPrice(e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Viés *</Label>
-              <Select value={bias} onValueChange={setBias}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Comprar">Comprar</SelectItem>
-                  <SelectItem value="Aguardar">Aguardar</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-1.5">
+            <Label>Preço Teto (R$) *</Label>
+            <Input type="number" step="0.01" value={ceilingPrice} onChange={e => setCeilingPrice(e.target.value)} />
+            <p className="text-[11px] text-muted-foreground">O viés (Comprar/Aguardar) é calculado automaticamente comparando o preço atual com o preço teto.</p>
           </div>
 
           {!isEditing && (
