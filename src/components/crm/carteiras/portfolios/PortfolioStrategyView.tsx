@@ -475,16 +475,8 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                 </div>
               )}
 
-              {/* Class totals panel */}
-              {classValue > 0 && (
-                isRf ? (
-                  <div className="bg-emerald-50 rounded-lg p-3 text-sm">
-                    <div>
-                      <p className="text-emerald-700/70 text-xs">Valor Investido</p>
-                      <p className="font-semibold text-emerald-700">R$ {formatBRL(classValue)}</p>
-                    </div>
-                  </div>
-                ) : (
+              {/* Class totals panel — skip for Renda Fixa */}
+              {classValue > 0 && !isRf && (
                   <div className="bg-emerald-50 rounded-lg p-3 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
                     <div>
                       <p className="text-emerald-700/70 text-xs">Valor Investido</p>
