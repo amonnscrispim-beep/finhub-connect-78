@@ -171,7 +171,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     classDataMap[cls.key] = { calcs, classPct, classLabel: cls.label };
   });
 
-  const dyCarteira = grandValue > 0 ? (grandDvYear / grandValue) * 100 : 0;
+  
 
   // Copy helpers — format: TICKER: X cotas (R$ Y)
   const buildClassLines = (classKey: string): string => {
