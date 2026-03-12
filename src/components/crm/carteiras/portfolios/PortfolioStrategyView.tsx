@@ -18,6 +18,7 @@ interface Props {
   portfolio: InvestorPortfolio;
   assets: PortfolioAssetItem[];
   recommendedAssets: PortfolioAsset[];
+  portfolioNameMap: Record<string, string>;
   onUpdatePortfolio: (id: string, updates: Partial<InvestorPortfolio>) => Promise<void>;
   onRefreshAssets: () => Promise<void>;
 }
