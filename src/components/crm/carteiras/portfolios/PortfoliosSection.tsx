@@ -46,9 +46,10 @@ export interface PortfolioAssetItem {
 
 interface Props {
   recommendedAssets: PortfolioAsset[];
+  portfolioNameMap: Record<string, string>;
 }
 
-export function PortfoliosSection({ recommendedAssets }: Props) {
+export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props) {
   const { user } = useAuth();
   const [portfolios, setPortfolios] = useState<InvestorPortfolio[]>([]);
   const [portfolioAssets, setPortfolioAssets] = useState<PortfolioAssetItem[]>([]);
@@ -156,6 +157,7 @@ export function PortfoliosSection({ recommendedAssets }: Props) {
                   portfolio={portfolio}
                   assets={assets}
                   recommendedAssets={recommendedAssets}
+                  portfolioNameMap={portfolioNameMap}
                   onUpdatePortfolio={updatePortfolio}
                   onRefreshAssets={refreshPortfolioAssets}
                 />

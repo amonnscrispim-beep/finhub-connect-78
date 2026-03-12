@@ -18,6 +18,7 @@ interface Props {
   portfolio: InvestorPortfolio;
   assets: PortfolioAssetItem[];
   recommendedAssets: PortfolioAsset[];
+  portfolioNameMap: Record<string, string>;
   onUpdatePortfolio: (id: string, updates: Partial<InvestorPortfolio>) => Promise<void>;
   onRefreshAssets: () => Promise<void>;
 }
@@ -35,7 +36,7 @@ const RF_SUBTYPES = [
   { key: 'ipca', label: 'Indexado à Inflação', pctField: 'rf_ipca_pct' as const },
 ];
 
-export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, onUpdatePortfolio, onRefreshAssets }: Props) {
+export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, portfolioNameMap, onUpdatePortfolio, onRefreshAssets }: Props) {
   const { user } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalClass, setModalClass] = useState('acoes_brasileiras');
@@ -235,6 +236,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, on
         portfolioId={portfolio.id}
         assetClass={modalClass}
         recommendedAssets={recommendedAssets}
+        portfolioNameMap={portfolioNameMap}
         nextOrder={assets.filter(a => a.asset_class === modalClass).length}
         onSaved={async () => { setModalOpen(false); await onRefreshAssets(); }}
       />

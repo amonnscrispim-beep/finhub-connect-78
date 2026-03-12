@@ -15,6 +15,7 @@ interface Props {
   portfolioId: string;
   assetClass: string;
   recommendedAssets: PortfolioAsset[];
+  portfolioNameMap: Record<string, string>;
   nextOrder: number;
   onSaved: () => void;
 }
@@ -25,7 +26,7 @@ const CLASS_TO_SLUGS: Record<string, string[]> = {
   internacional: ['internacional'],
 };
 
-export function PortfolioAssetModal({ open, onOpenChange, portfolioId, assetClass, recommendedAssets, nextOrder, onSaved }: Props) {
+export function PortfolioAssetModal({ open, onOpenChange, portfolioId, assetClass, recommendedAssets, portfolioNameMap, nextOrder, onSaved }: Props) {
   const { user } = useAuth();
   const isRendaFixa = assetClass === 'renda_fixa';
 
@@ -155,11 +156,14 @@ export function PortfolioAssetModal({ open, onOpenChange, portfolioId, assetClas
                 <Select value={selectedAssetId} onValueChange={setSelectedAssetId}>
                   <SelectTrigger><SelectValue placeholder="Selecionar ativo..." /></SelectTrigger>
                   <SelectContent>
-                    {availableAssets.map(a => (
-                      <SelectItem key={a.id} value={a.id}>
-                        {a.ticker} — {a.company_name} (Teto: R$ {Number(a.ceiling_price).toFixed(2)})
-                      </SelectItem>
-                    ))}
+                    {availableAssets.map(a => {
+                      const pName = portfolioNameMap[a.portfolio_id] || '';
+                      return (
+                        <SelectItem key={a.id} value={a.id}>
+                          {a.ticker} — {a.company_name} (Teto: R$ {Number(a.ceiling_price).toFixed(2)}) · {pName}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>

@@ -179,7 +179,7 @@ export function CarteirasRecomendadas() {
         allAssets={allAssets}
         onSelect={setSelectedPortfolio}
       />
-      <PortfoliosSection recommendedAssets={allAssets} />
+      <PortfoliosSection recommendedAssets={allAssets} portfolioNameMap={Object.fromEntries(portfolios.map(p => [p.id, p.name]))} />
     </div>
   );
 }
