@@ -33,11 +33,29 @@ interface ModuleDetailProps {
 
 export function ModuleDetail({ module, onSubmoduleClick }: ModuleDetailProps) {
   const { submodules, submodulesLoading, createSubmodule, updateSubmodule, deleteSubmodule } = useStudySubmodules(module.id);
+  const { user } = useAuth();
+  const isMaster = useIsMaster();
+  const queryClient = useQueryClient();
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const isOwnModule = module.userId === user?.id;
+
+  const toggleShareSubmodule = async (e: React.MouseEvent, sub: StudySubmodule) => {
+    e.stopPropagation();
+    const newVal = !(sub as any).shared;
+    await supabase.from('study_submodules').update({ shared: newVal } as any).eq('id', sub.id);
+    // Also share/unshare all slides
+    const { data: slides } = await supabase.from('study_slides').select('id').eq('submodule_id', sub.id);
+    if (slides && slides.length > 0) {
+      await supabase.from('study_slides').update({ shared: newVal } as any).in('id', slides.map(s => s.id));
+    }
+    queryClient.invalidateQueries({ queryKey: ['study-submodules', module.id] });
+    toast.success(newVal ? 'Aula compartilhada!' : 'Compartilhamento removido.');
+  };
 
   const handleAdd = () => {
     if (!newTitle.trim()) return;
