@@ -299,7 +299,21 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <h4 className="text-sm font-medium">{cls.label} ({data.classPct}%)</h4>
-                  <span className="text-xs text-muted-foreground font-medium">R$ {formatBRL(investAmount * (data.classPct / 100))}</span>
+                  <div className="flex items-center gap-0.5">
+                    <span className="text-xs text-muted-foreground">R$</span>
+                    <Input type="text" className="h-6 w-28 text-xs"
+                      key={`secval-${cls.key}-${investAmount}-${data.classPct}`}
+                      defaultValue={formatBRL(investAmount * (data.classPct / 100))}
+                      onBlur={e => {
+                        const raw = parseFloat(e.target.value.replace(/\./g, '').replace(',', '.')) || 0;
+                        if (investAmount > 0) {
+                          const newPct = parseFloat(((raw / investAmount) * 100).toFixed(2));
+                          setLocalPcts(prev => ({ ...prev, [cls.pctField]: newPct }));
+                          onUpdatePortfolio(portfolio.id, { [cls.pctField]: newPct } as any);
+                        }
+                      }}
+                    />
+                  </div>
                   {!classAllocValid && data.calcs.length > 0 && (
                     <Badge variant="destructive" className="text-[10px] h-5">
                       <AlertTriangle className="w-3 h-3 mr-0.5" />
