@@ -68,7 +68,15 @@ function SortableRow({
           <GripVertical className="w-4 h-4" />
         </button>
       </TableCell>
-      <TableCell className="font-mono font-semibold">{asset.ticker}</TableCell>
+      <TableCell>
+        <div className="font-mono font-semibold">{asset.ticker}</div>
+        <button
+          onClick={() => onViewReports(asset.ticker)}
+          className="text-[10px] text-primary hover:underline mt-0.5"
+        >
+          Ver relatórios
+        </button>
+      </TableCell>
       <TableCell>{asset.company_name || '—'}</TableCell>
       <TableCell className="text-muted-foreground">{asset.sector || '—'}</TableCell>
       <TableCell className="text-right">
