@@ -46,7 +46,7 @@ function getPreview(md: string, lines = 3): string {
   return clean.slice(0, lines).join(' ').slice(0, 200) + (clean.length > lines ? '...' : '');
 }
 
-export function FeedResumos({ reports, isLoading, generatingId, onViewReport }: Props) {
+export function FeedResumos({ reports, isLoading, generatingId, onViewReport, isMaster, userId, onToggleShare }: Props) {
   return (
     <Card className="h-full border-border flex flex-col">
       <CardHeader className="bg-primary text-primary-foreground rounded-t-lg">
