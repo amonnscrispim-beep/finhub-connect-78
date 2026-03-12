@@ -286,7 +286,7 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, allPortfolios
                   <TableHead className="text-right text-primary-foreground">Preço Teto</TableHead>
                   <TableHead className="text-primary-foreground">Viés</TableHead>
                   {isCrescimento && <TableHead className="text-primary-foreground">Classificação</TableHead>}
-                  <TableHead className="text-primary-foreground w-24">Ações</TableHead>
+                  {!readOnly && <TableHead className="text-primary-foreground w-24">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
               <SortableContext items={filteredAssets.map(a => a.id)} strategy={verticalListSortingStrategy}>
@@ -294,7 +294,7 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, allPortfolios
                   {filteredAssets.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={isCrescimento ? 9 : 8} className="text-center py-12 text-muted-foreground">
-                        Nenhum ativo cadastrado. Clique em "+ Adicionar Ativo" para começar.
+                        Nenhum ativo cadastrado.
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -307,6 +307,7 @@ export function CarteiraDetail({ portfolio, assets: initialAssets, allPortfolios
                         onDelete={handleDelete}
                         onMove={setMoveAsset}
                         onViewReports={setReportsTicker}
+                        readOnly={readOnly}
                       />
                     ))
                   )}
