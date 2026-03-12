@@ -182,10 +182,11 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     await onRefreshAssets();
   };
 
-  // Compute all class data
+  // Compute all class data — grand totals exclude RF for dividends
   let grandDvMonth = 0;
   let grandDvYear = 0;
   let grandValue = 0;
+  let grandValueNonRf = 0;
 
   const classDataMap: Record<string, { calcs: AssetCalc[]; classPct: number; classLabel: string }> = {};
 
@@ -196,8 +197,12 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     const classDvMonth = calcs.reduce((s, c) => s + c.dvMonth, 0);
     const classDvYear = calcs.reduce((s, c) => s + c.dvYear, 0);
     const classValue = calcs.reduce((s, c) => s + c.assetValue, 0);
-    grandDvMonth += classDvMonth;
-    grandDvYear += classDvYear;
+    const isRf = cls.key === 'renda_fixa';
+    if (!isRf) {
+      grandDvMonth += classDvMonth;
+      grandDvYear += classDvYear;
+      grandValueNonRf += classValue;
+    }
     grandValue += classValue;
     classDataMap[cls.key] = { calcs, classPct, classLabel: cls.label };
   });
