@@ -40,10 +40,11 @@ type PctField = 'acoes_pct' | 'fiis_pct' | 'internacional_pct' | 'renda_fixa_pct
 
 interface AssetCalc {
   asset: PortfolioAssetItem;
-  displayPct: number;
+  allocClassPct: number; // % within class (editable, stored in allocation_pct)
+  totalPct: number; // % of total portfolio (read-only = classPct × allocClassPct / 100)
   assetValue: number;
   cotas: number | null;
-  dyInput: number; // R$ per cota (monthly for FIIs, annual for others)
+  dyInput: number;
   dvMonth: number;
   dvYear: number;
   source: PortfolioAsset | null;
