@@ -513,12 +513,12 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
 
         {/* Portfolio totals */}
         {grandValue > 0 && (() => {
-          const grandDyMonthPct = grandValue > 0 ? grandDvMonth / grandValue : 0;
+          const grandDyMonthPct = grandValueNonRf > 0 ? grandDvMonth / grandValueNonRf : 0;
           const grandDyYearPct = (Math.pow(1 + grandDyMonthPct, 12) - 1) * 100;
           return (
-            <div className="bg-emerald-50 rounded-lg p-3 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+            <div className="bg-emerald-50 rounded-lg p-3 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm border-2 border-emerald-200">
               <div>
-                <p className="text-emerald-700/70 text-xs">Valor Investido</p>
+                <p className="text-emerald-700/70 text-xs">Valor Investido Total</p>
                 <p className="font-semibold text-emerald-700">R$ {formatBRL(grandValue)}</p>
               </div>
               <div>
