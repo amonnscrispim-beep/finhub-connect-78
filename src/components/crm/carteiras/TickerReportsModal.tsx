@@ -125,11 +125,16 @@ export function TickerReportsModal({ open, onOpenChange, ticker }: Props) {
       </Dialog>
 
       {viewReport && (
-        <ResumoDetailModal
-          open={!!viewReport}
-          onOpenChange={(v) => { if (!v) setViewReport(null); }}
-          report={viewReport as any}
-        />
+        <Dialog open={!!viewReport} onOpenChange={(v) => { if (!v) setViewReport(null); }}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{viewReport.title}</DialogTitle>
+            </DialogHeader>
+            <div className="prose prose-sm max-w-none text-foreground text-sm leading-relaxed whitespace-pre-wrap">
+              {viewReport.markdown_content}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </>
   );
