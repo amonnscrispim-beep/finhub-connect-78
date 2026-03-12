@@ -91,7 +91,9 @@ export function AssetModal({ open, onOpenChange, portfolioId, portfolioSlug, ass
         company_name: companyName.trim(),
         sector: sector,
         ceiling_price: parseFloat(ceilingPrice) || 0,
-        manual_bias: bias,
+        manual_bias: currentPrice !== null && (parseFloat(ceilingPrice) || 0) > 0
+          ? (currentPrice < (parseFloat(ceilingPrice) || 0) ? 'Comprar' : 'Aguardar')
+          : 'Aguardar',
         is_international: isInternational,
         current_price: currentPrice,
         display_order: asset?.display_order ?? nextOrder,
