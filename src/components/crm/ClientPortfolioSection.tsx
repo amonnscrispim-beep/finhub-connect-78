@@ -246,10 +246,10 @@ export function ClientPortfolioSection({ clientId }: Props) {
           <div className="flex items-center gap-1">
             <span className="text-xs text-muted-foreground">R$</span>
             <Input
-              type="text"
+              type="number"
               className="h-8 text-sm"
-              value={investAmount > 0 ? investAmount.toLocaleString('pt-BR') : ''}
-              placeholder="0,00"
+              value={investAmount || ''}
+              placeholder="0"
               onChange={e => handleInvestAmountChange(e.target.value)}
             />
           </div>
