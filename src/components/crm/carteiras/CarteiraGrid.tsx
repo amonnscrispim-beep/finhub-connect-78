@@ -17,7 +17,21 @@ interface Props {
   userId?: string;
 }
 
-export function CarteiraGrid({ portfolios, allAssets, onSelect }: Props) {
+export function CarteiraGrid({ portfolios, allAssets, onSelect, isMaster, userId }: Props) {
+
+  const toggleShare = async (e: React.MouseEvent, portfolio: RecommendedPortfolio) => {
+    e.stopPropagation();
+    const newVal = !(portfolio as any).shared;
+    await supabase.from('recommended_portfolios').update({ shared: newVal } as any).eq('id', portfolio.id);
+    // Also share/unshare all assets in this portfolio
+    const assetIds = allAssets.filter(a => a.portfolio_id === portfolio.id).map(a => a.id);
+    if (assetIds.length > 0) {
+      await supabase.from('recommended_portfolio_assets').update({ shared: newVal } as any).in('id', assetIds);
+    }
+    toast.success(newVal ? 'Carteira compartilhada!' : 'Compartilhamento removido.');
+    // Force page reload to refresh
+    window.location.reload();
+  };
   const getPortfolioStats = (portfolioId: string) => {
     const assets = allAssets.filter(a => a.portfolio_id === portfolioId);
     const totalAssets = assets.length;
