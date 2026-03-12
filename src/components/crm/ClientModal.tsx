@@ -78,6 +78,7 @@ import { ResumoRelatorio } from './ResumoRelatorio';
 import { ClientFormLink } from './ClientFormLink';
 import { useClientPortfolio } from '@/hooks/useClientPortfolio';
 import { DirecionamentoEstrategico, defaultDirecionamentoEstrategico, DirecionamentoEstrategicoData } from './DirecionamentoEstrategico';
+import { ClientPortfolioSection } from './ClientPortfolioSection';
 
 import { ArquiteturaCarteira, defaultArquiteturaCarteira, ArquiteturaCarteiraData } from './ArquiteturaCarteira';
 import { ConhecerClienteModule } from './conhecer/ConhecerClienteModule';
@@ -1133,6 +1134,13 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 advisorName=""
               />
             </CollapsibleSection>
+
+            {/* SECTION 7.5: Arquitetura da Carteira (Portfólio do Cliente) */}
+            {client?.id && (
+              <CollapsibleSection title="Arquitetura da Carteira" icon={Briefcase} defaultOpen={false}>
+                <ClientPortfolioSection clientId={client.id} />
+              </CollapsibleSection>
+            )}
 
 
             {/* SECTION 9: Contrato, Reuniões e Entregas */}
