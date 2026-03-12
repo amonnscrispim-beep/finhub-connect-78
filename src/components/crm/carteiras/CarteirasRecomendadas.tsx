@@ -65,7 +65,7 @@ export function CarteirasRecomendadas() {
     const { data: existingPortfolios } = await supabase
       .from('recommended_portfolios')
       .select('*')
-      .eq('user_id', user.id)
+      .or(`user_id.eq.${user.id},shared.eq.true`)
       .order('display_order');
 
     let portfolioList = (existingPortfolios || []) as unknown as RecommendedPortfolio[];
