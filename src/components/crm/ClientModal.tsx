@@ -78,6 +78,7 @@ import { ResumoRelatorio } from './ResumoRelatorio';
 import { ClientFormLink } from './ClientFormLink';
 import { useClientPortfolio } from '@/hooks/useClientPortfolio';
 import { DirecionamentoEstrategico, defaultDirecionamentoEstrategico, DirecionamentoEstrategicoData } from './DirecionamentoEstrategico';
+import { ClientPortfolioSection } from './ClientPortfolioSection';
 
 import { ArquiteturaCarteira, defaultArquiteturaCarteira, ArquiteturaCarteiraData } from './ArquiteturaCarteira';
 import { ConhecerClienteModule } from './conhecer/ConhecerClienteModule';
