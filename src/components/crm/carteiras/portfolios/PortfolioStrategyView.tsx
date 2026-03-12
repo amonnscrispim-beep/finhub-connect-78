@@ -272,11 +272,21 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
           const classDvMonth = data.calcs.reduce((s, c) => s + c.dvMonth, 0);
           const classDvYear = data.calcs.reduce((s, c) => s + c.dvYear, 0);
           const classValue = data.calcs.reduce((s, c) => s + c.assetValue, 0);
+          const classAllocSum = data.calcs.reduce((s, c) => s + c.allocClassPct, 0);
+          const classAllocValid = data.calcs.length === 0 || Math.abs(classAllocSum - 100) < 0.01;
 
           return (
             <div key={cls.key} className="space-y-2">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium">{cls.label} ({data.classPct}%)</h4>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-medium">{cls.label} ({data.classPct}%)</h4>
+                  {!classAllocValid && data.calcs.length > 0 && (
+                    <Badge variant="destructive" className="text-[10px] h-5">
+                      <AlertTriangle className="w-3 h-3 mr-0.5" />
+                      Classe: {classAllocSum.toFixed(1)}%
+                    </Badge>
+                  )}
+                </div>
                 <div className="flex items-center gap-1">
                   <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleCopyClass(cls.key)}>
                     <Copy className="w-3 h-3 mr-1" /> Copiar
@@ -298,8 +308,8 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                         {isRf && <TableHead className="text-xs">Vencimento</TableHead>}
                         {!isRf && <TableHead className="text-xs text-right">Preço Teto</TableHead>}
                         {!isRf && <TableHead className="text-xs text-right">Preço Atual</TableHead>}
-                        <TableHead className="text-xs text-right">Alocação %</TableHead>
                         <TableHead className="text-xs text-right">Aloc. Classe %</TableHead>
+                        <TableHead className="text-xs text-right">Alocação %</TableHead>
                         <TableHead className="text-xs text-right">Valor R$</TableHead>
                         {!isRf && <TableHead className="text-xs text-right">Qtd. Cotas</TableHead>}
                         <TableHead className="text-xs text-right">{isFii ? 'DY R$/cota mês' : isRf ? 'Taxa % a.a.' : 'DY R$/cota ano'}</TableHead>
@@ -309,9 +319,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {data.calcs.map(c => {
-                        const classPctOfAsset = classValue > 0 ? (c.assetValue / classValue) * 100 : 0;
-                        return (
+                      {data.calcs.map(c => (
                         <TableRow key={c.asset.id}>
                           <TableCell className="font-mono text-sm font-semibold">{c.asset.ticker || c.asset.name}</TableCell>
                           {isRf && <TableCell className="text-xs">{c.asset.rf_type || '—'}</TableCell>}
@@ -329,17 +337,17 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                           )}
                           <TableCell className="text-right">
                             <Input type="number" step="0.01" className="h-7 w-20 text-sm text-right inline-block"
-                              defaultValue={c.displayPct.toFixed(2)}
-                              key={`pct-${c.asset.id}-${data.calcs.length}-${data.classPct}`}
+                              defaultValue={c.allocClassPct.toFixed(2)}
+                              key={`cls-${c.asset.id}-${data.calcs.length}-${data.classPct}`}
                               onBlur={e => {
                                 const val = parseFloat(e.target.value) || 0;
-                                if (Math.abs(val - c.displayPct) > 0.001) handleUpdateAssetField(c.asset.id, 'allocation_pct', val);
+                                if (Math.abs(val - c.allocClassPct) > 0.001) handleUpdateAssetField(c.asset.id, 'allocation_pct', val);
                               }}
                             />
                           </TableCell>
                           <TableCell className="text-right">
-                            <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-700">
-                              {classPctOfAsset.toFixed(2)}%
+                            <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground">
+                              {c.totalPct.toFixed(2)}%
                             </span>
                           </TableCell>
                           <TableCell className="text-right text-sm">R$ {formatBRL(c.assetValue)}</TableCell>
@@ -362,15 +370,14 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                             </Button>
                           </TableCell>
                         </TableRow>
-                        );
-                      })}
+                      ))}
                     </TableBody>
                     <TableFooter>
                       <TableRow className="bg-muted/30 font-medium text-xs">
                         <TableCell colSpan={isRf ? 4 : 3}>Total {cls.label}</TableCell>
                         {!isRf && <TableCell />}
+                        <TableCell className="text-right">{classAllocSum.toFixed(2)}%</TableCell>
                         <TableCell className="text-right">{data.classPct.toFixed(2)}%</TableCell>
-                        <TableCell className="text-right">100,00%</TableCell>
                         <TableCell className="text-right">R$ {formatBRL(classValue)}</TableCell>
                         {!isRf && <TableCell />}
                         <TableCell />
@@ -380,7 +387,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                       </TableRow>
                       {classValue > 0 && (classDvMonth > 0 || classDvYear > 0) && (
                         <TableRow className="bg-emerald-50 text-xs">
-                          <TableCell colSpan={isRf ? (4 + 1 + 1 + 1 + 1 + 1 + 1 + 1) : (3 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1)}>
+                          <TableCell colSpan={isRf ? 11 : 12}>
                             <span className="font-semibold text-emerald-700">
                               DY Mês: {((classDvMonth / classValue) * 100).toFixed(2)}% | DY Ano: {((classDvYear / classValue) * 100).toFixed(2)}%
                             </span>
