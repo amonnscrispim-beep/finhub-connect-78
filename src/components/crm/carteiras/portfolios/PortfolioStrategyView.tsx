@@ -21,6 +21,8 @@ interface Props {
   portfolioNameMap: Record<string, string>;
   onUpdatePortfolio: (id: string, updates: Partial<InvestorPortfolio>) => Promise<void>;
   onRefreshAssets: () => Promise<void>;
+  isConservador?: boolean;
+  conservadorPortfolioId?: string;
 }
 
 const ASSET_CLASSES = [
