@@ -79,7 +79,7 @@ export function PortfolioAssetModal({ open, onOpenChange, portfolioId, assetClas
           rf_type: rfType,
           indexador: rfIndexador.trim(),
           vencimento: rfVencimento || null,
-          allocation_pct: parseFloat(rfAllocationPct) || 0,
+          allocation_pct: 0,
           display_order: nextOrder,
         } as any);
       } else {
