@@ -244,7 +244,14 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     <Card className="border-border">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">{portfolio.strategy}</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-lg">{portfolio.strategy}</CardTitle>
+            {!isConservador && (
+              <Badge variant="outline" className="text-[10px] h-5 border-muted-foreground/30 text-muted-foreground">
+                Ativos do Conservador
+              </Badge>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleCopyAll}>
               <Copy className="w-3 h-3 mr-1" /> Copiar portfólio
