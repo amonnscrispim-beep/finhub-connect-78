@@ -1111,7 +1111,9 @@ export type Database = {
         Row: {
           allocation_pct: number
           asset_class: string
+          ceiling_price: number | null
           created_at: string
+          current_price: number | null
           display_order: number
           dy_pct: number | null
           id: string
@@ -1129,7 +1131,9 @@ export type Database = {
         Insert: {
           allocation_pct?: number
           asset_class?: string
+          ceiling_price?: number | null
           created_at?: string
+          current_price?: number | null
           display_order?: number
           dy_pct?: number | null
           id?: string
@@ -1147,7 +1151,9 @@ export type Database = {
         Update: {
           allocation_pct?: number
           asset_class?: string
+          ceiling_price?: number | null
           created_at?: string
+          current_price?: number | null
           display_order?: number
           dy_pct?: number | null
           id?: string
@@ -1448,11 +1454,13 @@ export type Database = {
           category: string | null
           client_name: string | null
           created_at: string
+          display_order: number | null
           id: string
           images: string[] | null
           is_read: boolean | null
           is_saved: boolean | null
           markdown_content: string
+          pdf_url: string | null
           raw_input: string | null
           ref_date: string | null
           report_type: string
@@ -1466,11 +1474,13 @@ export type Database = {
           category?: string | null
           client_name?: string | null
           created_at?: string
+          display_order?: number | null
           id?: string
           images?: string[] | null
           is_read?: boolean | null
           is_saved?: boolean | null
           markdown_content?: string
+          pdf_url?: string | null
           raw_input?: string | null
           ref_date?: string | null
           report_type?: string
@@ -1484,11 +1494,13 @@ export type Database = {
           category?: string | null
           client_name?: string | null
           created_at?: string
+          display_order?: number | null
           id?: string
           images?: string[] | null
           is_read?: boolean | null
           is_saved?: boolean | null
           markdown_content?: string
+          pdf_url?: string | null
           raw_input?: string | null
           ref_date?: string | null
           report_type?: string
