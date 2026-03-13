@@ -288,13 +288,28 @@ export function NovoRelatorioModal({ open, onOpenChange, onReportCreated }: Prop
             <TabsContent value="upload" className="space-y-3">
               <div
                 className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
-                onClick={() => document.getElementById('lib-image-upload')?.click()}
+                onClick={() => document.getElementById('lib-file-upload')?.click()}
               >
                 <Upload className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Clique ou arraste imagens aqui</p>
-                <input id="lib-image-upload" type="file" accept="image/*" multiple className="hidden"
+                <p className="text-sm text-muted-foreground">Clique ou arraste imagens ou PDFs aqui</p>
+                <input id="lib-file-upload" type="file" accept="image/*,.pdf" multiple className="hidden"
                   onChange={e => handleImageUpload(e.target.files)} />
               </div>
+              {isTranscribing && (
+                <div className="flex items-center gap-2 text-xs text-primary">
+                  <span className="animate-spin rounded-full h-3 w-3 border-2 border-primary border-t-transparent" />
+                  Transcrevendo PDF com IA...
+                </div>
+              )}
+              {pdfFileName && !isTranscribing && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted rounded px-2 py-1">
+                  <FileText className="w-3.5 h-3.5" />
+                  <span className="truncate flex-1">{pdfFileName}</span>
+                  <button onClick={() => { setPdfBase64(null); setPdfFileName(null); }} className="text-destructive hover:text-destructive/80">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )
               {uploadedImages.length > 0 && (
                 <div className="grid grid-cols-4 gap-2">
                   {uploadedImages.map((img, i) => (
