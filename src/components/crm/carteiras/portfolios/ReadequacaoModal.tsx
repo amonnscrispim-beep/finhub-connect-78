@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowDown, ArrowUp, Minus, AlertTriangle, FileText } from 'lucide-react';
+import { ArrowDown, ArrowUp, Minus, AlertTriangle, FileText, Lightbulb } from 'lucide-react';
 import type { InvestorPortfolio, PortfolioAssetItem } from './PortfoliosSection';
 import type { PortfolioAsset } from '../CarteirasRecomendadas';
 import type { ClientPosition } from './ClientPortfolioTab';

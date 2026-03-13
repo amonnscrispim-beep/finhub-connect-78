@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { SharedBadge } from '@/components/ui/shared-badge';
 import { Briefcase, Share2 } from 'lucide-react';
 import { PortfolioStrategyView } from './PortfolioStrategyView';
+import { ClientPortfolioTab } from './ClientPortfolioTab';
 import { PortfolioAsset } from '../CarteirasRecomendadas';
 
 const PROFILES = ['Conservador', 'Moderado', 'Arrojado'] as const;
