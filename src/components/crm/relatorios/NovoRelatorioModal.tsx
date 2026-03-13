@@ -311,7 +311,7 @@ export function NovoRelatorioModal({ open, onOpenChange, onReportCreated }: Prop
                     <X className="w-3 h-3" />
                   </button>
                 </div>
-              )
+              )}
               {uploadedImages.length > 0 && (
                 <div className="grid grid-cols-4 gap-2">
                   {uploadedImages.map((img, i) => (
