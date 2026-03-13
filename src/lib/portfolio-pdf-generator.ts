@@ -163,8 +163,8 @@ export function generatePortfolioPdf(data: PortfolioPdfData): void {
     'TOTAL',
     '100%',
     `R$ ${fmt(data.grandValue)}`,
-    `R$ ${fmt(data.grandDvMonth)}`,
-    `R$ ${fmt(data.grandDvYear)}`,
+    '—',
+    '—',
   ]);
 
   autoTable(doc, {
