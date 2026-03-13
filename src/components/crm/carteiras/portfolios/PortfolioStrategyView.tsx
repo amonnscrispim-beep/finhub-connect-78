@@ -111,6 +111,8 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
   const [modalOpen, setModalOpen] = useState(false);
   const [modalClass, setModalClass] = useState('acoes_brasileiras');
   const [investAmount, setInvestAmount] = useState(portfolio.invest_amount || 0);
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const [pdfPreviewData, setPdfPreviewData] = useState<PortfolioPdfData | null>(null);
 
   const [localPcts, setLocalPcts] = useState<Record<PctField, number>>({
     acoes_pct: Number(portfolio.acoes_pct),
