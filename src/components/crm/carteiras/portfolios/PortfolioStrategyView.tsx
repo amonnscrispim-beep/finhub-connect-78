@@ -338,6 +338,9 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                 <Copy className="w-3 h-3 mr-1" /> Copiar portfólio
               </Button>
             )}
+            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleExportPdf}>
+              <FileText className="w-3 h-3 mr-1" /> Gerar Relatório
+            </Button>
             <Badge variant={isValid ? 'default' : 'destructive'} className={isValid ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : ''}>
               {isValid ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <AlertTriangle className="w-3 h-3 mr-1" />}
               {totalPct.toFixed(1)}%
