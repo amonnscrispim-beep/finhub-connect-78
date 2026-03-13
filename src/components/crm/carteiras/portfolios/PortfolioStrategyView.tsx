@@ -11,10 +11,11 @@ import { Progress } from '@/components/ui/progress';
 import { SharedBadge } from '@/components/ui/shared-badge';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Calculator, AlertTriangle, CheckCircle2, Trash2, Copy, Share2, FileText } from 'lucide-react';
-import { generatePortfolioPdf, generateClassPdf } from '@/lib/portfolio-pdf-generator';
+import type { PortfolioPdfData } from '@/lib/portfolio-pdf-generator';
 import { InvestorPortfolio, PortfolioAssetItem } from './PortfoliosSection';
 import { PortfolioAsset } from '../CarteirasRecomendadas';
 import { PortfolioAssetModal } from './PortfolioAssetModal';
+import { PortfolioPdfPreviewModal } from './PortfolioPdfPreviewModal';
 
 interface Props {
   portfolio: InvestorPortfolio;
