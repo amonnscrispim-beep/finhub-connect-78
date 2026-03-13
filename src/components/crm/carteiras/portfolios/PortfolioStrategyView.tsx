@@ -296,8 +296,8 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
       toast.info('Nenhum ativo para exportar');
       return;
     }
-    generatePortfolioPdf(pdfData);
-    toast.success('PDF gerado!');
+    setPdfPreviewData(pdfData);
+    setPdfPreviewOpen(true);
   };
 
   const handleExportClassPdf = (classKey: string) => {
@@ -307,8 +307,16 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
       toast.info('Nenhum ativo nesta classe');
       return;
     }
-    generateClassPdf(pdfData, classKey);
-    toast.success('PDF gerado!');
+    // Build a filtered version with just this class
+    const classData: PortfolioPdfData = {
+      ...pdfData,
+      classes: [cls],
+      grandValue: cls.value,
+      grandDvMonth: cls.dvMonth,
+      grandDvYear: cls.dvYear,
+    };
+    setPdfPreviewData(classData);
+    setPdfPreviewOpen(true);
   };
 
   return (
