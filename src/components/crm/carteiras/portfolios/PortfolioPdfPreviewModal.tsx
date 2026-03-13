@@ -186,8 +186,8 @@ export function PortfolioPdfPreviewModal({ open, onOpenChange, data }: Props) {
                   <TableCell>TOTAL</TableCell>
                   <TableCell className="text-right">100%</TableCell>
                   <TableCell className="text-right">R$ {fmt(data.grandValue)}</TableCell>
-                  <TableCell className="text-right">R$ {fmt(data.grandDvMonth)}</TableCell>
-                  <TableCell className="text-right">R$ {fmt(data.grandDvYear)}</TableCell>
+                  <TableCell className="text-right">—</TableCell>
+                  <TableCell className="text-right">—</TableCell>
                   <TableCell />
                 </TableRow>
               </TableFooter>
