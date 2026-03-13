@@ -503,11 +503,11 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                             <span className="flex items-center gap-1.5">
                               {c.asset.ticker || c.asset.name}
                               {!c.isRf && (
-                                c.source ? (
-                                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-amber-300 text-amber-600 bg-amber-50">⭐ Recomendado</Badge>
-                                ) : (
-                                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-muted-foreground/30 text-muted-foreground">🔧 Manual</Badge>
-                                )
+                                c.source && c.source.sector ? (
+                                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-blue-300 text-blue-600 bg-blue-50">{c.source.sector}</Badge>
+                                ) : !c.source ? (
+                                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-muted-foreground/30 text-muted-foreground">Setor não informado</Badge>
+                                ) : null
                               )}
                             </span>
                           </TableCell>

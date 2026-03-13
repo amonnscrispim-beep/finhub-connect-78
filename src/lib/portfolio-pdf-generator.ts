@@ -260,7 +260,28 @@ export function generatePortfolioPdf(data: PortfolioPdfData): void {
       margin: { left: 14, right: 14 },
     });
 
-    y = (doc as any).lastAutoTable.finalY + 10;
+    y = (doc as any).lastAutoTable.finalY + 4;
+
+    // DY % metrics box for non-RF classes
+    if (!isRf && cls.value > 0) {
+      const dyMonthPct = cls.dvMonth / cls.value * 100;
+      const dyYearPct = (Math.pow(1 + cls.dvMonth / cls.value, 12) - 1) * 100;
+      
+      doc.setFillColor(230, 245, 230);
+      doc.roundedRect(14, y, w - 28, 10, 2, 2, 'F');
+      doc.setDrawColor(180, 220, 180);
+      doc.roundedRect(14, y, w - 28, 10, 2, 2, 'S');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(...COLORS.primary);
+      const midX = w / 2;
+      doc.text(`DY Mês: ${dyMonthPct.toFixed(2)}%`, midX - 20, y + 6.5, { align: 'right' });
+      doc.text('|', midX, y + 6.5, { align: 'center' });
+      doc.text(`DY Ano: ${dyYearPct.toFixed(2)}%`, midX + 20, y + 6.5, { align: 'left' });
+      y += 14;
+    } else {
+      y += 6;
+    }
   }
 
   // ── CONSULTANT NOTE ──
