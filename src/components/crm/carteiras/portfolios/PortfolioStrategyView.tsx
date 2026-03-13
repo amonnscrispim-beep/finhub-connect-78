@@ -664,6 +664,14 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
         nextOrder={assets.filter(a => a.asset_class === modalClass).length}
         onSaved={async () => { setModalOpen(false); await onRefreshAssets(); }}
       />
+
+      {pdfPreviewData && (
+        <PortfolioPdfPreviewModal
+          open={pdfPreviewOpen}
+          onOpenChange={(v) => { setPdfPreviewOpen(v); if (!v) setPdfPreviewData(null); }}
+          data={pdfPreviewData}
+        />
+      )}
     </Card>
   );
 }
