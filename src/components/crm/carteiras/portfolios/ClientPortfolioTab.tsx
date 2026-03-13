@@ -1112,7 +1112,9 @@ export function ClientPortfolioTab({ portfolios, portfolioAssets, recommendedAss
             {(hasDivergence || pendingAssets.length > 0) && (
               <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 space-y-3">
                 <p className="text-sm text-destructive font-medium">
-                  ⚠️ Valor diverge do consolidado geral (R$ {formatBRL(consolidatedGross)}) — diferença de R$ {formatBRL(divergence)} ({divergencePct.toFixed(1)}%).
+                  {hasDivergence
+                    ? `⚠️ Valor diverge do consolidado geral (R$ ${formatBRL(consolidatedGross)}) — diferença de R$ ${formatBRL(divergence)} (${divergencePct.toFixed(1)}%).`
+                    : `⚠️ Existem ativos pendentes para inclusão manual no Portfólio do Cliente.`}
                 </p>
 
                 {pendingAssets.length > 0 ? (
