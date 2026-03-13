@@ -10,7 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { SharedBadge } from '@/components/ui/shared-badge';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Calculator, AlertTriangle, CheckCircle2, Trash2, Copy, Share2 } from 'lucide-react';
+import { Plus, Calculator, AlertTriangle, CheckCircle2, Trash2, Copy, Share2, FileText } from 'lucide-react';
+import { generatePortfolioPdf, generateClassPdf } from '@/lib/portfolio-pdf-generator';
 import { InvestorPortfolio, PortfolioAssetItem } from './PortfoliosSection';
 import { PortfolioAsset } from '../CarteirasRecomendadas';
 import { PortfolioAssetModal } from './PortfolioAssetModal';
@@ -245,6 +246,68 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     toast.success('Portfólio completo copiado!');
   };
 
+  // PDF data builder
+  const buildPdfData = () => ({
+    profile: portfolio.profile,
+    strategy: portfolio.strategy,
+    investAmount: investAmount,
+    grandValue,
+    grandDvMonth,
+    grandDvYear,
+    classes: ASSET_CLASSES.map(cls => {
+      const d = classDataMap[cls.key];
+      return {
+        label: d.classLabel,
+        key: cls.key,
+        pct: d.classPct,
+        value: d.calcs.reduce((s, c) => s + c.assetValue, 0),
+        dvMonth: d.calcs.reduce((s, c) => s + c.dvMonth, 0),
+        dvYear: d.calcs.reduce((s, c) => s + c.dvYear, 0),
+        assets: d.calcs.map(c => ({
+          ticker: c.asset.ticker,
+          name: c.asset.name,
+          assetClass: cls.key,
+          classLabel: d.classLabel,
+          allocClassPct: c.allocClassPct,
+          totalPct: c.totalPct,
+          value: c.assetValue,
+          cotas: c.cotas,
+          dyInput: c.dyInput,
+          dvMonth: c.dvMonth,
+          dvYear: c.dvYear,
+          ceilingPrice: c.source ? Number(c.source.ceiling_price) : null,
+          currentPrice: c.source?.current_price != null ? Number(c.source.current_price) : null,
+          isRf: c.isRf,
+          isFii: c.isFii,
+          rfType: c.asset.rf_type || undefined,
+          indexador: c.asset.indexador || undefined,
+          vencimento: c.asset.vencimento || undefined,
+        })),
+      };
+    }),
+  });
+
+  const handleExportPdf = () => {
+    const pdfData = buildPdfData();
+    if (pdfData.classes.every(c => c.assets.length === 0)) {
+      toast.info('Nenhum ativo para exportar');
+      return;
+    }
+    generatePortfolioPdf(pdfData);
+    toast.success('PDF gerado!');
+  };
+
+  const handleExportClassPdf = (classKey: string) => {
+    const pdfData = buildPdfData();
+    const cls = pdfData.classes.find(c => c.key === classKey);
+    if (!cls || cls.assets.length === 0) {
+      toast.info('Nenhum ativo nesta classe');
+      return;
+    }
+    generateClassPdf(pdfData, classKey);
+    toast.success('PDF gerado!');
+  };
+
   return (
     <Card className="border-border">
       <CardHeader className="pb-3">
@@ -275,6 +338,9 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                 <Copy className="w-3 h-3 mr-1" /> Copiar portfólio
               </Button>
             )}
+            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleExportPdf}>
+              <FileText className="w-3 h-3 mr-1" /> Gerar Relatório
+            </Button>
             <Badge variant={isValid ? 'default' : 'destructive'} className={isValid ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : ''}>
               {isValid ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <AlertTriangle className="w-3 h-3 mr-1" />}
               {totalPct.toFixed(1)}%
@@ -386,6 +452,9 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                 <div className="flex items-center gap-1">
                   <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleCopyClass(cls.key)}>
                     <Copy className="w-3 h-3 mr-1" /> Copiar
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleExportClassPdf(cls.key)}>
+                    <FileText className="w-3 h-3 mr-1" /> PDF
                   </Button>
                   {isConservador && (
                     <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => openAddAsset(cls.key)}>
