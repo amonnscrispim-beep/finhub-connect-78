@@ -62,18 +62,46 @@ const RF_KEYWORDS = [
 function classifyAsset(tipo: string | null, ativo: string | null): ClientPosition['assetClass'] {
   const t = (tipo || '').toLowerCase();
   const a = (ativo || '').toLowerCase();
+  const combined = `${t} ${a}`;
 
-  // Check RF first (broader matching)
+  // FIIs - check before ações (tickers ending in 11)
+  if (t.includes('fii') || t.includes('fundo imobiliário') || t.includes('fundo imobiliario') ||
+      a.includes('fii') || /^[a-z]{4}11[bf]?$/i.test(a.trim()) ||
+      combined.includes('imobiliário') || combined.includes('imobiliario')) return 'fiis';
+
+  // Ações / Renda Variável
+  if (t.includes('ação') || t.includes('ações') || t.includes('acoes') || t.includes('acao') ||
+      t.includes('renda variável') || t.includes('renda variavel') ||
+      t.includes('equity') || t.includes('bdr') ||
+      /^[a-z]{4}\d{1,2}$/i.test(a.trim()) ||
+      a.includes('bdr')) return 'acoes';
+
+  // Check RF
   for (const kw of RF_KEYWORDS) {
     if (t.includes(kw) || a.includes(kw)) return 'renda_fixa';
   }
-  // Specific RF patterns in asset name
   if (/^(cdb|lci|lca|cri|cra|cdca|deb|ltn|ntn|dpge|lfsc|lft)/i.test(a)) return 'renda_fixa';
   if (/debenture/i.test(a) || /\bDEB[-\s]/i.test(ativo || '')) return 'renda_fixa';
+  if (t.includes('título') || t.includes('titulo') || t.includes('renda fixa') ||
+      t.includes('fixed income') || t.includes('rf')) return 'renda_fixa';
 
-  if (t.includes('fii') || t.includes('fundo imobiliário') || (a.match(/^[a-z]{4}11$/) && a.length <= 8)) return 'fiis';
-  if (t.includes('ação') || t.includes('acoes') || t.includes('renda variável') || (a.match(/^[a-z]{4}\d{1,2}$/) && !a.endsWith('11'))) return 'acoes';
-  if (t.includes('fundo') || t.includes('multimercado') || t.includes('cambial')) return 'fundos';
+  // Fundos de Investimento
+  if (t.includes('fundo') || t.includes('multimercado') || t.includes('cambial') ||
+      t.includes('hedge') || t.includes('fund') ||
+      a.includes('fundo') || a.includes('multimercado') || a.includes('fi ') ||
+      a.includes('ficfi') || a.includes('fic fi')) return 'fundos';
+
+  // Previdência → classify as fundos
+  if (combined.includes('previdência') || combined.includes('previdencia') ||
+      combined.includes('vgbl') || combined.includes('pgbl')) return 'fundos';
+
+  // COE, derivativos
+  if (t.includes('coe') || t.includes('derivativo') || a.includes('coe')) return 'outros';
+
+  // If nothing matched and has a value, try to avoid 'outros'
+  // Check if it looks like a stock ticker
+  if (/^[A-Z]{4}\d{1,2}$/i.test((ativo || '').trim())) return 'acoes';
+
   return 'outros';
 }
 
@@ -219,6 +247,7 @@ export function ClientPortfolioTab({ portfolios, portfolioAssets, recommendedAss
   const [selectedBrokers, setSelectedBrokers] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [readequacaoOpen, setReadequacaoOpen] = useState(false);
+  const [consolidatedGross, setConsolidatedGross] = useState(0);
 
   // Load clients list
   useEffect(() => {
@@ -248,59 +277,132 @@ export function ClientPortfolioTab({ portfolios, portfolioAssets, recommendedAss
     if (!user || !selectedClientId) return;
     setLoading(true);
 
-    const { data: reports } = await supabase
-      .from('performance_reports')
-      .select('id, corretora, broker')
-      .eq('client_id', selectedClientId)
-      .eq('user_id', user.id);
+    // Fetch reports with extracted_data AND also performance_positions
+    const [reportsRes, clientReportsRes] = await Promise.all([
+      supabase
+        .from('performance_reports')
+        .select('id, corretora, broker, extracted_data, patrimonio_bruto')
+        .eq('client_id', selectedClientId)
+        .eq('user_id', user.id),
+      supabase
+        .from('client_performance_reports')
+        .select('id, broker, extracted_data')
+        .eq('client_id', selectedClientId)
+        .eq('user_id', user.id),
+    ]);
 
-    if (!reports || reports.length === 0) {
+    const reports = reportsRes.data || [];
+    const clientReports = clientReportsRes.data || [];
+
+    if (reports.length === 0 && clientReports.length === 0) {
       setPositions([]);
       setBrokers([]);
       setSelectedBrokers(new Set());
+      setConsolidatedGross(0);
       setLoading(false);
       return;
     }
 
-    const reportIds = reports.map(r => r.id);
-    const brokerMap: Record<string, string> = {};
-    reports.forEach(r => {
-      brokerMap[r.id] = r.corretora || r.broker || 'Outro';
+    // Calculate consolidated gross from reports
+    let totalGross = 0;
+    reports.forEach((r: any) => {
+      const gross = Number(r.patrimonio_bruto) || 0;
+      const extractedGross = (r.extracted_data as any)?.generalData?.grossPatrimony ?? 0;
+      totalGross += gross > 0 ? gross : extractedGross;
+    });
+    clientReports.forEach((r: any) => {
+      const extractedGross = (r.extracted_data as any)?.generalData?.grossPatrimony ?? 0;
+      totalGross += extractedGross;
+    });
+    setConsolidatedGross(totalGross);
+
+    const parsed: ClientPosition[] = [];
+    const seenKeys = new Set<string>();
+
+    // 1. Pull positions from extracted_data in performance_reports
+    reports.forEach((r: any) => {
+      const broker = r.corretora || r.broker || 'Outro';
+      const extractedPositions = Array.isArray((r.extracted_data as any)?.positions)
+        ? (r.extracted_data as any).positions : [];
+      
+      extractedPositions.forEach((p: any) => {
+        const ativo = p.name || p.ativo || 'N/A';
+        const tipo = p.type || p.tipo || '';
+        const valor = Number(p.grossBalance || p.valor) || 0;
+        const indexador = p.indexer || p.indexador || null;
+        const taxa = p.rate != null ? Number(p.rate) : (p.taxa != null ? Number(p.taxa) : null);
+        const vencimento = p.maturityDate || p.vencimento || null;
+        const assetClass = classifyAsset(tipo, ativo);
+        const rfSubclass = assetClass === 'renda_fixa' ? classifyRfSubclass(indexador, taxa) : null;
+        const key = `${ativo}|${broker}|extracted`;
+        seenKeys.add(key);
+
+        parsed.push({
+          ativo, tipo, broker,
+          qty: 1, avgPrice: 0, currentPrice: valor,
+          totalValue: valor, pnlR$: 0, pnlPct: 0,
+          assetClass, vencimento, indexador, taxa, rfSubclass,
+        });
+      });
     });
 
-    const { data: posData } = await supabase
-      .from('performance_positions')
-      .select('*')
-      .in('report_id', reportIds);
+    // 2. Pull positions from extracted_data in client_performance_reports
+    clientReports.forEach((r: any) => {
+      const broker = r.broker || 'Outro';
+      const extractedPositions = Array.isArray((r.extracted_data as any)?.positions)
+        ? (r.extracted_data as any).positions : [];
+      
+      extractedPositions.forEach((p: any) => {
+        const ativo = p.name || p.ativo || 'N/A';
+        const tipo = p.type || p.tipo || '';
+        const valor = Number(p.grossBalance || p.valor) || 0;
+        const indexador = p.indexer || p.indexador || null;
+        const taxa = p.rate != null ? Number(p.rate) : (p.taxa != null ? Number(p.taxa) : null);
+        const vencimento = p.maturityDate || p.vencimento || null;
+        const assetClass = classifyAsset(tipo, ativo);
+        const rfSubclass = assetClass === 'renda_fixa' ? classifyRfSubclass(indexador, taxa) : null;
 
-    const parsed: ClientPosition[] = (posData || []).map((p: any) => {
-      const broker = brokerMap[p.report_id] || 'Outro';
-      const valor = Number(p.valor) || 0;
-      const qty = 1;
-      const avgPrice = 0;
-      const currentPrice = valor;
-      const assetClass = classifyAsset(p.tipo, p.ativo);
-      const indexador = p.indexador || null;
-      const taxa = p.taxa != null ? Number(p.taxa) : null;
-      const rfSubclass = assetClass === 'renda_fixa' ? classifyRfSubclass(indexador, taxa) : null;
-
-      return {
-        ativo: p.ativo || 'N/A',
-        tipo: p.tipo || '',
-        broker,
-        qty,
-        avgPrice,
-        currentPrice,
-        totalValue: valor,
-        pnlR$: 0,
-        pnlPct: 0,
-        assetClass,
-        vencimento: p.vencimento || null,
-        indexador,
-        taxa,
-        rfSubclass,
-      };
+        parsed.push({
+          ativo, tipo, broker,
+          qty: 1, avgPrice: 0, currentPrice: valor,
+          totalValue: valor, pnlR$: 0, pnlPct: 0,
+          assetClass, vencimento, indexador, taxa, rfSubclass,
+        });
+      });
     });
+
+    // 3. Fallback: also pull from performance_positions table for reports with no extracted_data positions
+    const reportIds = reports.map((r: any) => r.id);
+    if (reportIds.length > 0) {
+      const reportBrokerMap: Record<string, string> = {};
+      reports.forEach((r: any) => { reportBrokerMap[r.id] = r.corretora || r.broker || 'Outro'; });
+
+      const { data: posData } = await supabase
+        .from('performance_positions')
+        .select('*')
+        .in('report_id', reportIds);
+
+      (posData || []).forEach((p: any) => {
+        const broker = reportBrokerMap[p.report_id] || 'Outro';
+        const ativo = p.ativo || 'N/A';
+        const key = `${ativo}|${broker}|extracted`;
+        // Only add if not already from extracted_data
+        if (seenKeys.has(key)) return;
+
+        const valor = Number(p.valor) || 0;
+        const assetClass = classifyAsset(p.tipo, p.ativo);
+        const indexador = p.indexador || null;
+        const taxa = p.taxa != null ? Number(p.taxa) : null;
+        const rfSubclass = assetClass === 'renda_fixa' ? classifyRfSubclass(indexador, taxa) : null;
+
+        parsed.push({
+          ativo, tipo: p.tipo || '', broker,
+          qty: 1, avgPrice: 0, currentPrice: valor,
+          totalValue: valor, pnlR$: 0, pnlPct: 0,
+          assetClass, vencimento: p.vencimento || null, indexador, taxa, rfSubclass,
+        });
+      });
+    }
 
     // Consolidate duplicates per broker
     const consolidatedMap = new Map<string, ClientPosition>();
@@ -507,14 +609,32 @@ export function ClientPortfolioTab({ portfolios, portfolioAssets, recommendedAss
         })}
 
         {/* Grand total */}
-        {!loading && filteredPositions.length > 0 && (
-          <div className="bg-muted/50 rounded-lg p-3 flex items-center justify-between">
-            <span className="text-sm font-medium">Total do Portfólio</span>
-            <span className="text-lg font-bold text-foreground">
-              R$ {formatBRL(grandTotal)}
-            </span>
-          </div>
-        )}
+        {!loading && filteredPositions.length > 0 && (() => {
+          const divergence = consolidatedGross > 0 ? Math.abs(grandTotal - consolidatedGross) : 0;
+          const divergePct = consolidatedGross > 0 ? (divergence / consolidatedGross) * 100 : 0;
+          const hasDivergence = consolidatedGross > 0 && divergePct > 1;
+
+          return (
+            <div className="space-y-2">
+              <div className="bg-muted/50 rounded-lg p-3 flex items-center justify-between">
+                <span className="text-sm font-medium">Total do Portfólio</span>
+                <span className="text-lg font-bold text-foreground">
+                  R$ {formatBRL(grandTotal)}
+                </span>
+              </div>
+              {consolidatedGross > 0 && (
+                <div className={`rounded-lg p-3 flex items-center justify-between text-sm ${hasDivergence ? 'bg-destructive/10 border border-destructive/30' : 'bg-emerald-50 border border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800'}`}>
+                  <span className={hasDivergence ? 'text-destructive' : 'text-emerald-700 dark:text-emerald-400'}>
+                    {hasDivergence
+                      ? `⚠️ Valor diverge do consolidado geral (R$ ${formatBRL(consolidatedGross)}) — diferença de R$ ${formatBRL(divergence)} (${divergePct.toFixed(1)}%). Verifique se todas as classes foram importadas.`
+                      : `✅ Valor confere com o consolidado geral (R$ ${formatBRL(consolidatedGross)})`
+                    }
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </CardContent>
 
       {selectedClient && (
