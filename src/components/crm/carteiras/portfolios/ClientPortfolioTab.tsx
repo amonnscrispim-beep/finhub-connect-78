@@ -219,6 +219,7 @@ export function ClientPortfolioTab({ portfolios, portfolioAssets, recommendedAss
   const [selectedBrokers, setSelectedBrokers] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [readequacaoOpen, setReadequacaoOpen] = useState(false);
+  const [consolidatedGross, setConsolidatedGross] = useState(0);
 
   // Load clients list
   useEffect(() => {
