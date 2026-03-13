@@ -516,12 +516,20 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                           {isRf && <TableCell className="text-xs">{c.asset.vencimento || '—'}</TableCell>}
                           {!isRf && (
                             <TableCell className="text-right text-sm">
-                              {c.source ? `R$ ${Number(c.source.ceiling_price).toFixed(2)}` : '—'}
+                              {c.source
+                                ? `R$ ${Number(c.source.ceiling_price).toFixed(2)}`
+                                : (c.asset as any).ceiling_price
+                                  ? `R$ ${Number((c.asset as any).ceiling_price).toFixed(2)}`
+                                  : '—'}
                             </TableCell>
                           )}
                           {!isRf && (
                             <TableCell className="text-right text-sm">
-                              {c.source?.current_price != null ? `R$ ${Number(c.source.current_price).toFixed(2)}` : '...'}
+                              {c.source?.current_price != null
+                                ? `R$ ${Number(c.source.current_price).toFixed(2)}`
+                                : (c.asset as any).current_price != null
+                                  ? `R$ ${Number((c.asset as any).current_price).toFixed(2)}`
+                                  : '...'}
                             </TableCell>
                           )}
                           <TableCell className="text-right">

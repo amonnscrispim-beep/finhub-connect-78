@@ -1,10 +1,24 @@
 import { useState, useMemo } from 'react';
-import { Search, Plus, Clock, Check, Bookmark, BookmarkCheck, BarChart3, Building2, Globe, TrendingUp, FolderOpen, DollarSign, Newspaper, Share2 } from 'lucide-react';
+import { Search, Plus, Clock, Check, Bookmark, BookmarkCheck, BarChart3, Building2, Globe, TrendingUp, FolderOpen, DollarSign, Newspaper, Share2, GripVertical, Download } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SharedBadge } from '@/components/ui/shared-badge';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { SummaryReport } from './GeradorResumos';
 
 interface Props {
@@ -17,6 +31,7 @@ interface Props {
   isMaster?: boolean;
   userId?: string;
   onToggleShare?: (id: string, val: boolean) => void;
+  onReorder?: (activeId: string, overId: string) => void;
 }
 
 const categories = [
@@ -75,9 +90,135 @@ function parseTickers(report: SummaryReport): string[] {
   return tickers;
 }
 
-export function BibliotecaResumos({ reports, isLoading, onViewReport, onNewReport, onToggleRead, onToggleSaved, isMaster, userId, onToggleShare }: Props) {
+interface SortableCardProps {
+  report: SummaryReport;
+  onViewReport: (report: SummaryReport) => void;
+  onToggleRead: (id: string, val: boolean) => void;
+  onToggleSaved: (id: string, val: boolean) => void;
+  isMaster?: boolean;
+  userId?: string;
+  onToggleShare?: (id: string, val: boolean) => void;
+}
+
+function SortableCard({ report, onViewReport, onToggleRead, onToggleSaved, isMaster, userId, onToggleShare }: SortableCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: report.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const cat = categoryConfig[(report as any).category || report.report_type] || categoryConfig.analise_ativo;
+  const tickers = parseTickers(report);
+  const isRead = (report as any).is_read;
+  const isSaved = (report as any).is_saved;
+  const hasPdf = !!(report as any).pdf_url;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="border border-border rounded-lg p-4 hover:shadow-md hover:border-primary/30 transition-all flex flex-col gap-2 group bg-background"
+    >
+      {/* Top row */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground">
+            <GripVertical className="w-4 h-4" />
+          </button>
+          <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+            <Clock className="w-3 h-3" /> {timeAgo(report.created_at)}
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={e => { e.stopPropagation(); onToggleRead(report.id, !isRead); }}
+            className={`p-1 rounded hover:bg-muted transition-colors ${isRead ? 'text-green-600' : 'text-muted-foreground/40'}`}
+            title={isRead ? 'Marcar como não lido' : 'Marcar como lido'}
+          >
+            <Check className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={e => { e.stopPropagation(); onToggleSaved(report.id, !isSaved); }}
+            className={`p-1 rounded hover:bg-muted transition-colors ${isSaved ? 'text-amber-500' : 'text-muted-foreground/40'}`}
+            title={isSaved ? 'Remover dos salvos' : 'Salvar'}
+          >
+            {isSaved ? <BookmarkCheck className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Category */}
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <span>{cat.emoji}</span> <span>{cat.label}</span>
+      </div>
+
+      {/* Title - clickable */}
+      <h4
+        className="text-sm font-semibold text-foreground leading-snug line-clamp-2 cursor-pointer hover:text-primary transition-colors"
+        onClick={() => onViewReport(report)}
+      >
+        {report.title}
+      </h4>
+
+      {/* Preview - clickable */}
+      <p
+        className="text-xs text-muted-foreground leading-relaxed line-clamp-2 cursor-pointer"
+        onClick={() => onViewReport(report)}
+      >
+        {getPreview(report.markdown_content)}
+      </p>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between mt-auto pt-2">
+        <div className="flex flex-wrap gap-1 items-center">
+          {tickers.map(t => (
+            <Badge key={t} variant="secondary" className="text-[10px] px-1.5 py-0">{t}</Badge>
+          ))}
+          {report.shared && (report as any).user_id !== userId && <SharedBadge />}
+          {isMaster && (report as any).user_id === userId && onToggleShare && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleShare(report.id, !report.shared); }}
+              className={`p-1 rounded hover:bg-muted transition-colors ${report.shared ? 'text-blue-500' : 'text-muted-foreground/40'}`}
+              title={report.shared ? 'Remover compartilhamento' : 'Compartilhar'}
+            >
+              <Share2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-1">
+          {hasPdf && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-7 px-2"
+              onClick={e => { e.stopPropagation(); window.open((report as any).pdf_url, '_blank'); }}
+              title="Baixar PDF original"
+            >
+              <Download className="w-3 h-3 mr-1" /> PDF
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs h-7 px-2.5"
+            onClick={() => onViewReport(report)}
+          >
+            Relatório
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function BibliotecaResumos({ reports, isLoading, onViewReport, onNewReport, onToggleRead, onToggleSaved, isMaster, userId, onToggleShare, onReorder }: Props) {
   const [activeCategory, setActiveCategory] = useState('todos');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
 
   const filtered = useMemo(() => {
     let result = reports;
@@ -96,6 +237,12 @@ export function BibliotecaResumos({ reports, isLoading, onViewReport, onNewRepor
   }, [reports, activeCategory, searchQuery]);
 
   const activeCatLabel = categories.find(c => c.key === activeCategory)?.label || '';
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    onReorder?.(active.id as string, over.id as string);
+  };
 
   return (
     <div className="space-y-4">
@@ -152,82 +299,24 @@ export function BibliotecaResumos({ reports, isLoading, onViewReport, onNewRepor
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(report => {
-            const cat = categoryConfig[(report as any).category || report.report_type] || categoryConfig.analise_ativo;
-            const tickers = parseTickers(report);
-            const isRead = (report as any).is_read;
-            const isSaved = (report as any).is_saved;
-
-            return (
-              <div
-                key={report.id}
-                className="border border-border rounded-lg p-4 hover:shadow-md hover:border-primary/30 transition-all flex flex-col gap-2 group"
-              >
-                {/* Top row */}
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> {timeAgo(report.created_at)}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={e => { e.stopPropagation(); onToggleRead(report.id, !isRead); }}
-                      className={`p-1 rounded hover:bg-muted transition-colors ${isRead ? 'text-green-600' : 'text-muted-foreground/40'}`}
-                      title={isRead ? 'Marcar como não lido' : 'Marcar como lido'}
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={e => { e.stopPropagation(); onToggleSaved(report.id, !isSaved); }}
-                      className={`p-1 rounded hover:bg-muted transition-colors ${isSaved ? 'text-amber-500' : 'text-muted-foreground/40'}`}
-                      title={isSaved ? 'Remover dos salvos' : 'Salvar'}
-                    >
-                      {isSaved ? <BookmarkCheck className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Category */}
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span>{cat.emoji}</span> <span>{cat.label}</span>
-                </div>
-
-                {/* Title */}
-                <h4 className="text-sm font-semibold text-foreground leading-snug line-clamp-2">{report.title}</h4>
-
-                {/* Preview */}
-                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{getPreview(report.markdown_content)}</p>
-
-                {/* Footer */}
-                <div className="flex items-center justify-between mt-auto pt-2">
-                  <div className="flex flex-wrap gap-1 items-center">
-                    {tickers.map(t => (
-                      <Badge key={t} variant="secondary" className="text-[10px] px-1.5 py-0">{t}</Badge>
-                    ))}
-                    {report.shared && (report as any).user_id !== userId && <SharedBadge />}
-                    {isMaster && (report as any).user_id === userId && onToggleShare && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onToggleShare(report.id, !report.shared); }}
-                        className={`p-1 rounded hover:bg-muted transition-colors ${report.shared ? 'text-blue-500' : 'text-muted-foreground/40'}`}
-                        title={report.shared ? 'Remover compartilhamento' : 'Compartilhar'}
-                      >
-                        <Share2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-xs h-7 px-2.5"
-                    onClick={() => onViewReport(report)}
-                  >
-                    Relatório
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={filtered.map(r => r.id)} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filtered.map(report => (
+                <SortableCard
+                  key={report.id}
+                  report={report}
+                  onViewReport={onViewReport}
+                  onToggleRead={onToggleRead}
+                  onToggleSaved={onToggleSaved}
+                  isMaster={isMaster}
+                  userId={userId}
+                  onToggleShare={onToggleShare}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
     </div>
   );
