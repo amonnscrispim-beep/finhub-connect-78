@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Sparkles, Upload, X, PenLine, Bot, Paperclip } from 'lucide-react';
+import { Sparkles, Upload, X, PenLine, Bot, Paperclip, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
