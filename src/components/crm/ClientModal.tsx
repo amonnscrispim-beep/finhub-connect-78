@@ -465,11 +465,12 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     const finalState = isExterior ? '' : formData.state;
     const finalCountry = isExterior ? formData.country : '';
 
-    // Resolve patrimony values: EstruturaPatrimonial (primary) > override (fallback)
+    // Resolve patrimony values: Manual override (primary) > ConhecerCliente (fallback)
+    // When user manually edits a value in the financial panel, it takes priority
     const resolveNum = (conhecer: string | undefined, override: string): number => {
-      const fromConhecer = parseFloat(conhecer || '') || 0;
       const fromOverride = parseFloat(override) || 0;
-      return fromConhecer || fromOverride;
+      const fromConhecer = parseFloat(conhecer || '') || 0;
+      return fromOverride > 0 ? fromOverride : fromConhecer;
     };
     const resolvedFinancialAssets = resolveNum(conhecerData.totalPatrimony, formData.financialAssets);
     const resolvedMaterialAssets = resolveNum(undefined, formData.materialAssets);
