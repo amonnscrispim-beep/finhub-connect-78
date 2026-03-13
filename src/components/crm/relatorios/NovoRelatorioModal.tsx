@@ -59,6 +59,10 @@ export function NovoRelatorioModal({ open, onOpenChange, onReportCreated }: Prop
   const handleImageUpload = useCallback((files: FileList | null) => {
     if (!files) return;
     Array.from(files).forEach(file => {
+      if (file.type === 'application/pdf') {
+        handlePdfUpload(file);
+        return;
+      }
       if (!file.type.startsWith('image/')) return;
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -67,6 +71,44 @@ export function NovoRelatorioModal({ open, onOpenChange, onReportCreated }: Prop
       reader.readAsDataURL(file);
     });
   }, []);
+
+  const handlePdfUpload = useCallback(async (file: File) => {
+    setIsTranscribing(true);
+    setPdfFileName(file.name);
+    try {
+      const buffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      const base64 = btoa(binary);
+      setPdfBase64(base64);
+
+      // Auto-detect ticker from filename
+      const tickerMatch = file.name.match(/([A-Z]{4}\d{1,2})/i);
+      if (tickerMatch) {
+        const t = tickerMatch[1].toUpperCase();
+        if (!tickers.includes(t)) setTickers(prev => [...prev, t]);
+      }
+
+      const response = await supabase.functions.invoke('generate-summary-report', {
+        body: { mode: 'transcribe_pdf', pdfBase64: base64, fileName: file.name },
+      });
+      if (response.error) throw new Error(response.error.message);
+      const transcribed = response.data?.report;
+      if (transcribed) {
+        if (activeTab === 'write') {
+          setManualContent(prev => prev ? prev + '\n\n' + transcribed : transcribed);
+        } else {
+          setAiInput(prev => prev ? prev + '\n\n' + transcribed : transcribed);
+        }
+        toast.success('PDF transcrito com sucesso!');
+      }
+    } catch (err: any) {
+      toast.error('Erro ao transcrever PDF: ' + (err.message || ''));
+    } finally {
+      setIsTranscribing(false);
+    }
+  }, [activeTab, tickers]);
 
   const handleGenerateAI = async () => {
     if (!aiInput.trim()) { toast.error('Cole os dados para gerar.'); return; }
