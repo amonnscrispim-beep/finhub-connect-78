@@ -43,6 +43,9 @@ export function NovoRelatorioModal({ open, onOpenChange, onReportCreated }: Prop
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('write');
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [pdfBase64, setPdfBase64] = useState<string | null>(null);
+  const [pdfFileName, setPdfFileName] = useState<string | null>(null);
 
   const handleAddTicker = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && tickerInput.trim()) {
