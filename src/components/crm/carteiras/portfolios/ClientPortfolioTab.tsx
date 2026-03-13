@@ -581,14 +581,32 @@ export function ClientPortfolioTab({ portfolios, portfolioAssets, recommendedAss
         })}
 
         {/* Grand total */}
-        {!loading && filteredPositions.length > 0 && (
-          <div className="bg-muted/50 rounded-lg p-3 flex items-center justify-between">
-            <span className="text-sm font-medium">Total do Portfólio</span>
-            <span className="text-lg font-bold text-foreground">
-              R$ {formatBRL(grandTotal)}
-            </span>
-          </div>
-        )}
+        {!loading && filteredPositions.length > 0 && (() => {
+          const divergence = consolidatedGross > 0 ? Math.abs(grandTotal - consolidatedGross) : 0;
+          const divergePct = consolidatedGross > 0 ? (divergence / consolidatedGross) * 100 : 0;
+          const hasDivergence = consolidatedGross > 0 && divergePct > 1;
+
+          return (
+            <div className="space-y-2">
+              <div className="bg-muted/50 rounded-lg p-3 flex items-center justify-between">
+                <span className="text-sm font-medium">Total do Portfólio</span>
+                <span className="text-lg font-bold text-foreground">
+                  R$ {formatBRL(grandTotal)}
+                </span>
+              </div>
+              {consolidatedGross > 0 && (
+                <div className={`rounded-lg p-3 flex items-center justify-between text-sm ${hasDivergence ? 'bg-destructive/10 border border-destructive/30' : 'bg-emerald-50 border border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800'}`}>
+                  <span className={hasDivergence ? 'text-destructive' : 'text-emerald-700 dark:text-emerald-400'}>
+                    {hasDivergence
+                      ? `⚠️ Valor diverge do consolidado geral (R$ ${formatBRL(consolidatedGross)}) — diferença de R$ ${formatBRL(divergence)} (${divergePct.toFixed(1)}%). Verifique se todas as classes foram importadas.`
+                      : `✅ Valor confere com o consolidado geral (R$ ${formatBRL(consolidatedGross)})`
+                    }
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </CardContent>
 
       {selectedClient && (
