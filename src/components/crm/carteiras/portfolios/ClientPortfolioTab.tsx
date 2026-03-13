@@ -62,18 +62,46 @@ const RF_KEYWORDS = [
 function classifyAsset(tipo: string | null, ativo: string | null): ClientPosition['assetClass'] {
   const t = (tipo || '').toLowerCase();
   const a = (ativo || '').toLowerCase();
+  const combined = `${t} ${a}`;
 
-  // Check RF first (broader matching)
+  // FIIs - check before ações (tickers ending in 11)
+  if (t.includes('fii') || t.includes('fundo imobiliário') || t.includes('fundo imobiliario') ||
+      a.includes('fii') || /^[a-z]{4}11[bf]?$/i.test(a.trim()) ||
+      combined.includes('imobiliário') || combined.includes('imobiliario')) return 'fiis';
+
+  // Ações / Renda Variável
+  if (t.includes('ação') || t.includes('ações') || t.includes('acoes') || t.includes('acao') ||
+      t.includes('renda variável') || t.includes('renda variavel') ||
+      t.includes('equity') || t.includes('bdr') ||
+      /^[a-z]{4}\d{1,2}$/i.test(a.trim()) ||
+      a.includes('bdr')) return 'acoes';
+
+  // Check RF
   for (const kw of RF_KEYWORDS) {
     if (t.includes(kw) || a.includes(kw)) return 'renda_fixa';
   }
-  // Specific RF patterns in asset name
   if (/^(cdb|lci|lca|cri|cra|cdca|deb|ltn|ntn|dpge|lfsc|lft)/i.test(a)) return 'renda_fixa';
   if (/debenture/i.test(a) || /\bDEB[-\s]/i.test(ativo || '')) return 'renda_fixa';
+  if (t.includes('título') || t.includes('titulo') || t.includes('renda fixa') ||
+      t.includes('fixed income') || t.includes('rf')) return 'renda_fixa';
 
-  if (t.includes('fii') || t.includes('fundo imobiliário') || (a.match(/^[a-z]{4}11$/) && a.length <= 8)) return 'fiis';
-  if (t.includes('ação') || t.includes('acoes') || t.includes('renda variável') || (a.match(/^[a-z]{4}\d{1,2}$/) && !a.endsWith('11'))) return 'acoes';
-  if (t.includes('fundo') || t.includes('multimercado') || t.includes('cambial')) return 'fundos';
+  // Fundos de Investimento
+  if (t.includes('fundo') || t.includes('multimercado') || t.includes('cambial') ||
+      t.includes('hedge') || t.includes('fund') ||
+      a.includes('fundo') || a.includes('multimercado') || a.includes('fi ') ||
+      a.includes('ficfi') || a.includes('fic fi')) return 'fundos';
+
+  // Previdência → classify as fundos
+  if (combined.includes('previdência') || combined.includes('previdencia') ||
+      combined.includes('vgbl') || combined.includes('pgbl')) return 'fundos';
+
+  // COE, derivativos
+  if (t.includes('coe') || t.includes('derivativo') || a.includes('coe')) return 'outros';
+
+  // If nothing matched and has a value, try to avoid 'outros'
+  // Check if it looks like a stock ticker
+  if (/^[A-Z]{4}\d{1,2}$/i.test((ativo || '').trim())) return 'acoes';
+
   return 'outros';
 }
 
