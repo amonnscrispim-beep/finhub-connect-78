@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowDown, ArrowUp, Minus, AlertTriangle, FileText, Lightbulb } from 'lucide-react';
+import { ArrowDown, ArrowUp, Minus, AlertTriangle, FileText, Lightbulb, Info } from 'lucide-react';
 import type { InvestorPortfolio, PortfolioAssetItem } from './PortfoliosSection';
 import type { PortfolioAsset } from '../CarteirasRecomendadas';
 import type { ClientPosition } from './ClientPortfolioTab';
@@ -37,25 +37,52 @@ interface ActionItem {
   hasLoss: boolean;
 }
 
+interface MissingClassSuggestion {
+  className: string;
+  classPct: number;
+  suggestedValue: number;
+  assets: Array<{ ticker: string; qty: number; price: number; value: number; isFii: boolean }>;
+}
+
 function formatBRL(v: number): string {
   return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+
+const CLASS_PCT_FIELDS: Record<string, string> = {
+  'acoes_brasileiras': 'acoes_pct',
+  'fiis': 'fiis_pct',
+  'internacional': 'internacional_pct',
+};
+
+const CLASS_DISPLAY_NAMES: Record<string, string> = {
+  'acoes_brasileiras': 'Ações',
+  'fiis': 'Fundos Imobiliários',
+  'internacional': 'Internacional',
+};
+
+const ASSET_CLASS_TO_POSITION: Record<string, string> = {
+  'acoes_brasileiras': 'acoes',
+  'fiis': 'fiis',
+  'internacional': 'acoes',
+};
 
 export function ReadequacaoModal({ open, onOpenChange, clientName, positions, portfolios, portfolioAssets, recommendedAssets }: Props) {
   const [strategy, setStrategy] = useState<string>('Renda');
   const [profile, setProfile] = useState<string>('Moderado');
   const [consultantNote, setConsultantNote] = useState('');
 
-  // Find the target portfolio
   const targetPortfolio = useMemo(() => {
     return portfolios.find(p => p.profile === profile && p.strategy === strategy);
   }, [portfolios, profile, strategy]);
 
-  // Get target assets from portfolio
   const targetAssets = useMemo(() => {
     if (!targetPortfolio) return [];
     return portfolioAssets.filter(a => a.portfolio_id === targetPortfolio.id);
   }, [targetPortfolio, portfolioAssets]);
+
+  const clientTotalValue = useMemo(() => {
+    return positions.reduce((s, p) => s + p.totalValue, 0);
+  }, [positions]);
 
   // Compute readequação plan
   const actionPlan = useMemo(() => {
@@ -65,7 +92,6 @@ export function ReadequacaoModal({ open, onOpenChange, clientName, positions, po
 
     const actions: ActionItem[] = [];
 
-    // Build a map of current positions (only acoes + fiis for comparison)
     const currentMap = new Map<string, ClientPosition>();
     positions.forEach(p => {
       if (p.assetClass === 'acoes' || p.assetClass === 'fiis') {
@@ -80,7 +106,6 @@ export function ReadequacaoModal({ open, onOpenChange, clientName, positions, po
       }
     });
 
-    // Build target map with computed quantities
     const targetMap = new Map<string, { ticker: string; qty: number; value: number; isFii: boolean; currentPrice: number }>();
     
     targetAssets.forEach(ta => {
@@ -88,7 +113,7 @@ export function ReadequacaoModal({ open, onOpenChange, clientName, positions, po
       if (!ticker) return;
       
       const isFii = ta.asset_class === 'fiis';
-      const classPctField = isFii ? 'fiis_pct' : ta.asset_class === 'acoes_brasileiras' ? 'acoes_pct' : ta.asset_class === 'internacional' ? 'internacional_pct' : null;
+      const classPctField = CLASS_PCT_FIELDS[ta.asset_class];
       if (!classPctField) return;
 
       const classPct = Number((targetPortfolio as any)[classPctField]) || 0;
@@ -96,7 +121,6 @@ export function ReadequacaoModal({ open, onOpenChange, clientName, positions, po
       const totalPct = classPct * (allocClassPct / 100);
       const assetValue = investAmount * (totalPct / 100);
 
-      // Get current price from recommended assets
       const source = ta.source_asset_id ? recommendedAssets.find(a => a.id === ta.source_asset_id) : null;
       const currentPrice = source?.current_price ? Number(source.current_price) : 0;
       const qty = currentPrice > 0 ? Math.floor(assetValue / currentPrice) : 0;
@@ -104,7 +128,6 @@ export function ReadequacaoModal({ open, onOpenChange, clientName, positions, po
       targetMap.set(ticker, { ticker, qty, value: assetValue, isFii, currentPrice });
     });
 
-    // Compare: assets in target
     targetMap.forEach(({ ticker, qty: targetQty, isFii, currentPrice }) => {
       const current = currentMap.get(ticker);
       const currentQty = current?.qty || 0;
@@ -118,7 +141,6 @@ export function ReadequacaoModal({ open, onOpenChange, clientName, positions, po
       const absDelta = Math.abs(delta);
       const value = absDelta * currentPrice;
       
-      // IR for FIIs on VENDER with profit
       let irEstimate = 0;
       let hasLoss = false;
       let netValue = value;
@@ -133,24 +155,13 @@ export function ReadequacaoModal({ open, onOpenChange, clientName, positions, po
       }
 
       actions.push({
-        ticker,
-        action,
-        currentQty,
-        targetQty,
-        deltaQty: absDelta,
-        currentPrice,
-        avgPrice,
-        value,
-        isFii,
-        irEstimate,
-        netValue,
-        hasLoss,
+        ticker, action, currentQty, targetQty, deltaQty: absDelta,
+        currentPrice, avgPrice, value, isFii, irEstimate, netValue, hasLoss,
       });
 
       currentMap.delete(ticker);
     });
 
-    // Assets in current but NOT in target → VENDER tudo
     currentMap.forEach((pos) => {
       const ticker = pos.ativo.toUpperCase().trim();
       const isFii = pos.assetClass === 'fiis';
@@ -171,38 +182,82 @@ export function ReadequacaoModal({ open, onOpenChange, clientName, positions, po
       }
 
       actions.push({
-        ticker,
-        action: 'VENDER',
-        currentQty: pos.qty,
-        targetQty: 0,
-        deltaQty: pos.qty,
-        currentPrice,
-        avgPrice: pos.avgPrice,
-        value,
-        isFii,
-        irEstimate,
-        netValue,
-        hasLoss,
+        ticker, action: 'VENDER', currentQty: pos.qty, targetQty: 0,
+        deltaQty: pos.qty, currentPrice, avgPrice: pos.avgPrice, value,
+        isFii, irEstimate, netValue, hasLoss,
       });
     });
 
-    // Sort: VENDER first, then COMPRAR, then MANTER
     const order = { 'VENDER': 0, 'COMPRAR': 1, 'MANTER': 2 };
     actions.sort((a, b) => order[a.action] - order[b.action]);
 
     return actions;
   }, [targetPortfolio, targetAssets, positions, recommendedAssets]);
 
+  // Detect missing classes
+  const missingClasses = useMemo((): MissingClassSuggestion[] => {
+    if (!targetPortfolio || clientTotalValue <= 0) return [];
+
+    const suggestions: MissingClassSuggestion[] = [];
+    const classKeys = Object.keys(CLASS_PCT_FIELDS);
+
+    classKeys.forEach(classKey => {
+      const pctField = CLASS_PCT_FIELDS[classKey];
+      const classPct = Number((targetPortfolio as any)[pctField]) || 0;
+      if (classPct <= 0) return;
+
+      const positionClass = ASSET_CLASS_TO_POSITION[classKey];
+      const clientHasClass = positions.some(p => {
+        if (classKey === 'internacional') return false; // can't detect international from positions easily
+        return p.assetClass === positionClass;
+      });
+
+      if (clientHasClass) return;
+
+      const classAssets = targetAssets.filter(a => a.asset_class === classKey);
+      if (classAssets.length === 0) return;
+
+      const suggestedValue = clientTotalValue * (classPct / 100);
+      const assets: MissingClassSuggestion['assets'] = [];
+
+      classAssets.forEach(ta => {
+        const ticker = (ta.ticker || '').toUpperCase().trim();
+        if (!ticker) return;
+        const allocPct = Number(ta.allocation_pct) || 0;
+        const assetValue = suggestedValue * (allocPct / 100);
+        const source = ta.source_asset_id ? recommendedAssets.find(a => a.id === ta.source_asset_id) : null;
+        const price = source?.current_price ? Number(source.current_price) : 0;
+        const qty = price > 0 ? Math.floor(assetValue / price) : 0;
+        const isFii = classKey === 'fiis';
+
+        assets.push({ ticker, qty, price, value: assetValue, isFii });
+      });
+
+      suggestions.push({
+        className: CLASS_DISPLAY_NAMES[classKey] || classKey,
+        classPct,
+        suggestedValue,
+        assets,
+      });
+    });
+
+    return suggestions;
+  }, [targetPortfolio, targetAssets, positions, recommendedAssets, clientTotalValue]);
+
   const totalVender = actionPlan.filter(a => a.action === 'VENDER').reduce((s, a) => s + a.value, 0);
   const totalComprar = actionPlan.filter(a => a.action === 'COMPRAR').reduce((s, a) => s + a.value, 0);
   const totalIR = actionPlan.reduce((s, a) => s + a.irEstimate, 0);
+  const totalMissingSuggested = missingClasses.reduce((s, m) => s + m.suggestedValue, 0);
+
+  const portfolioLabel = targetPortfolio
+    ? `${strategy} ${profile}`
+    : '';
 
   const handleExportPdf = () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     let y = 20;
 
-    // Header
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.text('Plano de Readequação', pageWidth / 2, y, { align: 'center' });
@@ -210,12 +265,51 @@ export function ReadequacaoModal({ open, onOpenChange, clientName, positions, po
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Cliente: ${clientName}`, 14, y);
-    y += 6;
-    doc.text(`Perfil: ${profile} | Estratégia: ${strategy}`, 14, y);
-    y += 6;
-    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, y);
-    y += 10;
+    doc.text(`Cliente: ${clientName}`, 14, y); y += 6;
+    doc.text(`Perfil: ${profile} | Estratégia: ${strategy}`, 14, y); y += 6;
+    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, y); y += 6;
+    doc.text(`Patrimônio Total: R$ ${formatBRL(clientTotalValue)}`, 14, y); y += 10;
+
+    // RF detail by subclass
+    const rfPositions = positions.filter(p => p.assetClass === 'renda_fixa');
+    if (rfPositions.length > 0) {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Renda Fixa — Detalhamento', 14, y); y += 7;
+
+      const rfBySubclass: Record<string, ClientPosition[]> = { ipca: [], pos: [], pre: [] };
+      rfPositions.forEach(p => {
+        const sc = p.rfSubclass || 'pos';
+        if (!rfBySubclass[sc]) rfBySubclass[sc] = [];
+        rfBySubclass[sc].push(p);
+      });
+      Object.values(rfBySubclass).forEach(arr => arr.sort((a, b) => (b.taxa || 0) - (a.taxa || 0)));
+
+      const scLabels: Record<string, string> = { ipca: 'Indexado à Inflação', pos: 'Pós-Fixado', pre: 'Pré-Fixado' };
+      ['ipca', 'pos', 'pre'].forEach(sc => {
+        const scItems = rfBySubclass[sc];
+        if (!scItems || scItems.length === 0) return;
+        const scTotal = scItems.reduce((s, p) => s + p.totalValue, 0);
+
+        if (y > 260) { doc.addPage(); y = 20; }
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${scLabels[sc]} — R$ ${formatBRL(scTotal)} (${clientTotalValue > 0 ? ((scTotal / clientTotalValue) * 100).toFixed(2) : '0'}%)`, 14, y);
+        y += 6;
+
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        scItems.forEach(p => {
+          if (y > 272) { doc.addPage(); y = 20; }
+          const taxaStr = p.taxa ? `${p.taxa.toFixed(2)}%` : '—';
+          const pctPatr = clientTotalValue > 0 ? ((p.totalValue / clientTotalValue) * 100).toFixed(2) : '0';
+          doc.text(`${p.ativo} | ${p.tipo || '—'} | ${p.indexador || '—'} | ${taxaStr} | Venc: ${p.vencimento || '—'} | R$ ${formatBRL(p.totalValue)} | ${pctPatr}% | ${p.broker}`, 18, y);
+          y += 4.5;
+        });
+        y += 4;
+      });
+      y += 4;
+    }
 
     // Actions table
     const sections = [
@@ -226,14 +320,12 @@ export function ReadequacaoModal({ open, onOpenChange, clientName, positions, po
 
     sections.forEach(section => {
       if (section.items.length === 0) return;
-
       if (y > 260) { doc.addPage(); y = 20; }
 
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(section.color[0], section.color[1], section.color[2]);
-      doc.text(section.label, 14, y);
-      y += 7;
+      doc.text(section.label, 14, y); y += 7;
 
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
@@ -241,18 +333,15 @@ export function ReadequacaoModal({ open, onOpenChange, clientName, positions, po
 
       section.items.forEach(item => {
         if (y > 270) { doc.addPage(); y = 20; }
-
         const actionText = item.action === 'VENDER'
           ? `${item.ticker} — Vender ${item.deltaQty} ${item.isFii ? 'cotas' : 'ações'} @ R$ ${formatBRL(item.currentPrice)} = R$ ${formatBRL(item.value)}`
           : item.action === 'COMPRAR'
             ? `${item.ticker} — Comprar ${item.deltaQty} ${item.isFii ? 'cotas' : 'ações'} @ R$ ${formatBRL(item.currentPrice)} = R$ ${formatBRL(item.value)}`
             : `${item.ticker} — Posição adequada (atual: ${item.currentQty} | meta: ${item.targetQty})`;
 
-        doc.text(actionText, 18, y);
-        y += 5;
+        doc.text(actionText, 18, y); y += 5;
         doc.setTextColor(100, 100, 100);
-        doc.text(`Posição atual: ${item.currentQty} | Meta carteira: ${item.targetQty}`, 18, y);
-        y += 4;
+        doc.text(`Posição atual: ${item.currentQty} | Meta carteira: ${item.targetQty}`, 18, y); y += 4;
 
         if (item.isFii && item.action === 'VENDER') {
           if (item.hasLoss) {
@@ -262,30 +351,59 @@ export function ReadequacaoModal({ open, onOpenChange, clientName, positions, po
           }
           y += 4;
         }
-
         doc.setTextColor(0, 0, 0);
         y += 3;
       });
-
       y += 5;
     });
+
+    // Missing classes
+    if (missingClasses.length > 0) {
+      if (y > 240) { doc.addPage(); y = 20; }
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(59, 130, 246);
+      doc.text('CLASSES AUSENTES NA CARTEIRA DO CLIENTE', 14, y); y += 7;
+      doc.setTextColor(0, 0, 0);
+
+      missingClasses.forEach(mc => {
+        if (y > 255) { doc.addPage(); y = 20; }
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${mc.className} — não possui posição`, 14, y); y += 5;
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`A carteira ${portfolioLabel} recomenda ${mc.classPct.toFixed(0)}% em ${mc.className}`, 18, y); y += 5;
+        doc.text(`Valor sugerido: R$ ${formatBRL(mc.suggestedValue)} (${mc.classPct.toFixed(0)}% do patrimônio)`, 18, y); y += 5;
+
+        mc.assets.forEach(a => {
+          if (y > 272) { doc.addPage(); y = 20; }
+          doc.text(`→ ${a.ticker} — comprar ${a.qty} ${a.isFii ? 'cotas' : 'ações'} @ R$ ${formatBRL(a.price)} = R$ ${formatBRL(a.value)}`, 22, y);
+          y += 4.5;
+        });
+        y += 4;
+      });
+      y += 3;
+    }
 
     // Summary
     if (y > 240) { doc.addPage(); y = 20; }
     y += 5;
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.text('Resumo Financeiro', 14, y);
-    y += 7;
+    doc.setTextColor(0, 0, 0);
+    doc.text('Resumo Financeiro', 14, y); y += 7;
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.text(`Total a Vender: R$ ${formatBRL(totalVender)}`, 18, y); y += 5;
     doc.text(`Total a Comprar: R$ ${formatBRL(totalComprar)}`, 18, y); y += 5;
+    if (totalMissingSuggested > 0) {
+      doc.text(`Total sugerido (classes ausentes): R$ ${formatBRL(totalMissingSuggested)}`, 18, y); y += 5;
+    }
     if (totalIR > 0) {
       doc.text(`IR estimado total (FIIs): R$ ${formatBRL(totalIR)}`, 18, y); y += 5;
     }
 
-    // Consultant note
     if (consultantNote.trim()) {
       y += 5;
       doc.setFont('helvetica', 'bold');
@@ -296,16 +414,13 @@ export function ReadequacaoModal({ open, onOpenChange, clientName, positions, po
       y += lines.length * 4.5;
     }
 
-    // Disclaimer
     y += 10;
     if (y > 270) { doc.addPage(); y = 20; }
     doc.setFontSize(7);
     doc.setTextColor(120, 120, 120);
-    doc.text('IR calculado para fins estimativos. Verifique as condições de isenção com seu contador.', 14, y);
-    y += 4;
+    doc.text('IR calculado para fins estimativos. Verifique as condições de isenção com seu contador.', 14, y); y += 4;
     doc.text('Este documento não constitui recomendação de investimento. Consulte seu assessor antes de tomar decisões.', 14, y);
 
-    // Download
     const blob = doc.output('blob');
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -357,7 +472,7 @@ export function ReadequacaoModal({ open, onOpenChange, clientName, positions, po
         </div>
 
         <ScrollArea className="max-h-[50vh] pr-3">
-          {actionPlan.length === 0 && (
+          {actionPlan.length === 0 && missingClasses.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-8">
               {!targetPortfolio
                 ? 'Nenhum portfólio encontrado para este perfil/estratégia.'
@@ -439,10 +554,44 @@ export function ReadequacaoModal({ open, onOpenChange, clientName, positions, po
               </div>
             </div>
           )}
+
+          {/* Missing classes suggestions */}
+          {missingClasses.length > 0 && (
+            <div className="mb-4">
+              <h4 className="text-sm font-semibold text-blue-600 flex items-center gap-1 mb-2">
+                <Info className="w-4 h-4" /> CLASSES AUSENTES NA CARTEIRA DO CLIENTE
+              </h4>
+              <div className="space-y-3">
+                {missingClasses.map(mc => (
+                  <div key={mc.className} className="border border-blue-200 rounded-lg p-3 bg-blue-50/50 space-y-2">
+                    <p className="text-sm font-semibold text-blue-700">
+                      💡 {mc.className} — não possui posição
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      A carteira {portfolioLabel} recomenda {mc.classPct.toFixed(0)}% em {mc.className}
+                    </p>
+                    <p className="text-xs font-medium">
+                      Valor sugerido: R$ {formatBRL(mc.suggestedValue)} ({mc.classPct.toFixed(0)}% do patrimônio)
+                    </p>
+                    {mc.assets.length > 0 && (
+                      <div className="space-y-1 pl-2 border-l-2 border-blue-200">
+                        <p className="text-xs text-muted-foreground font-medium">Ativos sugeridos para compra:</p>
+                        {mc.assets.map(a => (
+                          <p key={a.ticker} className="text-xs">
+                            → {a.ticker} — comprar {a.qty} {a.isFii ? 'cotas' : 'ações'} @ R$ {formatBRL(a.price)} = R$ {formatBRL(a.value)}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </ScrollArea>
 
         {/* Summary */}
-        {actionPlan.length > 0 && (
+        {(actionPlan.length > 0 || missingClasses.length > 0) && (
           <div className="space-y-3 pt-3 border-t border-border">
             <div className="grid grid-cols-3 gap-3 text-sm">
               <div className="bg-destructive/10 rounded-lg p-2 text-center">
@@ -451,7 +600,7 @@ export function ReadequacaoModal({ open, onOpenChange, clientName, positions, po
               </div>
               <div className="bg-emerald-50 rounded-lg p-2 text-center">
                 <p className="text-xs text-muted-foreground">Total a Comprar</p>
-                <p className="font-semibold text-emerald-600">R$ {formatBRL(totalComprar)}</p>
+                <p className="font-semibold text-emerald-600">R$ {formatBRL(totalComprar + totalMissingSuggested)}</p>
               </div>
               {totalIR > 0 && (
                 <div className="bg-amber-50 rounded-lg p-2 text-center">
