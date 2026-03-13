@@ -248,59 +248,132 @@ export function ClientPortfolioTab({ portfolios, portfolioAssets, recommendedAss
     if (!user || !selectedClientId) return;
     setLoading(true);
 
-    const { data: reports } = await supabase
-      .from('performance_reports')
-      .select('id, corretora, broker')
-      .eq('client_id', selectedClientId)
-      .eq('user_id', user.id);
+    // Fetch reports with extracted_data AND also performance_positions
+    const [reportsRes, clientReportsRes] = await Promise.all([
+      supabase
+        .from('performance_reports')
+        .select('id, corretora, broker, extracted_data, patrimonio_bruto')
+        .eq('client_id', selectedClientId)
+        .eq('user_id', user.id),
+      supabase
+        .from('client_performance_reports')
+        .select('id, broker, extracted_data')
+        .eq('client_id', selectedClientId)
+        .eq('user_id', user.id),
+    ]);
 
-    if (!reports || reports.length === 0) {
+    const reports = reportsRes.data || [];
+    const clientReports = clientReportsRes.data || [];
+
+    if (reports.length === 0 && clientReports.length === 0) {
       setPositions([]);
       setBrokers([]);
       setSelectedBrokers(new Set());
+      setConsolidatedGross(0);
       setLoading(false);
       return;
     }
 
-    const reportIds = reports.map(r => r.id);
-    const brokerMap: Record<string, string> = {};
-    reports.forEach(r => {
-      brokerMap[r.id] = r.corretora || r.broker || 'Outro';
+    // Calculate consolidated gross from reports
+    let totalGross = 0;
+    reports.forEach((r: any) => {
+      const gross = Number(r.patrimonio_bruto) || 0;
+      const extractedGross = (r.extracted_data as any)?.generalData?.grossPatrimony ?? 0;
+      totalGross += gross > 0 ? gross : extractedGross;
+    });
+    clientReports.forEach((r: any) => {
+      const extractedGross = (r.extracted_data as any)?.generalData?.grossPatrimony ?? 0;
+      totalGross += extractedGross;
+    });
+    setConsolidatedGross(totalGross);
+
+    const parsed: ClientPosition[] = [];
+    const seenKeys = new Set<string>();
+
+    // 1. Pull positions from extracted_data in performance_reports
+    reports.forEach((r: any) => {
+      const broker = r.corretora || r.broker || 'Outro';
+      const extractedPositions = Array.isArray((r.extracted_data as any)?.positions)
+        ? (r.extracted_data as any).positions : [];
+      
+      extractedPositions.forEach((p: any) => {
+        const ativo = p.name || p.ativo || 'N/A';
+        const tipo = p.type || p.tipo || '';
+        const valor = Number(p.grossBalance || p.valor) || 0;
+        const indexador = p.indexer || p.indexador || null;
+        const taxa = p.rate != null ? Number(p.rate) : (p.taxa != null ? Number(p.taxa) : null);
+        const vencimento = p.maturityDate || p.vencimento || null;
+        const assetClass = classifyAsset(tipo, ativo);
+        const rfSubclass = assetClass === 'renda_fixa' ? classifyRfSubclass(indexador, taxa) : null;
+        const key = `${ativo}|${broker}|extracted`;
+        seenKeys.add(key);
+
+        parsed.push({
+          ativo, tipo, broker,
+          qty: 1, avgPrice: 0, currentPrice: valor,
+          totalValue: valor, pnlR$: 0, pnlPct: 0,
+          assetClass, vencimento, indexador, taxa, rfSubclass,
+        });
+      });
     });
 
-    const { data: posData } = await supabase
-      .from('performance_positions')
-      .select('*')
-      .in('report_id', reportIds);
+    // 2. Pull positions from extracted_data in client_performance_reports
+    clientReports.forEach((r: any) => {
+      const broker = r.broker || 'Outro';
+      const extractedPositions = Array.isArray((r.extracted_data as any)?.positions)
+        ? (r.extracted_data as any).positions : [];
+      
+      extractedPositions.forEach((p: any) => {
+        const ativo = p.name || p.ativo || 'N/A';
+        const tipo = p.type || p.tipo || '';
+        const valor = Number(p.grossBalance || p.valor) || 0;
+        const indexador = p.indexer || p.indexador || null;
+        const taxa = p.rate != null ? Number(p.rate) : (p.taxa != null ? Number(p.taxa) : null);
+        const vencimento = p.maturityDate || p.vencimento || null;
+        const assetClass = classifyAsset(tipo, ativo);
+        const rfSubclass = assetClass === 'renda_fixa' ? classifyRfSubclass(indexador, taxa) : null;
 
-    const parsed: ClientPosition[] = (posData || []).map((p: any) => {
-      const broker = brokerMap[p.report_id] || 'Outro';
-      const valor = Number(p.valor) || 0;
-      const qty = 1;
-      const avgPrice = 0;
-      const currentPrice = valor;
-      const assetClass = classifyAsset(p.tipo, p.ativo);
-      const indexador = p.indexador || null;
-      const taxa = p.taxa != null ? Number(p.taxa) : null;
-      const rfSubclass = assetClass === 'renda_fixa' ? classifyRfSubclass(indexador, taxa) : null;
-
-      return {
-        ativo: p.ativo || 'N/A',
-        tipo: p.tipo || '',
-        broker,
-        qty,
-        avgPrice,
-        currentPrice,
-        totalValue: valor,
-        pnlR$: 0,
-        pnlPct: 0,
-        assetClass,
-        vencimento: p.vencimento || null,
-        indexador,
-        taxa,
-        rfSubclass,
-      };
+        parsed.push({
+          ativo, tipo, broker,
+          qty: 1, avgPrice: 0, currentPrice: valor,
+          totalValue: valor, pnlR$: 0, pnlPct: 0,
+          assetClass, vencimento, indexador, taxa, rfSubclass,
+        });
+      });
     });
+
+    // 3. Fallback: also pull from performance_positions table for reports with no extracted_data positions
+    const reportIds = reports.map((r: any) => r.id);
+    if (reportIds.length > 0) {
+      const reportBrokerMap: Record<string, string> = {};
+      reports.forEach((r: any) => { reportBrokerMap[r.id] = r.corretora || r.broker || 'Outro'; });
+
+      const { data: posData } = await supabase
+        .from('performance_positions')
+        .select('*')
+        .in('report_id', reportIds);
+
+      (posData || []).forEach((p: any) => {
+        const broker = reportBrokerMap[p.report_id] || 'Outro';
+        const ativo = p.ativo || 'N/A';
+        const key = `${ativo}|${broker}|extracted`;
+        // Only add if not already from extracted_data
+        if (seenKeys.has(key)) return;
+
+        const valor = Number(p.valor) || 0;
+        const assetClass = classifyAsset(p.tipo, p.ativo);
+        const indexador = p.indexador || null;
+        const taxa = p.taxa != null ? Number(p.taxa) : null;
+        const rfSubclass = assetClass === 'renda_fixa' ? classifyRfSubclass(indexador, taxa) : null;
+
+        parsed.push({
+          ativo, tipo: p.tipo || '', broker,
+          qty: 1, avgPrice: 0, currentPrice: valor,
+          totalValue: valor, pnlR$: 0, pnlPct: 0,
+          assetClass, vencimento: p.vencimento || null, indexador, taxa, rfSubclass,
+        });
+      });
+    }
 
     // Consolidate duplicates per broker
     const consolidatedMap = new Map<string, ClientPosition>();
