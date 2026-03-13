@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { SharedBadge } from '@/components/ui/shared-badge';
 import { Briefcase, Share2 } from 'lucide-react';
 import { PortfolioStrategyView } from './PortfolioStrategyView';
+import { ClientPortfolioTab } from './ClientPortfolioTab';
 import { PortfolioAsset } from '../CarteirasRecomendadas';
 
 const PROFILES = ['Conservador', 'Moderado', 'Arrojado'] as const;
@@ -225,10 +226,11 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
       </div>
 
       <Tabs value={activeProfile} onValueChange={setActiveProfile}>
-        <TabsList className="grid grid-cols-3 w-full max-w-md">
+        <TabsList className="grid grid-cols-4 w-full max-w-lg">
           {PROFILES.map(p => (
             <TabsTrigger key={p} value={p}>{p}</TabsTrigger>
           ))}
+          <TabsTrigger value="cliente">Portfólio do Cliente</TabsTrigger>
         </TabsList>
 
         {PROFILES.map(profile => {
@@ -309,6 +311,14 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
             </TabsContent>
           );
         })}
+
+        <TabsContent value="cliente" className="mt-4">
+          <ClientPortfolioTab
+            portfolios={portfolios}
+            portfolioAssets={portfolioAssets}
+            recommendedAssets={recommendedAssets}
+          />
+        </TabsContent>
       </Tabs>
     </div>
   );
