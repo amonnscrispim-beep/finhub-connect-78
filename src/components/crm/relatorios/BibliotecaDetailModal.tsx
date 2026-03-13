@@ -190,6 +190,11 @@ export function BibliotecaDetailModal({ report, open, onOpenChange, onDelete, on
 
         {!isEditing && (
           <div className="border-t border-border p-4 flex gap-2 flex-wrap">
+            {(report as any).pdf_url && (
+              <Button variant="outline" size="sm" onClick={() => window.open((report as any).pdf_url, '_blank')} title="Baixar PDF original">
+                <FileDown className="w-4 h-4 mr-1.5" /> PDF Original
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={handleExportPDF}>
               <FileDown className="w-4 h-4 mr-1.5" /> Exportar PDF
             </Button>

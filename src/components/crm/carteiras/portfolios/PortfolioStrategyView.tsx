@@ -499,18 +499,37 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                     <TableBody>
                       {data.calcs.map(c => (
                         <TableRow key={c.asset.id}>
-                          <TableCell className="font-mono text-sm font-semibold">{c.asset.ticker || c.asset.name}</TableCell>
+                          <TableCell className="font-mono text-sm font-semibold">
+                            <span className="flex items-center gap-1.5">
+                              {c.asset.ticker || c.asset.name}
+                              {!c.isRf && (
+                                c.source ? (
+                                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-amber-300 text-amber-600 bg-amber-50">⭐ Recomendado</Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-muted-foreground/30 text-muted-foreground">🔧 Manual</Badge>
+                                )
+                              )}
+                            </span>
+                          </TableCell>
                           {isRf && <TableCell className="text-xs">{c.asset.rf_type || '—'}</TableCell>}
                           {isRf && <TableCell className="text-xs">{c.asset.indexador || '—'}</TableCell>}
                           {isRf && <TableCell className="text-xs">{c.asset.vencimento || '—'}</TableCell>}
                           {!isRf && (
                             <TableCell className="text-right text-sm">
-                              {c.source ? `R$ ${Number(c.source.ceiling_price).toFixed(2)}` : '—'}
+                              {c.source
+                                ? `R$ ${Number(c.source.ceiling_price).toFixed(2)}`
+                                : (c.asset as any).ceiling_price
+                                  ? `R$ ${Number((c.asset as any).ceiling_price).toFixed(2)}`
+                                  : '—'}
                             </TableCell>
                           )}
                           {!isRf && (
                             <TableCell className="text-right text-sm">
-                              {c.source?.current_price != null ? `R$ ${Number(c.source.current_price).toFixed(2)}` : '...'}
+                              {c.source?.current_price != null
+                                ? `R$ ${Number(c.source.current_price).toFixed(2)}`
+                                : (c.asset as any).current_price != null
+                                  ? `R$ ${Number((c.asset as any).current_price).toFixed(2)}`
+                                  : '...'}
                             </TableCell>
                           )}
                           <TableCell className="text-right">

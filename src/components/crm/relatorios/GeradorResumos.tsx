@@ -27,6 +27,8 @@ export interface SummaryReport {
   is_saved?: boolean;
   shared?: boolean;
   user_id?: string;
+  display_order?: number;
+  pdf_url?: string | null;
 }
 
 export function GeradorResumos() {
@@ -45,10 +47,10 @@ export function GeradorResumos() {
   }, [user]);
 
   const fetchReports = async () => {
-    // RLS now returns own + shared reports
     const { data, error } = await supabase
       .from('summary_reports')
       .select('*')
+      .order('display_order', { ascending: true })
       .order('created_at', { ascending: false });
     if (!error && data) setReports(data as any as SummaryReport[]);
     setIsLoading(false);
@@ -87,6 +89,24 @@ export function GeradorResumos() {
     setReports(prev => prev.map(r => r.id === id ? { ...r, markdown_content: content } : r));
     if (selectedReport?.id === id) setSelectedReport(prev => prev ? { ...prev, markdown_content: content } : null);
     if (libSelectedReport?.id === id) setLibSelectedReport(prev => prev ? { ...prev, markdown_content: content } : null);
+  };
+
+  const handleReorder = async (activeId: string, overId: string) => {
+    const oldIndex = reports.findIndex(r => r.id === activeId);
+    const newIndex = reports.findIndex(r => r.id === overId);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    // Optimistic reorder
+    const reordered = [...reports];
+    const [moved] = reordered.splice(oldIndex, 1);
+    reordered.splice(newIndex, 0, moved);
+    setReports(reordered);
+
+    // Persist display_order
+    const updates = reordered.map((r, i) => ({ id: r.id, display_order: i }));
+    for (const u of updates) {
+      await supabase.from('summary_reports').update({ display_order: u.display_order } as any).eq('id', u.id);
+    }
   };
 
   return (
@@ -131,6 +151,7 @@ export function GeradorResumos() {
             isMaster={isMaster}
             userId={user?.id}
             onToggleShare={handleToggleShare}
+            onReorder={handleReorder}
           />
         </TabsContent>
       </Tabs>

@@ -9,19 +9,41 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { message, reportType } = await req.json();
+    const body = await req.json();
+    const { message, reportType, mode, pdfBase64, fileName } = body;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const systemPrompt = reportType === 'whatsapp'
-      ? `Você é Amonn Crispim, consultor de investimentos. Converta o relatório a seguir em uma mensagem curta e direta para WhatsApp.
+    let messages: any[];
+
+    if (mode === 'transcribe_pdf' && pdfBase64) {
+      // PDF transcription mode
+      const transcriptionPrompt = `Você é um formatador de relatórios financeiros profissionais. Transcreva e formate este documento PDF em um relatório profissional de análise de investimentos. Preserve todos os dados, tabelas, números e gráficos descritos. Formate com títulos, subtítulos, tabelas em markdown e destaques relevantes. Mantenha tom analítico e profissional. Retorne em Markdown.`;
+
+      messages = [
+        { role: "system", content: transcriptionPrompt },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: `Transcreva e formate este documento PDF (${fileName || 'documento.pdf'}):` },
+            {
+              type: "image_url",
+              image_url: { url: `data:application/pdf;base64,${pdfBase64}` }
+            }
+          ]
+        },
+      ];
+    } else {
+      // Normal report generation
+      const systemPrompt = reportType === 'whatsapp'
+        ? `Você é Amonn Crispim, consultor de investimentos. Converta o relatório a seguir em uma mensagem curta e direta para WhatsApp.
 Regras:
 - Texto corrido, SEM markdown (sem #, **, etc.)
 - Use emojis estratégicos (📊 💰 📈 ✅ ⚠️) no início de cada parágrafo
 - Linguagem profissional mas acessível
 - Máximo 800 caracteres
 - Finalize com: "Amonn Crispim — Consultor de Investimentos"`
-      : `Você é um formatador de relatórios financeiros profissionais. Sua única função é pegar o texto bruto fornecido e formatá-lo visualmente de forma elegante e profissional, SEM alterar, resumir, reescrever ou adicionar nenhum conteúdo novo. Mantenha cada palavra, número e dado exatamente como está. Apenas:
+        : `Você é um formatador de relatórios financeiros profissionais. Sua única função é pegar o texto bruto fornecido e formatá-lo visualmente de forma elegante e profissional, SEM alterar, resumir, reescrever ou adicionar nenhum conteúdo novo. Mantenha cada palavra, número e dado exatamente como está. Apenas:
 - Organize em seções com títulos em negrito
 - Adicione espaçamento adequado entre parágrafos
 - Formate listas com bullet points onde já existem tópicos
@@ -29,6 +51,12 @@ Regras:
 - Adicione cabeçalho com: título, ticker, cliente e data
 - Adicione rodapé com: "Amonn Crispim — Consultor de Investimentos"
 Retorne em Markdown. Não invente nada. Não resuma nada.`;
+
+      messages = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: message },
+      ];
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -38,10 +66,7 @@ Retorne em Markdown. Não invente nada. Não resuma nada.`;
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: message },
-        ],
+        messages,
       }),
     });
 
