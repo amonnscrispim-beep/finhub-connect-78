@@ -181,16 +181,18 @@ export function PortfolioPdfPreviewModal({ open, onOpenChange, data }: Props) {
                   </TableRow>
                 ))}
               </TableBody>
-              <TableFooter>
-                <TableRow className="font-bold text-xs" style={{ background: '#e6f5e6' }}>
-                  <TableCell>TOTAL</TableCell>
-                  <TableCell className="text-right">100%</TableCell>
-                  <TableCell className="text-right">R$ {fmt(data.grandValue)}</TableCell>
-                  <TableCell className="text-right">—</TableCell>
-                  <TableCell className="text-right">—</TableCell>
-                  <TableCell />
-                </TableRow>
-              </TableFooter>
+              {data.classes.length > 1 && (
+                <TableFooter>
+                  <TableRow className="font-bold text-xs" style={{ background: '#e6f5e6' }}>
+                    <TableCell>TOTAL</TableCell>
+                    <TableCell className="text-right">100%</TableCell>
+                    <TableCell className="text-right">R$ {fmt(data.grandValue)}</TableCell>
+                    <TableCell className="text-right">—</TableCell>
+                    <TableCell className="text-right">—</TableCell>
+                    <TableCell />
+                  </TableRow>
+                </TableFooter>
+              )}
             </Table>
           </div>
 

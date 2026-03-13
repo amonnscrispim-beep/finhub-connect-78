@@ -149,6 +149,7 @@ export function generatePortfolioPdf(data: PortfolioPdfData): void {
   y += 10;
 
   // Summary table
+  const isSingleClass = data.classes.length === 1;
   const summaryRows = data.classes
     .filter(c => c.pct > 0 || c.assets.length > 0)
     .map(c => [
@@ -159,13 +160,15 @@ export function generatePortfolioPdf(data: PortfolioPdfData): void {
       `R$ ${fmt(c.dvYear)}`,
     ]);
 
-  summaryRows.push([
-    'TOTAL',
-    '100%',
-    `R$ ${fmt(data.grandValue)}`,
-    '—',
-    '—',
-  ]);
+  if (!isSingleClass) {
+    summaryRows.push([
+      'TOTAL',
+      '100%',
+      `R$ ${fmt(data.grandValue)}`,
+      '—',
+      '—',
+    ]);
+  }
 
   autoTable(doc, {
     startY: y,
@@ -176,10 +179,10 @@ export function generatePortfolioPdf(data: PortfolioPdfData): void {
     bodyStyles: { fontSize: 8, textColor: COLORS.darkText },
     alternateRowStyles: { fillColor: COLORS.lightGray },
     styles: { cellPadding: 3 },
-    didParseCell: (data) => {
-      if (data.row.index === summaryRows.length - 1 && data.section === 'body') {
-        data.cell.styles.fontStyle = 'bold';
-        data.cell.styles.fillColor = [230, 245, 230];
+    didParseCell: (cellData) => {
+      if (!isSingleClass && cellData.row.index === summaryRows.length - 1 && cellData.section === 'body') {
+        cellData.cell.styles.fontStyle = 'bold';
+        cellData.cell.styles.fillColor = [230, 245, 230];
       }
     },
     margin: { left: 14, right: 14 },
