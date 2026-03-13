@@ -802,10 +802,11 @@ export function ClientPortfolioTab({ portfolios, portfolioAssets, recommendedAss
         );
       }
 
-      if (ignoredForLog.length > 0) {
+      const notImportedForLog = [...ignoredForLog, ...pendingForManual];
+      if (notImportedForLog.length > 0) {
         console.warn(
-          '[Portfólio do Cliente] Ativos ignorados durante importação:',
-          ignoredForLog.map((item) => ({
+          '[Portfólio do Cliente] Ativos não importados/ignorados durante importação:',
+          notImportedForLog.map((item) => ({
             ativo: item.ativo,
             tipo: item.tipo,
             valor: item.totalValue,
