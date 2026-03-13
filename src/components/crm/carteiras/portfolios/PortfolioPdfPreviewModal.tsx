@@ -186,8 +186,8 @@ export function PortfolioPdfPreviewModal({ open, onOpenChange, data }: Props) {
                   <TableCell>TOTAL</TableCell>
                   <TableCell className="text-right">100%</TableCell>
                   <TableCell className="text-right">R$ {fmt(data.grandValue)}</TableCell>
-                  <TableCell className="text-right">R$ {fmt(data.grandDvMonth)}</TableCell>
-                  <TableCell className="text-right">R$ {fmt(data.grandDvYear)}</TableCell>
+                  <TableCell className="text-right">—</TableCell>
+                  <TableCell className="text-right">—</TableCell>
                   <TableCell />
                 </TableRow>
               </TableFooter>
@@ -250,6 +250,19 @@ export function PortfolioPdfPreviewModal({ open, onOpenChange, data }: Props) {
                     ))}
                   </TableBody>
                 </Table>
+
+                {/* DY % metrics box for non-RF classes */}
+                {!isRf && cls.value > 0 && (
+                  <div className="rounded-lg border border-emerald-200 p-2.5 flex items-center justify-center gap-6 mt-2" style={{ background: '#e6f5e6' }}>
+                    <span className="text-sm font-bold" style={{ color: '#1a2e4a' }}>
+                      DY Mês: {(cls.dvMonth / cls.value * 100).toFixed(2)}%
+                    </span>
+                    <span className="text-muted-foreground">|</span>
+                    <span className="text-sm font-bold" style={{ color: '#1a2e4a' }}>
+                      DY Ano: {((Math.pow(1 + cls.dvMonth / cls.value, 12) - 1) * 100).toFixed(2)}%
+                    </span>
+                  </div>
+                )}
               </div>
             );
           })}
