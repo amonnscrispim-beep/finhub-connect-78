@@ -191,6 +191,8 @@ export function NovoRelatorioModal({ open, onOpenChange, onReportCreated }: Prop
     setAiGenerated('');
     setUploadedImages([]);
     setActiveTab('write');
+    setPdfBase64(null);
+    setPdfFileName(null);
   };
 
   return (
