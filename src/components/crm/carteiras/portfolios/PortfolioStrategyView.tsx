@@ -11,10 +11,11 @@ import { Progress } from '@/components/ui/progress';
 import { SharedBadge } from '@/components/ui/shared-badge';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Calculator, AlertTriangle, CheckCircle2, Trash2, Copy, Share2, FileText } from 'lucide-react';
-import { generatePortfolioPdf, generateClassPdf } from '@/lib/portfolio-pdf-generator';
+import type { PortfolioPdfData } from '@/lib/portfolio-pdf-generator';
 import { InvestorPortfolio, PortfolioAssetItem } from './PortfoliosSection';
 import { PortfolioAsset } from '../CarteirasRecomendadas';
 import { PortfolioAssetModal } from './PortfolioAssetModal';
+import { PortfolioPdfPreviewModal } from './PortfolioPdfPreviewModal';
 
 interface Props {
   portfolio: InvestorPortfolio;
@@ -110,6 +111,8 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
   const [modalOpen, setModalOpen] = useState(false);
   const [modalClass, setModalClass] = useState('acoes_brasileiras');
   const [investAmount, setInvestAmount] = useState(portfolio.invest_amount || 0);
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const [pdfPreviewData, setPdfPreviewData] = useState<PortfolioPdfData | null>(null);
 
   const [localPcts, setLocalPcts] = useState<Record<PctField, number>>({
     acoes_pct: Number(portfolio.acoes_pct),
@@ -293,8 +296,8 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
       toast.info('Nenhum ativo para exportar');
       return;
     }
-    generatePortfolioPdf(pdfData);
-    toast.success('PDF gerado!');
+    setPdfPreviewData(pdfData);
+    setPdfPreviewOpen(true);
   };
 
   const handleExportClassPdf = (classKey: string) => {
@@ -304,8 +307,16 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
       toast.info('Nenhum ativo nesta classe');
       return;
     }
-    generateClassPdf(pdfData, classKey);
-    toast.success('PDF gerado!');
+    // Build a filtered version with just this class
+    const classData: PortfolioPdfData = {
+      ...pdfData,
+      classes: [cls],
+      grandValue: cls.value,
+      grandDvMonth: cls.dvMonth,
+      grandDvYear: cls.dvYear,
+    };
+    setPdfPreviewData(classData);
+    setPdfPreviewOpen(true);
   };
 
   return (
@@ -653,6 +664,14 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
         nextOrder={assets.filter(a => a.asset_class === modalClass).length}
         onSaved={async () => { setModalOpen(false); await onRefreshAssets(); }}
       />
+
+      {pdfPreviewData && (
+        <PortfolioPdfPreviewModal
+          open={pdfPreviewOpen}
+          onOpenChange={(v) => { setPdfPreviewOpen(v); if (!v) setPdfPreviewData(null); }}
+          data={pdfPreviewData}
+        />
+      )}
     </Card>
   );
 }
