@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-interface AssetRow {
+export interface AssetRow {
   ticker: string;
   name: string;
   assetClass: string;
@@ -22,7 +22,7 @@ interface AssetRow {
   vencimento?: string;
 }
 
-interface ClassSummary {
+export interface ClassSummary {
   label: string;
   key: string;
   pct: number;
@@ -32,7 +32,7 @@ interface ClassSummary {
   assets: AssetRow[];
 }
 
-interface PortfolioPdfData {
+export interface PortfolioPdfData {
   profile: string;
   strategy: string;
   investAmount: number;
