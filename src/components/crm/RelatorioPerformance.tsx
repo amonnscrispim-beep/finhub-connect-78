@@ -408,25 +408,38 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
     let totalGross = 0;
     let totalNet = 0;
     const allPositions: (Position & { pdfFilename: string })[] = [];
-    const liqByReport: { gross: number; liq: PerformanceReportData['liquidity'] }[] = [];
 
     brokerReports.forEach(r => {
       const gd = r.extractedData?.generalData ?? {};
       totalGross += gd.grossPatrimony ?? 0;
       totalNet += gd.netPatrimony ?? 0;
-      liqByReport.push({ gross: gd.grossPatrimony ?? 0, liq: r.extractedData?.liquidity ?? {} });
       (r.extractedData?.positions ?? []).forEach(p => allPositions.push({ ...p, pdfFilename: r.pdfFilename }));
     });
 
-    const liqBands = ['dPlus1', 'upTo1Year', 'oneToFiveYears', 'aboveFiveYears'] as const;
-    const consolidatedLiq: Record<string, number | null> = {};
-    liqBands.forEach(band => {
-      let totalVal = 0; let hasData = false;
-      liqByReport.forEach(({ gross, liq }) => {
-        const pct = liq?.[band] ?? null;
-        if (pct != null && gross > 0) { totalVal += gross * (pct / 100); hasData = true; }
-      });
-      consolidatedLiq[band] = hasData && totalGross > 0 ? (totalVal / totalGross) * 100 : null;
+    // Compute liquidity from positions for this broker
+    let dPlus1Val = 0, upTo1YearVal = 0, oneToFiveVal = 0, aboveFiveVal = 0;
+    const now = new Date();
+    allPositions.forEach(p => {
+      const val = p.grossBalance ?? 0;
+      if (val <= 0) return;
+      const liqDays = (p as any).liquidityDays;
+      const matDate = p.maturityDate ? new Date(p.maturityDate) : null;
+      const type = (p.type ?? '').toLowerCase();
+      
+      if (liqDays != null) {
+        if (liqDays <= 2) dPlus1Val += val;
+        else if (liqDays <= 365) upTo1YearVal += val;
+        else if (liqDays <= 1825) oneToFiveVal += val;
+        else aboveFiveVal += val;
+      } else if (matDate && matDate >= now) {
+        const diffDays = Math.ceil((matDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays <= 2) dPlus1Val += val;
+        else if (diffDays <= 365) upTo1YearVal += val;
+        else if (diffDays <= 1825) oneToFiveVal += val;
+        else aboveFiveVal += val;
+      } else if (type === 'ação' || type === 'acao' || type === 'fii' || type === 'etf') {
+        dPlus1Val += val;
+      }
     });
 
     const allAlerts: string[] = [];
@@ -435,8 +448,10 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
     return {
       totalGross, totalNet, allPositions,
       liquidity: {
-        dPlus1: consolidatedLiq.dPlus1, upTo1Year: consolidatedLiq.upTo1Year,
-        oneToFiveYears: consolidatedLiq.oneToFiveYears, aboveFiveYears: consolidatedLiq.aboveFiveYears,
+        dPlus1: totalGross > 0 ? (dPlus1Val / totalGross) * 100 : null,
+        upTo1Year: totalGross > 0 ? (upTo1YearVal / totalGross) * 100 : null,
+        oneToFiveYears: totalGross > 0 ? (oneToFiveVal / totalGross) * 100 : null,
+        aboveFiveYears: totalGross > 0 ? (aboveFiveVal / totalGross) * 100 : null,
       },
       alerts: allAlerts,
     };
