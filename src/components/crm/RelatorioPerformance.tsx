@@ -45,12 +45,17 @@ interface PerformanceReportData {
 
 interface Position {
   name: string;
+  ticker?: string;
   type: string;
   indexer: string;
   rate: string;
   maturityDate: string | null;
   grossBalance: number;
   portfolioPct: number;
+  quantidade?: number | null;
+  precoMedio?: number | null;
+  precoAtual?: number | null;
+  liquidityDays?: number | null;
 }
 
 type ReportStatus = 'processing' | 'extracted' | 'failed';
