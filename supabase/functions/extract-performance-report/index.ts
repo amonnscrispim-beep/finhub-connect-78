@@ -190,12 +190,13 @@ Estrutura obrigatória:
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        max_tokens: 16000,
         messages: [
           { role: "system", content: systemPrompt },
           {
             role: "user",
             content: [
-              { type: "text", text: "Analise este arquivo financeiro (pode ser PDF, imagem de extrato, screenshot de app) e extraia todos os dados estruturados conforme solicitado. Se for imagem, use OCR/visão." },
+              { type: "text", text: "Analise este arquivo financeiro (pode ser PDF, imagem de extrato, screenshot de app) e extraia todos os dados estruturados conforme solicitado. Se for imagem, use OCR/visão. IMPORTANTE: retorne o JSON completo, sem truncar." },
               { type: "image_url", image_url: { url: `data:${dataMime};base64,${base64}` } },
             ],
           },
