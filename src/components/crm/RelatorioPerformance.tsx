@@ -581,8 +581,10 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-[160px]">Ativo</TableHead>
+                    <TableHead className="min-w-[140px]">Ativo</TableHead>
+                    <TableHead>Ticker</TableHead>
                     <TableHead>Tipo</TableHead>
+                    <TableHead className="text-right">Qtd</TableHead>
                     <TableHead>Indexador</TableHead>
                     <TableHead>Taxa</TableHead>
                     <TableHead>Vencimento</TableHead>
@@ -595,7 +597,9 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
                   {positions.map((p, i) => (
                     <TableRow key={i}>
                       <TableCell className="text-xs font-medium">{p.name ?? '—'}</TableCell>
+                      <TableCell className="text-xs font-mono">{(p as any).ticker ?? '—'}</TableCell>
                       <TableCell><Badge variant="outline" className="text-xs">{p.type ?? '—'}</Badge></TableCell>
+                      <TableCell className="text-right text-xs">{(p as any).quantidade != null ? fmt((p as any).quantidade) : '—'}</TableCell>
                       <TableCell className="text-xs">{p.indexer ?? '—'}</TableCell>
                       <TableCell className="text-xs">{p.rate ?? '—'}</TableCell>
                       <TableCell className="text-xs">{p.maturityDate ? new Date(p.maturityDate).toLocaleDateString('pt-BR') : '—'}</TableCell>
