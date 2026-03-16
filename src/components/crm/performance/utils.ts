@@ -27,7 +27,7 @@ export function computeLiquidityBands(
 
   positions.forEach(p => {
     const value = p.grossBalance ?? 0;
-    // Previdência (VGBL/PGBL) → always "noLiquidity" unless explicit redemption rules
+    // Previdência (VGBL/PGBL) → always "noLiquidity"
     const tipo = (p.type ?? '').toLowerCase();
     const nome = (p.name ?? '').toLowerCase();
     const isPrev = tipo.includes('previdência') || tipo.includes('previdencia') ||
@@ -38,15 +38,31 @@ export function computeLiquidityBands(
       buckets['noLiquidity'] += value;
       return;
     }
+    
+    // Use position-level liquidityDays if available
+    const liqDays = (p as any).liquidityDays;
+    if (liqDays != null) {
+      if (liqDays <= 1) buckets['dPlus1'] += value;
+      else if (liqDays <= 35) buckets['upTo35'] += value;
+      else if (liqDays <= 90) buckets['35to90'] += value;
+      else if (liqDays <= 1825) buckets['1to5years'] += value;
+      else buckets['above5years'] += value;
+      return;
+    }
+    
     if (!p.maturityDate) {
-      // No maturity = assume liquid (D+1)
-      buckets['dPlus1'] += value;
+      // No maturity and no liquidityDays — apply defaults by type
+      const assetType = tipo.toLowerCase();
+      if (assetType === 'ação' || assetType === 'acao' || assetType === 'fii' || assetType === 'etf') {
+        buckets['dPlus1'] += value; // D+2 ≈ D+1 band
+      } else {
+        buckets['noLiquidity'] += value;
+      }
       return;
     }
     const matDate = new Date(p.maturityDate);
     const diffDays = Math.ceil((matDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     if (diffDays < 0) {
-      // Already matured - treat as liquid
       buckets['dPlus1'] += value;
     } else if (diffDays <= 1) {
       buckets['dPlus1'] += value;
