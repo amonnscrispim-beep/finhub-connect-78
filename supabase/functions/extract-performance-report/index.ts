@@ -334,13 +334,16 @@ Estrutura obrigatória:
       const positionRows = positions.map((p: any) => ({
         report_id: insertedReport.id,
         user_id: user.id,
-        ativo: p.name ?? null,
+        ativo: p.ticker || p.name || null,
         tipo: p.type ?? null,
         indexador: p.indexer ?? null,
         taxa: p.rate ? parseFloat(String(p.rate).replace(/[^0-9.,\-]/g, '').replace(',', '.')) || null : null,
         vencimento: p.maturityDate ?? null,
         valor: p.grossBalance ?? null,
         percentual: p.portfolioPct ?? null,
+        quantidade: p.quantidade ?? null,
+        preco_medio: p.precoMedio ?? null,
+        preco_atual: p.precoAtual ?? null,
       }));
       const { error: posError } = await supabase
         .from("performance_positions")
