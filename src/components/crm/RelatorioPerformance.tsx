@@ -45,12 +45,17 @@ interface PerformanceReportData {
 
 interface Position {
   name: string;
+  ticker?: string;
   type: string;
   indexer: string;
   rate: string;
   maturityDate: string | null;
   grossBalance: number;
   portfolioPct: number;
+  quantidade?: number | null;
+  precoMedio?: number | null;
+  precoAtual?: number | null;
+  liquidityDays?: number | null;
 }
 
 type ReportStatus = 'processing' | 'extracted' | 'failed';
@@ -274,7 +279,6 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
     let totalNet = 0;
     let reportsWithNet = 0;
     const allPositions: (Position & { broker: string; pdfFilename: string })[] = [];
-    const liqByReport: { gross: number; liq: PerformanceReportData['liquidity']; liqNotInformed: boolean }[] = [];
 
     extractedReports.forEach(r => {
       const gd = r.extractedData?.generalData ?? {};
@@ -283,8 +287,6 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
       const hasNet = net != null && net !== 0;
       totalGross += gross;
       if (hasNet) { totalNet += net!; reportsWithNet++; }
-      const liqNotInformed = !!(r.extractedData as any)?.liquidityNotInformed;
-      liqByReport.push({ gross, liq: r.extractedData?.liquidity ?? {}, liqNotInformed });
 
       const positions = Array.isArray(r.extractedData?.positions) ? r.extractedData.positions : [];
       positions.forEach(p => {
@@ -292,26 +294,67 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
       });
     });
 
-    // Consolidated liquidity: sum R$ values per band then compute %
-    const liqBands = ['dPlus1', 'upTo1Year', 'oneToFiveYears', 'aboveFiveYears'] as const;
-    const consolidatedLiq: Record<string, number | null> = {};
-    let liqClassifiedTotal = 0;
-    liqBands.forEach(band => {
-      let totalVal = 0;
-      let hasData = false;
-      liqByReport.forEach(({ gross, liq, liqNotInformed }) => {
-        if (liqNotInformed) return;
-        const pct = liq?.[band] ?? null;
-        if (pct != null && gross > 0) {
-          totalVal += gross * (pct / 100);
-          hasData = true;
-        }
-      });
-      consolidatedLiq[band] = hasData && totalGross > 0 ? (totalVal / totalGross) * 100 : null;
-      liqClassifiedTotal += totalVal;
+    // Compute consolidated liquidity from positions (more reliable than report-level)
+    let dPlus1Val = 0, upTo1YearVal = 0, oneToFiveVal = 0, aboveFiveVal = 0, noLiqVal = 0;
+    const now = new Date();
+    
+    allPositions.forEach(p => {
+      const val = p.grossBalance ?? 0;
+      if (val <= 0) return;
+      
+      const liqDays = (p as any).liquidityDays;
+      const matDate = p.maturityDate ? new Date(p.maturityDate) : null;
+      const type = (p.type ?? '').toLowerCase();
+      
+      if (liqDays != null) {
+        if (liqDays <= 2) dPlus1Val += val;
+        else if (liqDays <= 365) upTo1YearVal += val;
+        else if (liqDays <= 1825) oneToFiveVal += val;
+        else aboveFiveVal += val;
+      } else if (matDate && matDate >= now) {
+        const diffDays = Math.ceil((matDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays <= 2) dPlus1Val += val;
+        else if (diffDays <= 365) upTo1YearVal += val;
+        else if (diffDays <= 1825) oneToFiveVal += val;
+        else aboveFiveVal += val;
+      } else if (type === 'ação' || type === 'acao' || type === 'fii' || type === 'etf') {
+        dPlus1Val += val; // D+2 default
+      } else if (type.includes('previdência') || type.includes('previdencia')) {
+        noLiqVal += val;
+      } else {
+        noLiqVal += val;
+      }
     });
 
-    // Liquidity not informed value
+    // Check if we have position-level data; if not, fall back to report-level
+    const hasPositionLiq = allPositions.some(p => (p as any).liquidityDays != null || p.maturityDate != null);
+    let consolidatedLiq: Record<string, number | null>;
+    
+    if (hasPositionLiq || allPositions.length > 0) {
+      consolidatedLiq = {
+        dPlus1: totalGross > 0 ? (dPlus1Val / totalGross) * 100 : null,
+        upTo1Year: totalGross > 0 ? (upTo1YearVal / totalGross) * 100 : null,
+        oneToFiveYears: totalGross > 0 ? (oneToFiveVal / totalGross) * 100 : null,
+        aboveFiveYears: totalGross > 0 ? (aboveFiveVal / totalGross) * 100 : null,
+      };
+    } else {
+      // Fallback: use report-level liquidity
+      const liqBands = ['dPlus1', 'upTo1Year', 'oneToFiveYears', 'aboveFiveYears'] as const;
+      consolidatedLiq = {};
+      liqBands.forEach(band => {
+        let totalVal = 0; let hasData = false;
+        extractedReports.forEach(r => {
+          const gross = r.extractedData?.generalData?.grossPatrimony ?? 0;
+          const liqNotInformed = !!(r.extractedData as any)?.liquidityNotInformed;
+          if (liqNotInformed) return;
+          const pct = r.extractedData?.liquidity?.[band] ?? null;
+          if (pct != null && gross > 0) { totalVal += gross * (pct / 100); hasData = true; }
+        });
+        consolidatedLiq[band] = hasData && totalGross > 0 ? (totalVal / totalGross) * 100 : null;
+      });
+    }
+    
+    const liqClassifiedTotal = dPlus1Val + upTo1YearVal + oneToFiveVal + aboveFiveVal;
     const liqNotInformedValue = totalGross - liqClassifiedTotal;
     const liqNotInformedPct = totalGross > 0 ? (liqNotInformedValue / totalGross) * 100 : 0;
 
@@ -337,7 +380,7 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
       totalNet,
       netCoverage: { available: reportsWithNet, total: extractedReports.length },
       grossAudit: { sum: brokerGrossSum, consolidated: totalGross, diff: grossDiff },
-      liqNotInformed: { value: liqNotInformedValue, pct: liqNotInformedPct },
+      liqNotInformed: { value: liqNotInformedValue > 0 ? liqNotInformedValue : 0, pct: liqNotInformedPct > 0 ? liqNotInformedPct : 0 },
       allPositions,
       liquidity: {
         dPlus1: consolidatedLiq.dPlus1,
@@ -365,25 +408,38 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
     let totalGross = 0;
     let totalNet = 0;
     const allPositions: (Position & { pdfFilename: string })[] = [];
-    const liqByReport: { gross: number; liq: PerformanceReportData['liquidity'] }[] = [];
 
     brokerReports.forEach(r => {
       const gd = r.extractedData?.generalData ?? {};
       totalGross += gd.grossPatrimony ?? 0;
       totalNet += gd.netPatrimony ?? 0;
-      liqByReport.push({ gross: gd.grossPatrimony ?? 0, liq: r.extractedData?.liquidity ?? {} });
       (r.extractedData?.positions ?? []).forEach(p => allPositions.push({ ...p, pdfFilename: r.pdfFilename }));
     });
 
-    const liqBands = ['dPlus1', 'upTo1Year', 'oneToFiveYears', 'aboveFiveYears'] as const;
-    const consolidatedLiq: Record<string, number | null> = {};
-    liqBands.forEach(band => {
-      let totalVal = 0; let hasData = false;
-      liqByReport.forEach(({ gross, liq }) => {
-        const pct = liq?.[band] ?? null;
-        if (pct != null && gross > 0) { totalVal += gross * (pct / 100); hasData = true; }
-      });
-      consolidatedLiq[band] = hasData && totalGross > 0 ? (totalVal / totalGross) * 100 : null;
+    // Compute liquidity from positions for this broker
+    let dPlus1Val = 0, upTo1YearVal = 0, oneToFiveVal = 0, aboveFiveVal = 0;
+    const now = new Date();
+    allPositions.forEach(p => {
+      const val = p.grossBalance ?? 0;
+      if (val <= 0) return;
+      const liqDays = (p as any).liquidityDays;
+      const matDate = p.maturityDate ? new Date(p.maturityDate) : null;
+      const type = (p.type ?? '').toLowerCase();
+      
+      if (liqDays != null) {
+        if (liqDays <= 2) dPlus1Val += val;
+        else if (liqDays <= 365) upTo1YearVal += val;
+        else if (liqDays <= 1825) oneToFiveVal += val;
+        else aboveFiveVal += val;
+      } else if (matDate && matDate >= now) {
+        const diffDays = Math.ceil((matDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays <= 2) dPlus1Val += val;
+        else if (diffDays <= 365) upTo1YearVal += val;
+        else if (diffDays <= 1825) oneToFiveVal += val;
+        else aboveFiveVal += val;
+      } else if (type === 'ação' || type === 'acao' || type === 'fii' || type === 'etf') {
+        dPlus1Val += val;
+      }
     });
 
     const allAlerts: string[] = [];
@@ -392,8 +448,10 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
     return {
       totalGross, totalNet, allPositions,
       liquidity: {
-        dPlus1: consolidatedLiq.dPlus1, upTo1Year: consolidatedLiq.upTo1Year,
-        oneToFiveYears: consolidatedLiq.oneToFiveYears, aboveFiveYears: consolidatedLiq.aboveFiveYears,
+        dPlus1: totalGross > 0 ? (dPlus1Val / totalGross) * 100 : null,
+        upTo1Year: totalGross > 0 ? (upTo1YearVal / totalGross) * 100 : null,
+        oneToFiveYears: totalGross > 0 ? (oneToFiveVal / totalGross) * 100 : null,
+        aboveFiveYears: totalGross > 0 ? (aboveFiveVal / totalGross) * 100 : null,
       },
       alerts: allAlerts,
     };
@@ -576,8 +634,10 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-[160px]">Ativo</TableHead>
+                    <TableHead className="min-w-[140px]">Ativo</TableHead>
+                    <TableHead>Ticker</TableHead>
                     <TableHead>Tipo</TableHead>
+                    <TableHead className="text-right">Qtd</TableHead>
                     <TableHead>Indexador</TableHead>
                     <TableHead>Taxa</TableHead>
                     <TableHead>Vencimento</TableHead>
@@ -590,7 +650,9 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
                   {positions.map((p, i) => (
                     <TableRow key={i}>
                       <TableCell className="text-xs font-medium">{p.name ?? '—'}</TableCell>
+                      <TableCell className="text-xs font-mono">{(p as any).ticker ?? '—'}</TableCell>
                       <TableCell><Badge variant="outline" className="text-xs">{p.type ?? '—'}</Badge></TableCell>
+                      <TableCell className="text-right text-xs">{(p as any).quantidade != null ? fmt((p as any).quantidade) : '—'}</TableCell>
                       <TableCell className="text-xs">{p.indexer ?? '—'}</TableCell>
                       <TableCell className="text-xs">{p.rate ?? '—'}</TableCell>
                       <TableCell className="text-xs">{p.maturityDate ? new Date(p.maturityDate).toLocaleDateString('pt-BR') : '—'}</TableCell>
