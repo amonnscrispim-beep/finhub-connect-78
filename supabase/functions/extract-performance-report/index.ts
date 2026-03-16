@@ -221,14 +221,29 @@ Estrutura obrigatória:
     }
 
     const aiData = await aiResponse.json();
+    const finishReason = aiData.choices?.[0]?.finish_reason ?? "";
     let extractedText = aiData.choices?.[0]?.message?.content ?? "";
     extractedText = extractedText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     
+    // If response was truncated (length limit), try to repair the JSON
+    if (finishReason === "length" && extractedText.length > 0) {
+      console.warn("AI response truncated (finish_reason=length). Attempting JSON repair...");
+      // Try closing open arrays/objects
+      let repaired = extractedText;
+      const openBrackets = (repaired.match(/\[/g) || []).length - (repaired.match(/\]/g) || []).length;
+      const openBraces = (repaired.match(/\{/g) || []).length - (repaired.match(/\}/g) || []).length;
+      // Remove trailing comma or incomplete value
+      repaired = repaired.replace(/,\s*$/, "");
+      for (let i = 0; i < openBrackets; i++) repaired += "]";
+      for (let i = 0; i < openBraces; i++) repaired += "}";
+      extractedText = repaired;
+    }
+
     let extractedData: any;
     try {
       extractedData = JSON.parse(extractedText);
     } catch {
-      console.error("Failed to parse AI response:", extractedText.substring(0, 500));
+      console.error("Failed to parse AI response (finish_reason=" + finishReason + "):", extractedText.substring(0, 1000));
       throw new Error("Falha ao interpretar os dados do PDF. Tente novamente.");
     }
 
