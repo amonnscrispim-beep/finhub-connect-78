@@ -972,6 +972,9 @@ export type Database = {
           id: string
           indexador: string | null
           percentual: number | null
+          preco_atual: number | null
+          preco_medio: number | null
+          quantidade: number | null
           report_id: string
           taxa: number | null
           tipo: string | null
@@ -985,6 +988,9 @@ export type Database = {
           id?: string
           indexador?: string | null
           percentual?: number | null
+          preco_atual?: number | null
+          preco_medio?: number | null
+          quantidade?: number | null
           report_id: string
           taxa?: number | null
           tipo?: string | null
@@ -998,6 +1004,9 @@ export type Database = {
           id?: string
           indexador?: string | null
           percentual?: number | null
+          preco_atual?: number | null
+          preco_medio?: number | null
+          quantidade?: number | null
           report_id?: string
           taxa?: number | null
           tipo?: string | null

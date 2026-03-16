@@ -78,82 +78,109 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const systemPrompt = `Você é um especialista em análise de relatórios financeiros de investimentos. Analise o arquivo (PDF ou imagem) e extraia TODAS as informações relevantes em formato JSON estruturado.
+    const systemPrompt = `Você é um especialista em análise de relatórios de investimentos brasileiros.
+Sua tarefa é extrair dados de relatórios de corretoras (BTG Pactual, XP, etc.) com precisão absoluta.
 
-Se o arquivo for uma imagem de extrato de previdência (app de banco/seguradora), capture:
-- "Quanto eu tenho" como grossPatrimony
-- "Quanto já rendeu" como cumulativeReturn (valor absoluto em R$, coloque em generalData)
-- Liste os planos em positions com: name = matrícula + tipo (VGBL/PGBL), type = "Previdência", grossBalance = saldo
-- PROIBIDO atribuir liquidez D+0 ou D+1 a previdência. SEMPRE classifique como liquidityNotInformed = true.
-- Na seção liquidity, deixe TODOS os campos como null para previdência.
-- Somente classifique com prazo de liquidez se a imagem trouxer EXPLICITAMENTE regras de resgate, carência ou prazo de resgate.
+## REGRAS DE EXTRAÇÃO
 
-Regras de leitura:
-- Se for imagem escaneada ou screenshot, use OCR/visão para extrair todos os números
-- Preserve separadores brasileiros (R$ 491.718,23)
-- Se houver dúvida em algum número, ainda assim extraia o melhor valor possível
-- Campos que não existirem no documento devem ser null
+### QUANTIDADE DO ATIVO
+- Extraia a quantidade EXATA exibida na coluna "Qtd" ou "Quantidade"
+- NUNCA assuma quantidade = 1 se não estiver explícito
+- Se a coluna estiver vazia ou ilegível, retorne null para quantidade
+- Exemplos válidos: 10, 100, 1000, 2500, 0.5
 
-REGRAS CRÍTICAS DE PATRIMÔNIO LÍQUIDO:
-- Só preencha netPatrimony se o relatório trouxer EXPLICITAMENTE um destes termos junto de um valor monetário:
-  "patrimônio líquido", "valor líquido", "saldo líquido", "valor líquido total", "total líquido", "líquido total"
-- Se nenhum desses termos aparecer, deixe netPatrimony como null — NÃO preencha com zero, NÃO copie o bruto, NÃO estime
-- PROIBIDO usar como patrimônio líquido: "disponível para resgate", "saldo disponível", "resgatável" — esses valores pertencem à seção de liquidez
-- Para XP especificamente: procure por "saldo líquido", "valor líquido", "total líquido", "líquido total", "patrimônio líquido". Se não encontrar nenhum, netPatrimony = null
+### CLASSIFICAÇÃO DO TIPO DE ATIVO
+Classifique cada ativo com base no ticker (código):
 
-REGRAS CRÍTICAS DE LIQUIDEZ:
-- Jamais assuma D+1 como padrão se o relatório não informar prazos de liquidez
-- Se o relatório NÃO tiver informação de liquidez, retorne liquidityNotInformed = true e todos os campos de liquidity como null
-- Se o relatório tiver faixas de liquidez diferentes das padrão, mapeie para as mais próximas
+**ETF (Exchange Traded Fund):**
+- Terminam em 11 MAS são ETFs conhecidos: IVVB11, WRLD11, BOVA11, SMAL11, HASH11, GOLD11, FIND11, SPXI11, DIVO11, MATB11, BOVB11, ECOO11, XFIX11, IFRA11, ISUS11, TIEE11, USDB11, BRAX11, PIBB11
+- Se o fundo replica um índice de ações ou mercado amplo, é ETF
 
-IMPORTANTE: Retorne APENAS o JSON, sem markdown, sem backticks, sem texto antes ou depois.
+**FII (Fundo de Investimento Imobiliário):**
+- Terminam em 11 E são fundos imobiliários (tijolo, papel, híbrido, FOF)
+- Exemplos: BTLG11, VISC11, VILG11, CPIS11, XPML11, KNSC11, HGLG11, HGRU11, KNCK11, HSLG11, VGHF11, VGIR11, GARE11, VIUR11, TEPP11, KNRI11, MXRF11, BTCI11
 
-Estrutura obrigatória do JSON:
+**Ação (Stock):**
+- Terminam em 3, 4, 5, 6 (ON, PN, etc): PETR4, VALE3, ITUB4, BBDC4
+- BDRs geralmente terminam em 34 ou 32: AAPL34, MSFT34, AMZO34
+
+**Renda Fixa / Tesouro:**
+- CDB, LCI, LCA, CRI, CRA, Debênture, CDCA, LTN, NTN-B, NTN-F, Tesouro Direto, DPGE
+
+**Previdência:**
+- VGBL, PGBL — PROIBIDO atribuir liquidez D+0 ou D+1. SEMPRE liquidityNotInformed = true.
+
+**Fundo de Investimento:**
+- Fundos multimercado, renda fixa, cambial, etc. que não se enquadram nas categorias acima
+
+### CÁLCULO DO VALOR TOTAL
+- Se o relatório mostrar o Valor Total / Saldo Bruto, use o valor do relatório
+- Se não mostrar, calcule: Valor Total = Quantidade × Preço Atual
+- NUNCA use Preço Médio para calcular o Valor Total atual
+
+### CAMPOS A EXTRAIR POR ATIVO (positions)
 {
-  "reportDate": "YYYY-MM-DD ou null se não identificável",
-  "liquidityNotInformed": boolean (true se o relatório não traz dados de liquidez),
-  "generalData": {
-    "grossPatrimony": number ou null,
-    "netPatrimony": number ou null (SOMENTE se explicitamente informado no relatório),
-    "monthReturn": number ou null (percentual),
-    "yearReturn": number ou null (percentual),
-    "twelveMonthReturn": number ou null (percentual),
-    "cumulativeReturn": number ou null (percentual ou valor absoluto se previdência),
-    "cdiEquivalent": number ou null (percentual)
-  },
-  "liquidity": {
-    "dPlus1": number ou null (percentual — somente se o relatório informar),
-    "upTo1Year": number ou null (percentual),
-    "oneToFiveYears": number ou null (percentual),
-    "aboveFiveYears": number ou null (percentual)
-  },
-  "positions": [
-    {
-      "name": "string",
-      "type": "string (CRA, CRI, Debênture, CDB, Fundo, LCA, LCI, Tesouro, Ação, FII, Previdência, etc.)",
-      "indexer": "string (IPCA+, Prefixado, Pós-fixado, CDI+, etc.)",
-      "rate": "string (ex: IPCA+6.5%, 110% CDI, 12.5% a.a.)",
-      "maturityDate": "YYYY-MM-DD ou null",
-      "grossBalance": number,
-      "portfolioPct": number (percentual do patrimônio)
-    }
-  ],
-  "indexerExposure": {
-    "ipca": number ou null (percentual),
-    "prefixed": number ou null (percentual),
-    "postFixed": number ou null (percentual),
-    "other": number ou null (percentual)
-  }
+  "name": "nome completo do ativo",
+  "ticker": "código do ativo ou null",
+  "type": "ETF | FII | Ação | Renda Fixa | Previdência | Fundo | Cripto | Outro",
+  "indexer": "IPCA+ | Prefixado | Pós-fixado | CDI+ | CDI | etc.",
+  "rate": "string original (ex: IPCA+6.5%, 110% CDI, 12.5% a.a.)",
+  "maturityDate": "YYYY-MM-DD ou null",
+  "grossBalance": number (valor total / saldo bruto),
+  "portfolioPct": number (% do patrimônio),
+  "quantidade": number ou null,
+  "precoMedio": number ou null,
+  "precoAtual": number ou null,
+  "lipRs": number ou null (lucro/prejuízo em R$),
+  "lipPct": number ou null (lucro/prejuízo em %)
 }
 
-Regras:
-- Extraia TODOS os ativos listados, sem exceção
-- Calcule percentuais se não estiverem explícitos
-- Valores monetários em reais (sem R$, apenas número)
+### REGRAS GERAIS
+- Valores monetários: remova "R$" e converta vírgula para ponto (ex: R$ 2.502,96 → 2502.96)
 - Percentuais como números decimais (ex: 5.2 para 5.2%)
-- Se um dado não existir no documento, use null
+- Se um dado não existir ou mostrar "—" (traço), retorne null
+- Não invente dados que não estão visíveis no relatório
 - Datas no formato YYYY-MM-DD
-- Classifique cada ativo pelo indexador mais provável`;
+- Extraia TODOS os ativos listados, sem exceção
+
+### REGRAS CRÍTICAS DE PATRIMÔNIO LÍQUIDO
+- Só preencha netPatrimony se o relatório trouxer EXPLICITAMENTE: "patrimônio líquido", "valor líquido", "saldo líquido", "total líquido"
+- Se nenhum desses termos aparecer, netPatrimony = null
+- PROIBIDO usar: "disponível para resgate", "saldo disponível", "resgatável"
+
+### REGRAS CRÍTICAS DE LIQUIDEZ
+- Jamais assuma D+1 como padrão se o relatório não informar prazos de liquidez
+- Se o relatório NÃO tiver informação de liquidez, retorne liquidityNotInformed = true e todos os campos de liquidity como null
+
+IMPORTANTE: Retorne APENAS o JSON, sem markdown, sem backticks.
+
+Estrutura obrigatória:
+{
+  "reportDate": "YYYY-MM-DD ou null",
+  "liquidityNotInformed": boolean,
+  "generalData": {
+    "grossPatrimony": number ou null,
+    "netPatrimony": number ou null,
+    "monthReturn": number ou null,
+    "yearReturn": number ou null,
+    "twelveMonthReturn": number ou null,
+    "cumulativeReturn": number ou null,
+    "cdiEquivalent": number ou null
+  },
+  "liquidity": {
+    "dPlus1": number ou null,
+    "upTo1Year": number ou null,
+    "oneToFiveYears": number ou null,
+    "aboveFiveYears": number ou null
+  },
+  "positions": [ ...conforme estrutura acima... ],
+  "indexerExposure": {
+    "ipca": number ou null,
+    "prefixed": number ou null,
+    "postFixed": number ou null,
+    "other": number ou null
+  }
+}`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -307,13 +334,16 @@ Regras:
       const positionRows = positions.map((p: any) => ({
         report_id: insertedReport.id,
         user_id: user.id,
-        ativo: p.name ?? null,
+        ativo: p.ticker || p.name || null,
         tipo: p.type ?? null,
         indexador: p.indexer ?? null,
         taxa: p.rate ? parseFloat(String(p.rate).replace(/[^0-9.,\-]/g, '').replace(',', '.')) || null : null,
         vencimento: p.maturityDate ?? null,
         valor: p.grossBalance ?? null,
         percentual: p.portfolioPct ?? null,
+        quantidade: p.quantidade ?? null,
+        preco_medio: p.precoMedio ?? null,
+        preco_atual: p.precoAtual ?? null,
       }));
       const { error: posError } = await supabase
         .from("performance_positions")
