@@ -268,6 +268,53 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
   const updateInstitution = (id: string, field: keyof OtherInstitutionItem, value: string) =>
     update({ otherInstitutionsList: institutionsList.map(i => i.id === id ? { ...i, [field]: value } : i) });
 
+  // Real estate cards helpers
+  const realEstateCards = data.realEstateCards || [];
+  const addRealEstateCard = () => update({ realEstateCards: [...realEstateCards, { id: genId(), description: '', purpose: '', value: '' }] });
+  const removeRealEstateCard = (id: string) => update({ realEstateCards: realEstateCards.filter(c => c.id !== id) });
+  const updateRealEstateCard = (id: string, field: keyof RealEstateCard, value: string) =>
+    update({ realEstateCards: realEstateCards.map(c => c.id === id ? { ...c, [field]: value } : c) });
+
+  // Patrimônio table helpers
+  const addPatrimonioItem = () => {
+    const newItem: PatrimonioTableItem = { id: genId(), description: '', category: '', value: '', liquidezImediata: '' };
+    update({ patrimonioTableItems: [...patrimonioTableItems, newItem] });
+  };
+  const removePatrimonioItem = (id: string) => update({ patrimonioTableItems: patrimonioTableItems.filter(i => i.id !== id) });
+  const updatePatrimonioItem = (id: string, field: keyof PatrimonioTableItem, value: string) => {
+    const updated = patrimonioTableItems.map(i => {
+      if (i.id !== id) return i;
+      const item = { ...i, [field]: value };
+      // Auto-set liquidez based on category
+      if (field === 'category') {
+        const financialCategories = [...PATRIMONIO_CATEGORIES.financeiro.items, ...PATRIMONIO_CATEGORIES.reserva.items];
+        item.liquidezImediata = financialCategories.includes(value) ? 'Sim' : 'Não';
+      }
+      return item;
+    });
+    update({ patrimonioTableItems: updated });
+  };
+
+  // NumChildren change handler
+  const handleNumChildrenChange = (val: string) => {
+    update({ numChildren: val, hasChildren: val === 'Nenhum' ? 'Não' : 'Sim' });
+    if (val === 'Nenhum') {
+      update({ children: [], numChildren: val, hasChildren: 'Não' });
+    } else {
+      const count = val === '4+' ? 4 : parseInt(val) || 0;
+      const current = data.children || [];
+      if (current.length < count) {
+        const newChildren = [...current];
+        for (let i = current.length; i < count; i++) {
+          newChildren.push({ id: genId(), name: '', age: '' });
+        }
+        update({ children: newChildren, numChildren: val, hasChildren: 'Sim' });
+      } else {
+        update({ numChildren: val, hasChildren: 'Sim' });
+      }
+    }
+  };
+
   // Collapsible state per block
   const [openBlocks, setOpenBlocks] = useState<Record<number, boolean>>({});
   const toggleBlock = (n: number) => setOpenBlocks(prev => ({ ...prev, [n]: !prev[n] }));
@@ -293,6 +340,12 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
 
   const showBloco6 = data.successionThought === 'Sim';
 
+  // All patrimônio categories flattened for select
+  const allPatrimonioCategories = Object.entries(PATRIMONIO_CATEGORIES).map(([, group]) => ({
+    label: group.label,
+    items: group.items,
+  }));
+
   return (
     <div className="space-y-4">
       {/* Progress Bar */}
@@ -315,13 +368,16 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
         </TabsList>
 
         <TabsContent value="reuniao1" className="space-y-3 mt-4">
-          {/* === BLOCO 1 === */}
-          {renderBlock(1, 'Quem é você?', <>
-            <div className="p-4 bg-muted/20 rounded-lg border border-border space-y-3">
+          {/* === BLOCO 1 — Dados Pessoais e Perfil === */}
+          {renderBlock(1, 'Dados Pessoais e Perfil', <>
+            <div className="p-4 bg-muted/20 rounded-lg border border-border space-y-4">
+              {/* Nome */}
               <div className="space-y-2">
                 <Label>Nome completo</Label>
                 <Input value={data.fullName} onChange={(e) => update({ fullName: e.target.value })} className="crm-input" placeholder="Nome completo do cliente" />
               </div>
+
+              {/* Data nascimento + Idade */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>Data de nascimento</Label>
@@ -333,100 +389,182 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
                 </div>
                 <div className="space-y-2">
                   <Label>Idade</Label>
-                  <div className="flex items-center h-10 px-3 rounded-md border border-input bg-muted/50 text-sm">
-                    {calculatedAge !== null ? <span className="font-medium">{calculatedAge} anos</span> : <span className="text-muted-foreground">—</span>}
-                  </div>
+                  {calculatedAge !== null ? (
+                    <div className="flex items-center h-10 px-3 rounded-md border border-input bg-muted/50 text-sm">
+                      <span className="font-medium">{calculatedAge} anos</span>
+                    </div>
+                  ) : (
+                    <Input
+                      type="number"
+                      value={data.manualAge}
+                      onChange={(e) => update({ manualAge: e.target.value })}
+                      className="crm-input"
+                      placeholder="Idade"
+                    />
+                  )}
                 </div>
               </div>
+
+              {/* Profissão */}
               <div className="space-y-2">
                 <Label>O que você faz profissionalmente hoje?</Label>
                 <Input value={data.profession} onChange={(e) => update({ profession: e.target.value })} className="crm-input" placeholder="Profissão / atividade" />
               </div>
 
+              {/* Sobre você */}
               <div className="space-y-2">
-                <Label>Você é casado(a)?</Label>
-                <RadioGroup value={data.isMarried} onValueChange={(v) => update({ isMarried: v })} className="flex gap-4">
-                  <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Sim" /> Sim</label>
-                  <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Não" /> Não</label>
-                </RadioGroup>
+                <Label>Conte-me um pouco sobre você.</Label>
+                <Textarea value={data.aboutYourself} onChange={(e) => update({ aboutYourself: e.target.value })} className="crm-input min-h-[80px]" placeholder="Trajetória, experiências marcantes..." />
               </div>
-              {data.isMarried === 'Sim' && (
-                <div className="space-y-2">
-                  <Label>Qual o regime de casamento?</Label>
-                  <Select value={data.marriageRegime} onValueChange={(v) => update({ marriageRegime: v })}>
-                    <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>
-                      {['Comunhão parcial', 'Comunhão universal', 'Separação total', 'Participação final nos aquestos'].map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              {data.isMarried === 'Não' && (
-                <div className="space-y-2">
-                  <Label>Estado civil</Label>
-                  <Select value={data.civilStatus} onValueChange={(v) => update({ civilStatus: v })}>
-                    <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>
-                      {['Solteiro(a)', 'Divorciado(a)', 'Viúvo(a)'].map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
 
+              {/* Hobbies */}
               <div className="space-y-2">
-                <Label>Tem filhos?</Label>
-                <RadioGroup value={data.hasChildren} onValueChange={(v) => update({ hasChildren: v })} className="flex gap-4">
-                  <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Sim" /> Sim</label>
-                  <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Não" /> Não</label>
-                </RadioGroup>
+                <Label>Fora do trabalho, o que você gosta de fazer? Quais são seus hobbies?</Label>
+                <Textarea value={data.hobbies} onChange={(e) => update({ hobbies: e.target.value })} className="crm-input min-h-[60px]" placeholder="Hobbies, atividades de lazer..." />
               </div>
-              {data.hasChildren === 'Sim' && (
+
+              {/* === Seção: Estrutura Familiar === */}
+              <div className="border-t border-border pt-4 space-y-4">
+                <h5 className="text-sm font-medium text-foreground">Estrutura Familiar</h5>
+
+                {/* Casado? */}
                 <div className="space-y-2">
-                  {data.children.map((child, i) => (
-                    <div key={child.id} className="flex gap-2 items-end">
-                      <div className="flex-1 space-y-1">
-                        <Label className="text-xs">Nome do filho {i + 1}</Label>
-                        <Input value={child.name} onChange={(e) => updateChild(child.id, 'name', e.target.value)} className="crm-input" placeholder="Nome" />
+                  <Label>Você é casado(a)?</Label>
+                  <RadioGroup value={data.isMarried} onValueChange={(v) => update({ isMarried: v })} className="flex gap-4">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Sim" /> Sim</label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Não" /> Não</label>
+                  </RadioGroup>
+                </div>
+
+                {data.isMarried === 'Sim' && (
+                  <div className="p-3 bg-card rounded-lg border border-border space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-xs">Regime de bens</Label>
+                        <Select value={data.marriageRegime} onValueChange={(v) => update({ marriageRegime: v })}>
+                          <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                          <SelectContent>
+                            {['Comunhão Parcial', 'Comunhão Universal', 'Separação Total', 'Participação Final nos Aquestos'].map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
                       </div>
-                      <div className="w-20 space-y-1">
-                        <Label className="text-xs">Idade</Label>
-                        <Input type="number" value={child.age} onChange={(e) => updateChild(child.id, 'age', e.target.value)} className="crm-input" />
+                      <div className="space-y-2">
+                        <Label className="text-xs">Nome do cônjuge</Label>
+                        <Input value={data.spouseName} onChange={(e) => update({ spouseName: e.target.value })} className="crm-input" placeholder="Nome do cônjuge" />
                       </div>
-                      <Button type="button" variant="ghost" size="icon" onClick={() => removeChild(child.id)} className="h-9 w-9 text-destructive"><Trash2 className="w-4 h-4" /></Button>
                     </div>
-                  ))}
-                  <Button type="button" variant="outline" size="sm" onClick={addChild}><Plus className="w-4 h-4 mr-1" />Adicionar filho</Button>
-                </div>
-              )}
+                  </div>
+                )}
 
-              <div className="space-y-2">
-                <Label>Como você chegou até mim / como conheceu o escritório?</Label>
-                <Textarea value={data.howFoundUs} onChange={(e) => update({ howFoundUs: e.target.value })} className="crm-input min-h-[60px]" placeholder="Indicação, redes sociais, evento..." />
+                {data.isMarried === 'Não' && (
+                  <div className="p-3 bg-card rounded-lg border border-border space-y-2">
+                    <Label className="text-xs">Observações sobre estado civil (solteiro, divorciado, viúvo...)</Label>
+                    <Textarea value={data.civilStatusNotes} onChange={(e) => update({ civilStatusNotes: e.target.value })} className="crm-input min-h-[60px]" placeholder="Ex: Divorciado(a) desde 2020..." />
+                  </div>
+                )}
+
+                {/* Filhos */}
+                <div className="space-y-2">
+                  <Label>Quantos filhos você tem?</Label>
+                  <RadioGroup value={data.numChildren || ''} onValueChange={handleNumChildrenChange} className="flex gap-3 flex-wrap">
+                    {['Nenhum', '1', '2', '3', '4+'].map(opt => (
+                      <label key={opt} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <RadioGroupItem value={opt} /> {opt}
+                      </label>
+                    ))}
+                  </RadioGroup>
+                </div>
+
+                {data.numChildren && data.numChildren !== 'Nenhum' && (
+                  <div className="p-3 bg-card rounded-lg border border-border space-y-2">
+                    {data.children.map((child, i) => (
+                      <div key={child.id} className="flex gap-2 items-end">
+                        <div className="flex-1 space-y-1">
+                          <Label className="text-xs">Nome do filho(a) {i + 1}</Label>
+                          <Input value={child.name} onChange={(e) => updateChild(child.id, 'name', e.target.value)} className="crm-input" placeholder="Nome" />
+                        </div>
+                        <div className="w-32 space-y-1">
+                          <Label className="text-xs">Idade / ano nasc.</Label>
+                          <Input value={child.age} onChange={(e) => updateChild(child.id, 'age', e.target.value)} className="crm-input" placeholder="Ex: 12 ou 2012" />
+                        </div>
+                        <Button type="button" variant="ghost" size="icon" onClick={() => removeChild(child.id)} className="h-9 w-9 text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                      </div>
+                    ))}
+                    {data.numChildren === '4+' && (
+                      <Button type="button" variant="outline" size="sm" onClick={addChild}><Plus className="w-4 h-4 mr-1" />Adicionar filho</Button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* === Seção: Perfil Financeiro Familiar === */}
+              <div className="border-t border-border pt-4 space-y-4">
+                <h5 className="text-sm font-medium text-foreground">Perfil Financeiro Familiar</h5>
+                <div className="space-y-2">
+                  <Label>Quem participa das decisões financeiras na sua família? Tem alguém (cônjuge, sócio, contador, advogado) que você gosta de consultar antes de decisões maiores?</Label>
+                  <Textarea value={data.financialDecisionMakers} onChange={(e) => update({ financialDecisionMakers: e.target.value })} className="crm-input min-h-[60px]" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Como você descreveria sua relação com dinheiro ao longo da vida?</Label>
+                  <Textarea value={data.moneyRelationship} onChange={(e) => update({ moneyRelationship: e.target.value })} className="crm-input min-h-[60px]" />
+                </div>
+              </div>
+
+              {/* === Seção: Como nos Encontrou === */}
+              <div className="border-t border-border pt-4 space-y-2">
+                <h5 className="text-sm font-medium text-foreground">Como nos Encontrou</h5>
+                <div className="space-y-2">
+                  <Label>Como você chegou até mim / como conheceu o escritório?</Label>
+                  <Input value={data.howFoundUs} onChange={(e) => update({ howFoundUs: e.target.value })} className="crm-input" placeholder="Indicação, redes sociais, evento..." />
+                </div>
               </div>
             </div>
             <CommentButton value={data.bloco1Comment} onChange={(v) => update({ bloco1Comment: v })} />
           </>)}
 
-          {/* === BLOCO 2 === */}
+          {/* === BLOCO 2 — Situação Patrimonial e Investimentos === */}
           {renderBlock(2, 'Situação Patrimonial e Investimentos', <>
             <div className="p-4 bg-muted/20 rounded-lg border border-border space-y-4">
+
+              {/* === Seção: Bens e Patrimônio === */}
+              <h5 className="text-sm font-medium text-foreground">Bens e Patrimônio</h5>
+
               <div className="space-y-2">
                 <Label>Você possui imóveis? São para morar ou para alugar?</Label>
                 <RadioGroup value={data.hasRealEstate} onValueChange={(v) => update({ hasRealEstate: v })} className="flex gap-4">
                   <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Sim" /> Sim</label>
                   <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Não" /> Não</label>
                 </RadioGroup>
-                {data.hasRealEstate === 'Sim' && (
-                  <Select value={data.realEstateUsage} onValueChange={(v) => update({ realEstateUsage: v })}>
-                    <SelectTrigger className="crm-input w-[200px]"><SelectValue placeholder="Uso..." /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Morar">Morar</SelectItem>
-                      <SelectItem value="Alugar">Alugar</SelectItem>
-                      <SelectItem value="Ambos">Ambos</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
               </div>
+              {data.hasRealEstate === 'Sim' && (
+                <div className="p-3 bg-card rounded-lg border border-border space-y-3">
+                  {realEstateCards.map((card, i) => (
+                    <div key={card.id} className="p-3 bg-muted/20 rounded-lg border border-border space-y-2 relative">
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeRealEstateCard(card.id)} className="absolute top-2 right-2 h-7 w-7 text-destructive"><Trash2 className="w-3 h-3" /></Button>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Descrição do imóvel</Label>
+                        <Input value={card.description} onChange={(e) => updateRealEstateCard(card.id, 'description', e.target.value)} className="crm-input" placeholder="Ex: Apartamento 3 quartos em SP" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Finalidade</Label>
+                          <Select value={card.purpose} onValueChange={(v) => updateRealEstateCard(card.id, 'purpose', v)}>
+                            <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                            <SelectContent>
+                              {['Moradia própria', 'Aluguel', 'Veraneio', 'Terreno'].map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Valor aproximado (R$)</Label>
+                          <CurrencyInput value={card.value} onChange={(v) => updateRealEstateCard(card.id, 'value', v)} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" size="sm" onClick={addRealEstateCard}><Plus className="w-4 h-4 mr-1" />Adicionar imóvel</Button>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label>Tem outros bens importantes? (Carros, embarcações, obras de arte...)</Label>
@@ -435,120 +573,260 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
                   <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Não" /> Não</label>
                 </RadioGroup>
                 {data.hasOtherAssets === 'Sim' && (
-                  <Textarea value={data.otherAssetsDetails} onChange={(e) => update({ otherAssetsDetails: e.target.value })} className="crm-input min-h-[60px]" placeholder="Descreva..." />
+                  <Textarea value={data.otherAssetsDetails} onChange={(e) => update({ otherAssetsDetails: e.target.value })} className="crm-input min-h-[60px]" placeholder="Descreva os bens..." />
                 )}
               </div>
 
-              {/* === MELHORIA 1: 3 sub-blocos de patrimônio === */}
-              <div className="space-y-3">
-                <h5 className="text-sm font-medium text-foreground border-t border-border pt-3">Composição do Patrimônio</h5>
-                
-                <div className="p-3 bg-card rounded-lg border border-border space-y-2">
-                  <Label className="text-xs font-medium">Patrimônio Imobiliário</Label>
-                  <CurrencyInput value={data.patrimonioImobiliario} onChange={(v) => update({ patrimonioImobiliario: v })} placeholder="R$ 0,00" />
-                  <Input value={data.patrimonioImobiliarioDesc} onChange={(e) => update({ patrimonioImobiliarioDesc: e.target.value })} className="crm-input" placeholder="Descrição dos imóveis (opcional)" />
-                </div>
-
-                <div className="p-3 bg-card rounded-lg border border-border space-y-2">
-                  <Label className="text-xs font-medium">Patrimônio Financeiro</Label>
-                  <CurrencyInput value={data.patrimonioFinanceiro} onChange={(v) => update({ patrimonioFinanceiro: v })} placeholder="R$ 0,00" />
-                  <ConsultantNote>Sincroniza com "Patrimônio Financeiro" em Situação Financeira</ConsultantNote>
-                </div>
-
-                <div className="p-3 bg-card rounded-lg border border-border space-y-2">
-                  <Label className="text-xs font-medium">Participações Societárias</Label>
-                  <CurrencyInput value={data.participacoesSocietarias} onChange={(v) => update({ participacoesSocietarias: v })} placeholder="R$ 0,00" />
-                  <Input value={data.participacoesSocietariasDesc} onChange={(e) => update({ participacoesSocietariasDesc: e.target.value })} className="crm-input" placeholder="Empresas / cotas (opcional)" />
-                </div>
-
-                {/* Patrimônio Total (read-only) */}
-                <div className="p-3 bg-primary/5 rounded-lg border-2 border-primary/30 flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">Patrimônio Total</span>
-                  <span className="text-lg font-bold text-primary">{patrimonioTotal > 0 ? fmt(patrimonioTotal) : 'R$ 0,00'}</span>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Desse valor, quanto está disponível com liquidez imediata?</Label>
-                <CurrencyInput value={data.liquidAmount} onChange={(v) => update({ liquidAmount: v })} placeholder="R$ 0,00" />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Quanto desse valor é reserva de emergência?</Label>
-                <CurrencyInput value={data.emergencyReserveAmount} onChange={(v) => update({ emergencyReserveAmount: v })} placeholder="R$ 0,00" />
-                <ConsultantNote>Sincroniza com "Reserva de Emergência" em Situação Financeira</ConsultantNote>
-              </div>
-
-              {patrimonioTotal > 0 && (
+              {/* === Seção: Vida Profissional e Empresarial === */}
+              <div className="border-t border-border pt-4 space-y-4">
+                <h5 className="text-sm font-medium text-foreground">Vida Profissional e Empresarial</h5>
                 <div className="space-y-2">
-                  <Label>Como você construiu esse patrimônio?</Label>
-                  <Textarea value={data.howBuiltWealth} onChange={(e) => update({ howBuiltWealth: e.target.value })} className="crm-input min-h-[80px]" />
+                  <Label>Você é CLT ou PJ?</Label>
+                  <RadioGroup value={data.employmentType} onValueChange={(v) => update({ employmentType: v })} className="flex gap-3 flex-wrap">
+                    {['CLT', 'PJ', 'Autônomo', 'Aposentado'].map(opt => (
+                      <label key={opt} className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value={opt} /> {opt}</label>
+                    ))}
+                  </RadioGroup>
                 </div>
-              )}
 
-              <div className="space-y-2">
-                <Label>Você tem alguma participação societária em empresas?</Label>
-                <RadioGroup value={data.hasBusinessParticipation} onValueChange={(v) => update({ hasBusinessParticipation: v })} className="flex gap-4">
-                  <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Sim" /> Sim</label>
-                  <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Não" /> Não</label>
-                </RadioGroup>
-              </div>
-              {data.hasBusinessParticipation === 'Sim' && (
-                <div className="p-3 bg-card rounded-lg border border-border space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1"><Label className="text-xs">Valor aproximado (R$)</Label><CurrencyInput value={data.businessValue} onChange={(v) => update({ businessValue: v })} /></div>
-                    <div className="space-y-1"><Label className="text-xs">Participação (%)</Label><Input type="number" value={data.businessPercentage} onChange={(e) => update({ businessPercentage: e.target.value })} className="crm-input" /></div>
-                    <div className="space-y-1"><Label className="text-xs">Nº funcionários</Label><Input type="number" value={data.businessEmployees} onChange={(e) => update({ businessEmployees: e.target.value })} className="crm-input" /></div>
+                {data.employmentType === 'CLT' && (
+                  <div className="p-3 bg-card rounded-lg border border-border space-y-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Salário mensal líquido</Label>
+                      <CurrencyInput value={data.cltSalary} onChange={(v) => update({ cltSalary: v })} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Tem plano de crescimento / promoção?</Label>
+                      <Input value={data.cltGrowthPlan} onChange={(e) => update({ cltGrowthPlan: e.target.value })} className="crm-input" placeholder="Descreva perspectivas..." />
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1"><Label className="text-xs">R$ em PF</Label><CurrencyInput value={data.pfValue} onChange={(v) => update({ pfValue: v })} /></div>
-                    <div className="space-y-1"><Label className="text-xs">R$ em PJ</Label><CurrencyInput value={data.pjValue} onChange={(v) => update({ pjValue: v })} /></div>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Maiores medos ou preocupações com a empresa</Label>
-                    <Textarea value={data.businessConcerns} onChange={(e) => update({ businessConcerns: e.target.value })} className="crm-input min-h-[60px]" />
-                  </div>
-                </div>
-              )}
+                )}
 
-              <div className="space-y-2">
-                <Label>Patrimônio concentrado em algo específico?</Label>
-                <RadioGroup value={data.hasConcentration} onValueChange={(v) => update({ hasConcentration: v })} className="flex gap-4">
-                  <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Sim" /> Sim</label>
-                  <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Não" /> Não</label>
-                </RadioGroup>
-                {data.hasConcentration === 'Sim' && (
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="col-span-2 space-y-1"><Label className="text-xs">Descrever</Label><Textarea value={data.concentrationDetails} onChange={(e) => update({ concentrationDetails: e.target.value })} className="crm-input min-h-[60px]" /></div>
-                    <div className="space-y-1"><Label className="text-xs">% estimado</Label><Input type="number" value={data.concentrationPercentage} onChange={(e) => update({ concentrationPercentage: e.target.value })} className="crm-input" /></div>
+                {data.employmentType === 'PJ' && (
+                  <div className="p-3 bg-card rounded-lg border border-border space-y-3">
+                    <div className="space-y-2">
+                      <Label className="text-xs">A renda é Pro-labore, Distribuição de Lucros ou Ambos?</Label>
+                      <RadioGroup value={data.pjIncomeType} onValueChange={(v) => update({ pjIncomeType: v })} className="flex gap-3 flex-wrap">
+                        {['Pro-labore', 'Distribuição de Lucros', 'Ambos'].map(opt => (
+                          <label key={opt} className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value={opt} /> {opt}</label>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Retirada mensal aproximada (R$)</Label>
+                        <CurrencyInput value={data.pjMonthlyWithdrawal} onChange={(v) => update({ pjMonthlyWithdrawal: v })} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Setor / ramo de atuação</Label>
+                        <Input value={data.pjSector} onChange={(e) => update({ pjSector: e.target.value })} className="crm-input" placeholder="Ex: Tecnologia, Saúde..." />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs">Tem sócios?</Label>
+                      <RadioGroup value={data.hasPjPartners} onValueChange={(v) => update({ hasPjPartners: v })} className="flex gap-4">
+                        <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Sim" /> Sim</label>
+                        <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Não" /> Não</label>
+                      </RadioGroup>
+                    </div>
+                    {data.hasPjPartners === 'Sim' && (
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Quem é o Sócio Majoritário?</Label>
+                          <Input value={data.pjMajorityPartner} onChange={(e) => update({ pjMajorityPartner: e.target.value })} className="crm-input" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Nº de funcionários</Label>
+                          <Input type="number" value={data.pjEmployeeCount} onChange={(e) => update({ pjEmployeeCount: e.target.value })} className="crm-input" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Valor aprox. da empresa (R$)</Label>
+                          <CurrencyInput value={data.pjCompanyValue} onChange={(v) => update({ pjCompanyValue: v })} />
+                        </div>
+                      </div>
+                    )}
+                    <div className="space-y-1">
+                      <Label className="text-xs">Quais são seus maiores medos ou preocupações com a empresa?</Label>
+                      <Textarea value={data.pjConcerns} onChange={(e) => update({ pjConcerns: e.target.value })} className="crm-input min-h-[60px]" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs">Pretende renovar maquinário ou trocar frota?</Label>
+                      <RadioGroup value={data.pjRenewEquipment} onValueChange={(v) => update({ pjRenewEquipment: v })} className="flex gap-4">
+                        <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Sim" /> Sim</label>
+                        <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Não" /> Não</label>
+                      </RadioGroup>
+                    </div>
+                    {data.pjRenewEquipment === 'Sim' && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Em quanto tempo?</Label>
+                          <Input value={data.pjRenewTimeline} onChange={(e) => update({ pjRenewTimeline: e.target.value })} className="crm-input" placeholder="Ex: 6 meses, 1 ano" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Valor estimado (R$)</Label>
+                          <CurrencyInput value={data.pjRenewValue} onChange={(v) => update({ pjRenewValue: v })} />
+                        </div>
+                        <div className="col-span-2 space-y-1">
+                          <Label className="text-xs">Descrição</Label>
+                          <Textarea value={data.pjRenewDescription} onChange={(e) => update({ pjRenewDescription: e.target.value })} className="crm-input min-h-[40px]" />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
 
-              {/* === MELHORIA 2: Multi-entry institutions === */}
-              <div className="space-y-2">
-                <Label>Investimentos em outras instituições financeiras?</Label>
-                <RadioGroup value={data.hasOtherInstitutions} onValueChange={(v) => update({ hasOtherInstitutions: v })} className="flex gap-4">
-                  <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Sim" /> Sim</label>
-                  <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Não" /> Não</label>
-                </RadioGroup>
-                {data.hasOtherInstitutions === 'Sim' && (
-                  <div className="space-y-2">
-                    {institutionsList.map((item) => (
-                      <div key={item.id} className="flex gap-2 items-end">
-                        <div className="flex-1 space-y-1"><Label className="text-xs">Qual instituição</Label><Input value={item.institution} onChange={(e) => updateInstitution(item.id, 'institution', e.target.value)} className="crm-input" placeholder="Nome da instituição" /></div>
-                        <div className="w-40 space-y-1"><Label className="text-xs">Valor aproximado (R$)</Label><CurrencyInput value={item.value} onChange={(v) => updateInstitution(item.id, 'value', v)} /></div>
-                        <Button type="button" variant="ghost" size="icon" onClick={() => removeInstitution(item.id)} className="h-9 w-9 text-destructive"><Trash2 className="w-4 h-4" /></Button>
-                      </div>
-                    ))}
-                    <Button type="button" variant="outline" size="sm" onClick={addInstitution}><Plus className="w-4 h-4 mr-1" />Adicionar instituição</Button>
-                    <div className="space-y-1 mt-2">
-                      <Label className="text-xs">Como foi sua experiência com esses investimentos?</Label>
-                      <Textarea value={data.investmentExperience} onChange={(e) => update({ investmentExperience: e.target.value })} className="crm-input min-h-[60px]" />
+              {/* === Seção: Investimentos e Liquidez === */}
+              <div className="border-t border-border pt-4 space-y-4">
+                <h5 className="text-sm font-medium text-foreground">Investimentos e Liquidez</h5>
+                <div className="space-y-2">
+                  <Label>Você possui investimentos em quais instituições financeiras? Quanto?</Label>
+                  <Textarea value={data.investmentInstitutions} onChange={(e) => update({ investmentInstitutions: e.target.value })} className="crm-input min-h-[60px]" placeholder="Ex: BTG — R$ 500k, XP — R$ 200k..." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Como foi sua experiência com esses investimentos até agora?</Label>
+                  <Textarea value={data.investmentExperienceDesc} onChange={(e) => update({ investmentExperienceDesc: e.target.value })} className="crm-input min-h-[60px]" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Qual é aproximadamente seu custo de vida mensal?</Label>
+                  <CurrencyInput value={data.monthlyCostOfLiving} onChange={(v) => update({ monthlyCostOfLiving: v })} placeholder="R$ 0,00" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Você tem plano para adquirir algum bem nos próximos anos?</Label>
+                  <RadioGroup value={data.hasPurchasePlan} onValueChange={(v) => update({ hasPurchasePlan: v })} className="flex gap-4">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Sim" /> Sim</label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value="Não" /> Não</label>
+                  </RadioGroup>
+                </div>
+                {data.hasPurchasePlan === 'Sim' && (
+                  <div className="p-3 bg-card rounded-lg border border-border grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Qual bem?</Label>
+                      <Input value={data.purchasePlanItem} onChange={(e) => update({ purchasePlanItem: e.target.value })} className="crm-input" placeholder="Ex: Apartamento, Carro" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Em quanto tempo?</Label>
+                      <Input value={data.purchasePlanTimeline} onChange={(e) => update({ purchasePlanTimeline: e.target.value })} className="crm-input" placeholder="Ex: 2 anos" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Valor estimado (R$)</Label>
+                      <CurrencyInput value={data.purchasePlanValue} onChange={(v) => update({ purchasePlanValue: v })} />
                     </div>
                   </div>
                 )}
               </div>
+
+              {/* === Seção: Tabela de Patrimônio === */}
+              <div className="border-t border-border pt-4 space-y-3">
+                <h5 className="text-sm font-medium text-foreground">Tabela de Patrimônio</h5>
+                <ConsultantNote>Adicione cada ativo do cliente. A composição será calculada automaticamente.</ConsultantNote>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left p-2 font-medium text-muted-foreground">Descrição / Ativo</th>
+                        <th className="text-left p-2 font-medium text-muted-foreground">Categoria</th>
+                        <th className="text-right p-2 font-medium text-muted-foreground">Valor (R$)</th>
+                        <th className="text-center p-2 font-medium text-muted-foreground">Liquidez</th>
+                        <th className="w-10 p-2"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {patrimonioTableItems.map((item) => (
+                        <tr key={item.id} className="border-b border-border/50">
+                          <td className="p-1">
+                            <Input value={item.description} onChange={(e) => updatePatrimonioItem(item.id, 'description', e.target.value)} className="crm-input h-8 text-xs" placeholder="Descrição" />
+                          </td>
+                          <td className="p-1">
+                            <Select value={item.category} onValueChange={(v) => updatePatrimonioItem(item.id, 'category', v)}>
+                              <SelectTrigger className="crm-input h-8 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                              <SelectContent>
+                                {allPatrimonioCategories.map(group => (
+                                  <div key={group.label}>
+                                    <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">{group.label}</div>
+                                    {group.items.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                                  </div>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="p-1">
+                            <CurrencyInput value={item.value} onChange={(v) => updatePatrimonioItem(item.id, 'value', v)} className="h-8 text-xs text-right" />
+                          </td>
+                          <td className="p-1">
+                            <Select value={item.liquidezImediata} onValueChange={(v) => updatePatrimonioItem(item.id, 'liquidezImediata', v)}>
+                              <SelectTrigger className="crm-input h-8 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Sim">Sim</SelectItem>
+                                <SelectItem value="Não">Não</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="p-1">
+                            <Button type="button" variant="ghost" size="icon" onClick={() => removePatrimonioItem(item.id)} className="h-7 w-7 text-destructive"><Trash2 className="w-3 h-3" /></Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={addPatrimonioItem}><Plus className="w-4 h-4 mr-1" />Adicionar item</Button>
+              </div>
+
+              {/* === Seção: Composição do Patrimônio (calculada) === */}
+              {patrimonioTotal > 0 && (
+                <div className="border-t border-border pt-4 space-y-3">
+                  <h5 className="text-sm font-medium text-foreground">Composição do Patrimônio</h5>
+
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {/* Financeiro */}
+                    <div className={`p-3 rounded-lg border ${patrimonioByGroup.financeiro > 0 ? 'border-primary/50 bg-primary/5' : 'border-border bg-card'}`}>
+                      <p className="text-xs text-muted-foreground">💰 Patrimônio Financeiro</p>
+                      <p className="text-sm font-bold text-foreground">{fmt(patrimonioByGroup.financeiro)}</p>
+                      {patrimonioByGroup.financeiro > 0 && (
+                        <div className="mt-1 text-[10px] text-muted-foreground space-y-0.5">
+                          <p>RF: {fmt(patrimonioFinanceiroSubtotals.rendaFixa)}</p>
+                          <p>RV: {fmt(patrimonioFinanceiroSubtotals.rendaVariavel)}</p>
+                          <p>Prev: {fmt(patrimonioFinanceiroSubtotals.previdencia)}</p>
+                        </div>
+                      )}
+                    </div>
+                    {/* Reserva */}
+                    <div className={`p-3 rounded-lg border ${patrimonioByGroup.reserva > 0 ? 'border-primary/50 bg-primary/5' : 'border-border bg-card'}`}>
+                      <p className="text-xs text-muted-foreground">🛡 Reserva de Emergência</p>
+                      <p className="text-sm font-bold text-foreground">{fmt(patrimonioByGroup.reserva)}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">Sincroniza com Situação Financeira</p>
+                    </div>
+                    {/* Imobiliário */}
+                    <div className={`p-3 rounded-lg border ${patrimonioByGroup.imobiliario > 0 ? 'border-primary/50 bg-primary/5' : 'border-border bg-card'}`}>
+                      <p className="text-xs text-muted-foreground">🏠 Patrimônio Imobiliário</p>
+                      <p className="text-sm font-bold text-foreground">{fmt(patrimonioByGroup.imobiliario)}</p>
+                    </div>
+                    {/* Societário */}
+                    <div className={`p-3 rounded-lg border ${patrimonioByGroup.societario > 0 ? 'border-primary/50 bg-primary/5' : 'border-border bg-card'}`}>
+                      <p className="text-xs text-muted-foreground">🏢 Participações Societárias</p>
+                      <p className="text-sm font-bold text-foreground">{fmt(patrimonioByGroup.societario)}</p>
+                    </div>
+                    {/* Outros */}
+                    <div className={`p-3 rounded-lg border ${patrimonioByGroup.outros > 0 ? 'border-primary/50 bg-primary/5' : 'border-border bg-card'}`}>
+                      <p className="text-xs text-muted-foreground">🚗 Outros Bens</p>
+                      <p className="text-sm font-bold text-foreground">{fmt(patrimonioByGroup.outros)}</p>
+                    </div>
+                    {/* Liquidez */}
+                    <div className={`p-3 rounded-lg border ${liquidezImediataTotal > 0 ? 'border-primary/50 bg-primary/5' : 'border-border bg-card'}`}>
+                      <p className="text-xs text-muted-foreground">💧 Liquidez Imediata</p>
+                      <p className="text-sm font-bold text-foreground">{fmt(liquidezImediataTotal)}</p>
+                    </div>
+                  </div>
+
+                  {/* Total destaque */}
+                  <div className="p-3 bg-foreground/5 rounded-lg border-2 border-foreground/20 flex items-center justify-between">
+                    <span className="text-sm font-medium text-foreground">Patrimônio Total</span>
+                    <span className="text-lg font-bold text-primary">{fmt(patrimonioTotal)}</span>
+                  </div>
+                </div>
+              )}
             </div>
             <CommentButton value={data.bloco2Comment} onChange={(v) => update({ bloco2Comment: v })} />
           </>)}
