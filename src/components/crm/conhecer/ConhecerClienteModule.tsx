@@ -131,15 +131,44 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
     return { correctedIncome, annualCorrected, requiredPatrimony, retirementAge };
   }, [data.retirementIncome, data.retirementYears, data.retirementWithdrawalRate, effectiveAge]);
 
-  // Bloco 2 — Patrimônio Total auto-sum
-  const patrimonioTotal = useMemo(() => {
-    const imob = parseFloat(data.patrimonioImobiliario) || 0;
-    const fin = parseFloat(data.patrimonioFinanceiro) || 0;
-    const soc = parseFloat(data.participacoesSocietarias) || 0;
-    return imob + fin + soc;
-  }, [data.patrimonioImobiliario, data.patrimonioFinanceiro, data.participacoesSocietarias]);
+  // Bloco 2 — Patrimônio Total from table items
+  const patrimonioTableItems = data.patrimonioTableItems || [];
 
-  // Auto-update totalPatrimony when sub-blocks change
+  const patrimonioByGroup = useMemo(() => {
+    const groups: Record<string, number> = { financeiro: 0, reserva: 0, imobiliario: 0, societario: 0, outros: 0 };
+    patrimonioTableItems.forEach(item => {
+      const val = parseFloat(item.value) || 0;
+      const group = getCategoryGroup(item.category);
+      groups[group] = (groups[group] || 0) + val;
+    });
+    return groups;
+  }, [patrimonioTableItems]);
+
+  const patrimonioFinanceiroSubtotals = useMemo(() => {
+    const rfCategories = ['Poupança', 'CDB/LCI/LCA', 'Tesouro Direto', 'Renda Fixa (outros)'];
+    const rvCategories = ['Ações', 'FII', 'FIA/Fundos Multimercado', 'Criptoativos', 'Renda Variável (outros)'];
+    const prevCategories = ['Previdência Privada'];
+    let rf = 0, rv = 0, prev = 0;
+    patrimonioTableItems.forEach(item => {
+      const val = parseFloat(item.value) || 0;
+      if (rfCategories.includes(item.category)) rf += val;
+      else if (rvCategories.includes(item.category)) rv += val;
+      else if (prevCategories.includes(item.category)) prev += val;
+    });
+    return { rendaFixa: rf, rendaVariavel: rv, previdencia: prev };
+  }, [patrimonioTableItems]);
+
+  const patrimonioTotal = useMemo(() => {
+    return Object.values(patrimonioByGroup).reduce((s, v) => s + v, 0);
+  }, [patrimonioByGroup]);
+
+  const liquidezImediataTotal = useMemo(() => {
+    return patrimonioTableItems
+      .filter(item => item.liquidezImediata === 'Sim')
+      .reduce((s, item) => s + (parseFloat(item.value) || 0), 0);
+  }, [patrimonioTableItems]);
+
+  // Auto-update legacy totalPatrimony field
   useEffect(() => {
     if (patrimonioTotal > 0) {
       const current = parseFloat(data.totalPatrimony) || 0;
@@ -148,6 +177,46 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
       }
     }
   }, [patrimonioTotal]);
+
+  // Sync patrimônio financeiro legacy field
+  useEffect(() => {
+    if (patrimonioByGroup.financeiro > 0) {
+      const current = parseFloat(data.patrimonioFinanceiro) || 0;
+      if (Math.abs(current - patrimonioByGroup.financeiro) > 0.01) {
+        update({ patrimonioFinanceiro: patrimonioByGroup.financeiro.toString() });
+      }
+    }
+  }, [patrimonioByGroup.financeiro]);
+
+  // Sync reserva de emergência legacy field
+  useEffect(() => {
+    if (patrimonioByGroup.reserva > 0) {
+      const current = parseFloat(data.emergencyReserveAmount) || 0;
+      if (Math.abs(current - patrimonioByGroup.reserva) > 0.01) {
+        update({ emergencyReserveAmount: patrimonioByGroup.reserva.toString() });
+      }
+    }
+  }, [patrimonioByGroup.reserva]);
+
+  // Sync patrimônio imobiliário legacy field
+  useEffect(() => {
+    if (patrimonioByGroup.imobiliario > 0) {
+      const current = parseFloat(data.patrimonioImobiliario) || 0;
+      if (Math.abs(current - patrimonioByGroup.imobiliario) > 0.01) {
+        update({ patrimonioImobiliario: patrimonioByGroup.imobiliario.toString() });
+      }
+    }
+  }, [patrimonioByGroup.imobiliario]);
+
+  // Sync participações societárias legacy field
+  useEffect(() => {
+    if (patrimonioByGroup.societario > 0) {
+      const current = parseFloat(data.participacoesSocietarias) || 0;
+      if (Math.abs(current - patrimonioByGroup.societario) > 0.01) {
+        update({ participacoesSocietarias: patrimonioByGroup.societario.toString() });
+      }
+    }
+  }, [patrimonioByGroup.societario]);
 
   // Bloco 8 allocation total — now with 3 subcategories instead of rendaFixa
   const allocationTotal = useMemo(() => {
