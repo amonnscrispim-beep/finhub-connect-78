@@ -29,34 +29,88 @@ export interface OtherInstitutionItem {
   value: string;
 }
 
+export interface RealEstateCard {
+  id: string;
+  description: string;
+  purpose: string; // Moradia própria | Aluguel | Veraneio | Terreno
+  value: string;
+}
+
+export interface PatrimonioTableItem {
+  id: string;
+  description: string;
+  category: string;
+  value: string;
+  liquidezImediata: string; // Sim | Não
+}
+
 export interface ConhecerClienteData {
-  // === BLOCO 1 — Quem é você? ===
+  // === BLOCO 1 — Dados Pessoais e Perfil ===
   fullName: string;
   birthDate: string; // YYYY-MM-DD
+  manualAge: string; // editable when birthDate is empty
   profession: string;
+  aboutYourself: string; // textarea - trajetória
+  hobbies: string; // textarea - hobbies
+  // Estrutura Familiar
   isMarried: string; // Sim | Não
   marriageRegime: string;
-  civilStatus: string; // solteiro | divorciado | viúvo (if not married)
-  hasChildren: string; // Sim | Não
+  spouseName: string;
+  civilStatus: string; // legacy (kept for backward compat)
+  civilStatusNotes: string; // textarea when not married
+  hasChildren: string; // legacy Sim | Não (kept for backward compat)
+  numChildren: string; // Nenhum | 1 | 2 | 3 | 4+
   children: ConhecerChildInfo[];
+  // Perfil Financeiro Familiar
+  financialDecisionMakers: string; // textarea
+  moneyRelationship: string; // textarea
+  // Como nos Encontrou
   howFoundUs: string;
   bloco1Comment: string;
 
   // === BLOCO 2 — Situação Patrimonial e Investimentos ===
+  // Bens e Patrimônio
   hasRealEstate: string;
-  realEstateUsage: string; // Morar | Alugar | Ambos
+  realEstateUsage: string; // legacy
+  realEstateCards: RealEstateCard[];
   hasOtherAssets: string;
   otherAssetsDetails: string;
-  totalPatrimony: string; // R$ (read-only, auto-calculated)
-  // New: 3 sub-blocks for patrimônio
-  patrimonioImobiliario: string; // R$
+  // Vida Profissional e Empresarial
+  employmentType: string; // CLT | PJ | Autônomo | Aposentado
+  cltSalary: string;
+  cltGrowthPlan: string;
+  pjIncomeType: string; // Pro-labore | Distribuição de Lucros | Ambos
+  pjMonthlyWithdrawal: string;
+  pjSector: string;
+  hasPjPartners: string; // Sim | Não
+  pjMajorityPartner: string;
+  pjEmployeeCount: string;
+  pjCompanyValue: string;
+  pjConcerns: string; // textarea
+  pjRenewEquipment: string; // Sim | Não
+  pjRenewTimeline: string;
+  pjRenewValue: string;
+  pjRenewDescription: string;
+  // Investimentos e Liquidez
+  investmentInstitutions: string; // textarea
+  investmentExperienceDesc: string; // textarea
+  monthlyCostOfLiving: string; // R$
+  hasPurchasePlan: string; // Sim | Não
+  purchasePlanItem: string;
+  purchasePlanTimeline: string;
+  purchasePlanValue: string;
+  // Tabela de Patrimônio
+  patrimonioTableItems: PatrimonioTableItem[];
+  // Legacy fields (preserved for backward compat)
+  totalPatrimony: string;
+  patrimonioImobiliario: string;
   patrimonioImobiliarioDesc: string;
-  patrimonioFinanceiro: string; // R$ — syncs to financialAssets in Situação Financeira
-  participacoesSocietarias: string; // R$
+  patrimonioFinanceiro: string;
+  participacoesSocietarias: string;
   participacoesSocietariasDesc: string;
-  investedAmount: string; // R$ — syncs to financialAssets (legacy, now use patrimonioFinanceiro)
-  liquidAmount: string; // R$ — available with immediate liquidity
-  emergencyReserveAmount: string; // R$ — syncs to emergencyReserve
+  investedAmount: string;
+  liquidAmount: string;
+  emergencyReserveAmount: string;
   howBuiltWealth: string;
   hasBusinessParticipation: string;
   businessValue: string;
@@ -69,29 +123,28 @@ export interface ConhecerClienteData {
   concentrationDetails: string;
   concentrationPercentage: string;
   hasOtherInstitutions: string;
-  otherInstitutions: string; // legacy single field
-  otherInstitutionsValue: string; // legacy single field
-  otherInstitutionsList: OtherInstitutionItem[]; // new multi-entry
+  otherInstitutions: string;
+  otherInstitutionsValue: string;
+  otherInstitutionsList: OtherInstitutionItem[];
   investmentExperience: string;
   bloco2Comment: string;
 
   // === BLOCO 3 — Fluxo de Caixa e Estilo de Vida ===
-  selectedCurrency: string; // BRL | USD | EUR | GBP | ARS
+  selectedCurrency: string;
   monthlyRevenue: string;
   revenueSource: string;
   hasOtherIncome: string;
   otherIncomes: OtherIncomeItem[];
-  revenueStability: string; // Fixa | Variável | Mista
+  revenueStability: string;
   livingCost: string;
   nonRecurrentCost: string;
   travelDetails: string;
   travelAnnualCost: string;
   annualExpenses: AnnualExpenseItem[];
   monthlyInvestment: string;
-  alreadyInvesting: string; // Sim | Parcialmente | Não
+  alreadyInvesting: string;
   emergencyMonths: string;
-  // Proteção e Sucessão (fim do bloco 3)
-  successionThought: string; // Sim | Não
+  successionThought: string;
   successionDetails: string;
   successionOrganization: string;
   hasTestament: string;
@@ -101,13 +154,13 @@ export interface ConhecerClienteData {
 
   // === BLOCO 4 — Objetivos e Sonhos ===
   financialGoals: string;
-  successNumber: string; // R$ ou R$/mês
+  successNumber: string;
   successTimeline: string;
   successTargetDate: string;
   wantsRetirement: string;
   retirementIncome: string;
   retirementYears: string;
-  retirementWithdrawalRate: string; // 4 | 5 | 6
+  retirementWithdrawalRate: string;
   wantsToLiveAbroad: string;
   abroadDetails: string;
   childrenEducation: string;
@@ -121,19 +174,19 @@ export interface ConhecerClienteData {
   hasExperiencedDrops: string;
   dropReaction: string;
   hypotheticalReaction: string;
-  maxAcceptableDrop: string; // 5% | 10% | 20% | 30% | Não me incomodaria
+  maxAcceptableDrop: string;
   uncertaintyPreference: string;
-  liquidityPreference: string; // Sim | Não | Depende
+  liquidityPreference: string;
   impulseDecision: string;
   impulseDetails: string;
   bloco5Comment: string;
 
   // === BLOCO 6 — Proteção, Sucessão e Blindagem ===
-  hasSuccessionPlan: string; // Sim | Não | Parcialmente
+  hasSuccessionPlan: string;
   hasLegalStructure: string;
   legalStructureDetails: string;
-  isProtected: string; // Sim | Não | Não sei
-  hasLifeInsuranceB6: string; // Sim | Não | Parcialmente
+  isProtected: string;
+  hasLifeInsuranceB6: string;
   hasInternationalAssets: string;
   internationalDetails: string;
   internationalValue: string;
@@ -158,8 +211,7 @@ export interface ConhecerClienteData {
   recommendedRisk: string;
   minLiquidityPct: string;
   minLiquidityJustification: string;
-  // Replaced rendaFixaPct with 3 subcategories
-  rendaFixaPct: string; // legacy — kept for backward compat
+  rendaFixaPct: string;
   posFixadoPct: string;
   preFixadoPct: string;
   indexadoInflacaoPct: string;
@@ -177,12 +229,55 @@ export interface ConhecerClienteData {
   bloco8Comment: string;
 }
 
+export const PATRIMONIO_CATEGORIES = {
+  financeiro: {
+    label: '💰 Patrimônio Financeiro',
+    items: ['Poupança', 'CDB/LCI/LCA', 'Tesouro Direto', 'Renda Fixa (outros)', 'Ações', 'FII', 'FIA/Fundos Multimercado', 'Criptoativos', 'Renda Variável (outros)', 'Previdência Privada'],
+  },
+  reserva: {
+    label: '🛡 Reserva de Emergência',
+    items: ['Reserva de Emergência'],
+  },
+  imobiliario: {
+    label: '🏠 Imobiliário',
+    items: ['Imóvel Residencial', 'Imóvel Comercial', 'Imóvel para Aluguel', 'Terreno/Rural'],
+  },
+  societario: {
+    label: '🏢 Participações Societárias',
+    items: ['Participação em Empresa', 'Cotas de Empresa'],
+  },
+  outros: {
+    label: '🚗 Outros Bens',
+    items: ['Veículo/Frota', 'Embarcação/Aeronave', 'Obra de Arte/Coleção', 'Joia/Bem de Luxo', 'Outros Bens'],
+  },
+};
+
+export function getCategoryGroup(category: string): string {
+  for (const [group, data] of Object.entries(PATRIMONIO_CATEGORIES)) {
+    if (data.items.includes(category)) return group;
+  }
+  return 'outros';
+}
+
 export const defaultConhecerCliente: ConhecerClienteData = {
   // Bloco 1
-  fullName: '', birthDate: '', profession: '',
-  isMarried: '', marriageRegime: '', civilStatus: '', hasChildren: '', children: [], howFoundUs: '', bloco1Comment: '',
+  fullName: '', birthDate: '', manualAge: '', profession: '',
+  aboutYourself: '', hobbies: '',
+  isMarried: '', marriageRegime: '', spouseName: '', civilStatus: '', civilStatusNotes: '',
+  hasChildren: '', numChildren: '', children: [],
+  financialDecisionMakers: '', moneyRelationship: '',
+  howFoundUs: '', bloco1Comment: '',
   // Bloco 2
-  hasRealEstate: '', realEstateUsage: '', hasOtherAssets: '', otherAssetsDetails: '', totalPatrimony: '',
+  hasRealEstate: '', realEstateUsage: '', realEstateCards: [],
+  hasOtherAssets: '', otherAssetsDetails: '',
+  employmentType: '', cltSalary: '', cltGrowthPlan: '',
+  pjIncomeType: '', pjMonthlyWithdrawal: '', pjSector: '',
+  hasPjPartners: '', pjMajorityPartner: '', pjEmployeeCount: '', pjCompanyValue: '',
+  pjConcerns: '', pjRenewEquipment: '', pjRenewTimeline: '', pjRenewValue: '', pjRenewDescription: '',
+  investmentInstitutions: '', investmentExperienceDesc: '',
+  monthlyCostOfLiving: '', hasPurchasePlan: '', purchasePlanItem: '', purchasePlanTimeline: '', purchasePlanValue: '',
+  patrimonioTableItems: [],
+  totalPatrimony: '',
   patrimonioImobiliario: '', patrimonioImobiliarioDesc: '',
   patrimonioFinanceiro: '', participacoesSocietarias: '', participacoesSocietariasDesc: '',
   investedAmount: '', liquidAmount: '', emergencyReserveAmount: '',
@@ -228,13 +323,15 @@ export function migrateFromLegacy(raw: Record<string, any>): ConhecerClienteData
 
   // If already has new fields, use them
   if (raw.bloco1Comment !== undefined || raw.isMarried !== undefined) {
-    return {
+    const merged = {
       ...d, ...raw,
       children: raw.children || [],
       otherIncomes: raw.otherIncomes || [],
       annualExpenses: raw.annualExpenses || [],
       strategicPillars: raw.strategicPillars || [],
       otherInstitutionsList: raw.otherInstitutionsList || [],
+      realEstateCards: raw.realEstateCards || [],
+      patrimonioTableItems: raw.patrimonioTableItems || [],
       investedAmount: raw.investedAmount || '',
       liquidAmount: raw.liquidAmount || '',
       emergencyReserveAmount: raw.emergencyReserveAmount || '',
@@ -248,6 +345,29 @@ export function migrateFromLegacy(raw: Record<string, any>): ConhecerClienteData
       preFixadoPct: raw.preFixadoPct || '',
       indexadoInflacaoPct: raw.indexadoInflacaoPct || '',
     };
+
+    // Migrate hasChildren → numChildren if needed
+    if (!merged.numChildren && merged.hasChildren === 'Sim') {
+      const count = merged.children?.length || 1;
+      merged.numChildren = count >= 4 ? '4+' : count.toString();
+    } else if (!merged.numChildren && merged.hasChildren === 'Não') {
+      merged.numChildren = 'Nenhum';
+    }
+
+    // Migrate civilStatus to civilStatusNotes
+    if (!merged.civilStatusNotes && merged.civilStatus) {
+      merged.civilStatusNotes = merged.civilStatus;
+    }
+
+    // Migrate business fields to new employment fields
+    if (!merged.employmentType && merged.hasBusinessParticipation === 'Sim') {
+      merged.employmentType = 'PJ';
+      merged.pjCompanyValue = merged.businessValue || '';
+      merged.pjEmployeeCount = merged.businessEmployees || '';
+      merged.pjConcerns = merged.businessConcerns || '';
+    }
+
+    return merged;
   }
 
   // === Migrate from old structure ===
@@ -255,9 +375,11 @@ export function migrateFromLegacy(raw: Record<string, any>): ConhecerClienteData
   d.isMarried = fam.maritalStatus === 'Casado(a)' || fam.maritalStatus === 'União estável' ? 'Sim' : (fam.maritalStatus ? 'Não' : '');
   d.marriageRegime = fam.propertyRegime || '';
   d.civilStatus = fam.maritalStatus && d.isMarried === 'Não' ? fam.maritalStatus.replace('(a)', '').toLowerCase() : '';
+  d.civilStatusNotes = d.civilStatus;
   d.hasChildren = fam.hasChildren || '';
   if (fam.childrenCount) {
     const count = parseInt(fam.childrenCount) || 0;
+    d.numChildren = count >= 4 ? '4+' : (count > 0 ? count.toString() : 'Nenhum');
     d.children = Array.from({ length: count }, (_, i) => ({
       id: genId(),
       name: '',
@@ -337,9 +459,10 @@ export function migrateFromLegacy(raw: Record<string, any>): ConhecerClienteData
 export function calculateProgress(data: ConhecerClienteData): number {
   const fields = [
     // Bloco 1
-    data.isMarried, data.hasChildren,
+    data.isMarried, data.numChildren || data.hasChildren,
     // Bloco 2
-    data.patrimonioFinanceiro || data.totalPatrimony, data.hasBusinessParticipation,
+    data.patrimonioFinanceiro || data.totalPatrimony || (data.patrimonioTableItems?.length > 0 ? 'yes' : ''),
+    data.employmentType || data.hasBusinessParticipation,
     // Bloco 3
     data.monthlyRevenue, data.livingCost, data.monthlyInvestment, data.emergencyMonths,
     // Bloco 4
