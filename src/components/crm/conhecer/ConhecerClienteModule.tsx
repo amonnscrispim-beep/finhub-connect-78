@@ -14,7 +14,8 @@ import { generateConhecerPdf } from '@/lib/pdf-generators';
 import { BirthDatePicker } from '@/components/ui/birth-date-picker';
 import { Badge } from '@/components/ui/badge';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import type { ConhecerClienteData, ConhecerChildInfo, OtherIncomeItem, AnnualExpenseItem, StrategicPillar, OtherInstitutionItem } from './types';
+import type { ConhecerClienteData, ConhecerChildInfo, OtherIncomeItem, AnnualExpenseItem, StrategicPillar, OtherInstitutionItem, RealEstateCard, PatrimonioTableItem } from './types';
+import { PATRIMONIO_CATEGORIES, getCategoryGroup } from './types';
 import { calculateProgress, getProgressColor, getProgressBgColor } from './types';
 
 const genId = () => Math.random().toString(36).substring(2, 10);
