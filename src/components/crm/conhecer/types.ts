@@ -44,6 +44,13 @@ export interface PatrimonioTableItem {
   liquidezImediata: string; // Sim | Não
 }
 
+export interface DebtItem {
+  id: string;
+  description: string;
+  balance: string;
+  remainingInstallments: string;
+}
+
 export interface ConhecerClienteData {
   // === BLOCO 1 — Dados Pessoais e Perfil ===
   fullName: string;
@@ -91,14 +98,36 @@ export interface ConhecerClienteData {
   pjRenewTimeline: string;
   pjRenewValue: string;
   pjRenewDescription: string;
+  // Autônomo fields
+  autonomoIncome: string;
+  autonomoArea: string;
+  autonomoStability: string;
+  // Aposentado fields
+  aposentadoIncome: string;
+  aposentadoExtraIncome: string;
+  // Other income (always visible)
+  hasOtherIncomeB2: string; // Sim | Não
+  otherIncomeDescriptionB2: string;
+  otherIncomeValueB2: string;
+  otherIncomeTypeB2: string; // Fixa | Variável | Mista
   // Investimentos e Liquidez
   investmentInstitutions: string; // textarea
   investmentExperienceDesc: string; // textarea
   monthlyCostOfLiving: string; // R$
+  nonRecurrentCostB2: string; // textarea - inflating cost
+  travelDetailsB2: string; // textarea
+  travelAnnualCostB2: string; // R$
+  annualExpensesB2: AnnualExpenseItem[];
+  monthlyInvestmentB2: string; // R$
+  alreadyInvestingB2: string; // Sim | Parcialmente | Não
+  alreadyInvestingWhyNot: string; // textarea when Parcialmente or Não
+  emergencyMonthsB2: string; // numeric
   hasPurchasePlan: string; // Sim | Não
   purchasePlanItem: string;
   purchasePlanTimeline: string;
   purchasePlanValue: string;
+  // Patrimônio concentrado
+  hasConcentrationB2: string; // Sim | Não
   // Tabela de Patrimônio
   patrimonioTableItems: PatrimonioTableItem[];
   // Legacy fields (preserved for backward compat)
@@ -129,7 +158,26 @@ export interface ConhecerClienteData {
   investmentExperience: string;
   bloco2Comment: string;
 
-  // === BLOCO 3 — Fluxo de Caixa e Estilo de Vida ===
+  // === BLOCO 3 — Proteção e Segurança (NEW — replaces old Bloco 3) ===
+  hasLifeInsurance: string; // Sim | Não
+  lifeInsuranceValue: string;
+  lifeInsuranceCompany: string;
+  lifeInsuranceAdequate: string; // textarea
+  hasPropertyInsurance: string; // Sim | Não | Parcialmente
+  propertyInsuranceDetails: string; // textarea
+  hasDebtsB3: string; // Sim | Não
+  debtsListB3: DebtItem[];
+  hasEmergencyReserveB3: string; // Sim | Não
+  emergencyReserveValueB3: string;
+  emergencyReserveCoverageB3: string; // months
+  emergencyReserveLocationB3: string; // texto
+  familyKnowsB3: string; // Sim | Não | Parcialmente
+  familyKnowsDetailsB3: string; // textarea
+  hadFinancialCheckupB3: string; // Sim | Não
+  financialCheckupDetailsB3: string; // textarea
+  bloco3Comment: string;
+
+  // === Legacy Bloco 3 fields (preserved) ===
   selectedCurrency: string;
   monthlyRevenue: string;
   revenueSource: string;
@@ -150,27 +198,58 @@ export interface ConhecerClienteData {
   hasTestament: string;
   hasHolding: string;
   hasLifeInsuranceB3: string;
-  bloco3Comment: string;
 
-  // === BLOCO 4 — Objetivos e Sonhos ===
+  // === BLOCO 4 — Objetivos e Sonhos (restructured) ===
   financialGoals: string;
   successNumber: string;
   successTimeline: string;
   successTargetDate: string;
   wantsRetirement: string;
+  retirementAge: string; // NEW
   retirementIncome: string;
   retirementYears: string;
   retirementWithdrawalRate: string;
+  retirementLifestyle: string; // NEW textarea
   wantsToLiveAbroad: string;
   abroadDetails: string;
+  abroadCountry: string; // NEW
+  abroadTimeline: string; // NEW
   childrenEducation: string;
+  childrenEducationDetails: string; // NEW textarea
+  travelDetailsB4: string; // NEW textarea
+  travelAnnualCostB4: string; // NEW R$
+  annualExpensesB4: AnnualExpenseItem[]; // NEW
+  successionThoughtB4: string; // NEW Sim / Não
+  successionDetailsB4: string; // NEW textarea
+  successionOrganizationB4: string; // NEW textarea
   restrictions: string;
   priority1: string;
   priority2: string;
   priority3: string;
   bloco4Comment: string;
 
-  // === BLOCO 5 — Perfil de Risco e Comportamento ===
+  // === BLOCO 5 — Perfil Comportamental (merges old 5, 6, 7) ===
+  // Part 1 - Behavioral cards
+  lostSleepOverMoney: string; // textarea
+  angerSituation: string; // textarea
+  dropReactionB5: string; // Vendo tudo | Aguardo | Compro mais
+  dropReactionDetailsB5: string; // textarea
+  riskPreferenceB5: string; // Prefiro segurança | Equilíbrio | Aceito mais risco
+  riskPreferenceDetailsB5: string; // textarea
+  understandsDiagnosisB5: string; // Sim, quero entender tudo | Prefiro só o essencial
+  understandsDiagnosisDetailsB5: string; // textarea
+  lastInvestmentDecision: string; // textarea
+  // Part 2 - History & Expectations
+  hasInvestmentHistoryB5: string; // Sim | Não
+  investmentHistoryDetailsB5: string; // textarea
+  hasWorkedWithAdvisorB5: string; // Sim | Não
+  advisorExperienceB5: string; // textarea
+  managementPreferenceB5: string; // radio
+  followUpFrequencyB5: string; // Mensal | Bimestral | Trimestral
+  successCriteriaB5: string; // textarea
+  bloco5Comment: string;
+
+  // === Legacy Bloco 5 fields (preserved) ===
   hasExperiencedDrops: string;
   dropReaction: string;
   hypotheticalReaction: string;
@@ -179,9 +258,8 @@ export interface ConhecerClienteData {
   liquidityPreference: string;
   impulseDecision: string;
   impulseDetails: string;
-  bloco5Comment: string;
 
-  // === BLOCO 6 — Proteção, Sucessão e Blindagem ===
+  // === Legacy Bloco 6 fields (preserved, data not deleted) ===
   hasSuccessionPlan: string;
   hasLegalStructure: string;
   legalStructureDetails: string;
@@ -192,7 +270,7 @@ export interface ConhecerClienteData {
   internationalValue: string;
   bloco6Comment: string;
 
-  // === BLOCO 7 — Histórico e Expectativas ===
+  // === Legacy Bloco 7 fields (preserved, data not deleted) ===
   hasInvestmentHistory: string;
   investmentDuration: string;
   assetTypes: string;
@@ -274,8 +352,17 @@ export const defaultConhecerCliente: ConhecerClienteData = {
   pjIncomeType: '', pjMonthlyWithdrawal: '', pjSector: '',
   hasPjPartners: '', pjMajorityPartner: '', pjEmployeeCount: '', pjCompanyValue: '',
   pjConcerns: '', pjRenewEquipment: '', pjRenewTimeline: '', pjRenewValue: '', pjRenewDescription: '',
+  autonomoIncome: '', autonomoArea: '', autonomoStability: '',
+  aposentadoIncome: '', aposentadoExtraIncome: '',
+  hasOtherIncomeB2: '', otherIncomeDescriptionB2: '', otherIncomeValueB2: '', otherIncomeTypeB2: '',
   investmentInstitutions: '', investmentExperienceDesc: '',
-  monthlyCostOfLiving: '', hasPurchasePlan: '', purchasePlanItem: '', purchasePlanTimeline: '', purchasePlanValue: '',
+  monthlyCostOfLiving: '',
+  nonRecurrentCostB2: '', travelDetailsB2: '', travelAnnualCostB2: '',
+  annualExpensesB2: [], monthlyInvestmentB2: '',
+  alreadyInvestingB2: '', alreadyInvestingWhyNot: '',
+  emergencyMonthsB2: '',
+  hasPurchasePlan: '', purchasePlanItem: '', purchasePlanTimeline: '', purchasePlanValue: '',
+  hasConcentrationB2: '',
   patrimonioTableItems: [],
   totalPatrimony: '',
   patrimonioImobiliario: '', patrimonioImobiliarioDesc: '',
@@ -285,23 +372,46 @@ export const defaultConhecerCliente: ConhecerClienteData = {
   pfValue: '', pjValue: '', businessConcerns: '', hasConcentration: '', concentrationDetails: '', concentrationPercentage: '',
   hasOtherInstitutions: '', otherInstitutions: '', otherInstitutionsValue: '', otherInstitutionsList: [],
   investmentExperience: '', bloco2Comment: '',
-  // Bloco 3
+  // Bloco 3 — Proteção e Segurança
+  hasLifeInsurance: '', lifeInsuranceValue: '', lifeInsuranceCompany: '', lifeInsuranceAdequate: '',
+  hasPropertyInsurance: '', propertyInsuranceDetails: '',
+  hasDebtsB3: '', debtsListB3: [],
+  hasEmergencyReserveB3: '', emergencyReserveValueB3: '', emergencyReserveCoverageB3: '', emergencyReserveLocationB3: '',
+  familyKnowsB3: '', familyKnowsDetailsB3: '',
+  hadFinancialCheckupB3: '', financialCheckupDetailsB3: '',
+  bloco3Comment: '',
+  // Legacy Bloco 3
   selectedCurrency: 'BRL',
   monthlyRevenue: '', revenueSource: '', hasOtherIncome: '', otherIncomes: [], revenueStability: '', livingCost: '',
   nonRecurrentCost: '', travelDetails: '', travelAnnualCost: '', annualExpenses: [], monthlyInvestment: '',
   alreadyInvesting: '', emergencyMonths: '', successionThought: '', successionDetails: '', successionOrganization: '',
-  hasTestament: '', hasHolding: '', hasLifeInsuranceB3: '', bloco3Comment: '',
-  // Bloco 4
+  hasTestament: '', hasHolding: '', hasLifeInsuranceB3: '',
+  // Bloco 4 — Objetivos e Sonhos
   financialGoals: '', successNumber: '', successTimeline: '', successTargetDate: '', wantsRetirement: '',
-  retirementIncome: '', retirementYears: '', retirementWithdrawalRate: '6', wantsToLiveAbroad: '', abroadDetails: '',
-  childrenEducation: '', restrictions: '', priority1: '', priority2: '', priority3: '', bloco4Comment: '',
-  // Bloco 5
+  retirementAge: '', retirementIncome: '', retirementYears: '', retirementWithdrawalRate: '6',
+  retirementLifestyle: '',
+  wantsToLiveAbroad: '', abroadDetails: '', abroadCountry: '', abroadTimeline: '',
+  childrenEducation: '', childrenEducationDetails: '',
+  travelDetailsB4: '', travelAnnualCostB4: '', annualExpensesB4: [],
+  successionThoughtB4: '', successionDetailsB4: '', successionOrganizationB4: '',
+  restrictions: '', priority1: '', priority2: '', priority3: '', bloco4Comment: '',
+  // Bloco 5 — Perfil Comportamental (merge of old 5/6/7)
+  lostSleepOverMoney: '', angerSituation: '',
+  dropReactionB5: '', dropReactionDetailsB5: '',
+  riskPreferenceB5: '', riskPreferenceDetailsB5: '',
+  understandsDiagnosisB5: '', understandsDiagnosisDetailsB5: '',
+  lastInvestmentDecision: '',
+  hasInvestmentHistoryB5: '', investmentHistoryDetailsB5: '',
+  hasWorkedWithAdvisorB5: '', advisorExperienceB5: '',
+  managementPreferenceB5: '', followUpFrequencyB5: '', successCriteriaB5: '',
+  bloco5Comment: '',
+  // Legacy Bloco 5
   hasExperiencedDrops: '', dropReaction: '', hypotheticalReaction: '', maxAcceptableDrop: '',
-  uncertaintyPreference: '', liquidityPreference: '', impulseDecision: '', impulseDetails: '', bloco5Comment: '',
-  // Bloco 6
+  uncertaintyPreference: '', liquidityPreference: '', impulseDecision: '', impulseDetails: '',
+  // Legacy Bloco 6
   hasSuccessionPlan: '', hasLegalStructure: '', legalStructureDetails: '', isProtected: '',
   hasLifeInsuranceB6: '', hasInternationalAssets: '', internationalDetails: '', internationalValue: '', bloco6Comment: '',
-  // Bloco 7
+  // Legacy Bloco 7
   hasInvestmentHistory: '', investmentDuration: '', assetTypes: '', hasWorkedWithAdvisor: '',
   advisorExperience: '', managementPreference: '', followUpFrequency: '', successCriteria: '', bloco7Comment: '',
   // Bloco 8
@@ -328,10 +438,13 @@ export function migrateFromLegacy(raw: Record<string, any>): ConhecerClienteData
       children: raw.children || [],
       otherIncomes: raw.otherIncomes || [],
       annualExpenses: raw.annualExpenses || [],
+      annualExpensesB2: raw.annualExpensesB2 || [],
+      annualExpensesB4: raw.annualExpensesB4 || [],
       strategicPillars: raw.strategicPillars || [],
       otherInstitutionsList: raw.otherInstitutionsList || [],
       realEstateCards: raw.realEstateCards || [],
       patrimonioTableItems: raw.patrimonioTableItems || [],
+      debtsListB3: raw.debtsListB3 || [],
       investedAmount: raw.investedAmount || '',
       liquidAmount: raw.liquidAmount || '',
       emergencyReserveAmount: raw.emergencyReserveAmount || '',
@@ -367,6 +480,47 @@ export function migrateFromLegacy(raw: Record<string, any>): ConhecerClienteData
       merged.pjConcerns = merged.businessConcerns || '';
     }
 
+    // Migrate old Bloco 5 → new Bloco 5 behavioral fields
+    if (!merged.dropReactionB5 && merged.dropReaction) {
+      merged.dropReactionDetailsB5 = merged.dropReaction;
+    }
+    if (!merged.hasInvestmentHistoryB5 && merged.hasInvestmentHistory) {
+      merged.hasInvestmentHistoryB5 = merged.hasInvestmentHistory;
+    }
+    if (!merged.hasWorkedWithAdvisorB5 && merged.hasWorkedWithAdvisor) {
+      merged.hasWorkedWithAdvisorB5 = merged.hasWorkedWithAdvisor;
+      merged.advisorExperienceB5 = merged.advisorExperience || '';
+    }
+    if (!merged.managementPreferenceB5 && merged.managementPreference) {
+      merged.managementPreferenceB5 = merged.managementPreference;
+    }
+    if (!merged.followUpFrequencyB5 && merged.followUpFrequency) {
+      merged.followUpFrequencyB5 = merged.followUpFrequency;
+    }
+    if (!merged.successCriteriaB5 && merged.successCriteria) {
+      merged.successCriteriaB5 = merged.successCriteria;
+    }
+
+    // Migrate old Bloco 3 → new Bloco 2 fields
+    if (!merged.monthlyInvestmentB2 && merged.monthlyInvestment) {
+      merged.monthlyInvestmentB2 = merged.monthlyInvestment;
+    }
+    if (!merged.alreadyInvestingB2 && merged.alreadyInvesting) {
+      merged.alreadyInvestingB2 = merged.alreadyInvesting;
+    }
+    if (!merged.emergencyMonthsB2 && merged.emergencyMonths) {
+      merged.emergencyMonthsB2 = merged.emergencyMonths;
+    }
+    if (!merged.monthlyCostOfLiving && merged.livingCost) {
+      merged.monthlyCostOfLiving = merged.livingCost;
+    }
+
+    // Merge bloco5Comment from old 5+6+7
+    if (!merged.bloco5Comment) {
+      const parts = [merged.bloco5Comment, merged.bloco6Comment, merged.bloco7Comment].filter(Boolean);
+      if (parts.length > 0) merged.bloco5Comment = parts.join('\n\n');
+    }
+
     return merged;
   }
 
@@ -399,9 +553,13 @@ export function migrateFromLegacy(raw: Record<string, any>): ConhecerClienteData
   d.revenueSource = fc.revenueSource || '';
   d.revenueStability = fc.revenueStability === 'Alta previsibilidade' ? 'Fixa' : fc.revenueStability === 'Alta variação' ? 'Variável' : fc.revenueStability ? 'Mista' : '';
   d.livingCost = fc.livingCost || '';
+  d.monthlyCostOfLiving = fc.livingCost || '';
   d.monthlyInvestment = fc.monthlyInvestment || '';
+  d.monthlyInvestmentB2 = fc.monthlyInvestment || '';
   d.alreadyInvesting = fc.alreadyInvesting || '';
+  d.alreadyInvestingB2 = fc.alreadyInvesting || '';
   d.emergencyMonths = fc.autonomyMonths || '';
+  d.emergencyMonthsB2 = fc.autonomyMonths || '';
 
   const om = raw.objetivosMetas || {};
   d.financialGoals = om.mainObjective || '';
@@ -426,9 +584,13 @@ export function migrateFromLegacy(raw: Record<string, any>): ConhecerClienteData
 
   const hm = raw.historicoMercado || {};
   d.hasInvestmentHistory = hm.investmentHistory || '';
+  d.hasInvestmentHistoryB5 = hm.investmentHistory || '';
   d.managementPreference = hm.managementPreference || '';
+  d.managementPreferenceB5 = hm.managementPreference || '';
   d.followUpFrequency = hm.followUpFrequency || '';
+  d.followUpFrequencyB5 = hm.followUpFrequency || '';
   d.successCriteria = hm.successCriteria || '';
+  d.successCriteriaB5 = hm.successCriteria || '';
 
   const de = raw.direcionamentoEstrategico || {};
   const ac = raw.arquiteturaCarteira || {};
@@ -445,7 +607,7 @@ export function migrateFromLegacy(raw: Record<string, any>): ConhecerClienteData
   d.bloco2Comment = ep.consultantComment || '';
   d.bloco3Comment = fc.consultantComment || '';
   d.bloco4Comment = om.consultantComment || '';
-  d.bloco5Comment = pr.consultantComment || '';
+  d.bloco5Comment = [pr.consultantComment, ps.consultantComment, hm.consultantComment].filter(Boolean).join('\n\n') || '';
   d.bloco6Comment = ps.consultantComment || '';
   d.bloco7Comment = hm.consultantComment || '';
   d.bloco8Comment = ac.consultantComment || de.consultantComment || '';
@@ -463,16 +625,16 @@ export function calculateProgress(data: ConhecerClienteData): number {
     // Bloco 2
     data.patrimonioFinanceiro || data.totalPatrimony || (data.patrimonioTableItems?.length > 0 ? 'yes' : ''),
     data.employmentType || data.hasBusinessParticipation,
+    data.monthlyCostOfLiving || data.livingCost,
+    data.monthlyInvestmentB2 || data.monthlyInvestment,
     // Bloco 3
-    data.monthlyRevenue, data.livingCost, data.monthlyInvestment, data.emergencyMonths,
+    data.hasLifeInsurance, data.hasDebtsB3, data.hasEmergencyReserveB3,
     // Bloco 4
-    data.financialGoals, data.successNumber,
+    data.financialGoals, data.successNumber || data.wantsRetirement,
     // Bloco 5
-    data.hasExperiencedDrops, data.maxAcceptableDrop,
-    // Bloco 6
-    data.hasSuccessionPlan,
-    // Bloco 7
-    data.hasInvestmentHistory, data.managementPreference,
+    data.dropReactionB5 || data.hasExperiencedDrops,
+    data.managementPreferenceB5 || data.managementPreference,
+    data.hasInvestmentHistoryB5 || data.hasInvestmentHistory,
     // Bloco 8
     data.strategicPriority, data.portfolioObjective,
   ];
