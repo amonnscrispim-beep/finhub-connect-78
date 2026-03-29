@@ -50,6 +50,10 @@ export default {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
         },
+        "color-positive": "hsl(var(--color-positive))",
+        "color-invested": "hsl(var(--color-invested))",
+        "color-total": "hsl(var(--color-total))",
+        "color-negative": "hsl(var(--color-negative))",
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
