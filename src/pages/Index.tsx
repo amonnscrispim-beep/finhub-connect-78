@@ -199,13 +199,10 @@ function CRMDashboard() {
               <GraduationCap className="w-4 h-4 mr-2" />
               Estudos
             </TabsTrigger>
-            <TabsTrigger 
-              value="calculadora"
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <Calculator className="w-4 h-4 mr-2" />
-              Calculadora de Juros
-            </TabsTrigger>
+            <FerramentasDropdown 
+              active={dashboardTab === 'ferramentas'} 
+              onSelect={(id) => { setFerramentaAtiva(id); setDashboardTab('ferramentas'); }} 
+            />
             <TabsTrigger 
               value="carteiras"
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
@@ -301,9 +298,19 @@ function CRMDashboard() {
             <StudiesArea />
           </TabsContent>
 
-          {/* CALCULADORA DE JUROS COMPOSTOS */}
-          <TabsContent value="calculadora" className="animate-fade-in">
-            <CompoundInterestCalculator />
+          {/* FERRAMENTAS */}
+          <TabsContent value="ferramentas" className="animate-fade-in">
+            {ferramentaAtiva === 'juros-compostos' && <JurosCompostos />}
+            {ferramentaAtiva === 'milhao' && <CalculadoraMilhao />}
+            {ferramentaAtiva === 'patrimonio-idade' && <PatrimonioIdade />}
+            {ferramentaAtiva === 'alugar-financiar' && <AlugarOuFinanciar />}
+            {ferramentaAtiva === 'vista-parcelada' && <VistaOuParcelada />}
+            {ferramentaAtiva === 'iof-caixinha' && <IOFCaixinha />}
+            {ferramentaAtiva === 'cdb' && <SimuladorCDB />}
+            {ferramentaAtiva === 'lci-lca' && <SimuladorLCILCA />}
+            {ferramentaAtiva === 'tesouro-pre' && <SimuladorTesouroPre />}
+            {ferramentaAtiva === 'tesouro-selic' && <SimuladorTesouroSelic />}
+            {ferramentaAtiva === 'dividendos' && <ViverDeDividendos />}
           </TabsContent>
 
           {/* CARTEIRAS RECOMENDADAS */}
