@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2, CalendarPlus, GraduationCap, Users, History, Calculator, Briefcase, FileText } from 'lucide-react';
+import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2, CalendarPlus, GraduationCap, Users, History, Briefcase, FileText } from 'lucide-react';
 import { ClientProvider, useClients } from '@/contexts/ClientContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useUrgentPendencies } from '@/hooks/useUrgentPendencies';
@@ -21,11 +21,22 @@ import { DashboardExecutive } from '@/components/crm/DashboardExecutive';
 import { GoogleCalendarConnect } from '@/components/crm/GoogleCalendarConnect';
 import { ScheduleMeetingModal } from '@/components/crm/ScheduleMeetingModal';
 import { StudiesArea } from '@/components/studies/StudiesArea';
-import { CompoundInterestCalculator } from '@/components/calculator/CompoundInterestCalculator';
 import { CarteirasRecomendadas } from '@/components/crm/carteiras/CarteirasRecomendadas';
 import { GeradorResumos } from '@/components/crm/relatorios/GeradorResumos';
 import { EmAtendimentoDrawer } from '@/components/crm/EmAtendimentoDrawer';
 import { RecentActivityDropdown } from '@/components/crm/RecentActivityDropdown';
+import { FerramentasDropdown, type FerramentaId } from '@/components/ferramentas/FerramentasDropdown';
+import { JurosCompostos } from '@/components/ferramentas/JurosCompostos';
+import { CalculadoraMilhao } from '@/components/ferramentas/CalculadoraMilhao';
+import { PatrimonioIdade } from '@/components/ferramentas/PatrimonioIdade';
+import { AlugarOuFinanciar } from '@/components/ferramentas/AlugarOuFinanciar';
+import { VistaOuParcelada } from '@/components/ferramentas/VistaOuParcelada';
+import { IOFCaixinha } from '@/components/ferramentas/IOFCaixinha';
+import { SimuladorCDB } from '@/components/ferramentas/SimuladorCDB';
+import { SimuladorLCILCA } from '@/components/ferramentas/SimuladorLCILCA';
+import { SimuladorTesouroPre } from '@/components/ferramentas/SimuladorTesouroPre';
+import { SimuladorTesouroSelic } from '@/components/ferramentas/SimuladorTesouroSelic';
+import { ViverDeDividendos } from '@/components/ferramentas/ViverDeDividendos';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -36,7 +47,8 @@ function CRMDashboard() {
   const { user, signOut } = useAuth();
   const { pendencies, isLoading: pendenciesLoading, addPendency, completePendency, removePendency, clientIdsWithPendencies } = useUrgentPendencies();
   const [view, setView] = useState<'table' | 'kanban'>('table');
-  const [dashboardTab, setDashboardTab] = useState<'operacional' | 'executivo' | 'estudos' | 'calculadora' | 'carteiras' | 'gerador'>('operacional');
+  const [dashboardTab, setDashboardTab] = useState<'operacional' | 'executivo' | 'estudos' | 'ferramentas' | 'carteiras' | 'gerador'>('operacional');
+  const [ferramentaAtiva, setFerramentaAtiva] = useState<FerramentaId>('juros-compostos');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>();
   const [pendingScheduleModalOpen, setPendingScheduleModalOpen] = useState(false);
@@ -187,13 +199,10 @@ function CRMDashboard() {
               <GraduationCap className="w-4 h-4 mr-2" />
               Estudos
             </TabsTrigger>
-            <TabsTrigger 
-              value="calculadora"
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <Calculator className="w-4 h-4 mr-2" />
-              Calculadora de Juros
-            </TabsTrigger>
+            <FerramentasDropdown 
+              active={dashboardTab === 'ferramentas'} 
+              onSelect={(id) => { setFerramentaAtiva(id); setDashboardTab('ferramentas'); }} 
+            />
             <TabsTrigger 
               value="carteiras"
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
@@ -289,9 +298,19 @@ function CRMDashboard() {
             <StudiesArea />
           </TabsContent>
 
-          {/* CALCULADORA DE JUROS COMPOSTOS */}
-          <TabsContent value="calculadora" className="animate-fade-in">
-            <CompoundInterestCalculator />
+          {/* FERRAMENTAS */}
+          <TabsContent value="ferramentas" className="animate-fade-in">
+            {ferramentaAtiva === 'juros-compostos' && <JurosCompostos />}
+            {ferramentaAtiva === 'milhao' && <CalculadoraMilhao />}
+            {ferramentaAtiva === 'patrimonio-idade' && <PatrimonioIdade />}
+            {ferramentaAtiva === 'alugar-financiar' && <AlugarOuFinanciar />}
+            {ferramentaAtiva === 'vista-parcelada' && <VistaOuParcelada />}
+            {ferramentaAtiva === 'iof-caixinha' && <IOFCaixinha />}
+            {ferramentaAtiva === 'cdb' && <SimuladorCDB />}
+            {ferramentaAtiva === 'lci-lca' && <SimuladorLCILCA />}
+            {ferramentaAtiva === 'tesouro-pre' && <SimuladorTesouroPre />}
+            {ferramentaAtiva === 'tesouro-selic' && <SimuladorTesouroSelic />}
+            {ferramentaAtiva === 'dividendos' && <ViverDeDividendos />}
           </TabsContent>
 
           {/* CARTEIRAS RECOMENDADAS */}
