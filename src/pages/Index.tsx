@@ -330,6 +330,11 @@ function CRMDashboard() {
           <TabsContent value="gerador" className="animate-fade-in">
             <GeradorResumos />
           </TabsContent>
+
+          {/* QUALIFICAÇÃO / VENDEDORES */}
+          <TabsContent value="vendedores" className="animate-fade-in">
+            <VendedoresTab />
+          </TabsContent>
         </Tabs>
       </main>
 
