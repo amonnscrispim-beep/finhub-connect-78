@@ -965,6 +965,89 @@ export type Database = {
         }
         Relationships: []
       }
+      leads: {
+        Row: {
+          como_chegou: string | null
+          created_at: string
+          email: string | null
+          fit_comercial: string | null
+          id: string
+          nome: string
+          nota_prontidao: number | null
+          observacoes_iniciais: string | null
+          relatorio: Json | null
+          status: string
+          telefone: string
+          updated_at: string
+          vendedor_id: string
+        }
+        Insert: {
+          como_chegou?: string | null
+          created_at?: string
+          email?: string | null
+          fit_comercial?: string | null
+          id?: string
+          nome: string
+          nota_prontidao?: number | null
+          observacoes_iniciais?: string | null
+          relatorio?: Json | null
+          status?: string
+          telefone?: string
+          updated_at?: string
+          vendedor_id: string
+        }
+        Update: {
+          como_chegou?: string | null
+          created_at?: string
+          email?: string | null
+          fit_comercial?: string | null
+          id?: string
+          nome?: string
+          nota_prontidao?: number | null
+          observacoes_iniciais?: string | null
+          relatorio?: Json | null
+          status?: string
+          telefone?: string
+          updated_at?: string
+          vendedor_id?: string
+        }
+        Relationships: []
+      }
+      mensagens_qualificacao: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          qualificacao_id: string
+          role: string
+          vendedor_id: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          qualificacao_id: string
+          role?: string
+          vendedor_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          qualificacao_id?: string
+          role?: string
+          vendedor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mensagens_qualificacao_qualificacao_id_fkey"
+            columns: ["qualificacao_id"]
+            isOneToOne: false
+            referencedRelation: "qualificacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       performance_positions: {
         Row: {
           ativo: string | null
@@ -1220,6 +1303,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      qualificacoes: {
+        Row: {
+          created_at: string
+          historico_chat: Json | null
+          id: string
+          lead_id: string
+          relatorio: Json | null
+          updated_at: string
+          vendedor_id: string
+        }
+        Insert: {
+          created_at?: string
+          historico_chat?: Json | null
+          id?: string
+          lead_id: string
+          relatorio?: Json | null
+          updated_at?: string
+          vendedor_id: string
+        }
+        Update: {
+          created_at?: string
+          historico_chat?: Json | null
+          id?: string
+          lead_id?: string
+          relatorio?: Json | null
+          updated_at?: string
+          vendedor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qualificacoes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       recommended_portfolio_assets: {
         Row: {
