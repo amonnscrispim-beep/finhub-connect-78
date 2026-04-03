@@ -23,6 +23,7 @@ import { ScheduleMeetingModal } from '@/components/crm/ScheduleMeetingModal';
 import { StudiesArea } from '@/components/studies/StudiesArea';
 import { CarteirasRecomendadas } from '@/components/crm/carteiras/CarteirasRecomendadas';
 import { GeradorResumos } from '@/components/crm/relatorios/GeradorResumos';
+import { VendedoresTab } from '@/components/vendedores/VendedoresTab';
 import { EmAtendimentoDrawer } from '@/components/crm/EmAtendimentoDrawer';
 import { RecentActivityDropdown } from '@/components/crm/RecentActivityDropdown';
 import { FerramentasDropdown, type FerramentaId } from '@/components/ferramentas/FerramentasDropdown';
