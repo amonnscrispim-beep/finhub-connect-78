@@ -48,7 +48,7 @@ function CRMDashboard() {
   const { user, signOut } = useAuth();
   const { pendencies, isLoading: pendenciesLoading, addPendency, completePendency, removePendency, clientIdsWithPendencies } = useUrgentPendencies();
   const [view, setView] = useState<'table' | 'kanban'>('table');
-  const [dashboardTab, setDashboardTab] = useState<'operacional' | 'executivo' | 'estudos' | 'ferramentas' | 'carteiras' | 'gerador'>('operacional');
+  const [dashboardTab, setDashboardTab] = useState<'operacional' | 'executivo' | 'estudos' | 'ferramentas' | 'carteiras' | 'gerador' | 'vendedores'>('operacional');
   const [ferramentaAtiva, setFerramentaAtiva] = useState<FerramentaId>('juros-compostos');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>();
