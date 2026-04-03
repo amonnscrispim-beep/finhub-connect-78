@@ -218,6 +218,13 @@ function CRMDashboard() {
               <FileText className="w-4 h-4 mr-2" />
               Gerador de Resumos
             </TabsTrigger>
+            <TabsTrigger 
+              value="vendedores"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <UserCheck className="w-4 h-4 mr-2" />
+              Qualificação
+            </TabsTrigger>
           </TabsList>
 
           {/* DASHBOARD OPERACIONAL - Existing functionality preserved */}
