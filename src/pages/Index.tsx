@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2, CalendarPlus, GraduationCap, Users, History, Briefcase, FileText, UserCheck } from 'lucide-react';
+import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2, CalendarPlus, GraduationCap, Users, History, Briefcase, FileText } from 'lucide-react';
 import { ClientProvider, useClients } from '@/contexts/ClientContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useUrgentPendencies } from '@/hooks/useUrgentPendencies';
@@ -23,7 +23,7 @@ import { ScheduleMeetingModal } from '@/components/crm/ScheduleMeetingModal';
 import { StudiesArea } from '@/components/studies/StudiesArea';
 import { CarteirasRecomendadas } from '@/components/crm/carteiras/CarteirasRecomendadas';
 import { GeradorResumos } from '@/components/crm/relatorios/GeradorResumos';
-import { VendedoresTab } from '@/components/vendedores/VendedoresTab';
+
 import { EmAtendimentoDrawer } from '@/components/crm/EmAtendimentoDrawer';
 import { RecentActivityDropdown } from '@/components/crm/RecentActivityDropdown';
 import { FerramentasDropdown, type FerramentaId } from '@/components/ferramentas/FerramentasDropdown';
