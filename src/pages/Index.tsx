@@ -48,7 +48,7 @@ function CRMDashboard() {
   const { user, signOut } = useAuth();
   const { pendencies, isLoading: pendenciesLoading, addPendency, completePendency, removePendency, clientIdsWithPendencies } = useUrgentPendencies();
   const [view, setView] = useState<'table' | 'kanban'>('table');
-  const [dashboardTab, setDashboardTab] = useState<'operacional' | 'executivo' | 'estudos' | 'ferramentas' | 'carteiras' | 'gerador' | 'vendedores'>('operacional');
+  const [dashboardTab, setDashboardTab] = useState<'operacional' | 'executivo' | 'estudos' | 'ferramentas' | 'carteiras' | 'gerador'>('operacional');
   const [ferramentaAtiva, setFerramentaAtiva] = useState<FerramentaId>('juros-compostos');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>();
@@ -218,13 +218,6 @@ function CRMDashboard() {
               <FileText className="w-4 h-4 mr-2" />
               Gerador de Resumos
             </TabsTrigger>
-            <TabsTrigger 
-              value="vendedores"
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <UserCheck className="w-4 h-4 mr-2" />
-              Qualificação
-            </TabsTrigger>
           </TabsList>
 
           {/* DASHBOARD OPERACIONAL - Existing functionality preserved */}
@@ -329,11 +322,6 @@ function CRMDashboard() {
           {/* GERADOR DE RESUMOS */}
           <TabsContent value="gerador" className="animate-fade-in">
             <GeradorResumos />
-          </TabsContent>
-
-          {/* QUALIFICAÇÃO / VENDEDORES */}
-          <TabsContent value="vendedores" className="animate-fade-in">
-            <VendedoresTab />
           </TabsContent>
         </Tabs>
       </main>
