@@ -3,6 +3,7 @@ import { Briefcase, Download, Plus, Search, Calendar, Clock } from 'lucide-react
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ThemePaletteToggle } from '@/components/ThemePaletteToggle';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -76,6 +77,7 @@ export function CRMHeader({ onExportCSV, onNewClient, searchQuery, onSearchChang
           {/* Actions */}
           <div className="flex items-center gap-2">
             <ThemeToggle />
+            <ThemePaletteToggle />
             <Button
               variant="ghost"
               size="sm"
