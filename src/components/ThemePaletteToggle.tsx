@@ -3,7 +3,7 @@ import { Palette, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
-type ThemeId = 'navy' | 'graphite' | 'moss' | 'petroleum';
+type ThemeId = 'btg' | 'navy' | 'graphite' | 'moss' | 'petroleum';
 
 interface ThemeOption {
   id: ThemeId;
@@ -17,6 +17,12 @@ interface ThemeOption {
 }
 
 const THEMES: ThemeOption[] = [
+  {
+    id: 'btg',
+    name: 'BTG Wealth',
+    preview: '#06183a',
+    vars: { background: '215 95% 6%', card: '218 81% 12%', border: '220 79% 23%' },
+  },
   {
     id: 'navy',
     name: 'Azul Marinho',
@@ -61,8 +67,8 @@ export function applyThemePalette(themeId: ThemeId) {
 
 export function ThemePaletteToggle() {
   const [active, setActive] = useState<ThemeId>(() => {
-    if (typeof window === 'undefined') return 'navy';
-    return (localStorage.getItem(STORAGE_KEY) as ThemeId) || 'navy';
+    if (typeof window === 'undefined') return 'btg';
+    return (localStorage.getItem(STORAGE_KEY) as ThemeId) || 'btg';
   });
   const [open, setOpen] = useState(false);
 
