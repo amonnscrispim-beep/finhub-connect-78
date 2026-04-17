@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2, CalendarPlus, GraduationCap, Users, History, Briefcase, FileText, UserCheck } from 'lucide-react';
+import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2, CalendarPlus, GraduationCap, Users, History, Briefcase, FileText } from 'lucide-react';
 import { ClientProvider, useClients } from '@/contexts/ClientContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useUrgentPendencies } from '@/hooks/useUrgentPendencies';
@@ -23,7 +23,7 @@ import { ScheduleMeetingModal } from '@/components/crm/ScheduleMeetingModal';
 import { StudiesArea } from '@/components/studies/StudiesArea';
 import { CarteirasRecomendadas } from '@/components/crm/carteiras/CarteirasRecomendadas';
 import { GeradorResumos } from '@/components/crm/relatorios/GeradorResumos';
-import { VendedoresTab } from '@/components/vendedores/VendedoresTab';
+
 import { EmAtendimentoDrawer } from '@/components/crm/EmAtendimentoDrawer';
 import { RecentActivityDropdown } from '@/components/crm/RecentActivityDropdown';
 import { FerramentasDropdown, type FerramentaId } from '@/components/ferramentas/FerramentasDropdown';
@@ -48,7 +48,7 @@ function CRMDashboard() {
   const { user, signOut } = useAuth();
   const { pendencies, isLoading: pendenciesLoading, addPendency, completePendency, removePendency, clientIdsWithPendencies } = useUrgentPendencies();
   const [view, setView] = useState<'table' | 'kanban'>('table');
-  const [dashboardTab, setDashboardTab] = useState<'operacional' | 'executivo' | 'estudos' | 'ferramentas' | 'carteiras' | 'gerador' | 'vendedores'>('operacional');
+  const [dashboardTab, setDashboardTab] = useState<'operacional' | 'executivo' | 'estudos' | 'ferramentas' | 'carteiras' | 'gerador'>('operacional');
   const [ferramentaAtiva, setFerramentaAtiva] = useState<FerramentaId>('juros-compostos');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>();
@@ -218,13 +218,6 @@ function CRMDashboard() {
               <FileText className="w-4 h-4 mr-2" />
               Gerador de Resumos
             </TabsTrigger>
-            <TabsTrigger 
-              value="vendedores"
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-            >
-              <UserCheck className="w-4 h-4 mr-2" />
-              Qualificação
-            </TabsTrigger>
           </TabsList>
 
           {/* DASHBOARD OPERACIONAL - Existing functionality preserved */}
@@ -329,11 +322,6 @@ function CRMDashboard() {
           {/* GERADOR DE RESUMOS */}
           <TabsContent value="gerador" className="animate-fade-in">
             <GeradorResumos />
-          </TabsContent>
-
-          {/* QUALIFICAÇÃO / VENDEDORES */}
-          <TabsContent value="vendedores" className="animate-fade-in">
-            <VendedoresTab />
           </TabsContent>
         </Tabs>
       </main>
