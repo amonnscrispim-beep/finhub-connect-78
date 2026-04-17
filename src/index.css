@@ -116,14 +116,14 @@
     --color-total: 45 95% 55%;
     --color-negative: 0 72% 51%;
 
-    --border: 0 0% 13%;
+    --border: 240 15% 22%;
     --input: 0 0% 10%;
     --ring: 162 100% 39%;
 
-    --kanban-bg: 0 0% 4%;
-    --kanban-column: 0 0% 7%;
-    --kanban-card: 0 0% 9%;
-    --kanban-card-hover: 0 0% 12%;
+    --kanban-bg: 240 15% 11%;
+    --kanban-column: 240 18% 16%;
+    --kanban-card: 240 20% 15%;
+    --kanban-card-hover: 240 22% 19%;
 
     --sidebar-background: 0 0% 5%;
     --sidebar-foreground: 0 0% 100%;
@@ -162,6 +162,11 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', sans-serif;
+  }
+
+  .dark body {
+    background: linear-gradient(180deg, hsl(0 0% 4%) 0%, hsl(225 25% 11%) 100%);
+    background-attachment: fixed;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -205,7 +210,17 @@
   }
 
   .kanban-card {
-    @apply bg-kanban-card rounded-lg p-4 shadow-card border border-border/50 cursor-grab active:cursor-grabbing transition-all duration-200 hover:shadow-md;
+    @apply bg-kanban-card rounded-lg p-4 shadow-card border border-border/50 cursor-grab active:cursor-grabbing transition-all duration-200 hover:shadow-md hover:bg-kanban-card-hover;
+  }
+
+  .dark .kanban-card {
+    box-shadow: 0 2px 8px hsl(162 100% 39% / 0.08), 0 1px 3px hsl(0 0% 0% / 0.4);
+    border-color: hsl(240 20% 25%);
+  }
+
+  .dark .kanban-card:hover {
+    box-shadow: 0 4px 14px hsl(162 100% 39% / 0.15), 0 2px 6px hsl(0 0% 0% / 0.5);
+    border-color: hsl(162 100% 39% / 0.3);
   }
 
   .kanban-card.dragging {
