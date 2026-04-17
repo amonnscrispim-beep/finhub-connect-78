@@ -164,6 +164,11 @@
     font-family: 'Inter', sans-serif;
   }
 
+  .dark body {
+    background: linear-gradient(180deg, hsl(0 0% 4%) 0%, hsl(225 25% 11%) 100%);
+    background-attachment: fixed;
+  }
+
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold tracking-tight;
   }
