@@ -6,25 +6,26 @@
 
 @layer base {
   :root {
-    --background: 220 16% 96%;
-    --foreground: 216 32% 15%;
+    /* BTG Wealth — Light Mode */
+    --background: 213 39% 96%;
+    --foreground: 217 96% 8%;
 
     --card: 0 0% 100%;
-    --card-foreground: 216 32% 15%;
+    --card-foreground: 217 96% 8%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 216 32% 15%;
+    --popover-foreground: 217 96% 8%;
 
-    --primary: 216 32% 15%;
+    --primary: 220 76% 42%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 93%;
-    --secondary-foreground: 216 32% 25%;
+    --secondary: 213 50% 92%;
+    --secondary-foreground: 217 96% 8%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 213 39% 94%;
+    --muted-foreground: 215 30% 39%;
 
-    --accent: 216 32% 20%;
+    --accent: 220 76% 42%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 6 78% 57%;
@@ -41,9 +42,9 @@
     --color-total: 37 90% 51%;
     --color-negative: 6 78% 57%;
 
-    --border: 220 13% 90%;
-    --input: 220 13% 90%;
-    --ring: 216 32% 15%;
+    --border: 210 50% 86%;
+    --input: 210 50% 86%;
+    --ring: 220 76% 42%;
 
     --radius: 0.75rem;
 
@@ -70,9 +71,9 @@
     --renewal-potential: 37 90% 51%;
     --renewal-none: 220 10% 70%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(216 32% 15%) 0%, hsl(216 32% 10%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(216 32% 20%) 0%, hsl(216 32% 15%) 100%);
-    --gradient-header: linear-gradient(135deg, hsl(216 32% 15%) 0%, hsl(216 32% 10%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(217 96% 8%) 0%, hsl(220 82% 24%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(220 76% 42%) 0%, hsl(217 78% 53%) 100%);
+    --gradient-header: linear-gradient(135deg, hsl(217 96% 8%) 0%, hsl(220 82% 24%) 100%);
     
     --shadow-sm: 0 1px 2px 0 hsl(216 32% 15% / 0.05);
     --shadow-md: 0 4px 6px -1px hsl(216 32% 15% / 0.1), 0 2px 4px -2px hsl(216 32% 15% / 0.1);
@@ -81,26 +82,27 @@
   }
 
   .dark {
-    --background: 0 0% 4%;
+    /* BTG Wealth — Dark Mode */
+    --background: 215 95% 6%;
     --foreground: 0 0% 100%;
 
-    --card: 0 0% 7%;
+    --card: 218 81% 12%;
     --card-foreground: 0 0% 100%;
 
-    --popover: 0 0% 7%;
+    --popover: 218 81% 12%;
     --popover-foreground: 0 0% 100%;
 
-    --primary: 162 100% 39%;
-    --primary-foreground: 0 0% 4%;
+    --primary: 220 76% 42%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 10%;
+    --secondary: 220 70% 18%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 0 0% 10%;
-    --muted-foreground: 0 0% 78%;
+    --muted: 218 60% 14%;
+    --muted-foreground: 210 38% 69%;
 
-    --accent: 162 100% 39%;
-    --accent-foreground: 0 0% 4%;
+    --accent: 217 78% 53%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
@@ -116,36 +118,36 @@
     --color-total: 45 95% 55%;
     --color-negative: 0 72% 51%;
 
-    --border: 240 15% 22%;
-    --input: 0 0% 10%;
-    --ring: 162 100% 39%;
+    --border: 220 79% 23%;
+    --input: 218 60% 14%;
+    --ring: 217 78% 53%;
 
-    --kanban-bg: 240 15% 11%;
-    --kanban-column: 240 18% 16%;
-    --kanban-card: 240 20% 15%;
-    --kanban-card-hover: 240 22% 19%;
+    --kanban-bg: 215 95% 6%;
+    --kanban-column: 218 81% 12%;
+    --kanban-card: 218 81% 12%;
+    --kanban-card-hover: 218 70% 16%;
 
-    --sidebar-background: 0 0% 5%;
+    --sidebar-background: 215 95% 6%;
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 162 100% 39%;
-    --sidebar-primary-foreground: 0 0% 4%;
-    --sidebar-accent: 0 0% 10%;
+    --sidebar-primary: 220 76% 42%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 70% 18%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 0 0% 13%;
-    --sidebar-ring: 162 100% 39%;
+    --sidebar-border: 220 79% 23%;
+    --sidebar-ring: 217 78% 53%;
 
-    --status-new: 162 100% 39%;
+    --status-new: 217 78% 53%;
     --status-attending: 37 90% 51%;
     --status-meeting: 280 84% 60%;
-    --status-conclusion: 162 100% 39%;
+    --status-conclusion: 162 70% 42%;
 
-    --renewal-active: 162 100% 39%;
+    --renewal-active: 162 70% 42%;
     --renewal-potential: 37 90% 51%;
-    --renewal-none: 0 0% 40%;
+    --renewal-none: 215 30% 50%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(0 0% 4%) 0%, hsl(0 0% 0%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(162 100% 39%) 0%, hsl(162 100% 32%) 100%);
-    --gradient-header: linear-gradient(135deg, hsl(0 0% 4%) 0%, hsl(0 0% 0%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(215 95% 6%) 0%, hsl(218 81% 4%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(220 76% 42%) 0%, hsl(217 78% 53%) 100%);
+    --gradient-header: linear-gradient(135deg, hsl(215 95% 6%) 0%, hsl(218 81% 10%) 100%);
 
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
     --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.5), 0 2px 4px -2px hsl(0 0% 0% / 0.4);
@@ -166,7 +168,7 @@
   }
 
   .dark body {
-    background: linear-gradient(180deg, hsl(0 0% 4%) 0%, hsl(225 25% 11%) 100%);
+    background: linear-gradient(180deg, hsl(215 95% 6%) 0%, hsl(218 81% 9%) 100%);
     background-attachment: fixed;
   }
 
@@ -215,13 +217,13 @@
   }
 
   .dark .kanban-card {
-    box-shadow: 0 2px 8px hsl(162 100% 39% / 0.08), 0 1px 3px hsl(0 0% 0% / 0.4);
-    border-color: hsl(240 20% 25%);
+    box-shadow: 0 2px 8px hsl(220 76% 42% / 0.10), 0 1px 3px hsl(215 95% 2% / 0.5);
+    border-color: hsl(220 79% 23%);
   }
 
   .dark .kanban-card:hover {
-    box-shadow: 0 4px 14px hsl(162 100% 39% / 0.15), 0 2px 6px hsl(0 0% 0% / 0.5);
-    border-color: hsl(162 100% 39% / 0.3);
+    box-shadow: 0 4px 14px hsl(220 76% 42% / 0.18), 0 2px 6px hsl(215 95% 2% / 0.55);
+    border-color: hsl(217 78% 53% / 0.4);
   }
 
   .kanban-card.dragging {
