@@ -116,14 +116,14 @@
     --color-total: 45 95% 55%;
     --color-negative: 0 72% 51%;
 
-    --border: 0 0% 13%;
+    --border: 240 15% 22%;
     --input: 0 0% 10%;
     --ring: 162 100% 39%;
 
-    --kanban-bg: 0 0% 4%;
-    --kanban-column: 0 0% 7%;
-    --kanban-card: 0 0% 9%;
-    --kanban-card-hover: 0 0% 12%;
+    --kanban-bg: 240 15% 11%;
+    --kanban-column: 240 18% 16%;
+    --kanban-card: 240 20% 15%;
+    --kanban-card-hover: 240 22% 19%;
 
     --sidebar-background: 0 0% 5%;
     --sidebar-foreground: 0 0% 100%;
