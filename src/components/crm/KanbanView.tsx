@@ -360,7 +360,6 @@ const COLUMN_COLORS: Record<string, string> = {
   'PRIVATE': 'bg-violet-500',
   'SELECT': 'bg-blue-500',
   'GROWTH': 'bg-emerald-500',
-  'CORE': 'bg-amber-500',
   'START': 'bg-slate-400',
 };
 
@@ -368,7 +367,6 @@ const COLUMN_BG: Record<string, string> = {
   'PRIVATE': 'bg-violet-500/5 border-violet-500/20',
   'SELECT': 'bg-blue-500/5 border-blue-500/20',
   'GROWTH': 'bg-emerald-500/5 border-emerald-500/20',
-  'CORE': 'bg-amber-500/5 border-amber-500/20',
   'START': 'bg-muted/30 border-border/50',
 };
 
@@ -587,39 +585,44 @@ function KanbanContent({ onEditClient, searchQuery = '', clientIdsWithPendencies
   
   const { activeClient } = useKanbanDnd();
 
-  // Auto-distribute clients into PRIVATE/SELECT/GROWTH/CORE/START
+  // Auto-distribute clients into PRIVATE/SELECT/GROWTH/START by exact slice rules
   const handleAutoDistribute = useCallback(async () => {
     setIsAutoFilling(true);
     try {
       const activeClients = clients.filter(c => !c.consultingFinished);
-      
+
       // Rank by patrimônio descending
       const withPatrimonio = activeClients
-        .map(c => ({ id: c.id, value: getPatrimonioValue(c), currentStage: c.funnelStage }))
+        .map(c => ({ id: c.id, value: getPatrimonioValue(c) }))
         .filter(x => x.value > 0)
         .sort((a, b) => b.value - a.value);
 
       const withoutPatrimonio = activeClients
         .filter(c => getPatrimonioValue(c) <= 0 && c.funnelStage !== 'Em atendimento');
 
-      // Distribute: first 10 → PRIVATE, next 10 → SELECT, next 10 → GROWTH, rest → CORE
-      const columns: FunnelStage[] = ['PRIVATE', 'SELECT', 'GROWTH', 'CORE'];
-      
-      const updates: { id: string; stage: FunnelStage; order: number }[] = [];
-      
-      for (let i = 0; i < withPatrimonio.length; i++) {
-        const columnIndex = Math.min(Math.floor(i / 10), columns.length - 1);
-        const positionInColumn = i - (columnIndex * 10);
-        updates.push({
-          id: withPatrimonio[i].id,
-          stage: columns[columnIndex],
-          order: (positionInColumn + 1) * 1000,
-        });
-      }
+      // Exact slice rules:
+      // PRIVATE: slice(0, 10)  -> Top 10
+      // SELECT:  slice(10, 20) -> 11º a 20º
+      // GROWTH:  slice(20, 40) -> 21º a 40º
+      // START:   slice(40)     -> 41º em diante + clientes sem patrimônio
+      const privateSlice = withPatrimonio.slice(0, 10);
+      const selectSlice = withPatrimonio.slice(10, 20);
+      const growthSlice = withPatrimonio.slice(20, 40);
+      const startFromPatrimony = withPatrimonio.slice(40);
 
-      // Clients without patrimônio → START
-      withoutPatrimonio.forEach((c, i) => {
-        updates.push({ id: c.id, stage: 'START', order: (i + 1) * 1000 });
+      const updates: { id: string; stage: FunnelStage; order: number }[] = [];
+
+      privateSlice.forEach((c, i) => updates.push({ id: c.id, stage: 'PRIVATE', order: (i + 1) * 1000 }));
+      selectSlice.forEach((c, i) => updates.push({ id: c.id, stage: 'SELECT', order: (i + 1) * 1000 }));
+      growthSlice.forEach((c, i) => updates.push({ id: c.id, stage: 'GROWTH', order: (i + 1) * 1000 }));
+
+      // START = restante por patrimônio (mantém ordem decrescente) + clientes sem patrimônio depois
+      let startIdx = 0;
+      startFromPatrimony.forEach((c) => {
+        updates.push({ id: c.id, stage: 'START', order: (++startIdx) * 1000 });
+      });
+      withoutPatrimonio.forEach((c) => {
+        updates.push({ id: c.id, stage: 'START', order: (++startIdx) * 1000 });
       });
 
       // Save previous_funnel_stage and update
@@ -634,7 +637,7 @@ function KanbanContent({ onEditClient, searchQuery = '', clientIdsWithPendencies
       }
 
       setTimeout(() => refetch(), 200);
-      toast.success(`Clientes redistribuídos! ${withPatrimonio.length} por patrimônio, ${withoutPatrimonio.length} em START.`);
+      toast.success(`Clientes redistribuídos! PRIVATE: ${privateSlice.length} | SELECT: ${selectSlice.length} | GROWTH: ${growthSlice.length} | START: ${startFromPatrimony.length + withoutPatrimonio.length}.`);
     } catch (err) {
       toast.error('Erro ao redistribuir clientes');
       console.error(err);
@@ -784,7 +787,7 @@ function KanbanContent({ onEditClient, searchQuery = '', clientIdsWithPendencies
           {isAutoFilling ? 'Redistribuindo...' : 'Resetar para automático'}
         </Button>
         <span className="text-xs text-muted-foreground">
-          Distribui por patrimônio: PRIVATE → SELECT → GROWTH → CORE (10 cada)
+          Distribui por patrimônio: PRIVATE (Top 10) → SELECT (11-20) → GROWTH (21-40) → START (Demais)
         </span>
       </div>
 

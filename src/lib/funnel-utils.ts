@@ -9,9 +9,9 @@ const STAGE_DISPLAY_MAP: Record<string, string> = {
   'PRIVATE': 'PRIVATE',
   'SELECT': 'SELECT',
   'GROWTH': 'GROWTH',
-  'CORE': 'CORE',
   'START': 'START',
   // Legacy stages
+  'CORE': 'CORE',
   '1ª Reunião agendada': '1ª Reunião',
   '2ª Reunião agendada': '2ª Reunião',
   '3ª Reunião agendada': '3ª Reunião',
@@ -45,9 +45,9 @@ export function getStageValueToSave(displayLabel: string): FunnelStage {
     'PRIVATE': 'PRIVATE',
     'SELECT': 'SELECT',
     'GROWTH': 'GROWTH',
-    'CORE': 'CORE',
     'START': 'START',
     // Legacy
+    'CORE': 'CORE',
     '1ª Reunião': '1ª Reunião agendada',
     '2ª Reunião': '2ª Reunião agendada',
     '3ª Reunião': '3ª Reunião agendada',
@@ -79,7 +79,6 @@ export const FUNNEL_STAGE_OPTIONS = [
   { value: 'PRIVATE', label: 'PRIVATE' },
   { value: 'SELECT', label: 'SELECT' },
   { value: 'GROWTH', label: 'GROWTH' },
-  { value: 'CORE', label: 'CORE' },
   { value: 'START', label: 'START' },
 ] as const;
 
