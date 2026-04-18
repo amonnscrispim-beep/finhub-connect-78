@@ -1381,11 +1381,6 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
             {/* SECTION: Relatório de Performance (aba dedicada) */}
             <div hidden={activeTab !== 'performance'} className="space-y-4">
               <RelatorioPerformance clientId={client?.id} investorProfile={formData.investorProfile} />
-
-              {/* Raio-X Consolidado (IA) */}
-              <div className="border-t border-border pt-4">
-                <RaioXConsolidado />
-              </div>
             </div>
 
             {/* SECTION: Arquivos e Resumos (Resultado da Consultoria + Arquivos do Cliente) */}
