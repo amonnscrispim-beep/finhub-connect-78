@@ -26,7 +26,6 @@ export function InactivityAlerts({ onEditClient }: InactivityAlertsProps) {
     const newAlerts: InactivityAlert[] = [];
 
     clients.forEach((client) => {
-      // Use max of lastActivityAt and latest completed task date
       let latestDate = client.lastActivityAt ? new Date(client.lastActivityAt) : client.updatedAt;
 
       const completedTasks = client.tasks?.filter(t => t.completed && t.completedAt) || [];
@@ -56,61 +55,51 @@ export function InactivityAlerts({ onEditClient }: InactivityAlertsProps) {
     const now = new Date();
     await updateClient(client.id, { lastActivityAt: now, updatedAt: now });
     await logActivity('follow_up', `Acompanhamento registrado para ${client.name}`, client.id, client.name);
-    // Remove from visible alerts immediately
     setDismissedAlerts(prev => new Set([...prev, client.id]));
   };
 
-  const displayedAlerts = visibleAlerts.slice(0, 3);
-
-  if (displayedAlerts.length === 0) return null;
+  if (visibleAlerts.length === 0) return null;
 
   return (
-    <div className="space-y-2">
-      {displayedAlerts.map((alert) => (
+    <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+      {visibleAlerts.map((alert) => (
         <div
           key={alert.client.id}
-          className="flex items-center justify-between gap-4 p-3 rounded-lg border animate-fade-in bg-muted/50 border-muted-foreground/30"
+          className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full border bg-muted/50 border-muted-foreground/30 animate-fade-in"
         >
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-full bg-muted-foreground/20">
-              <Clock className="w-4 h-4 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="font-medium text-sm text-muted-foreground">
-                ⏰ Sem acompanhamento há {alert.daysSinceActivity} dias
-              </p>
-              <p className="text-sm">
-                <span className="font-medium">{alert.client.name}</span>
-                <span className="text-muted-foreground"> - {alert.client.funnelStage}</span>
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
+          <Clock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
+            <span className="font-medium text-foreground">{alert.client.name}</span>
+            <span className="mx-1.5">·</span>
+            {alert.daysSinceActivity}d sem acompanhamento
+          </span>
+          <div className="flex items-center gap-0.5 ml-1">
             <Button
               size="sm"
               variant="ghost"
               onClick={() => handleCheckFollowUp(alert.client)}
-              className="h-8 text-green-600 hover:text-green-700 hover:bg-green-500/10"
+              className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-500/10"
               title="Marcar acompanhamento"
             >
-              <CheckCircle className="w-4 h-4" />
+              <CheckCircle className="w-3.5 h-3.5" />
             </Button>
             <Button
               size="sm"
               variant="ghost"
               onClick={() => onEditClient(alert.client)}
-              className="h-8"
+              className="h-6 w-6 p-0"
+              title="Abrir cliente"
             >
-              <ExternalLink className="w-3 h-3 mr-1" />
-              Abrir
+              <ExternalLink className="w-3.5 h-3.5" />
             </Button>
             <Button
               size="sm"
               variant="ghost"
               onClick={() => handleDismiss(alert.client.id)}
-              className="h-8 w-8 p-0"
+              className="h-6 w-6 p-0"
+              title="Dispensar"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
             </Button>
           </div>
         </div>
