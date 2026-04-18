@@ -1419,6 +1419,11 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 />
               </div>
 
+              {/* Raio-X Consolidado (IA) */}
+              <div className="border-t border-border pt-4 space-y-4">
+                <RaioXConsolidado />
+              </div>
+
               {/* Arquivos do Cliente */}
               <div className="border-t border-border pt-4 space-y-4">
                 <h4 className="font-semibold text-foreground flex items-center gap-2"><FileText className="w-4 h-4 text-primary" />Arquivos do Cliente</h4>
