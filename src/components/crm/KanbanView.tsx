@@ -800,8 +800,8 @@ function KanbanContent({ onEditClient, searchQuery = '', clientIdsWithPendencies
             const clientIds = stageClients.map(c => c.id);
             const isPatrimony = isPatrimonyColumn(stage);
             const patrimonioSum = columnPatrimonioSums[stage] || 0;
-            const columnBg = COLUMN_BG[stage] || 'bg-muted/30 border-border/50';
-            const dotColor = COLUMN_COLORS[stage] || 'bg-primary';
+            const columnBg = COLUMN_BG[stage] || 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800';
+            const headerColor = COLUMN_HEADER[stage] || 'bg-slate-700 text-white';
 
             // Insert Pendências Urgentes column after GROWTH (index of GROWTH in the array)
             const growthIndex = KANBAN_COLUMN_STAGES.indexOf('GROWTH' as FunnelStage);
@@ -809,27 +809,29 @@ function KanbanContent({ onEditClient, searchQuery = '', clientIdsWithPendencies
             
             return (
               <React.Fragment key={stage}>
-                <div className={cn("rounded-2xl p-4 min-h-[500px] w-80 flex-shrink-0 border transition-all duration-200", columnBg)}>
-                  {/* Column Header */}
+                <div className={cn("rounded-lg min-h-[500px] w-80 flex-shrink-0 border shadow-sm overflow-hidden flex flex-col", columnBg)}>
+                  {/* Column Header — solid institutional bar */}
                   <button
                     onClick={() => handleColumnHeaderClick(stage)}
-                    className="w-full flex items-center justify-between mb-4 pb-3 border-b border-border/50 hover:bg-muted/50 -mx-4 px-4 pt-1 -mt-1 rounded-t-xl transition-colors cursor-pointer"
+                    className={cn(
+                      "w-full flex items-center justify-between px-4 py-3 hover:opacity-90 transition-opacity cursor-pointer",
+                      headerColor
+                    )}
                   >
+                    <h3 className="font-semibold text-sm tracking-wider uppercase">{getStageDisplayLabel(stage)}</h3>
                     <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${dotColor} shadow-sm`} />
-                      <h3 className="font-bold text-sm text-foreground tracking-wide">{getStageDisplayLabel(stage)}</h3>
-                    </div>
-                    <div className="flex items-center gap-1.5">
                       {isPatrimony && patrimonioSum > 0 && (
-                        <span className="text-xs font-medium text-muted-foreground">
+                        <span className="text-xs font-medium opacity-90">
                           {formatCurrency(patrimonioSum)}
                         </span>
                       )}
-                      <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                      <span className="text-xs font-semibold bg-white/15 px-2 py-0.5 rounded">
                         {stageClients.length}
                       </span>
                     </div>
                   </button>
+
+                  <div className="p-3 flex-1">
 
                   <DroppableColumn stage={stage} clientIds={clientIds}>
                     {stageClients.map((client, index) => (
