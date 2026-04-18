@@ -50,7 +50,7 @@ import { CalendarIcon, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useClients } from '@/contexts/ClientContext';
 import { ClientFiles } from './ClientFiles';
-import { RaioXConsolidado } from './RaioXConsolidado';
+
 import { Progress } from '@/components/ui/progress';
 import { CollapsibleSection } from './CollapsibleSection';
 import { FinancialGoalsSection } from './FinancialGoalsSection';
