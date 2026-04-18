@@ -1227,17 +1227,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 </Select>
               </div>
 
-              {formData.contractedMeetings && (
-                <div className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
-                  <h4 className="font-medium text-foreground">O que foi feito em cada reunião</h4>
-                  {Array.from({ length: formData.contractedMeetings }, (_, i) => i + 1).map((meetingNum) => (
-                    <div key={meetingNum} className="space-y-2">
-                      <Label htmlFor={`meeting-${meetingNum}`}>{meetingNum}ª Reunião</Label>
-                      <Textarea id={`meeting-${meetingNum}`} value={formData.meetingNotes[meetingNum] || ''} onChange={(e) => handleMeetingNoteChange(meetingNum, e.target.value)} placeholder={`Anotações da ${meetingNum}ª reunião...`} className="crm-input min-h-[80px]" />
-                    </div>
-                  ))}
-                </div>
-              )}
+              {/* Sub-bloco "O que foi feito em cada reunião" foi movido para a aba Reuniões */}
+
 
               <div className="space-y-2">
                 <Label htmlFor="workDone">Trabalho Desenvolvido</Label>
@@ -1257,10 +1248,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   moduleNotes: { ...prev.moduleNotes, contract: value }
                 }))}
               />
-            </CollapsibleSection>
+            </div>
 
-            {/* SECTION 9: Status do Cliente */}
-            <CollapsibleSection title="Status do Cliente" icon={CheckCircle} defaultOpen={false}>
+            {/* SECTION 9 + Tarefas: Status do Cliente + ClientTasksSection — agrupados na aba "Tarefas e Status" */}
+            <div hidden={activeTab !== 'tasks'} className="space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {/* Etapa do funil */}
                 <div className="space-y-2">
