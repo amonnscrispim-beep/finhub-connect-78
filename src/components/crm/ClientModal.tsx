@@ -729,7 +729,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl w-[95vw] max-h-[92vh] p-0 flex flex-col gap-0">
+      <DialogContent
+        className="max-w-7xl w-[95vw] h-[90vh] p-0 flex flex-col gap-0 overflow-hidden"
+        style={{ resize: 'both' as const, minWidth: '720px', minHeight: '500px', maxWidth: '98vw', maxHeight: '95vh' }}
+      >
         {/* Sticky Header with progress */}
         <DialogHeader className="crm-header px-6 py-4 rounded-t-lg border-b border-border">
           <div className="flex items-center justify-between gap-4 flex-wrap">
