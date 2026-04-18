@@ -62,7 +62,49 @@ const INDEXER_LABEL: Record<string, string> = {
 
 export function FixedIncomeAnalysis({ reportIds, disabled }: Props) {
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [data, setData] = useState<FixedIncomeResult | null>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
+
+  const handleExportPDF = async () => {
+    if (!exportRef.current || !data) return;
+    setExporting(true);
+    try {
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ]);
+      const canvas = await html2canvas(exportRef.current, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        logging: false,
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth - 20;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 10;
+      pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight - 20;
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight + 10;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight - 20;
+      }
+      pdf.save('Analise_Renda_Fixa_Consolidada.pdf');
+      toast.success('PDF gerado com sucesso!');
+    } catch (e: any) {
+      console.error(e);
+      toast.error('Falha ao gerar PDF.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const handleAnalyze = async () => {
     if (reportIds.length === 0) {
