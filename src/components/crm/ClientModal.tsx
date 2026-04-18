@@ -280,6 +280,12 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   const [autoReportObservation, setAutoReportObservation] = useState('');
   const [reportConsultantObs, setReportConsultantObs] = useState('');
   const portfolio = useClientPortfolio(client?.id);
+  const [activeTab, setActiveTab] = useState<string>('personal');
+
+  // Reset to first tab whenever the modal opens
+  useEffect(() => {
+    if (open) setActiveTab('personal');
+  }, [open]);
 
   // Log client visit when modal opens
   useEffect(() => {
@@ -691,31 +697,96 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   // Check if client lives abroad
   const isExterior = formData.residence === 'Mora no exterior';
 
+  // Vertical tabs definition
+  const TABS = [
+    { id: 'personal', label: 'Informações Pessoais', icon: User },
+    { id: 'meetings', label: 'Reuniões', icon: Calendar },
+    { id: 'financial', label: 'Situação Financeira Atual', icon: DollarSign },
+    { id: 'debts', label: 'Dívidas e Obrigações', icon: CreditCard },
+    { id: 'pension', label: 'Previdência e Aposentadoria', icon: Landmark },
+    { id: 'goals', label: 'Metas Financeiras', icon: Target },
+    { id: 'portfolio', label: 'Arquitetura da Carteira', icon: PieChart },
+    { id: 'contracts', label: 'Contratos e Entregas', icon: ClipboardList },
+    { id: 'tasks', label: 'Tarefas e Status', icon: CheckCircle },
+    { id: 'reports', label: 'Relatórios e Arquivos', icon: FileText },
+  ] as const;
+
+  // Simple completion progress: count tabs that have at least one signal field filled
+  const completionSignals: Record<string, boolean> = {
+    personal: !!formData.name && !!formData.email,
+    meetings: !!conhecerData.fullName || Object.keys(formData.meetingNotes || {}).length > 0,
+    financial: !!formData.financialAssets || !!formData.monthlyRevenue,
+    debts: formData.debts.length > 0,
+    pension: !!formData.privatePensionStatus || !!formData.retirementAge,
+    goals: !!client || draftGoals.length > 0,
+    portfolio: !!formData.arquiteturaCarteira,
+    contracts: !!formData.contractedMeetings || !!formData.workDone,
+    tasks: !!formData.funnelStage,
+    reports: (formData.files?.length || 0) > 0 || !!formData.consultingInitialPatrimony,
+  };
+  const completedCount = Object.values(completionSignals).filter(Boolean).length;
+  const completionPct = Math.round((completedCount / TABS.length) * 100);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] p-0">
-        <DialogHeader className="crm-header p-6 rounded-t-lg">
-          <DialogTitle className="text-xl">
-            {client ? 'Editar Cliente' : 'Novo Cliente'}
-          </DialogTitle>
+      <DialogContent className="max-w-7xl w-[95vw] max-h-[92vh] p-0 flex flex-col gap-0">
+        {/* Sticky Header with progress */}
+        <DialogHeader className="crm-header px-6 py-4 rounded-t-lg border-b border-border">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <DialogTitle className="text-xl">
+              {client ? `Editar Cliente${formData.name ? ` — ${formData.name}` : ''}` : 'Novo Cliente'}
+            </DialogTitle>
+            <div className="flex items-center gap-3 min-w-[260px]">
+              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Perfil {completionPct}% completo</span>
+              <Progress value={completionPct} className="h-2 flex-1" />
+            </div>
+          </div>
         </DialogHeader>
-        
-        <div className="max-h-[calc(90vh-140px)] overflow-y-auto scrollbar-thin min-w-0">
-          <form onSubmit={handleSubmit} className="p-6 space-y-4 min-w-0">
-            
-            {/* Form Link Section - only show for existing clients */}
-            {client && (
-              <ClientFormLink
-                clientId={client.id}
-                clientName={client.name}
-                onFormCompleted={() => {
-                  // Reload client data after form sync
-                }}
-              />
-            )}
+
+        <form onSubmit={handleSubmit} className="flex-1 flex min-h-0 overflow-hidden">
+          {/* Sidebar (25%) */}
+          <aside className="w-[25%] min-w-[200px] max-w-[280px] border-r border-border bg-muted/30 overflow-y-auto scrollbar-thin">
+            <nav className="p-2 space-y-1">
+              {TABS.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    className={cn(
+                      'w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm text-left transition-colors',
+                      isActive
+                        ? 'bg-primary text-primary-foreground font-medium shadow-sm'
+                        : 'text-foreground/80 hover:bg-muted hover:text-foreground'
+                    )}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </aside>
+
+          {/* Content (75%) */}
+          <div className="flex-1 overflow-y-auto scrollbar-thin min-w-0">
+            <div className="p-6 space-y-4 min-w-0">
+
+              {/* Form Link Section - only show for existing clients */}
+              {client && (
+                <ClientFormLink
+                  clientId={client.id}
+                  clientName={client.name}
+                  onFormCompleted={() => {
+                    // Reload client data after form sync
+                  }}
+                />
+              )}
 
             {/* SECTION 1: Informações Pessoais - defaultOpen=false */}
-            <CollapsibleSection title="Informações Pessoais" icon={User} defaultOpen={false}>
+            <div hidden={activeTab !== 'personal'} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="contractStart">Início do Contrato</Label>
@@ -856,10 +927,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   moduleNotes: { ...prev.moduleNotes, personalInfo: value }
                 }))}
               />
-            </CollapsibleSection>
+            </div>
 
-            {/* SECTION 1.5: Conhecer o Cliente (Módulo Mestre) */}
-            <CollapsibleSection title="Conhecer o Cliente" icon={Search} defaultOpen={false}>
+            {/* SECTION 1.5: Conhecer o Cliente (Módulo Mestre) — agora dentro da aba Reuniões */}
+            <div hidden={activeTab !== 'meetings'} className="space-y-4">
               <ConhecerClienteModule
                 data={conhecerData}
                 onChange={setConhecerData}
@@ -868,12 +939,22 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 clientName={formData.name}
                 advisorName=""
               />
-            </CollapsibleSection>
-
-            {/* Estrutura Familiar agora integrada dentro do Diagnóstico Estratégico */}
+              {/* Anotações por reunião — movidas do bloco "Contrato, Reuniões e Entregas" */}
+              {formData.contractedMeetings && (
+                <div className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
+                  <h4 className="font-medium text-foreground">O que foi feito em cada reunião</h4>
+                  {Array.from({ length: formData.contractedMeetings }, (_, i) => i + 1).map((meetingNum) => (
+                    <div key={meetingNum} className="space-y-2">
+                      <Label htmlFor={`meeting-${meetingNum}`}>{meetingNum}ª Reunião</Label>
+                      <Textarea id={`meeting-${meetingNum}`} value={formData.meetingNotes[meetingNum] || ''} onChange={(e) => handleMeetingNoteChange(meetingNum, e.target.value)} placeholder={`Anotações da ${meetingNum}ª reunião...`} className="crm-input min-h-[80px]" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* SECTION 3: Situação Financeira Atual (Painel Automático) */}
-            <CollapsibleSection title="Situação Financeira Atual" icon={DollarSign} defaultOpen={false}>
+            <div hidden={activeTab !== 'financial'} className="space-y-4">
               <PainelFinanceiro
                 conhecerData={conhecerData}
                 overrides={{
@@ -907,10 +988,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   moduleNotes: { ...prev.moduleNotes, financial: value }
                 }))}
               />
-            </CollapsibleSection>
+            </div>
 
             {/* SECTION 4: Dívidas e Obrigações */}
-            <CollapsibleSection title="Dívidas e Obrigações" icon={CreditCard} defaultOpen={false}>
+            <div hidden={activeTab !== 'debts'} className="space-y-4">
               <div className="space-y-4">
                 {formData.debts.length === 0 && (
                   <p className="text-sm text-muted-foreground">Nenhuma dívida cadastrada. Clique no botão abaixo para adicionar.</p>
@@ -1050,10 +1131,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   placeholder="Ex: observações gerais sobre dívidas, contexto do cliente, acordos informais, renegociações futuras…"
                 />
               </div>
-            </CollapsibleSection>
+            </div>
 
             {/* SECTION 5: Previdência e Aposentadoria */}
-            <CollapsibleSection title="Previdência e Aposentadoria" icon={Landmark} defaultOpen={false}>
+            <div hidden={activeTab !== 'pension'} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="privatePensionStatus">Possui previdência privada?</Label>
@@ -1098,10 +1179,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   moduleNotes: { ...prev.moduleNotes, retirement: value }
                 }))}
               />
-            </CollapsibleSection>
+            </div>
 
             {/* SECTION 6: Metas Financeiras */}
-            <CollapsibleSection title="Metas Financeiras" icon={Target} defaultOpen={false}>
+            <div hidden={activeTab !== 'goals'} className="space-y-4">
               {client ? (
                 <FinancialGoalsSection clientId={client.id} />
               ) : (
@@ -1119,10 +1200,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   moduleNotes: { ...prev.moduleNotes, goals: value }
                 }))}
               />
-            </CollapsibleSection>
+            </div>
 
             {/* SECTION 7: Arquitetura Estratégica da Carteira (Painel Automático) */}
-            <CollapsibleSection title="Arquitetura Estratégica da Carteira" icon={PieChart} defaultOpen={false}>
+            <div hidden={activeTab !== 'portfolio'} className="space-y-4">
               <ArquiteturaEstrategicaPainel
                 arquiteturaCarteira={formData.arquiteturaCarteira}
                 arquiteturaEstrategica={formData.arquiteturaEstrategica}
@@ -1134,10 +1215,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 clientName={formData.name}
                 advisorName=""
               />
-            </CollapsibleSection>
+            </div>
 
-            {/* SECTION 9: Contrato, Reuniões e Entregas */}
-            <CollapsibleSection title="Contrato, Reuniões e Entregas" icon={Calendar} defaultOpen={false}>
+            {/* SECTION 8: Contratos e Entregas (sub-bloco de anotações por reunião foi movido para a aba "Reuniões") */}
+            <div hidden={activeTab !== 'contracts'} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="contractedMeetings">Quantidade de Reuniões</Label>
                 <Select value={formData.contractedMeetings?.toString() || ''} onValueChange={(value) => handleChange('contractedMeetings', value ? parseInt(value) as ContractedMeetings : null)}>
@@ -1146,17 +1227,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 </Select>
               </div>
 
-              {formData.contractedMeetings && (
-                <div className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
-                  <h4 className="font-medium text-foreground">O que foi feito em cada reunião</h4>
-                  {Array.from({ length: formData.contractedMeetings }, (_, i) => i + 1).map((meetingNum) => (
-                    <div key={meetingNum} className="space-y-2">
-                      <Label htmlFor={`meeting-${meetingNum}`}>{meetingNum}ª Reunião</Label>
-                      <Textarea id={`meeting-${meetingNum}`} value={formData.meetingNotes[meetingNum] || ''} onChange={(e) => handleMeetingNoteChange(meetingNum, e.target.value)} placeholder={`Anotações da ${meetingNum}ª reunião...`} className="crm-input min-h-[80px]" />
-                    </div>
-                  ))}
-                </div>
-              )}
+              {/* Sub-bloco "O que foi feito em cada reunião" foi movido para a aba Reuniões */}
+
 
               <div className="space-y-2">
                 <Label htmlFor="workDone">Trabalho Desenvolvido</Label>
@@ -1176,10 +1248,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   moduleNotes: { ...prev.moduleNotes, contract: value }
                 }))}
               />
-            </CollapsibleSection>
+            </div>
 
-            {/* SECTION 9: Status do Cliente */}
-            <CollapsibleSection title="Status do Cliente" icon={CheckCircle} defaultOpen={false}>
+            {/* SECTION 9 + Tarefas: Status do Cliente + ClientTasksSection — agrupados na aba "Tarefas e Status" */}
+            <div hidden={activeTab !== 'tasks'} className="space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {/* Etapa do funil */}
                 <div className="space-y-2">
@@ -1267,84 +1339,85 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   moduleNotes: { ...prev.moduleNotes, status: value }
                 }))}
               />
-            </CollapsibleSection>
+              {/* SECTION 10: Tarefas do Cliente (somente para clientes existentes) — agora dentro da aba "Tarefas e Status" */}
+              {client && (
+                <ClientTasksSection 
+                  client={client} 
+                  moduleNotes={formData.moduleNotes}
+                  onModuleNotesChange={(notes) => setFormData(prev => ({ ...prev, moduleNotes: notes }))}
+                />
+              )}
+            </div>
 
-            {/* SECTION 10: Tarefas do Cliente (somente para clientes existentes) */}
-            {client && (
-              <ClientTasksSection 
-                client={client} 
-                moduleNotes={formData.moduleNotes}
-                onModuleNotesChange={(notes) => setFormData(prev => ({ ...prev, moduleNotes: notes }))}
-              />
-            )}
-
-            {/* SECTION 10.5: Relatório de Performance */}
-            <CollapsibleSection title="Relatório de Performance" defaultOpen={false}>
+            {/* SECTION 10.5 + 11 + 12: Relatórios e Arquivos */}
+            <div hidden={activeTab !== 'reports'} className="space-y-4">
+              {/* Relatório de Performance */}
               <RelatorioPerformance clientId={client?.id} investorProfile={formData.investorProfile} />
-            </CollapsibleSection>
 
 
-            {/* SECTION 11: Resultado da Consultoria */}
-            <CollapsibleSection title="Resultado da Consultoria" icon={TrendingUp} defaultOpen={false}>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="consultingInitialPatrimony">Patrimônio no início da consultoria</Label>
-                  <CurrencyInput id="consultingInitialPatrimony" value={formData.consultingInitialPatrimony} onChange={(value) => handleChange('consultingInitialPatrimony', value)} />
+              {/* Resultado da Consultoria */}
+              <div className="border-t border-border pt-4 space-y-4">
+                <h4 className="font-semibold text-foreground flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" />Resultado da Consultoria</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="consultingInitialPatrimony">Patrimônio no início da consultoria</Label>
+                    <CurrencyInput id="consultingInitialPatrimony" value={formData.consultingInitialPatrimony} onChange={(value) => handleChange('consultingInitialPatrimony', value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="consultingFinalPatrimony">Patrimônio ao final do período</Label>
+                    <CurrencyInput id="consultingFinalPatrimony" value={formData.consultingFinalPatrimony} onChange={(value) => handleChange('consultingFinalPatrimony', value)} />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="consultingFinalPatrimony">Patrimônio ao final do período</Label>
-                  <CurrencyInput id="consultingFinalPatrimony" value={formData.consultingFinalPatrimony} onChange={(value) => handleChange('consultingFinalPatrimony', value)} />
-                </div>
+
+                {client && (
+                  <div className="border-t border-border pt-4 mt-4">
+                    <RelatorioAutomatizado
+                      client={client}
+                      assets={portfolio.assets}
+                      consultantObservation={autoReportObservation}
+                      onObservationChange={setAutoReportObservation}
+                      onObservationBlur={() => {}}
+                    />
+                  </div>
+                )}
+
+                <CollapsibleComments
+                  value={formData.moduleNotes.result || ''}
+                  onChange={(value) => setFormData(prev => ({
+                    ...prev,
+                    moduleNotes: { ...prev.moduleNotes, result: value }
+                  }))}
+                />
               </div>
 
-              {/* Relatório Automatizado */}
-              {client && (
-                <div className="border-t border-border pt-4 mt-4">
-                  <RelatorioAutomatizado
-                    client={client}
-                    assets={portfolio.assets}
-                    consultantObservation={autoReportObservation}
-                    onObservationChange={setAutoReportObservation}
-                    onObservationBlur={() => {}}
-                  />
-                </div>
-              )}
-
-              {/* Collapsible Comments */}
-              <CollapsibleComments
-                value={formData.moduleNotes.result || ''}
-                onChange={(value) => setFormData(prev => ({
-                  ...prev,
-                  moduleNotes: { ...prev.moduleNotes, result: value }
-                }))}
-              />
-            </CollapsibleSection>
-
-            {/* SECTION 12: Arquivos do Cliente */}
-            <CollapsibleSection title="Arquivos do Cliente" icon={FileText} defaultOpen={false}>
-              <ClientFiles files={formData.files} onFilesChange={handleFilesChange} />
-
-              {/* Collapsible Comments */}
-              <CollapsibleComments
-                value={formData.moduleNotes.files || ''}
-                onChange={(value) => setFormData(prev => ({
-                  ...prev,
-                  moduleNotes: { ...prev.moduleNotes, files: value }
-                }))}
-                placeholder="Comentários sobre documentos, pendências, envios…"
-              />
-            </CollapsibleSection>
-
-            {/* Submit Button */}
-            <div className="pt-4 flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button type="submit" className="crm-button-primary" disabled={isSaving}>
-                {isSaving ? 'Salvando...' : (client ? 'Salvar Alterações' : 'Adicionar Cliente')}
-              </Button>
+              {/* Arquivos do Cliente */}
+              <div className="border-t border-border pt-4 space-y-4">
+                <h4 className="font-semibold text-foreground flex items-center gap-2"><FileText className="w-4 h-4 text-primary" />Arquivos do Cliente</h4>
+                <ClientFiles files={formData.files} onFilesChange={handleFilesChange} />
+                <CollapsibleComments
+                  value={formData.moduleNotes.files || ''}
+                  onChange={(value) => setFormData(prev => ({
+                    ...prev,
+                    moduleNotes: { ...prev.moduleNotes, files: value }
+                  }))}
+                  placeholder="Comentários sobre documentos, pendências, envios…"
+                />
+              </div>
             </div>
-          </form>
-        </div>
+
+            </div>
+          </div>
+
+          {/* Sticky Footer */}
+          <div className="border-t border-border bg-card px-6 py-3 flex justify-end gap-3 flex-shrink-0">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button type="submit" className="crm-button-primary" disabled={isSaving}>
+              {isSaving ? 'Salvando...' : (client ? 'Salvar Alterações' : 'Adicionar Cliente')}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
 }
+
