@@ -1411,6 +1411,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
 
             </div>
           </div>
+          </div>
 
           {/* Sticky Footer */}
           <div className="border-t border-border bg-card px-6 py-3 flex justify-end gap-3 flex-shrink-0">
