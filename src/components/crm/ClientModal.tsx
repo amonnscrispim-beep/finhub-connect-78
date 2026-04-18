@@ -708,7 +708,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     { id: 'portfolio', label: 'Arquitetura da Carteira', icon: PieChart },
     { id: 'contracts', label: 'Contratos e Entregas', icon: ClipboardList },
     { id: 'tasks', label: 'Tarefas e Status', icon: CheckCircle },
-    { id: 'reports', label: 'Relatórios e Arquivos', icon: FileText },
+    { id: 'performance', label: 'Relatório de Performance', icon: BarChart3 },
+    { id: 'reports', label: 'Arquivos e Resumos', icon: FileText },
   ] as const;
 
   // Simple completion progress: count tabs that have at least one signal field filled
@@ -722,6 +723,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     portfolio: !!formData.arquiteturaCarteira,
     contracts: !!formData.contractedMeetings || !!formData.workDone,
     tasks: !!formData.funnelStage,
+    performance: !!client,
     reports: (formData.files?.length || 0) > 0 || !!formData.consultingInitialPatrimony,
   };
   const completedCount = Object.values(completionSignals).filter(Boolean).length;
@@ -1353,14 +1355,15 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               )}
             </div>
 
-            {/* SECTION 10.5 + 11 + 12: Relatórios e Arquivos */}
-            <div hidden={activeTab !== 'reports'} className="space-y-4">
-              {/* Relatório de Performance */}
+            {/* SECTION: Relatório de Performance (aba dedicada) */}
+            <div hidden={activeTab !== 'performance'} className="space-y-4">
               <RelatorioPerformance clientId={client?.id} investorProfile={formData.investorProfile} />
+            </div>
 
-
+            {/* SECTION: Arquivos e Resumos (Resultado da Consultoria + Arquivos do Cliente) */}
+            <div hidden={activeTab !== 'reports'} className="space-y-4">
               {/* Resultado da Consultoria */}
-              <div className="border-t border-border pt-4 space-y-4">
+              <div className="space-y-4">
                 <h4 className="font-semibold text-foreground flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" />Resultado da Consultoria</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
