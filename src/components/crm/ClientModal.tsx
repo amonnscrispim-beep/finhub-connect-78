@@ -1355,67 +1355,69 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               <RelatorioPerformance clientId={client?.id} investorProfile={formData.investorProfile} />
 
 
-            {/* SECTION 11: Resultado da Consultoria */}
-            <CollapsibleSection title="Resultado da Consultoria" icon={TrendingUp} defaultOpen={false}>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="consultingInitialPatrimony">Patrimônio no início da consultoria</Label>
-                  <CurrencyInput id="consultingInitialPatrimony" value={formData.consultingInitialPatrimony} onChange={(value) => handleChange('consultingInitialPatrimony', value)} />
+              {/* Resultado da Consultoria */}
+              <div className="border-t border-border pt-4 space-y-4">
+                <h4 className="font-semibold text-foreground flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" />Resultado da Consultoria</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="consultingInitialPatrimony">Patrimônio no início da consultoria</Label>
+                    <CurrencyInput id="consultingInitialPatrimony" value={formData.consultingInitialPatrimony} onChange={(value) => handleChange('consultingInitialPatrimony', value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="consultingFinalPatrimony">Patrimônio ao final do período</Label>
+                    <CurrencyInput id="consultingFinalPatrimony" value={formData.consultingFinalPatrimony} onChange={(value) => handleChange('consultingFinalPatrimony', value)} />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="consultingFinalPatrimony">Patrimônio ao final do período</Label>
-                  <CurrencyInput id="consultingFinalPatrimony" value={formData.consultingFinalPatrimony} onChange={(value) => handleChange('consultingFinalPatrimony', value)} />
-                </div>
+
+                {client && (
+                  <div className="border-t border-border pt-4 mt-4">
+                    <RelatorioAutomatizado
+                      client={client}
+                      assets={portfolio.assets}
+                      consultantObservation={autoReportObservation}
+                      onObservationChange={setAutoReportObservation}
+                      onObservationBlur={() => {}}
+                    />
+                  </div>
+                )}
+
+                <CollapsibleComments
+                  value={formData.moduleNotes.result || ''}
+                  onChange={(value) => setFormData(prev => ({
+                    ...prev,
+                    moduleNotes: { ...prev.moduleNotes, result: value }
+                  }))}
+                />
               </div>
 
-              {/* Relatório Automatizado */}
-              {client && (
-                <div className="border-t border-border pt-4 mt-4">
-                  <RelatorioAutomatizado
-                    client={client}
-                    assets={portfolio.assets}
-                    consultantObservation={autoReportObservation}
-                    onObservationChange={setAutoReportObservation}
-                    onObservationBlur={() => {}}
-                  />
-                </div>
-              )}
-
-              {/* Collapsible Comments */}
-              <CollapsibleComments
-                value={formData.moduleNotes.result || ''}
-                onChange={(value) => setFormData(prev => ({
-                  ...prev,
-                  moduleNotes: { ...prev.moduleNotes, result: value }
-                }))}
-              />
-            </CollapsibleSection>
-
-            {/* SECTION 12: Arquivos do Cliente */}
-            <CollapsibleSection title="Arquivos do Cliente" icon={FileText} defaultOpen={false}>
-              <ClientFiles files={formData.files} onFilesChange={handleFilesChange} />
-
-              {/* Collapsible Comments */}
-              <CollapsibleComments
-                value={formData.moduleNotes.files || ''}
-                onChange={(value) => setFormData(prev => ({
-                  ...prev,
-                  moduleNotes: { ...prev.moduleNotes, files: value }
-                }))}
-                placeholder="Comentários sobre documentos, pendências, envios…"
-              />
-            </CollapsibleSection>
-
-            {/* Submit Button */}
-            <div className="pt-4 flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button type="submit" className="crm-button-primary" disabled={isSaving}>
-                {isSaving ? 'Salvando...' : (client ? 'Salvar Alterações' : 'Adicionar Cliente')}
-              </Button>
+              {/* Arquivos do Cliente */}
+              <div className="border-t border-border pt-4 space-y-4">
+                <h4 className="font-semibold text-foreground flex items-center gap-2"><FileText className="w-4 h-4 text-primary" />Arquivos do Cliente</h4>
+                <ClientFiles files={formData.files} onFilesChange={handleFilesChange} />
+                <CollapsibleComments
+                  value={formData.moduleNotes.files || ''}
+                  onChange={(value) => setFormData(prev => ({
+                    ...prev,
+                    moduleNotes: { ...prev.moduleNotes, files: value }
+                  }))}
+                  placeholder="Comentários sobre documentos, pendências, envios…"
+                />
+              </div>
             </div>
-          </form>
-        </div>
+
+            </div>
+          </div>
+
+          {/* Sticky Footer */}
+          <div className="border-t border-border bg-card px-6 py-3 flex justify-end gap-3 flex-shrink-0">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button type="submit" className="crm-button-primary" disabled={isSaving}>
+              {isSaving ? 'Salvando...' : (client ? 'Salvar Alterações' : 'Adicionar Cliente')}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
 }
+
