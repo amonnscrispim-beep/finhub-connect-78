@@ -143,24 +143,45 @@ export function FixedIncomeAnalysis({ reportIds, disabled }: Props) {
             <b> Setor</b> e <b>Indexador</b>.
           </p>
         </div>
-        <Button
-          type="button"
-          size="sm"
-          onClick={handleAnalyze}
-          disabled={loading || disabled || reportIds.length === 0}
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              A IA está analisando as carteiras...
-            </>
-          ) : (
-            <>
-              <Sparkles className="w-4 h-4 mr-2" />
-              Analisar PDFs (Consolidado)
-            </>
-          )}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={handleExportPDF}
+            disabled={exporting || loading || !data}
+          >
+            {exporting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Gerando PDF...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4 mr-2" />
+                Exportar PDF
+              </>
+            )}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleAnalyze}
+            disabled={loading || disabled || reportIds.length === 0}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                A IA está analisando as carteiras...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 mr-2" />
+                Analisar PDFs (Consolidado)
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* LOADING SKELETONS */}
