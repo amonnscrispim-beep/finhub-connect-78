@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Sparkles, Loader2, Building2, Layers, TrendingUp, AlertCircle } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Sparkles, Loader2, Building2, Layers, TrendingUp, AlertCircle, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
