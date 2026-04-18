@@ -405,19 +405,19 @@ function PendenciasUrgentesColumn({ pendencies, pendenciesLoading, animatingPend
   onRemove: (id: string) => void;
 }) {
   return (
-    <div className="rounded-2xl min-h-[500px] w-80 flex-shrink-0 border-2 border-destructive/30 bg-destructive/5 overflow-hidden">
-      {/* Header */}
-      <div className="bg-destructive/90 px-4 py-3 flex items-center justify-between rounded-t-xl">
+    <div className="rounded-lg min-h-[500px] w-80 flex-shrink-0 border border-red-900/30 dark:border-red-900/50 bg-slate-50 dark:bg-slate-900/40 shadow-sm overflow-hidden flex flex-col">
+      {/* Header — bordô institucional */}
+      <div className="bg-red-900 dark:bg-red-950 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-destructive-foreground" />
-          <h3 className="font-bold text-sm text-destructive-foreground tracking-wide">
+          <AlertTriangle className="w-4 h-4 text-white" />
+          <h3 className="font-semibold text-sm text-white tracking-wider uppercase">
             PENDÊNCIAS URGENTES ({pendencies.length})
           </h3>
         </div>
         <Button
           size="sm"
           variant="ghost"
-          className="h-7 px-2 text-destructive-foreground hover:bg-destructive-foreground/20"
+          className="h-7 px-2 text-white hover:bg-white/15"
           onClick={onOpenModal}
         >
           <Plus className="w-4 h-4 mr-1" />
