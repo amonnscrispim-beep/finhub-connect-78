@@ -279,12 +279,12 @@ export function FixedIncomeAnalysis({ reportIds, disabled }: Props) {
 
           {/* Observações */}
           {data.observacoes.length > 0 && (
-            <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-md space-y-1">
-              <p className="text-xs font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-1">
+            <div className="p-3 bg-muted/40 border border-border rounded-md space-y-1">
+              <p className="text-xs font-semibold text-foreground flex items-center gap-1">
                 <AlertCircle className="w-3 h-3" /> Observações da IA
               </p>
               {data.observacoes.map((o, i) => (
-                <p key={i} className="text-xs text-amber-900 dark:text-amber-200">• {o}</p>
+                <p key={i} className="text-xs text-muted-foreground">• {o}</p>
               ))}
             </div>
           )}
