@@ -8,6 +8,7 @@ import { LiquidityChart } from './LiquidityChart';
 import { BrokerCard } from './BrokerCard';
 import { MaturityAgenda } from './MaturityAgenda';
 import { StrategicAlerts } from './StrategicAlerts';
+import { MaturityRadar } from './MaturityRadar';
 
 interface LiquidityDashboardProps {
   reports: {
