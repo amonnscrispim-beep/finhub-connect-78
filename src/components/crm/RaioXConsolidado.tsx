@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
-import { Upload, FileText, Trash2, Loader2, Sparkles, TrendingUp, Wallet, AlertTriangle, Calendar, PieChart } from 'lucide-react';
+import { Upload, FileText, Trash2, Loader2, Sparkles, TrendingUp, Wallet, AlertTriangle, Calendar, PieChart, Info } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -60,7 +61,7 @@ const generateId = () => Math.random().toString(36).slice(2, 11);
  */
 async function callAIRaioX(_consolidatedText: string, brokers: string[]): Promise<RaioX> {
   // Simulate latency
-  await new Promise((r) => setTimeout(r, 1800));
+  await new Promise((r) => setTimeout(r, 3000));
 
   // Mock data — replace with real AI parsing
   return {
@@ -255,7 +256,7 @@ export function RaioXConsolidado() {
         {isAnalyzing ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin mr-2" />
-            Analisando {readyCount} relatório(s)...
+            Analisando PDFs com IA...
           </>
         ) : (
           <>
@@ -274,6 +275,14 @@ export function RaioXConsolidado() {
 function RaioXDashboard({ data }: { data: RaioX }) {
   return (
     <div className="space-y-4 pt-2">
+      {/* Mock data warning banner */}
+      <Alert className="border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40">
+        <Info className="h-4 w-4 !text-amber-700 dark:!text-amber-400" />
+        <AlertDescription className="text-amber-900 dark:text-amber-200 text-xs font-medium">
+          <strong>Modo de Demonstração:</strong> Os dados abaixo são ilustrativos. A integração com IA está pendente.
+        </AlertDescription>
+      </Alert>
+
       <div className="flex items-center gap-2">
         <Sparkles className="w-4 h-4 text-amber-500" />
         <h4 className="font-semibold text-foreground">Raio-X Consolidado</h4>

@@ -1381,6 +1381,11 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
             {/* SECTION: Relatório de Performance (aba dedicada) */}
             <div hidden={activeTab !== 'performance'} className="space-y-4">
               <RelatorioPerformance clientId={client?.id} investorProfile={formData.investorProfile} />
+
+              {/* Raio-X Consolidado (IA) */}
+              <div className="border-t border-border pt-4">
+                <RaioXConsolidado />
+              </div>
             </div>
 
             {/* SECTION: Arquivos e Resumos (Resultado da Consultoria + Arquivos do Cliente) */}
@@ -1420,13 +1425,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 />
               </div>
 
-              {/* Raio-X Consolidado (IA) */}
-              <div className="border-t border-border pt-4 space-y-4">
-                <RaioXConsolidado />
-              </div>
-
               {/* Arquivos do Cliente */}
-              <div className="border-t border-border pt-4 space-y-4">
+              <div className="space-y-4">
                 <h4 className="font-semibold text-foreground flex items-center gap-2"><FileText className="w-4 h-4 text-primary" />Arquivos do Cliente</h4>
                 <ClientFiles files={formData.files} onFilesChange={handleFilesChange} />
                 <CollapsibleComments
