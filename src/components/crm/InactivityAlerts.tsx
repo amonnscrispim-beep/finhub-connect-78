@@ -65,20 +65,20 @@ export function InactivityAlerts({ onEditClient }: InactivityAlertsProps) {
       {visibleAlerts.map((alert) => (
         <div
           key={alert.client.id}
-          className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full border bg-muted/50 border-muted-foreground/30 animate-fade-in"
+          className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded border bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-900/50 animate-fade-in"
         >
-          <Clock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-          <span className="text-xs text-muted-foreground whitespace-nowrap">
-            <span className="font-medium text-foreground">{alert.client.name}</span>
-            <span className="mx-1.5">·</span>
-            {alert.daysSinceActivity}d sem acompanhamento
+          <Clock className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400 flex-shrink-0" />
+          <span className="text-xs text-amber-900 dark:text-amber-100 whitespace-nowrap">
+            <span className="font-semibold">{alert.client.name}</span>
+            <span className="mx-1.5 opacity-60">·</span>
+            <span className="opacity-80">{alert.daysSinceActivity}d sem acompanhamento</span>
           </span>
           <div className="flex items-center gap-0.5 ml-1">
             <Button
               size="sm"
               variant="ghost"
               onClick={() => handleCheckFollowUp(alert.client)}
-              className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-500/10"
+              className="h-6 w-6 p-0 text-amber-800 dark:text-amber-200 hover:bg-amber-200/60 dark:hover:bg-amber-900/40"
               title="Marcar acompanhamento"
             >
               <CheckCircle className="w-3.5 h-3.5" />
@@ -87,7 +87,7 @@ export function InactivityAlerts({ onEditClient }: InactivityAlertsProps) {
               size="sm"
               variant="ghost"
               onClick={() => onEditClient(alert.client)}
-              className="h-6 w-6 p-0"
+              className="h-6 w-6 p-0 text-amber-800 dark:text-amber-200 hover:bg-amber-200/60 dark:hover:bg-amber-900/40"
               title="Abrir cliente"
             >
               <ExternalLink className="w-3.5 h-3.5" />
@@ -96,7 +96,7 @@ export function InactivityAlerts({ onEditClient }: InactivityAlertsProps) {
               size="sm"
               variant="ghost"
               onClick={() => handleDismiss(alert.client.id)}
-              className="h-6 w-6 p-0"
+              className="h-6 w-6 p-0 text-amber-800 dark:text-amber-200 hover:bg-amber-200/60 dark:hover:bg-amber-900/40"
               title="Dispensar"
             >
               <X className="w-3.5 h-3.5" />
