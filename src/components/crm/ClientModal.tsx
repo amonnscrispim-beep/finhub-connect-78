@@ -1339,21 +1339,20 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   moduleNotes: { ...prev.moduleNotes, status: value }
                 }))}
               />
-            </CollapsibleSection>
+              {/* SECTION 10: Tarefas do Cliente (somente para clientes existentes) — agora dentro da aba "Tarefas e Status" */}
+              {client && (
+                <ClientTasksSection 
+                  client={client} 
+                  moduleNotes={formData.moduleNotes}
+                  onModuleNotesChange={(notes) => setFormData(prev => ({ ...prev, moduleNotes: notes }))}
+                />
+              )}
+            </div>
 
-            {/* SECTION 10: Tarefas do Cliente (somente para clientes existentes) */}
-            {client && (
-              <ClientTasksSection 
-                client={client} 
-                moduleNotes={formData.moduleNotes}
-                onModuleNotesChange={(notes) => setFormData(prev => ({ ...prev, moduleNotes: notes }))}
-              />
-            )}
-
-            {/* SECTION 10.5: Relatório de Performance */}
-            <CollapsibleSection title="Relatório de Performance" defaultOpen={false}>
+            {/* SECTION 10.5 + 11 + 12: Relatórios e Arquivos */}
+            <div hidden={activeTab !== 'reports'} className="space-y-4">
+              {/* Relatório de Performance */}
               <RelatorioPerformance clientId={client?.id} investorProfile={formData.investorProfile} />
-            </CollapsibleSection>
 
 
             {/* SECTION 11: Resultado da Consultoria */}
