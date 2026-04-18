@@ -61,7 +61,7 @@ const generateId = () => Math.random().toString(36).slice(2, 11);
  */
 async function callAIRaioX(_consolidatedText: string, brokers: string[]): Promise<RaioX> {
   // Simulate latency
-  await new Promise((r) => setTimeout(r, 1800));
+  await new Promise((r) => setTimeout(r, 3000));
 
   // Mock data — replace with real AI parsing
   return {
