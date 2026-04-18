@@ -256,7 +256,7 @@ export function RaioXConsolidado() {
         {isAnalyzing ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin mr-2" />
-            Analisando {readyCount} relatório(s)...
+            Analisando PDFs com IA...
           </>
         ) : (
           <>
