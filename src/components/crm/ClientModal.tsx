@@ -746,9 +746,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex-1 flex min-h-0 overflow-hidden">
-          {/* Sidebar (25%) */}
-          <aside className="w-[25%] min-w-[200px] max-w-[280px] border-r border-border bg-muted/30 overflow-y-auto scrollbar-thin">
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="flex-1 flex min-h-0 overflow-hidden">
+          {/* Sidebar (25%) — fixed, no scroll on outer container */}
+          <aside className="w-[25%] min-w-[200px] max-w-[280px] border-r border-border bg-muted/30 overflow-y-auto scrollbar-thin flex-shrink-0">
             <nav className="p-2 space-y-1">
               {TABS.map((tab) => {
                 const Icon = tab.icon;
