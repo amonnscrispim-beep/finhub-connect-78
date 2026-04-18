@@ -241,6 +241,30 @@ const KanbanCardComponent = memo(function KanbanCard({
         </div>
       )}
 
+      {/* Meeting recurrence badge */}
+      {(() => {
+        const period = (client as any).meetingPeriodicityDays ?? 30;
+        const lastMeeting = client.lastActivityAt ? new Date(client.lastActivityAt) : null;
+        if (!lastMeeting || !period) return null;
+        const daysSince = Math.floor((Date.now() - lastMeeting.getTime()) / (1000 * 60 * 60 * 24));
+        const daysLeft = period - daysSince;
+        if (daysLeft < 0) {
+          return (
+            <div className="mb-2 inline-block ml-1 text-[10px] font-bold tracking-wide uppercase bg-red-700 text-white px-2 py-0.5 rounded">
+              Reunião em atraso
+            </div>
+          );
+        }
+        if (daysLeft <= 7) {
+          return (
+            <div className="mb-2 inline-block ml-1 text-[10px] font-bold tracking-wide uppercase bg-amber-400 text-amber-950 px-2 py-0.5 rounded">
+              Reunião próxima
+            </div>
+          );
+        }
+        return null;
+      })()}
+
       {client.objective && (
         <div className="mb-3 p-2 rounded-lg bg-muted/50">
           <p className="text-sm text-muted-foreground"><span className="font-medium text-foreground">Objetivo:</span> {client.objective}</p>
