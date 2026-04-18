@@ -194,6 +194,7 @@ export interface Client {
   privatePensionType: PrivatePensionType;
   retirementGoal: RetirementGoal | null;
   contractedMeetings: ContractedMeetings | null;
+  meetingPeriodicityDays: 30 | 60 | 90 | null;
   meetingNotes: MeetingNotes;
   lastActivityAt: Date;
   scheduledMeeting: ScheduledMeeting | null;
