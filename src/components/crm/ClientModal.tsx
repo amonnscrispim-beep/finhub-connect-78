@@ -708,7 +708,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     { id: 'portfolio', label: 'Arquitetura da Carteira', icon: PieChart },
     { id: 'contracts', label: 'Contratos e Entregas', icon: ClipboardList },
     { id: 'tasks', label: 'Tarefas e Status', icon: CheckCircle },
-    { id: 'reports', label: 'Relatórios e Arquivos', icon: FileText },
+    { id: 'performance', label: 'Relatório de Performance', icon: BarChart3 },
+    { id: 'reports', label: 'Arquivos e Resumos', icon: FileText },
   ] as const;
 
   // Simple completion progress: count tabs that have at least one signal field filled
