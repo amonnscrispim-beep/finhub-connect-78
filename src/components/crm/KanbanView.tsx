@@ -285,7 +285,7 @@ const KanbanCardComponent = memo(function KanbanCard({
 
       {pendingTasks.length === 0 && completedTasksCount > 0 && (
         <div className="mb-3">
-          <button onClick={(e) => openTasksModal(e, 'completed')} className="w-full text-left px-2 py-1.5 text-xs text-success bg-success/10 rounded-md hover:bg-success/20 transition-colors flex items-center gap-1.5">
+          <button onClick={(e) => openTasksModal(e, 'completed')} className="w-full text-left px-2 py-1.5 text-xs text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/60 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors flex items-center gap-1.5">
             <ListTodo className="w-3.5 h-3.5" />{completedTasksCount} tarefa{completedTasksCount > 1 ? 's' : ''} concluída{completedTasksCount > 1 ? 's' : ''}
           </button>
         </div>
