@@ -856,6 +856,7 @@ function KanbanContent({ onEditClient, searchQuery = '', clientIdsWithPendencies
                       </div>
                     )}
                   </DroppableColumn>
+                  </div>
                 </div>
 
                 {renderPendenciasAfter && (
