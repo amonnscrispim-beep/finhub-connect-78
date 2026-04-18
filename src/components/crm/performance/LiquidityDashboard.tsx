@@ -164,6 +164,9 @@ export function LiquidityDashboard({ reports }: LiquidityDashboardProps) {
         </div>
       </div>
 
+      {/* ── Section 1.5: Radar de Vencimentos (próximos 120 dias) ── */}
+      <MaturityRadar data={data} />
+
       {/* ── Section 2: Por Corretora ── */}
       {data.brokers.length > 0 && (
         <div className="space-y-4">
