@@ -280,6 +280,12 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   const [autoReportObservation, setAutoReportObservation] = useState('');
   const [reportConsultantObs, setReportConsultantObs] = useState('');
   const portfolio = useClientPortfolio(client?.id);
+  const [activeTab, setActiveTab] = useState<string>('personal');
+
+  // Reset to first tab whenever the modal opens
+  useEffect(() => {
+    if (open) setActiveTab('personal');
+  }, [open]);
 
   // Log client visit when modal opens
   useEffect(() => {
