@@ -158,10 +158,10 @@ const KanbanCardComponent = memo(function KanbanCard({
   return (
     <div
       className={cn(
-        "group bg-card rounded-xl p-4 shadow-card border border-border/50 border-l-4 transition-all duration-200 hover:shadow-lg cursor-pointer",
+        "group bg-card rounded-md p-4 shadow-sm border border-slate-200 dark:border-slate-800 border-l-2 transition-all duration-200 hover:shadow-md cursor-pointer",
         borderColor,
-        client.pendingSchedule && "ring-2 ring-destructive/20",
-        isDragging && "shadow-2xl scale-105 rotate-1 cursor-grabbing"
+        client.pendingSchedule && "ring-1 ring-red-900/30",
+        isDragging && "shadow-xl scale-[1.02] cursor-grabbing"
       )}
       onClick={handleBodyClick}
     >
