@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Upload, FileText, AlertTriangle, Copy, Check, Edit3, RotateCcw, Loader2, Calendar, ChevronDown, ChevronUp, Trash2, Building2 } from 'lucide-react';
 import { RelatorioExecutivoLiquidez } from './RelatorioExecutivoLiquidez';
 import { LiquidityDashboard } from './performance/LiquidityDashboard';
+import { FixedIncomeAnalysis } from './performance/FixedIncomeAnalysis';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -911,7 +912,7 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
           </TabsList>
 
           {/* Dashboard */}
-          <TabsContent value="dashboard" className="mt-4">
+          <TabsContent value="dashboard" className="mt-4 space-y-6">
             <LiquidityDashboard reports={reports.map(r => ({
               id: r.id,
               pdfFilename: r.pdfFilename,
@@ -922,6 +923,7 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
               extractedData: r.extractedData,
               alerts: r.alerts,
             }))} />
+            <FixedIncomeAnalysis reportIds={extractedReports.map(r => r.id)} />
           </TabsContent>
 
           {/* A) Consolidated */}
