@@ -786,7 +786,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               )}
 
             {/* SECTION 1: Informações Pessoais - defaultOpen=false */}
-            <CollapsibleSection title="Informações Pessoais" icon={User} defaultOpen={false}>
+            <div hidden={activeTab !== 'personal'} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="contractStart">Início do Contrato</Label>
@@ -927,10 +927,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   moduleNotes: { ...prev.moduleNotes, personalInfo: value }
                 }))}
               />
-            </CollapsibleSection>
+            </div>
 
-            {/* SECTION 1.5: Conhecer o Cliente (Módulo Mestre) */}
-            <CollapsibleSection title="Conhecer o Cliente" icon={Search} defaultOpen={false}>
+            {/* SECTION 1.5: Conhecer o Cliente (Módulo Mestre) — agora dentro da aba Reuniões */}
+            <div hidden={activeTab !== 'meetings'} className="space-y-4">
               <ConhecerClienteModule
                 data={conhecerData}
                 onChange={setConhecerData}
@@ -939,12 +939,22 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 clientName={formData.name}
                 advisorName=""
               />
-            </CollapsibleSection>
-
-            {/* Estrutura Familiar agora integrada dentro do Diagnóstico Estratégico */}
+              {/* Anotações por reunião — movidas do bloco "Contrato, Reuniões e Entregas" */}
+              {formData.contractedMeetings && (
+                <div className="p-4 bg-muted/50 rounded-lg space-y-4 border border-border">
+                  <h4 className="font-medium text-foreground">O que foi feito em cada reunião</h4>
+                  {Array.from({ length: formData.contractedMeetings }, (_, i) => i + 1).map((meetingNum) => (
+                    <div key={meetingNum} className="space-y-2">
+                      <Label htmlFor={`meeting-${meetingNum}`}>{meetingNum}ª Reunião</Label>
+                      <Textarea id={`meeting-${meetingNum}`} value={formData.meetingNotes[meetingNum] || ''} onChange={(e) => handleMeetingNoteChange(meetingNum, e.target.value)} placeholder={`Anotações da ${meetingNum}ª reunião...`} className="crm-input min-h-[80px]" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* SECTION 3: Situação Financeira Atual (Painel Automático) */}
-            <CollapsibleSection title="Situação Financeira Atual" icon={DollarSign} defaultOpen={false}>
+            <div hidden={activeTab !== 'financial'} className="space-y-4">
               <PainelFinanceiro
                 conhecerData={conhecerData}
                 overrides={{
@@ -978,10 +988,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   moduleNotes: { ...prev.moduleNotes, financial: value }
                 }))}
               />
-            </CollapsibleSection>
+            </div>
 
             {/* SECTION 4: Dívidas e Obrigações */}
-            <CollapsibleSection title="Dívidas e Obrigações" icon={CreditCard} defaultOpen={false}>
+            <div hidden={activeTab !== 'debts'} className="space-y-4">
               <div className="space-y-4">
                 {formData.debts.length === 0 && (
                   <p className="text-sm text-muted-foreground">Nenhuma dívida cadastrada. Clique no botão abaixo para adicionar.</p>
@@ -1121,10 +1131,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   placeholder="Ex: observações gerais sobre dívidas, contexto do cliente, acordos informais, renegociações futuras…"
                 />
               </div>
-            </CollapsibleSection>
+            </div>
 
             {/* SECTION 5: Previdência e Aposentadoria */}
-            <CollapsibleSection title="Previdência e Aposentadoria" icon={Landmark} defaultOpen={false}>
+            <div hidden={activeTab !== 'pension'} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="privatePensionStatus">Possui previdência privada?</Label>
@@ -1169,10 +1179,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   moduleNotes: { ...prev.moduleNotes, retirement: value }
                 }))}
               />
-            </CollapsibleSection>
+            </div>
 
             {/* SECTION 6: Metas Financeiras */}
-            <CollapsibleSection title="Metas Financeiras" icon={Target} defaultOpen={false}>
+            <div hidden={activeTab !== 'goals'} className="space-y-4">
               {client ? (
                 <FinancialGoalsSection clientId={client.id} />
               ) : (
@@ -1190,10 +1200,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   moduleNotes: { ...prev.moduleNotes, goals: value }
                 }))}
               />
-            </CollapsibleSection>
+            </div>
 
             {/* SECTION 7: Arquitetura Estratégica da Carteira (Painel Automático) */}
-            <CollapsibleSection title="Arquitetura Estratégica da Carteira" icon={PieChart} defaultOpen={false}>
+            <div hidden={activeTab !== 'portfolio'} className="space-y-4">
               <ArquiteturaEstrategicaPainel
                 arquiteturaCarteira={formData.arquiteturaCarteira}
                 arquiteturaEstrategica={formData.arquiteturaEstrategica}
@@ -1205,10 +1215,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 clientName={formData.name}
                 advisorName=""
               />
-            </CollapsibleSection>
+            </div>
 
-            {/* SECTION 9: Contrato, Reuniões e Entregas */}
-            <CollapsibleSection title="Contrato, Reuniões e Entregas" icon={Calendar} defaultOpen={false}>
+            {/* SECTION 8: Contratos e Entregas (sub-bloco de anotações por reunião foi movido para a aba "Reuniões") */}
+            <div hidden={activeTab !== 'contracts'} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="contractedMeetings">Quantidade de Reuniões</Label>
                 <Select value={formData.contractedMeetings?.toString() || ''} onValueChange={(value) => handleChange('contractedMeetings', value ? parseInt(value) as ContractedMeetings : null)}>
