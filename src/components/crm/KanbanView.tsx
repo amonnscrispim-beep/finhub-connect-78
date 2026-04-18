@@ -355,19 +355,21 @@ function DragOverlayCard({ client }: { client: Client }) {
   );
 }
 
-// Column color mapping
-const COLUMN_COLORS: Record<string, string> = {
-  'PRIVATE': 'bg-violet-500',
-  'SELECT': 'bg-blue-500',
-  'GROWTH': 'bg-emerald-500',
-  'START': 'bg-slate-400',
+// Column color mapping — BTG / Wealth Management institutional palette
+// Solid header colors (used as a colored chip/bar at the top of each column header)
+const COLUMN_HEADER: Record<string, string> = {
+  'PRIVATE': 'bg-slate-900 text-amber-400 dark:bg-slate-950 dark:text-amber-300',
+  'SELECT':  'bg-blue-900 text-white dark:bg-blue-950 dark:text-blue-100',
+  'GROWTH':  'bg-slate-600 text-white dark:bg-slate-700 dark:text-slate-100',
+  'START':   'bg-gray-500 text-white dark:bg-gray-600 dark:text-gray-100',
 };
 
+// Soft column container (neutral, sober)
 const COLUMN_BG: Record<string, string> = {
-  'PRIVATE': 'bg-violet-500/5 border-violet-500/20',
-  'SELECT': 'bg-blue-500/5 border-blue-500/20',
-  'GROWTH': 'bg-emerald-500/5 border-emerald-500/20',
-  'START': 'bg-muted/30 border-border/50',
+  'PRIVATE': 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800',
+  'SELECT':  'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800',
+  'GROWTH':  'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800',
+  'START':   'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800',
 };
 
 const PRIORITY_CONFIG: Record<string, { label: string; emoji: string; className: string }> = {
