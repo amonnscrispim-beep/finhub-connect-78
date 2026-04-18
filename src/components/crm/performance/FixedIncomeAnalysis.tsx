@@ -217,7 +217,7 @@ export function FixedIncomeAnalysis({ reportIds, disabled }: Props) {
 
       {/* RESULT */}
       {!loading && data && (
-        <div className="space-y-6">
+        <div className="space-y-6" ref={exportRef}>
           {/* Totais */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
