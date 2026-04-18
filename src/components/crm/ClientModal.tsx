@@ -697,28 +697,93 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   // Check if client lives abroad
   const isExterior = formData.residence === 'Mora no exterior';
 
+  // Vertical tabs definition
+  const TABS = [
+    { id: 'personal', label: 'Informações Pessoais', icon: User },
+    { id: 'meetings', label: 'Reuniões', icon: Calendar },
+    { id: 'financial', label: 'Situação Financeira Atual', icon: DollarSign },
+    { id: 'debts', label: 'Dívidas e Obrigações', icon: CreditCard },
+    { id: 'pension', label: 'Previdência e Aposentadoria', icon: Landmark },
+    { id: 'goals', label: 'Metas Financeiras', icon: Target },
+    { id: 'portfolio', label: 'Arquitetura da Carteira', icon: PieChart },
+    { id: 'contracts', label: 'Contratos e Entregas', icon: ClipboardList },
+    { id: 'tasks', label: 'Tarefas e Status', icon: CheckCircle },
+    { id: 'reports', label: 'Relatórios e Arquivos', icon: FileText },
+  ] as const;
+
+  // Simple completion progress: count tabs that have at least one signal field filled
+  const completionSignals: Record<string, boolean> = {
+    personal: !!formData.name && !!formData.email,
+    meetings: !!conhecerData.fullName || Object.keys(formData.meetingNotes || {}).length > 0,
+    financial: !!formData.financialAssets || !!formData.monthlyRevenue,
+    debts: formData.debts.length > 0,
+    pension: !!formData.privatePensionStatus || !!formData.retirementAge,
+    goals: !!client || draftGoals.length > 0,
+    portfolio: !!formData.arquiteturaCarteira,
+    contracts: !!formData.contractedMeetings || !!formData.workDone,
+    tasks: !!formData.funnelStage,
+    reports: (formData.files?.length || 0) > 0 || !!formData.consultingInitialPatrimony,
+  };
+  const completedCount = Object.values(completionSignals).filter(Boolean).length;
+  const completionPct = Math.round((completedCount / TABS.length) * 100);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] p-0">
-        <DialogHeader className="crm-header p-6 rounded-t-lg">
-          <DialogTitle className="text-xl">
-            {client ? 'Editar Cliente' : 'Novo Cliente'}
-          </DialogTitle>
+      <DialogContent className="max-w-7xl w-[95vw] max-h-[92vh] p-0 flex flex-col gap-0">
+        {/* Sticky Header with progress */}
+        <DialogHeader className="crm-header px-6 py-4 rounded-t-lg border-b border-border">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <DialogTitle className="text-xl">
+              {client ? `Editar Cliente${formData.name ? ` — ${formData.name}` : ''}` : 'Novo Cliente'}
+            </DialogTitle>
+            <div className="flex items-center gap-3 min-w-[260px]">
+              <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Perfil {completionPct}% completo</span>
+              <Progress value={completionPct} className="h-2 flex-1" />
+            </div>
+          </div>
         </DialogHeader>
-        
-        <div className="max-h-[calc(90vh-140px)] overflow-y-auto scrollbar-thin min-w-0">
-          <form onSubmit={handleSubmit} className="p-6 space-y-4 min-w-0">
-            
-            {/* Form Link Section - only show for existing clients */}
-            {client && (
-              <ClientFormLink
-                clientId={client.id}
-                clientName={client.name}
-                onFormCompleted={() => {
-                  // Reload client data after form sync
-                }}
-              />
-            )}
+
+        <form onSubmit={handleSubmit} className="flex-1 flex min-h-0 overflow-hidden">
+          {/* Sidebar (25%) */}
+          <aside className="w-[25%] min-w-[200px] max-w-[280px] border-r border-border bg-muted/30 overflow-y-auto scrollbar-thin">
+            <nav className="p-2 space-y-1">
+              {TABS.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    className={cn(
+                      'w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm text-left transition-colors',
+                      isActive
+                        ? 'bg-primary text-primary-foreground font-medium shadow-sm'
+                        : 'text-foreground/80 hover:bg-muted hover:text-foreground'
+                    )}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </aside>
+
+          {/* Content (75%) */}
+          <div className="flex-1 overflow-y-auto scrollbar-thin min-w-0">
+            <div className="p-6 space-y-4 min-w-0">
+
+              {/* Form Link Section - only show for existing clients */}
+              {client && (
+                <ClientFormLink
+                  clientId={client.id}
+                  clientName={client.name}
+                  onFormCompleted={() => {
+                    // Reload client data after form sync
+                  }}
+                />
+              )}
 
             {/* SECTION 1: Informações Pessoais - defaultOpen=false */}
             <CollapsibleSection title="Informações Pessoais" icon={User} defaultOpen={false}>
