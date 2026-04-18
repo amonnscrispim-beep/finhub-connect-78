@@ -50,6 +50,7 @@ import { CalendarIcon, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useClients } from '@/contexts/ClientContext';
 import { ClientFiles } from './ClientFiles';
+import { RaioXConsolidado } from './RaioXConsolidado';
 import { Progress } from '@/components/ui/progress';
 import { CollapsibleSection } from './CollapsibleSection';
 import { FinancialGoalsSection } from './FinancialGoalsSection';
@@ -1417,6 +1418,11 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                     moduleNotes: { ...prev.moduleNotes, result: value }
                   }))}
                 />
+              </div>
+
+              {/* Raio-X Consolidado (IA) */}
+              <div className="border-t border-border pt-4 space-y-4">
+                <RaioXConsolidado />
               </div>
 
               {/* Arquivos do Cliente */}
