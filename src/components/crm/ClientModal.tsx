@@ -145,6 +145,7 @@ interface FormData {
   retirementAge: string;
   retirementIncome: string;
   contractedMeetings: ContractedMeetings | null;
+  meetingPeriodicityDays: 30 | 60 | 90 | null;
   meetingNotes: MeetingNotes;
   files: ClientFile[];
   organizedFinances: OrganizedFinancesStatus;
@@ -229,6 +230,7 @@ const defaultFormData: FormData = {
   retirementAge: '',
   retirementIncome: '',
   contractedMeetings: null,
+  meetingPeriodicityDays: 30,
   meetingNotes: {},
   files: [],
   organizedFinances: '',
@@ -338,6 +340,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         retirementAge: client.retirementGoal?.desiredAge?.toString() || '',
         retirementIncome: client.retirementGoal?.desiredMonthlyIncome?.toString() || '',
         contractedMeetings: client.contractedMeetings || null,
+        meetingPeriodicityDays: (client as any).meetingPeriodicityDays ?? 30,
         meetingNotes: client.meetingNotes || {},
         files: client.files || [],
         organizedFinances: client.organizedFinances || '',
@@ -526,6 +529,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       privatePensionType: formData.privatePensionStatus === 'Sim' ? formData.privatePensionType : '',
       retirementGoal: retirementGoal,
       contractedMeetings: formData.contractedMeetings,
+      meetingPeriodicityDays: formData.meetingPeriodicityDays,
       meetingNotes: formData.meetingNotes,
       lastActivityAt: client?.lastActivityAt || new Date(),
       scheduledMeeting: client?.scheduledMeeting || null,
@@ -1231,6 +1235,24 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   <SelectTrigger className="crm-input w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>{CONTRACTED_MEETINGS_OPTIONS.map((num) => (<SelectItem key={num} value={num.toString()}>{num} {num === 1 ? 'reunião' : 'reuniões'}</SelectItem>))}</SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="meetingPeriodicityDays">Periodicidade de Reuniões</Label>
+                <Select
+                  value={(formData.meetingPeriodicityDays ?? 30).toString()}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, meetingPeriodicityDays: parseInt(value) as 30 | 60 | 90 }))}
+                >
+                  <SelectTrigger className="crm-input w-[200px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="30">30 dias</SelectItem>
+                    <SelectItem value="60">60 dias</SelectItem>
+                    <SelectItem value="90">90 dias</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Define quando o card do cliente exibirá alerta de reunião em atraso ou próxima.
+                </p>
               </div>
 
               {/* Sub-bloco "O que foi feito em cada reunião" foi movido para a aba Reuniões */}

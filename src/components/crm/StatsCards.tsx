@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Users, RefreshCw, DollarSign, Bell, Clock } from 'lucide-react';
+import { Users, RefreshCw, DollarSign, Bell, Clock, CalendarClock } from 'lucide-react';
 import { useClients } from '@/contexts/ClientContext';
 import { differenceInDays } from 'date-fns';
 import { WeeklyAlertsDrawer, type WeeklyTask } from './DailyAlertsDrawer';
@@ -41,6 +41,13 @@ export function StatsCards({ onTotalClientsClick, onRenewalsClick, onFinancialAs
     return differenceInDays(today, lastActivity) >= 30;
   }).length;
 
+  const overdueMeetingsCount = activeClients.filter(client => {
+    const period = (client as any).meetingPeriodicityDays ?? 30;
+    const lastMeeting = client.lastActivityAt ? new Date(client.lastActivityAt) : null;
+    if (!lastMeeting || !period) return false;
+    return differenceInDays(today, lastMeeting) > period;
+  }).length;
+
   const stats = [
     {
       label: 'Total de Clientes',
@@ -50,11 +57,11 @@ export function StatsCards({ onTotalClientsClick, onRenewalsClick, onFinancialAs
       onClick: onTotalClientsClick,
     },
     {
-      label: 'Alertas da Semana',
-      value: pendingCount,
-      icon: Bell,
-      color: pendingCount > 0 ? 'bg-destructive/10 text-destructive' : 'bg-muted/10 text-muted-foreground',
-      highlight: pendingCount > 0,
+      label: 'Reuniões Pendentes',
+      value: overdueMeetingsCount,
+      icon: CalendarClock,
+      color: overdueMeetingsCount > 0 ? 'bg-destructive/10 text-destructive' : 'bg-muted/10 text-muted-foreground',
+      highlight: overdueMeetingsCount > 0,
       onClick: () => setDrawerOpen(true),
     },
     {
