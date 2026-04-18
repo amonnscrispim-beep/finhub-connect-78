@@ -50,7 +50,7 @@ import { CalendarIcon, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useClients } from '@/contexts/ClientContext';
 import { ClientFiles } from './ClientFiles';
-import { RaioXConsolidado } from './RaioXConsolidado';
+
 import { Progress } from '@/components/ui/progress';
 import { CollapsibleSection } from './CollapsibleSection';
 import { FinancialGoalsSection } from './FinancialGoalsSection';
@@ -1381,11 +1381,6 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
             {/* SECTION: Relatório de Performance (aba dedicada) */}
             <div hidden={activeTab !== 'performance'} className="space-y-4">
               <RelatorioPerformance clientId={client?.id} investorProfile={formData.investorProfile} />
-
-              {/* Raio-X Consolidado (IA) */}
-              <div className="border-t border-border pt-4">
-                <RaioXConsolidado />
-              </div>
             </div>
 
             {/* SECTION: Arquivos e Resumos (Resultado da Consultoria + Arquivos do Cliente) */}
