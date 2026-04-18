@@ -158,10 +158,10 @@ const KanbanCardComponent = memo(function KanbanCard({
   return (
     <div
       className={cn(
-        "group bg-card rounded-xl p-4 shadow-card border border-border/50 border-l-4 transition-all duration-200 hover:shadow-lg cursor-pointer",
+        "group bg-card rounded-md p-4 shadow-sm border border-slate-200 dark:border-slate-800 border-l-2 transition-all duration-200 hover:shadow-md cursor-pointer",
         borderColor,
-        client.pendingSchedule && "ring-2 ring-destructive/20",
-        isDragging && "shadow-2xl scale-105 rotate-1 cursor-grabbing"
+        client.pendingSchedule && "ring-1 ring-red-900/30",
+        isDragging && "shadow-xl scale-[1.02] cursor-grabbing"
       )}
       onClick={handleBodyClick}
     >
@@ -236,7 +236,7 @@ const KanbanCardComponent = memo(function KanbanCard({
 
       {/* Patrimônio badge */}
       {showPatrimonio && patrimonio > 0 && (
-        <div className="mb-2 text-xs font-semibold text-amber-600 bg-amber-500/10 px-2 py-1 rounded-md inline-block">
+        <div className="mb-2 text-xs font-semibold text-blue-900 dark:text-blue-200 bg-slate-100 dark:bg-slate-800/60 px-2 py-1 rounded inline-block">
           {formatCurrencyFull(patrimonio)}
         </div>
       )}
@@ -285,7 +285,7 @@ const KanbanCardComponent = memo(function KanbanCard({
 
       {pendingTasks.length === 0 && completedTasksCount > 0 && (
         <div className="mb-3">
-          <button onClick={(e) => openTasksModal(e, 'completed')} className="w-full text-left px-2 py-1.5 text-xs text-success bg-success/10 rounded-md hover:bg-success/20 transition-colors flex items-center gap-1.5">
+          <button onClick={(e) => openTasksModal(e, 'completed')} className="w-full text-left px-2 py-1.5 text-xs text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/60 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors flex items-center gap-1.5">
             <ListTodo className="w-3.5 h-3.5" />{completedTasksCount} tarefa{completedTasksCount > 1 ? 's' : ''} concluída{completedTasksCount > 1 ? 's' : ''}
           </button>
         </div>
@@ -355,19 +355,21 @@ function DragOverlayCard({ client }: { client: Client }) {
   );
 }
 
-// Column color mapping
-const COLUMN_COLORS: Record<string, string> = {
-  'PRIVATE': 'bg-violet-500',
-  'SELECT': 'bg-blue-500',
-  'GROWTH': 'bg-emerald-500',
-  'START': 'bg-slate-400',
+// Column color mapping — BTG / Wealth Management institutional palette
+// Solid header colors (used as a colored chip/bar at the top of each column header)
+const COLUMN_HEADER: Record<string, string> = {
+  'PRIVATE': 'bg-slate-900 text-amber-400 dark:bg-slate-950 dark:text-amber-300',
+  'SELECT':  'bg-blue-900 text-white dark:bg-blue-950 dark:text-blue-100',
+  'GROWTH':  'bg-slate-600 text-white dark:bg-slate-700 dark:text-slate-100',
+  'START':   'bg-gray-500 text-white dark:bg-gray-600 dark:text-gray-100',
 };
 
+// Soft column container (neutral, sober)
 const COLUMN_BG: Record<string, string> = {
-  'PRIVATE': 'bg-violet-500/5 border-violet-500/20',
-  'SELECT': 'bg-blue-500/5 border-blue-500/20',
-  'GROWTH': 'bg-emerald-500/5 border-emerald-500/20',
-  'START': 'bg-muted/30 border-border/50',
+  'PRIVATE': 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800',
+  'SELECT':  'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800',
+  'GROWTH':  'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800',
+  'START':   'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800',
 };
 
 const PRIORITY_CONFIG: Record<string, { label: string; emoji: string; className: string }> = {
@@ -403,19 +405,19 @@ function PendenciasUrgentesColumn({ pendencies, pendenciesLoading, animatingPend
   onRemove: (id: string) => void;
 }) {
   return (
-    <div className="rounded-2xl min-h-[500px] w-80 flex-shrink-0 border-2 border-destructive/30 bg-destructive/5 overflow-hidden">
-      {/* Header */}
-      <div className="bg-destructive/90 px-4 py-3 flex items-center justify-between rounded-t-xl">
+    <div className="rounded-lg min-h-[500px] w-80 flex-shrink-0 border border-red-900/30 dark:border-red-900/50 bg-slate-50 dark:bg-slate-900/40 shadow-sm overflow-hidden flex flex-col">
+      {/* Header — bordô institucional */}
+      <div className="bg-red-900 dark:bg-red-950 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-destructive-foreground" />
-          <h3 className="font-bold text-sm text-destructive-foreground tracking-wide">
+          <AlertTriangle className="w-4 h-4 text-white" />
+          <h3 className="font-semibold text-sm text-white tracking-wider uppercase">
             PENDÊNCIAS URGENTES ({pendencies.length})
           </h3>
         </div>
         <Button
           size="sm"
           variant="ghost"
-          className="h-7 px-2 text-destructive-foreground hover:bg-destructive-foreground/20"
+          className="h-7 px-2 text-white hover:bg-white/15"
           onClick={onOpenModal}
         >
           <Plus className="w-4 h-4 mr-1" />
@@ -798,8 +800,8 @@ function KanbanContent({ onEditClient, searchQuery = '', clientIdsWithPendencies
             const clientIds = stageClients.map(c => c.id);
             const isPatrimony = isPatrimonyColumn(stage);
             const patrimonioSum = columnPatrimonioSums[stage] || 0;
-            const columnBg = COLUMN_BG[stage] || 'bg-muted/30 border-border/50';
-            const dotColor = COLUMN_COLORS[stage] || 'bg-primary';
+            const columnBg = COLUMN_BG[stage] || 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800';
+            const headerColor = COLUMN_HEADER[stage] || 'bg-slate-700 text-white';
 
             // Insert Pendências Urgentes column after GROWTH (index of GROWTH in the array)
             const growthIndex = KANBAN_COLUMN_STAGES.indexOf('GROWTH' as FunnelStage);
@@ -807,27 +809,29 @@ function KanbanContent({ onEditClient, searchQuery = '', clientIdsWithPendencies
             
             return (
               <React.Fragment key={stage}>
-                <div className={cn("rounded-2xl p-4 min-h-[500px] w-80 flex-shrink-0 border transition-all duration-200", columnBg)}>
-                  {/* Column Header */}
+                <div className={cn("rounded-lg min-h-[500px] w-80 flex-shrink-0 border shadow-sm overflow-hidden flex flex-col", columnBg)}>
+                  {/* Column Header — solid institutional bar */}
                   <button
                     onClick={() => handleColumnHeaderClick(stage)}
-                    className="w-full flex items-center justify-between mb-4 pb-3 border-b border-border/50 hover:bg-muted/50 -mx-4 px-4 pt-1 -mt-1 rounded-t-xl transition-colors cursor-pointer"
+                    className={cn(
+                      "w-full flex items-center justify-between px-4 py-3 hover:opacity-90 transition-opacity cursor-pointer",
+                      headerColor
+                    )}
                   >
+                    <h3 className="font-semibold text-sm tracking-wider uppercase">{getStageDisplayLabel(stage)}</h3>
                     <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${dotColor} shadow-sm`} />
-                      <h3 className="font-bold text-sm text-foreground tracking-wide">{getStageDisplayLabel(stage)}</h3>
-                    </div>
-                    <div className="flex items-center gap-1.5">
                       {isPatrimony && patrimonioSum > 0 && (
-                        <span className="text-xs font-medium text-muted-foreground">
+                        <span className="text-xs font-medium opacity-90">
                           {formatCurrency(patrimonioSum)}
                         </span>
                       )}
-                      <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                      <span className="text-xs font-semibold bg-white/15 px-2 py-0.5 rounded">
                         {stageClients.length}
                       </span>
                     </div>
                   </button>
+
+                  <div className="p-3 flex-1">
 
                   <DroppableColumn stage={stage} clientIds={clientIds}>
                     {stageClients.map((client, index) => (
@@ -852,6 +856,7 @@ function KanbanContent({ onEditClient, searchQuery = '', clientIdsWithPendencies
                       </div>
                     )}
                   </DroppableColumn>
+                  </div>
                 </div>
 
                 {renderPendenciasAfter && (
