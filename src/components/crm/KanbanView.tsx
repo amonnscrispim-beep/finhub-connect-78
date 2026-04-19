@@ -108,6 +108,13 @@ const getPatrimonioValue = (c: Client) => {
   return 0;
 };
 
+const getPatrimonioTotal = (c: Client) => {
+  const financeiro = getPatrimonioValue(c);
+  const imobiliario = Number(c.materialAssets) || 0;
+  const societario = Number((c as any).businessAssets) || 0;
+  return financeiro + imobiliario + societario;
+};
+
 const formatCurrency = (v: number) => {
   if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1).replace('.', ',')}M`;
   if (v >= 1_000) return `R$ ${(v / 1_000).toFixed(0)}K`;
