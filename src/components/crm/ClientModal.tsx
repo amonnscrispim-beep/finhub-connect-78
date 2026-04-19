@@ -710,7 +710,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     { id: 'debts', label: 'Dívidas e Obrigações', icon: CreditCard },
     { id: 'pension', label: 'Previdência e Aposentadoria', icon: Landmark },
     { id: 'goals', label: 'Metas Financeiras', icon: Target },
-    { id: 'portfolio', label: 'Arquitetura da Carteira', icon: PieChart },
+    
     { id: 'contracts', label: 'Contratos e Entregas', icon: ClipboardList },
     { id: 'tasks', label: 'Tarefas e Status', icon: CheckCircle },
     { id: 'performance', label: 'Relatório de Performance', icon: BarChart3 },
@@ -1210,21 +1210,6 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   ...prev,
                   moduleNotes: { ...prev.moduleNotes, goals: value }
                 }))}
-              />
-            </div>
-
-            {/* SECTION 7: Arquitetura Estratégica da Carteira (Painel Automático) */}
-            <div hidden={activeTab !== 'portfolio'} className="space-y-4">
-              <ArquiteturaEstrategicaPainel
-                arquiteturaCarteira={formData.arquiteturaCarteira}
-                arquiteturaEstrategica={formData.arquiteturaEstrategica}
-                consultantNote={formData.moduleNotes.allocation || ''}
-                onConsultantNoteChange={(value) => setFormData(prev => ({
-                  ...prev,
-                  moduleNotes: { ...prev.moduleNotes, allocation: value }
-                }))}
-                clientName={formData.name}
-                advisorName=""
               />
             </div>
 
