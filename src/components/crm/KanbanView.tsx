@@ -243,8 +243,21 @@ const KanbanCardComponent = memo(function KanbanCard({
 
       {/* Patrimônio badge */}
       {showPatrimonio && patrimonio > 0 && (
-        <div className="mb-2 text-xs font-semibold text-blue-900 dark:text-blue-200 bg-slate-100 dark:bg-slate-800/60 px-2 py-1 rounded inline-block">
-          {formatCurrencyFull(patrimonio)}
+        <div className="mb-2">
+          <div className="text-xs font-semibold text-blue-900 dark:text-blue-200 bg-slate-100 dark:bg-slate-800/60 px-2 py-1 rounded inline-block">
+            {formatCurrencyFull(patrimonio)}
+          </div>
+          {(() => {
+            const total = getPatrimonioTotal(client);
+            if (total > patrimonio) {
+              return (
+                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Total: {formatCurrencyFull(total)}
+                </div>
+              );
+            }
+            return null;
+          })()}
         </div>
       )}
 
