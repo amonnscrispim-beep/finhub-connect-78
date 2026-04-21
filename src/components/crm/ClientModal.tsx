@@ -573,6 +573,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       if (client) {
         await updateClient(client.id, clientData);
         await logActivity('edicao', 'Cliente atualizado', client.id, clientData.name);
+        toast.success('Alterações salvas com sucesso!');
       } else {
         // Add new client and save draft goals
         const newClient = await addClient(clientData);
@@ -612,6 +613,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     } catch (error) {
       console.error('Error saving client:', error);
       setIsSaving(false);
+      toast.error('Erro ao salvar alterações. Seus dados continuam preenchidos — tente novamente.');
       // Don't close modal on error - keep draft data
     }
   };
