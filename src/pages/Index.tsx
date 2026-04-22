@@ -306,6 +306,7 @@ function CRMDashboard() {
             {ferramentaAtiva === 'milhao' && <CalculadoraMilhao />}
             {ferramentaAtiva === 'patrimonio-idade' && <PatrimonioIdade />}
             {ferramentaAtiva === 'alugar-financiar' && <AlugarOuFinanciar />}
+            {ferramentaAtiva === 'manter-vender' && <ManterOuVender />}
             {ferramentaAtiva === 'vista-parcelada' && <VistaOuParcelada />}
             {ferramentaAtiva === 'iof-caixinha' && <IOFCaixinha />}
             {ferramentaAtiva === 'cdb' && <SimuladorCDB />}
