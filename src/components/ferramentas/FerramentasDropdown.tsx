@@ -6,6 +6,7 @@ export type FerramentaId =
   | 'milhao'
   | 'patrimonio-idade'
   | 'alugar-financiar'
+  | 'manter-vender'
   | 'vista-parcelada'
   | 'iof-caixinha'
   | 'cdb'
