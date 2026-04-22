@@ -443,7 +443,11 @@ function ScenarioCard({ titulo, subtitulo, icon, vencedor, result, tipo }: {
 
       <div className="space-y-1.5 pt-3 border-t border-border text-xs">
         {tipo !== 'alugar' && (
-          <Row label="Valor do imóvel (futuro)" value={fmt(result.valorImovelFinal)} />
+          <>
+            <Row label="Valor do imóvel (bruto)" value={fmt(result.valorImovelBruto ?? result.valorImovelFinal)} />
+            <Row label="Custos de venda (6% Corret. + 15% IR)" value={`- ${fmt(result.custosVenda ?? 0)}`} negative />
+            <Row label="Valor do imóvel (líquido)" value={fmt(result.valorImovelLiquido ?? result.valorImovelFinal)} />
+          </>
         )}
         <Row label="Total pago (parcelas/aluguel)" value={fmt(result.totalPago)} />
         <Row label="Capital aportado em investimentos" value={fmt(result.capitalAportado - (tipo === 'financiar' ? result.totalPago : 0))} hidden={tipo === 'financiar'} />
@@ -454,12 +458,12 @@ function ScenarioCard({ titulo, subtitulo, icon, vencedor, result, tipo }: {
   );
 }
 
-function Row({ label, value, positive, hidden }: { label: string; value: string; positive?: boolean; hidden?: boolean }) {
+function Row({ label, value, positive, negative, hidden }: { label: string; value: string; positive?: boolean; negative?: boolean; hidden?: boolean }) {
   if (hidden) return null;
   return (
     <div className="flex justify-between items-baseline gap-2">
       <span className="text-muted-foreground">{label}</span>
-      <span className={`font-semibold ${positive ? 'text-success' : 'text-foreground'}`}>{value}</span>
+      <span className={`font-semibold ${positive ? 'text-success' : negative ? 'text-destructive' : 'text-foreground'}`}>{value}</span>
     </div>
   );
 }
