@@ -168,38 +168,46 @@ export function AlugarOuFinanciar() {
       saldoAlugando: number;
     }> = [];
 
-    // Recalcular saldos acumulados anuais a partir das séries
+    // Saldos acumulados mês a mês para consulta posterior
+    const saldoFinSerie: number[] = [];
+    const saldoAluSerie: number[] = [];
     let acFin = 0;
     let acAlu = ent + extras;
     for (let m = 0; m < n; m++) {
       acFin = acFin * (1 + iInv) + aporteFinanciarSerie[m];
       acAlu = acAlu * (1 + iInv) + aporteAlugarSerie[m];
-      // Mês 1 do ano: índices 0, 12, 24, ... (mês humano 1, 13, 25, ...)
-      if (m % 12 === 0) {
-        const ano = m / 12 + 1;
-        chartData.push({
-          ano,
-          parcela: Math.round(parcelasSerie[m]),
-          aluguel: Math.round(aluguelSerie[m]),
-        });
-        // Soma dos aportes dos próximos 12 meses (do ano corrente)
-        const fim = Math.min(m + 11, n - 1);
-        let aporteFinAno = 0;
-        let aporteAluAno = 0;
-        for (let k = m; k <= fim; k++) {
-          aporteFinAno += aporteFinanciarSerie[k];
-          aporteAluAno += aporteAlugarSerie[k];
-        }
-        tabelaAnual.push({
-          ano,
-          parcela: parcelasSerie[m],
-          aluguel: aluguelSerie[m],
-          aporteFinanciando: aporteFinAno,
-          aporteAlugando: aporteAluAno,
-          saldoFinanciando: acFin,
-          saldoAlugando: acAlu,
-        });
+      saldoFinSerie.push(acFin);
+      saldoAluSerie.push(acAlu);
+    }
+
+    // Construção da tabela anual: para cada ano, mês inicial = (ano-1)*12, mês final = ano*12 - 1
+    const totalAnos = Math.ceil(n / 12);
+    for (let ano = 1; ano <= totalAnos; ano++) {
+      const idxInicial = (ano - 1) * 12;
+      const idxFinal = Math.min(ano * 12 - 1, n - 1);
+
+      let aporteFinAno = 0;
+      let aporteAluAno = 0;
+      for (let k = idxInicial; k <= idxFinal; k++) {
+        aporteFinAno += aporteFinanciarSerie[k];
+        aporteAluAno += aporteAlugarSerie[k];
       }
+
+      chartData.push({
+        ano,
+        parcela: Math.round(parcelasSerie[idxInicial]),
+        aluguel: Math.round(aluguelSerie[idxInicial]),
+      });
+
+      tabelaAnual.push({
+        ano,
+        parcela: parcelasSerie[idxInicial],
+        aluguel: aluguelSerie[idxInicial],
+        aporteFinanciando: aporteFinAno,
+        aporteAlugando: aporteAluAno,
+        saldoFinanciando: saldoFinSerie[idxFinal],
+        saldoAlugando: saldoAluSerie[idxFinal],
+      });
     }
 
     const anoVirada = pontoVirada ? Math.ceil(pontoVirada / 12) : null;
