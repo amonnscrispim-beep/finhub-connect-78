@@ -121,25 +121,38 @@ export function AlugarOuFinanciar() {
 
     const valorImovelFinal = imovelSerie[n - 1] ?? vi;
 
+    // Custos de liquidação imobiliária (Cenários A e B)
+    const corretagem = valorImovelFinal * 0.06;
+    const lucroImovel = Math.max(0, valorImovelFinal - vi - extras - corretagem);
+    const irImovel = lucroImovel * 0.15;
+    const custosVenda = corretagem + irImovel;
+    const valorImovelLiquido = valorImovelFinal - corretagem - irImovel;
+
     // Cenário A: Só Financiar (sem investir a diferença)
     const totalPagoA = ent + extras + totalParcelasPagas;
     const cenarioA: ScenarioResult = {
-      patrimonioFinal: valorImovelFinal,
+      patrimonioFinal: valorImovelLiquido,
       totalPago: totalPagoA,
       totalInvestido: 0,
       jurosGanhos: 0,
-      valorImovelFinal,
+      valorImovelFinal: valorImovelLiquido,
       capitalAportado: totalPagoA,
+      valorImovelBruto: valorImovelFinal,
+      custosVenda,
+      valorImovelLiquido,
     };
 
     // Cenário B: Financiar + Investir (fluxo de caixa igualado)
     const cenarioB: ScenarioResult = {
-      patrimonioFinal: valorImovelFinal + saldoInvestFinanciar,
+      patrimonioFinal: valorImovelLiquido + saldoInvestFinanciar,
       totalPago: ent + extras + totalParcelasPagas,
       totalInvestido: saldoInvestFinanciar,
       jurosGanhos: saldoInvestFinanciar - aportadoFinanciar,
-      valorImovelFinal,
+      valorImovelFinal: valorImovelLiquido,
       capitalAportado: aportadoFinanciar,
+      valorImovelBruto: valorImovelFinal,
+      custosVenda,
+      valorImovelLiquido,
     };
 
     // Cenário C: Alugar + Investir (fluxo de caixa igualado)
