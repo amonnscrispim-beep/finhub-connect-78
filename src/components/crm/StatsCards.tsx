@@ -49,6 +49,9 @@ export function StatsCards({ onTotalClientsClick, onRenewalsClick, onFinancialAs
     return differenceInDays(today, lastMeeting) > period;
   }).length;
 
+  // Total de pendências = reuniões em atraso (clientes) + tarefas semanais pendentes (banco)
+  const totalPendingCount = overdueMeetingsCount + pendingCount;
+
   const stats = [
     {
       label: 'Total de Clientes',
@@ -59,10 +62,13 @@ export function StatsCards({ onTotalClientsClick, onRenewalsClick, onFinancialAs
     },
     {
       label: 'Reuniões Pendentes',
-      value: overdueMeetingsCount,
+      value: totalPendingCount,
+      subtitle: pendingCount > 0
+        ? `${overdueMeetingsCount} em atraso · ${pendingCount} tarefa${pendingCount > 1 ? 's' : ''} semana`
+        : (overdueMeetingsCount > 0 ? `${overdueMeetingsCount} em atraso` : undefined),
       icon: CalendarClock,
-      color: overdueMeetingsCount > 0 ? 'bg-destructive/10 text-destructive' : 'bg-muted/10 text-muted-foreground',
-      highlight: overdueMeetingsCount > 0,
+      color: totalPendingCount > 0 ? 'bg-destructive/10 text-destructive' : 'bg-muted/10 text-muted-foreground',
+      highlight: totalPendingCount > 0,
       onClick: () => setDrawerOpen(true),
     },
     {

@@ -610,10 +610,17 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       
       setIsSaving(false);
       onOpenChange(false);
-    } catch (error) {
-      console.error('Error saving client:', error);
+    } catch (error: any) {
+      console.error('[ClientModal] Error saving client:', error);
+      console.error('[ClientModal] Error details:', {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+      });
       setIsSaving(false);
-      toast.error('Erro ao salvar alterações. Seus dados continuam preenchidos — tente novamente.');
+      const errMsg = error?.message || error?.details || 'tente novamente';
+      toast.error(`Erro ao salvar: ${errMsg}. Seus dados continuam preenchidos.`);
       // Don't close modal on error - keep draft data
     }
   };
