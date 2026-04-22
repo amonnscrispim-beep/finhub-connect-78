@@ -364,6 +364,40 @@ export function AlugarOuFinanciar() {
                   </ResponsiveContainer>
                 </div>
               </div>
+
+              {/* Tabela de Evolução Anual — Aportes Igualados */}
+              <div>
+                <h4 className="text-sm font-semibold text-foreground mb-1">Evolução Anual — Fluxo de Caixa Igualado</h4>
+                <p className="text-xs text-muted-foreground mb-4">Ambos os cenários gastam o mesmo orçamento mensal (o maior entre parcela e aluguel). A diferença é investida — provando que o inquilino realmente aporta a diferença.</p>
+                <div className="overflow-x-auto rounded-md border border-border">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted">
+                      <tr className="text-left">
+                        <th className="px-3 py-2 font-semibold text-muted-foreground">Ano</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Parcela SAC</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Aluguel</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Aportes Financiando</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Aportes Alugando</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Saldo Invest. (Financ.)</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Saldo Invest. (Aluga)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.tabelaAnual.map((r) => (
+                        <tr key={r.ano} className="border-t border-border hover:bg-muted/40">
+                          <td className="px-3 py-2 font-medium text-foreground">{r.ano}</td>
+                          <td className="px-3 py-2 text-right text-foreground">{fmt(r.parcela)}</td>
+                          <td className="px-3 py-2 text-right text-foreground">{fmt(r.aluguel)}</td>
+                          <td className="px-3 py-2 text-right text-foreground">{fmt(r.aporteFinanciando)}</td>
+                          <td className="px-3 py-2 text-right text-foreground">{fmt(r.aporteAlugando)}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-primary">{fmt(r.saldoFinanciando)}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-success">{fmt(r.saldoAlugando)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </Card>
         </>
