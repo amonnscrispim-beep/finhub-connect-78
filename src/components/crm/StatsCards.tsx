@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Users, RefreshCw, DollarSign, Bell, Clock, CalendarClock } from 'lucide-react';
 import { useClients } from '@/contexts/ClientContext';
 import { differenceInDays } from 'date-fns';
-import { WeeklyAlertsDrawer, type WeeklyTask } from './DailyAlertsDrawer';
+import { WeeklyAlertsDrawer } from './DailyAlertsDrawer';
+import { useWeeklyTasks } from '@/hooks/useWeeklyTasks';
 
 interface StatsCardsProps {
   onTotalClientsClick: () => void;
@@ -13,7 +14,7 @@ interface StatsCardsProps {
 
 export function StatsCards({ onTotalClientsClick, onRenewalsClick, onFinancialAssetsClick }: StatsCardsProps) {
   const { clients } = useClients();
-  const [weeklyTasks, setWeeklyTasks] = useState<WeeklyTask[]>([]);
+  const { tasks: weeklyTasks } = useWeeklyTasks();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const activeClients = clients.filter(c => !c.consultingFinished);
@@ -120,8 +121,6 @@ export function StatsCards({ onTotalClientsClick, onRenewalsClick, onFinancialAs
       <WeeklyAlertsDrawer
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
-        tasks={weeklyTasks}
-        onTasksChange={setWeeklyTasks}
       />
     </div>
   );
