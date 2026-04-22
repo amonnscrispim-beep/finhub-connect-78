@@ -37,45 +37,89 @@ export function AlugarOuFinanciar() {
     if (vi <= 0 || al <= 0) return null;
 
     const n = prazo * 12;
-    const im = jurosFinanc / 100 / 12;
-    const iInv = retornoInvest / 100 / 12;
-    const reajusteMensal = Math.pow(1 + reajusteAluguel / 100, 1 / 12) - 1;
+    // Taxas mensais equivalentes (compostas)
+    const im = Math.pow(1 + jurosFinanc / 100, 1 / 12) - 1;
+    const iInv = Math.pow(1 + retornoInvest / 100, 1 / 12) - 1;
     const valorizacaoMensal = Math.pow(1 + valorizacao / 100, 1 / 12) - 1;
+    const reajusteAnual = reajusteAluguel / 100;
 
-    const financiado = Math.max(vi - ent, 0);
     // SAC
+    const financiado = Math.max(vi - ent, 0);
     const amortizacao = financiado / n;
+
+    // Estado do loop
     let saldoDevedor = financiado;
-    const parcelas: number[] = [];
+    let aluguelMes = al;
+    let valImovel = vi;
+
+    // Capital inicial (Cenário Alugar recebe entrada + extras como aporte inicial; Financiar = 0)
+    let saldoInvestAlugar = ent + extras;
+    let saldoInvestFinanciar = 0;
+
+    let aportadoAlugar = ent + extras;
+    let aportadoFinanciar = 0;
+
+    let totalAluguelPago = 0;
+    let totalParcelasPagas = 0;
     let totalJurosFinanc = 0;
+
+    const parcelasSerie: number[] = [];
+    const aluguelSerie: number[] = [];
+    const aporteAlugarSerie: number[] = [];
+    const aporteFinanciarSerie: number[] = [];
+    const imovelSerie: number[] = [];
+
+    let primeiraParcela = 0;
+    let pontoVirada: number | null = null;
+
     for (let m = 1; m <= n; m++) {
+      // Reajuste do aluguel a cada 12 meses (mês 13, 25, ...)
+      if (m > 1 && (m - 1) % 12 === 0) {
+        aluguelMes *= 1 + reajusteAnual;
+      }
+
+      // Parcela SAC do mês
       const juros = saldoDevedor * im;
-      const parcela = amortizacao + juros;
-      parcelas.push(parcela);
+      const parcelaSAC = amortizacao + juros;
       totalJurosFinanc += juros;
       saldoDevedor -= amortizacao;
-    }
-    const primeiraParcela = parcelas[0] ?? 0;
+      if (m === 1) primeiraParcela = parcelaSAC;
 
-    // Series mensais
-    const aluguelSerie: number[] = [];
-    let aluguelAtual = al;
-    for (let m = 1; m <= n; m++) {
-      aluguelSerie.push(aluguelAtual);
-      aluguelAtual *= 1 + reajusteMensal;
-    }
+      // Orçamento base = o mais caro entre os dois
+      const orcamentoMes = Math.max(parcelaSAC, aluguelMes);
 
-    // Valor imóvel ao longo do tempo
-    const imovelSerie: number[] = [];
-    let valImovel = vi;
-    for (let m = 1; m <= n; m++) {
+      // Aportes (diferença entre orçamento e custo de moradia)
+      const aporteAlugar = orcamentoMes - aluguelMes;
+      const aporteFinanciar = orcamentoMes - parcelaSAC;
+
+      // Rendimento sobre saldo anterior + aporte do mês
+      saldoInvestAlugar = saldoInvestAlugar * (1 + iInv) + aporteAlugar;
+      saldoInvestFinanciar = saldoInvestFinanciar * (1 + iInv) + aporteFinanciar;
+
+      aportadoAlugar += aporteAlugar;
+      aportadoFinanciar += aporteFinanciar;
+
+      // Valorização do imóvel
       valImovel *= 1 + valorizacaoMensal;
+
+      totalAluguelPago += aluguelMes;
+      totalParcelasPagas += parcelaSAC;
+
+      parcelasSerie.push(parcelaSAC);
+      aluguelSerie.push(aluguelMes);
+      aporteAlugarSerie.push(aporteAlugar);
+      aporteFinanciarSerie.push(aporteFinanciar);
       imovelSerie.push(valImovel);
+
+      if (pontoVirada === null && aluguelMes > parcelaSAC) {
+        pontoVirada = m;
+      }
     }
+
     const valorImovelFinal = imovelSerie[n - 1] ?? vi;
 
-    // Cenário A: Só Financiar (paga entrada + extras + parcelas, sem investir nada)
-    const totalPagoA = ent + extras + parcelas.reduce((s, v) => s + v, 0);
+    // Cenário A: Só Financiar (sem investir a diferença)
+    const totalPagoA = ent + extras + totalParcelasPagas;
     const cenarioA: ScenarioResult = {
       patrimonioFinal: valorImovelFinal,
       totalPago: totalPagoA,
@@ -85,50 +129,26 @@ export function AlugarOuFinanciar() {
       capitalAportado: totalPagoA,
     };
 
-    // Cenário B: Financiar + Investir a diferença (quando parcela cair abaixo do aluguel equivalente,
-    // investe a diferença entre aluguel "que pagaria" e parcela)
-    let saldoB = 0;
-    let aportadoB = 0;
-    for (let m = 0; m < n; m++) {
-      const diff = aluguelSerie[m] - parcelas[m];
-      if (diff > 0) {
-        saldoB += diff;
-        aportadoB += diff;
-      }
-      saldoB *= 1 + iInv;
-    }
+    // Cenário B: Financiar + Investir (fluxo de caixa igualado)
     const cenarioB: ScenarioResult = {
-      patrimonioFinal: valorImovelFinal + saldoB,
-      totalPago: totalPagoA,
-      totalInvestido: saldoB,
-      jurosGanhos: saldoB - aportadoB,
+      patrimonioFinal: valorImovelFinal + saldoInvestFinanciar,
+      totalPago: ent + extras + totalParcelasPagas,
+      totalInvestido: saldoInvestFinanciar,
+      jurosGanhos: saldoInvestFinanciar - aportadoFinanciar,
       valorImovelFinal,
-      capitalAportado: aportadoB,
+      capitalAportado: aportadoFinanciar,
     };
 
-    // Cenário C: Alugar + Investir (entrada + extras viram aporte inicial; investe diferença parcela-aluguel quando positiva)
-    let saldoC = ent + extras;
-    let aportadoC = ent + extras;
-    let totalAluguelPago = 0;
-    for (let m = 0; m < n; m++) {
-      totalAluguelPago += aluguelSerie[m];
-      const diff = parcelas[m] - aluguelSerie[m];
-      if (diff > 0) {
-        saldoC += diff;
-        aportadoC += diff;
-      }
-      saldoC *= 1 + iInv;
-    }
+    // Cenário C: Alugar + Investir (fluxo de caixa igualado)
     const cenarioC: ScenarioResult = {
-      patrimonioFinal: saldoC,
+      patrimonioFinal: saldoInvestAlugar,
       totalPago: totalAluguelPago,
-      totalInvestido: saldoC,
-      jurosGanhos: saldoC - aportadoC,
+      totalInvestido: saldoInvestAlugar,
+      jurosGanhos: saldoInvestAlugar - aportadoAlugar,
       valorImovelFinal: 0,
-      capitalAportado: aportadoC,
+      capitalAportado: aportadoAlugar,
     };
 
-    // Vencedor
     const cenarios: Array<{ id: Cenario; r: ScenarioResult }> = [
       { id: 'A', r: cenarioA },
       { id: 'B', r: cenarioB },
@@ -136,30 +156,57 @@ export function AlugarOuFinanciar() {
     ];
     const vencedor = cenarios.reduce((a, b) => (b.r.patrimonioFinal > a.r.patrimonioFinal ? b : a)).id;
 
-    // Gráfico anual
+    // Gráfico de linha (parcela vs aluguel) e tabela anual
     const chartData: Array<{ ano: number; parcela: number; aluguel: number }> = [];
-    for (let ano = 1; ano <= prazo; ano++) {
-      const idx = ano * 12 - 1;
-      chartData.push({
-        ano,
-        parcela: Math.round(parcelas[idx] ?? 0),
-        aluguel: Math.round(aluguelSerie[idx] ?? 0),
-      });
-    }
+    const tabelaAnual: Array<{
+      ano: number;
+      parcela: number;
+      aluguel: number;
+      aporteFinanciando: number;
+      aporteAlugando: number;
+      saldoFinanciando: number;
+      saldoAlugando: number;
+    }> = [];
 
-    // Ponto de virada (mês em que aluguel > parcela)
-    let pontoVirada: number | null = null;
+    // Recalcular saldos acumulados anuais a partir das séries
+    let acFin = 0;
+    let acAlu = ent + extras;
     for (let m = 0; m < n; m++) {
-      if (aluguelSerie[m] > parcelas[m]) {
-        pontoVirada = m + 1;
-        break;
+      acFin = acFin * (1 + iInv) + aporteFinanciarSerie[m];
+      acAlu = acAlu * (1 + iInv) + aporteAlugarSerie[m];
+      const mesNoAno = (m + 1) % 12;
+      if (mesNoAno === 0) {
+        const ano = (m + 1) / 12;
+        chartData.push({
+          ano,
+          parcela: Math.round(parcelasSerie[m]),
+          aluguel: Math.round(aluguelSerie[m]),
+        });
+        // Soma dos aportes do ano
+        const inicio = m - 11;
+        let aporteFinAno = 0;
+        let aporteAluAno = 0;
+        for (let k = inicio; k <= m; k++) {
+          aporteFinAno += aporteFinanciarSerie[k];
+          aporteAluAno += aporteAlugarSerie[k];
+        }
+        tabelaAnual.push({
+          ano,
+          parcela: parcelasSerie[m],
+          aluguel: aluguelSerie[m],
+          aporteFinanciando: aporteFinAno,
+          aporteAlugando: aporteAluAno,
+          saldoFinanciando: acFin,
+          saldoAlugando: acAlu,
+        });
       }
     }
+
     const anoVirada = pontoVirada ? Math.ceil(pontoVirada / 12) : null;
 
     return {
       cenarioA, cenarioB, cenarioC, vencedor,
-      chartData, anoVirada, pontoVirada,
+      chartData, tabelaAnual, anoVirada, pontoVirada,
       primeiraParcela, totalJurosFinanc, valorImovelFinal,
     };
   }, [valorImovel, aluguel, entrada, custosExtras, prazo, jurosFinanc, retornoInvest, valorizacao, reajusteAluguel]);
@@ -315,6 +362,40 @@ export function AlugarOuFinanciar() {
                       <Bar dataKey="Juros Ganhos" stackId="a" fill="hsl(var(--success))" radius={[6, 6, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Tabela de Evolução Anual — Aportes Igualados */}
+              <div>
+                <h4 className="text-sm font-semibold text-foreground mb-1">Evolução Anual — Fluxo de Caixa Igualado</h4>
+                <p className="text-xs text-muted-foreground mb-4">Ambos os cenários gastam o mesmo orçamento mensal (o maior entre parcela e aluguel). A diferença é investida — provando que o inquilino realmente aporta a diferença.</p>
+                <div className="overflow-x-auto rounded-md border border-border">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted">
+                      <tr className="text-left">
+                        <th className="px-3 py-2 font-semibold text-muted-foreground">Ano</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Parcela SAC</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Aluguel</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Aportes Financiando</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Aportes Alugando</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Saldo Invest. (Financ.)</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Saldo Invest. (Aluga)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.tabelaAnual.map((r) => (
+                        <tr key={r.ano} className="border-t border-border hover:bg-muted/40">
+                          <td className="px-3 py-2 font-medium text-foreground">{r.ano}</td>
+                          <td className="px-3 py-2 text-right text-foreground">{fmt(r.parcela)}</td>
+                          <td className="px-3 py-2 text-right text-foreground">{fmt(r.aluguel)}</td>
+                          <td className="px-3 py-2 text-right text-foreground">{fmt(r.aporteFinanciando)}</td>
+                          <td className="px-3 py-2 text-right text-foreground">{fmt(r.aporteAlugando)}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-primary">{fmt(r.saldoFinanciando)}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-success">{fmt(r.saldoAlugando)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
