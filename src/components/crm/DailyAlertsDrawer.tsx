@@ -1,30 +1,20 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { format, startOfWeek, addDays, isToday } from 'date-fns';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { format, startOfWeek, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useWeeklyTasks, type WeeklyTask, type WeeklyTaskPriority } from '@/hooks/useWeeklyTasks';
 
-type Priority = 'alta' | 'media' | 'baixa';
-
-interface WeeklyTask {
-  id: string;
-  title: string;
-  priority: Priority;
-  time: string;
-  dayIndex: number; // 0=SEG ... 6=DOM
-  completed: boolean;
-}
+type Priority = WeeklyTaskPriority;
 
 interface WeeklyAlertsDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  tasks: WeeklyTask[];
-  onTasksChange: (tasks: WeeklyTask[]) => void;
 }
 
 const DAY_LABELS = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB', 'DOM'];
@@ -36,8 +26,8 @@ const priorityConfig: Record<Priority, { label: string; className: string }> = {
 };
 
 function getTodayDayIndex(): number {
-  const jsDay = new Date().getDay(); // 0=Sun
-  return jsDay === 0 ? 6 : jsDay - 1; // 0=Mon ... 6=Sun
+  const jsDay = new Date().getDay();
+  return jsDay === 0 ? 6 : jsDay - 1;
 }
 
 function getWeekRange(): { start: Date; end: Date } {
@@ -68,7 +58,8 @@ function scheduleNotification(task: WeeklyTask) {
   }, diff);
 }
 
-export function WeeklyAlertsDrawer({ open, onOpenChange, tasks, onTasksChange }: WeeklyAlertsDrawerProps) {
+export function WeeklyAlertsDrawer({ open, onOpenChange }: WeeklyAlertsDrawerProps) {
+  const { tasks, isLoading, addTask, toggleTask, deleteTask, isAdding } = useWeeklyTasks();
   const [selectedDay, setSelectedDay] = useState(getTodayDayIndex);
   const [showForm, setShowForm] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -77,57 +68,63 @@ export function WeeklyAlertsDrawer({ open, onOpenChange, tasks, onTasksChange }:
   const [newDay, setNewDay] = useState(String(getTodayDayIndex()));
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  // Request notification permission on first open
   useEffect(() => {
     if (open && 'Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
   }, [open]);
 
-  // Schedule notifications for today's tasks
   useEffect(() => {
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
-
-    tasks.forEach(task => {
+    tasks.forEach((task) => {
       const timer = scheduleNotification(task);
       if (timer) timersRef.current.push(timer);
     });
-
     return () => timersRef.current.forEach(clearTimeout);
   }, [tasks]);
 
   const dayTasks = useMemo(() => {
-    const filtered = tasks.filter(t => t.dayIndex === selectedDay);
-    const pending = filtered.filter(t => !t.completed);
-    const completed = filtered.filter(t => t.completed);
+    const filtered = tasks.filter((t) => t.dayIndex === selectedDay);
+    const pending = filtered.filter((t) => !t.completed);
+    const completed = filtered.filter((t) => t.completed);
     return [...pending, ...completed];
   }, [tasks, selectedDay]);
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!newTitle.trim()) return;
-    const task: WeeklyTask = {
-      id: crypto.randomUUID(),
-      title: newTitle.trim(),
-      priority: newPriority,
-      time: newTime || '',
-      dayIndex: parseInt(newDay, 10),
-      completed: false,
-    };
-    onTasksChange([...tasks, task]);
-    setNewTitle('');
-    setNewPriority('media');
-    setNewTime('');
-    setNewDay(String(selectedDay));
-    setShowForm(false);
+    try {
+      await addTask({
+        title: newTitle.trim(),
+        priority: newPriority,
+        time: newTime || '',
+        dayIndex: parseInt(newDay, 10),
+        completed: false,
+      });
+      setNewTitle('');
+      setNewPriority('media');
+      setNewTime('');
+      setNewDay(String(selectedDay));
+      setShowForm(false);
+    } catch {
+      // Toast already shown in hook
+    }
   };
 
-  const toggleComplete = (id: string) => {
-    onTasksChange(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+  const handleToggle = async (task: WeeklyTask) => {
+    try {
+      await toggleTask(task.id, !task.completed);
+    } catch {
+      // Toast already shown in hook
+    }
   };
 
-  const deleteTask = (id: string) => {
-    onTasksChange(tasks.filter(t => t.id !== id));
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteTask(id);
+    } catch {
+      // Toast already shown in hook
+    }
   };
 
   const { start, end } = getWeekRange();
@@ -143,7 +140,6 @@ export function WeeklyAlertsDrawer({ open, onOpenChange, tasks, onTasksChange }:
             <p className="text-sm text-muted-foreground mt-1">{weekLabel}</p>
           </div>
 
-          {/* Day selector */}
           <div className="flex gap-1">
             {DAY_LABELS.map((label, i) => (
               <button
@@ -174,11 +170,11 @@ export function WeeklyAlertsDrawer({ open, onOpenChange, tasks, onTasksChange }:
               <Input
                 placeholder="Título da tarefa"
                 value={newTitle}
-                onChange={e => setNewTitle(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleAdd()}
+                onChange={(e) => setNewTitle(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
               />
               <div className="flex gap-2">
-                <Select value={newPriority} onValueChange={v => setNewPriority(v as Priority)}>
+                <Select value={newPriority} onValueChange={(v) => setNewPriority(v as Priority)}>
                   <SelectTrigger className="flex-1">
                     <SelectValue />
                   </SelectTrigger>
@@ -203,22 +199,30 @@ export function WeeklyAlertsDrawer({ open, onOpenChange, tasks, onTasksChange }:
                 type="time"
                 placeholder="Horário"
                 value={newTime}
-                onChange={e => setNewTime(e.target.value)}
+                onChange={(e) => setNewTime(e.target.value)}
               />
               <div className="flex gap-2">
-                <Button size="sm" onClick={handleAdd} className="flex-1">Salvar</Button>
+                <Button size="sm" onClick={handleAdd} disabled={isAdding || !newTitle.trim()} className="flex-1">
+                  {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
+                </Button>
                 <Button size="sm" variant="outline" onClick={() => setShowForm(false)} className="flex-1">Cancelar</Button>
               </div>
             </div>
           )}
 
-          {dayTasks.length === 0 && (
+          {isLoading && (
+            <p className="text-sm text-muted-foreground text-center py-8 flex items-center justify-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" /> Carregando…
+            </p>
+          )}
+
+          {!isLoading && dayTasks.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-8">
               Nenhuma tarefa para {DAY_LABELS[selectedDay]}.
             </p>
           )}
 
-          {dayTasks.map(task => (
+          {dayTasks.map((task) => (
             <div
               key={task.id}
               className={`group flex items-center gap-3 p-3 rounded-lg border border-border transition-all hover:bg-muted/30 ${
@@ -227,7 +231,7 @@ export function WeeklyAlertsDrawer({ open, onOpenChange, tasks, onTasksChange }:
             >
               <Checkbox
                 checked={task.completed}
-                onCheckedChange={() => toggleComplete(task.id)}
+                onCheckedChange={() => handleToggle(task)}
               />
               <div className="flex-1 min-w-0">
                 <p className={`text-sm font-medium truncate ${task.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
@@ -241,7 +245,7 @@ export function WeeklyAlertsDrawer({ open, onOpenChange, tasks, onTasksChange }:
                 </div>
               </div>
               <button
-                onClick={() => deleteTask(task.id)}
+                onClick={() => handleDelete(task.id)}
                 className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
               >
                 <Trash2 className="w-4 h-4" />
