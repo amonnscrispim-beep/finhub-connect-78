@@ -16,6 +16,9 @@ interface ScenarioResult {
   jurosGanhos: number;
   valorImovelFinal: number;
   capitalAportado: number;
+  valorImovelBruto?: number;
+  custosVenda?: number;
+  valorImovelLiquido?: number;
 }
 
 export function AlugarOuFinanciar() {
