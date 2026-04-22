@@ -156,10 +156,12 @@ export function AlugarOuFinanciar() {
     ];
     const vencedor = cenarios.reduce((a, b) => (b.r.patrimonioFinal > a.r.patrimonioFinal ? b : a)).id;
 
-    // Gráfico de linha (parcela vs aluguel) e tabela anual
+    // Gráfico de linha (parcela vs aluguel) — pontos anuais (primeiro mês de cada ano)
     const chartData: Array<{ ano: number; parcela: number; aluguel: number }> = [];
-    const tabelaAnual: Array<{
-      ano: number;
+
+    // Tabela MENSAL — uma linha por mês
+    const tabelaMensal: Array<{
+      mes: number;
       parcela: number;
       aluguel: number;
       aporteFinanciando: number;
@@ -168,53 +170,36 @@ export function AlugarOuFinanciar() {
       saldoAlugando: number;
     }> = [];
 
-    // Saldos acumulados mês a mês para consulta posterior
-    const saldoFinSerie: number[] = [];
-    const saldoAluSerie: number[] = [];
     let acFin = 0;
     let acAlu = ent + extras;
     for (let m = 0; m < n; m++) {
       acFin = acFin * (1 + iInv) + aporteFinanciarSerie[m];
       acAlu = acAlu * (1 + iInv) + aporteAlugarSerie[m];
-      saldoFinSerie.push(acFin);
-      saldoAluSerie.push(acAlu);
-    }
 
-    // Construção da tabela anual: para cada ano, mês inicial = (ano-1)*12, mês final = ano*12 - 1
-    const totalAnos = Math.ceil(n / 12);
-    for (let ano = 1; ano <= totalAnos; ano++) {
-      const idxInicial = (ano - 1) * 12;
-      const idxFinal = Math.min(ano * 12 - 1, n - 1);
+      tabelaMensal.push({
+        mes: m + 1,
+        parcela: parcelasSerie[m],
+        aluguel: aluguelSerie[m],
+        aporteFinanciando: aporteFinanciarSerie[m],
+        aporteAlugando: aporteAlugarSerie[m],
+        saldoFinanciando: acFin,
+        saldoAlugando: acAlu,
+      });
 
-      let aporteFinAno = 0;
-      let aporteAluAno = 0;
-      for (let k = idxInicial; k <= idxFinal; k++) {
-        aporteFinAno += aporteFinanciarSerie[k];
-        aporteAluAno += aporteAlugarSerie[k];
+      if (m % 12 === 0) {
+        chartData.push({
+          ano: m / 12 + 1,
+          parcela: Math.round(parcelasSerie[m]),
+          aluguel: Math.round(aluguelSerie[m]),
+        });
       }
-
-      chartData.push({
-        ano,
-        parcela: Math.round(parcelasSerie[idxInicial]),
-        aluguel: Math.round(aluguelSerie[idxInicial]),
-      });
-
-      tabelaAnual.push({
-        ano,
-        parcela: parcelasSerie[idxInicial],
-        aluguel: aluguelSerie[idxInicial],
-        aporteFinanciando: aporteFinAno,
-        aporteAlugando: aporteAluAno,
-        saldoFinanciando: saldoFinSerie[idxFinal],
-        saldoAlugando: saldoAluSerie[idxFinal],
-      });
     }
 
     const anoVirada = pontoVirada ? Math.ceil(pontoVirada / 12) : null;
 
     return {
       cenarioA, cenarioB, cenarioC, vencedor,
-      chartData, tabelaAnual, anoVirada, pontoVirada,
+      chartData, tabelaMensal, anoVirada, pontoVirada,
       primeiraParcela, totalJurosFinanc, valorImovelFinal,
     };
   }, [valorImovel, aluguel, entrada, custosExtras, prazo, jurosFinanc, retornoInvest, valorizacao, reajusteAluguel]);
@@ -373,27 +358,27 @@ export function AlugarOuFinanciar() {
                 </div>
               </div>
 
-              {/* Tabela de Evolução Anual — Aportes Igualados */}
+              {/* Tabela de Evolução Mensal — Aportes Igualados */}
               <div>
-                <h4 className="text-sm font-semibold text-foreground mb-1">Evolução Anual — Fluxo de Caixa Igualado</h4>
-                <p className="text-xs text-muted-foreground mb-4">Ambos os cenários gastam o mesmo orçamento mensal (o maior entre parcela e aluguel). A diferença é investida — provando que o inquilino realmente aporta a diferença.</p>
-                <div className="overflow-x-auto rounded-md border border-border">
+                <h4 className="text-sm font-semibold text-foreground mb-1">Evolução Mensal — Fluxo de Caixa Igualado</h4>
+                <p className="text-xs text-muted-foreground mb-4">Visão mês a mês da simulação. Ambos os cenários gastam o mesmo orçamento mensal (o maior entre parcela e aluguel) — a diferença é investida.</p>
+                <div className="max-h-[500px] overflow-y-auto overflow-x-auto rounded-md border border-border">
                   <table className="w-full text-xs">
-                    <thead className="bg-muted">
+                    <thead className="bg-muted sticky top-0 z-10">
                       <tr className="text-left">
-                        <th className="px-3 py-2 font-semibold text-muted-foreground">Ano</th>
-                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Parcela SAC</th>
-                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Aluguel</th>
-                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Aportes Financiando</th>
-                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Aportes Alugando</th>
-                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Saldo Invest. (Financ.)</th>
-                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Saldo Invest. (Aluga)</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground bg-muted">Mês</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right bg-muted">Parcela SAC</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right bg-muted">Aluguel</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right bg-muted">Aportes Financiando</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right bg-muted">Aportes Alugando</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right bg-muted">Saldo Invest. (Financ.)</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right bg-muted">Saldo Invest. (Aluga)</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {data.tabelaAnual.map((r) => (
-                        <tr key={r.ano} className="border-t border-border hover:bg-muted/40">
-                          <td className="px-3 py-2 font-medium text-foreground">{r.ano}</td>
+                      {data.tabelaMensal.map((r) => (
+                        <tr key={r.mes} className="border-t border-border hover:bg-muted/40">
+                          <td className="px-3 py-2 font-medium text-foreground">{r.mes}</td>
                           <td className="px-3 py-2 text-right text-foreground">{fmt(r.parcela)}</td>
                           <td className="px-3 py-2 text-right text-foreground">{fmt(r.aluguel)}</td>
                           <td className="px-3 py-2 text-right text-foreground">{fmt(r.aporteFinanciando)}</td>
