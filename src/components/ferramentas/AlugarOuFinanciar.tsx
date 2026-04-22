@@ -174,19 +174,19 @@ export function AlugarOuFinanciar() {
     for (let m = 0; m < n; m++) {
       acFin = acFin * (1 + iInv) + aporteFinanciarSerie[m];
       acAlu = acAlu * (1 + iInv) + aporteAlugarSerie[m];
-      const mesNoAno = (m + 1) % 12;
-      if (mesNoAno === 0) {
-        const ano = (m + 1) / 12;
+      // Mês 1 do ano: índices 0, 12, 24, ... (mês humano 1, 13, 25, ...)
+      if (m % 12 === 0) {
+        const ano = m / 12 + 1;
         chartData.push({
           ano,
           parcela: Math.round(parcelasSerie[m]),
           aluguel: Math.round(aluguelSerie[m]),
         });
-        // Soma dos aportes do ano
-        const inicio = m - 11;
+        // Soma dos aportes dos próximos 12 meses (do ano corrente)
+        const fim = Math.min(m + 11, n - 1);
         let aporteFinAno = 0;
         let aporteAluAno = 0;
-        for (let k = inicio; k <= m; k++) {
+        for (let k = m; k <= fim; k++) {
           aporteFinAno += aporteFinanciarSerie[k];
           aporteAluAno += aporteAlugarSerie[k];
         }
