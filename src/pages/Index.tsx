@@ -31,6 +31,7 @@ import { JurosCompostos } from '@/components/ferramentas/JurosCompostos';
 import { CalculadoraMilhao } from '@/components/ferramentas/CalculadoraMilhao';
 import { PatrimonioIdade } from '@/components/ferramentas/PatrimonioIdade';
 import { AlugarOuFinanciar } from '@/components/ferramentas/AlugarOuFinanciar';
+import { ManterOuVender } from '@/components/ferramentas/ManterOuVender';
 import { VistaOuParcelada } from '@/components/ferramentas/VistaOuParcelada';
 import { IOFCaixinha } from '@/components/ferramentas/IOFCaixinha';
 import { SimuladorCDB } from '@/components/ferramentas/SimuladorCDB';
@@ -305,6 +306,7 @@ function CRMDashboard() {
             {ferramentaAtiva === 'milhao' && <CalculadoraMilhao />}
             {ferramentaAtiva === 'patrimonio-idade' && <PatrimonioIdade />}
             {ferramentaAtiva === 'alugar-financiar' && <AlugarOuFinanciar />}
+            {ferramentaAtiva === 'manter-vender' && <ManterOuVender />}
             {ferramentaAtiva === 'vista-parcelada' && <VistaOuParcelada />}
             {ferramentaAtiva === 'iof-caixinha' && <IOFCaixinha />}
             {ferramentaAtiva === 'cdb' && <SimuladorCDB />}
