@@ -16,6 +16,9 @@ interface ScenarioResult {
   jurosGanhos: number;
   valorImovelFinal: number;
   capitalAportado: number;
+  valorImovelBruto?: number;
+  custosVenda?: number;
+  valorImovelLiquido?: number;
 }
 
 export function AlugarOuFinanciar() {
@@ -118,25 +121,38 @@ export function AlugarOuFinanciar() {
 
     const valorImovelFinal = imovelSerie[n - 1] ?? vi;
 
+    // Custos de liquidação imobiliária (Cenários A e B)
+    const corretagem = valorImovelFinal * 0.06;
+    const lucroImovel = Math.max(0, valorImovelFinal - vi - extras - corretagem);
+    const irImovel = lucroImovel * 0.15;
+    const custosVenda = corretagem + irImovel;
+    const valorImovelLiquido = valorImovelFinal - corretagem - irImovel;
+
     // Cenário A: Só Financiar (sem investir a diferença)
     const totalPagoA = ent + extras + totalParcelasPagas;
     const cenarioA: ScenarioResult = {
-      patrimonioFinal: valorImovelFinal,
+      patrimonioFinal: valorImovelLiquido,
       totalPago: totalPagoA,
       totalInvestido: 0,
       jurosGanhos: 0,
-      valorImovelFinal,
+      valorImovelFinal: valorImovelLiquido,
       capitalAportado: totalPagoA,
+      valorImovelBruto: valorImovelFinal,
+      custosVenda,
+      valorImovelLiquido,
     };
 
     // Cenário B: Financiar + Investir (fluxo de caixa igualado)
     const cenarioB: ScenarioResult = {
-      patrimonioFinal: valorImovelFinal + saldoInvestFinanciar,
+      patrimonioFinal: valorImovelLiquido + saldoInvestFinanciar,
       totalPago: ent + extras + totalParcelasPagas,
       totalInvestido: saldoInvestFinanciar,
       jurosGanhos: saldoInvestFinanciar - aportadoFinanciar,
-      valorImovelFinal,
+      valorImovelFinal: valorImovelLiquido,
       capitalAportado: aportadoFinanciar,
+      valorImovelBruto: valorImovelFinal,
+      custosVenda,
+      valorImovelLiquido,
     };
 
     // Cenário C: Alugar + Investir (fluxo de caixa igualado)
@@ -427,7 +443,11 @@ function ScenarioCard({ titulo, subtitulo, icon, vencedor, result, tipo }: {
 
       <div className="space-y-1.5 pt-3 border-t border-border text-xs">
         {tipo !== 'alugar' && (
-          <Row label="Valor do imóvel (futuro)" value={fmt(result.valorImovelFinal)} />
+          <>
+            <Row label="Valor do imóvel (bruto)" value={fmt(result.valorImovelBruto ?? result.valorImovelFinal)} />
+            <Row label="Custos de venda (6% Corret. + 15% IR)" value={`- ${fmt(result.custosVenda ?? 0)}`} negative />
+            <Row label="Valor do imóvel (líquido)" value={fmt(result.valorImovelLiquido ?? result.valorImovelFinal)} />
+          </>
         )}
         <Row label="Total pago (parcelas/aluguel)" value={fmt(result.totalPago)} />
         <Row label="Capital aportado em investimentos" value={fmt(result.capitalAportado - (tipo === 'financiar' ? result.totalPago : 0))} hidden={tipo === 'financiar'} />
@@ -438,12 +458,12 @@ function ScenarioCard({ titulo, subtitulo, icon, vencedor, result, tipo }: {
   );
 }
 
-function Row({ label, value, positive, hidden }: { label: string; value: string; positive?: boolean; hidden?: boolean }) {
+function Row({ label, value, positive, negative, hidden }: { label: string; value: string; positive?: boolean; negative?: boolean; hidden?: boolean }) {
   if (hidden) return null;
   return (
     <div className="flex justify-between items-baseline gap-2">
       <span className="text-muted-foreground">{label}</span>
-      <span className={`font-semibold ${positive ? 'text-success' : 'text-foreground'}`}>{value}</span>
+      <span className={`font-semibold ${positive ? 'text-success' : negative ? 'text-destructive' : 'text-foreground'}`}>{value}</span>
     </div>
   );
 }
