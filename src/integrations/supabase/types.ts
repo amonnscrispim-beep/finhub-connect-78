@@ -1766,6 +1766,42 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_tasks: {
+        Row: {
+          completed: boolean
+          created_at: string
+          day_index: number
+          id: string
+          priority: string
+          time: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          day_index?: number
+          id?: string
+          priority?: string
+          time?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          day_index?: number
+          id?: string
+          priority?: string
+          time?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
