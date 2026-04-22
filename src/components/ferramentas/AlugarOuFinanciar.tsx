@@ -156,10 +156,12 @@ export function AlugarOuFinanciar() {
     ];
     const vencedor = cenarios.reduce((a, b) => (b.r.patrimonioFinal > a.r.patrimonioFinal ? b : a)).id;
 
-    // Gráfico de linha (parcela vs aluguel) e tabela anual
+    // Gráfico de linha (parcela vs aluguel) — pontos anuais (primeiro mês de cada ano)
     const chartData: Array<{ ano: number; parcela: number; aluguel: number }> = [];
-    const tabelaAnual: Array<{
-      ano: number;
+
+    // Tabela MENSAL — uma linha por mês
+    const tabelaMensal: Array<{
+      mes: number;
       parcela: number;
       aluguel: number;
       aporteFinanciando: number;
@@ -168,53 +170,36 @@ export function AlugarOuFinanciar() {
       saldoAlugando: number;
     }> = [];
 
-    // Saldos acumulados mês a mês para consulta posterior
-    const saldoFinSerie: number[] = [];
-    const saldoAluSerie: number[] = [];
     let acFin = 0;
     let acAlu = ent + extras;
     for (let m = 0; m < n; m++) {
       acFin = acFin * (1 + iInv) + aporteFinanciarSerie[m];
       acAlu = acAlu * (1 + iInv) + aporteAlugarSerie[m];
-      saldoFinSerie.push(acFin);
-      saldoAluSerie.push(acAlu);
-    }
 
-    // Construção da tabela anual: para cada ano, mês inicial = (ano-1)*12, mês final = ano*12 - 1
-    const totalAnos = Math.ceil(n / 12);
-    for (let ano = 1; ano <= totalAnos; ano++) {
-      const idxInicial = (ano - 1) * 12;
-      const idxFinal = Math.min(ano * 12 - 1, n - 1);
+      tabelaMensal.push({
+        mes: m + 1,
+        parcela: parcelasSerie[m],
+        aluguel: aluguelSerie[m],
+        aporteFinanciando: aporteFinanciarSerie[m],
+        aporteAlugando: aporteAlugarSerie[m],
+        saldoFinanciando: acFin,
+        saldoAlugando: acAlu,
+      });
 
-      let aporteFinAno = 0;
-      let aporteAluAno = 0;
-      for (let k = idxInicial; k <= idxFinal; k++) {
-        aporteFinAno += aporteFinanciarSerie[k];
-        aporteAluAno += aporteAlugarSerie[k];
+      if (m % 12 === 0) {
+        chartData.push({
+          ano: m / 12 + 1,
+          parcela: Math.round(parcelasSerie[m]),
+          aluguel: Math.round(aluguelSerie[m]),
+        });
       }
-
-      chartData.push({
-        ano,
-        parcela: Math.round(parcelasSerie[idxInicial]),
-        aluguel: Math.round(aluguelSerie[idxInicial]),
-      });
-
-      tabelaAnual.push({
-        ano,
-        parcela: parcelasSerie[idxInicial],
-        aluguel: aluguelSerie[idxInicial],
-        aporteFinanciando: aporteFinAno,
-        aporteAlugando: aporteAluAno,
-        saldoFinanciando: saldoFinSerie[idxFinal],
-        saldoAlugando: saldoAluSerie[idxFinal],
-      });
     }
 
     const anoVirada = pontoVirada ? Math.ceil(pontoVirada / 12) : null;
 
     return {
       cenarioA, cenarioB, cenarioC, vencedor,
-      chartData, tabelaAnual, anoVirada, pontoVirada,
+      chartData, tabelaMensal, anoVirada, pontoVirada,
       primeiraParcela, totalJurosFinanc, valorImovelFinal,
     };
   }, [valorImovel, aluguel, entrada, custosExtras, prazo, jurosFinanc, retornoInvest, valorizacao, reajusteAluguel]);
