@@ -1,24 +1,17 @@
 import { useState, useMemo } from 'react';
-import { Home, TrendingUp, Building2, Trophy, Sparkles, Coins } from 'lucide-react';
+import { Home, TrendingUp, Building2, Trophy, Sparkles, Coins, Zap, Wallet } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { Card, ToolHeader, InputField, SliderField, fmt, parseNum } from './shared';
 import { Badge } from '@/components/ui/badge';
 
-interface ScenarioResult {
-  patrimonioFinal: number;
-  valorImovelBruto: number;
-  custosVenda: number;
-  valorImovelLiquido: number;
-  saldoAlugueisInvest: number;
-  totalAluguelRecebido: number;
-}
-
 export function ManterOuVender() {
   const [valorAtual, setValorAtual] = useState('800.000');
   const [valorOriginal, setValorOriginal] = useState('500.000');
   const [aluguelLiquido, setAluguelLiquido] = useState('3.500');
+  const [aporteMensal, setAporteMensal] = useState('0');
+  const [iptuPctAA, setIptuPctAA] = useState(1);
   const [prazo, setPrazo] = useState(20);
   const [valorizacao, setValorizacao] = useState(5);
   const [reajusteAluguel, setReajusteAluguel] = useState(7);
@@ -28,12 +21,14 @@ export function ManterOuVender() {
     const va = parseNum(valorAtual);
     const vo = parseNum(valorOriginal);
     const al = parseNum(aluguelLiquido);
+    const aporte = parseNum(aporteMensal);
     if (va <= 0 || al <= 0) return null;
 
     const n = prazo * 12;
     const iInv = Math.pow(1 + retornoInvest / 100, 1 / 12) - 1;
     const valorizacaoMensal = Math.pow(1 + valorizacao / 100, 1 / 12) - 1;
     const reajusteAnual = reajusteAluguel / 100;
+    const iptuMensalPct = (iptuPctAA / 100) / 12;
 
     // ===== CENÁRIO B: vender hoje =====
     const corretagemVendaHoje = va * 0.06;
@@ -47,11 +42,20 @@ export function ManterOuVender() {
     let saldoAlugueisInvest = 0;
     let saldoVender = capitalLiquidoInicial;
     let totalAluguelRecebido = 0;
+    let totalIptuPago = 0;
+
+    // Raio-X do 1º Ano
+    let aluguelAno1 = 0;
+    let iptuAno1 = 0;
+    let valorImovelInicio = va;
+    let rendimentoFiisAno1 = 0;
+    const saldoVenderInicio = capitalLiquidoInicial;
 
     const tabelaMensal: {
       mes: number;
       valorImovel: number;
       aluguel: number;
+      iptu: number;
       saldoAlugueis: number;
       patrimonioA: number;
       patrimonioB: number;
@@ -68,12 +72,25 @@ export function ManterOuVender() {
       // Valorização mensal do imóvel
       valImovel = valImovel * (1 + valorizacaoMensal);
 
-      // Cenário A: investe o aluguel
-      saldoAlugueisInvest = saldoAlugueisInvest * (1 + iInv) + aluguelMes;
-      totalAluguelRecebido += aluguelMes;
+      // IPTU/Manutenção mensal sobre o valor do imóvel
+      const iptuMes = valImovel * iptuMensalPct;
 
-      // Cenário B: capital líquido cresce a juros compostos
-      saldoVender = saldoVender * (1 + iInv);
+      // Cenário A: recebe aluguel, paga IPTU, reinveste líquido + aporte extra
+      const fluxoLiquidoMes = aluguelMes - iptuMes + aporte;
+      saldoAlugueisInvest = saldoAlugueisInvest * (1 + iInv) + fluxoLiquidoMes;
+      totalAluguelRecebido += aluguelMes;
+      totalIptuPago += iptuMes;
+
+      // Cenário B: capital líquido cresce + aporte mensal
+      const saldoVenderAntes = saldoVender;
+      saldoVender = saldoVender * (1 + iInv) + aporte;
+
+      // Acúmulos do 1º ano
+      if (m <= 12) {
+        aluguelAno1 += aluguelMes;
+        iptuAno1 += iptuMes;
+        rendimentoFiisAno1 += saldoVenderAntes * iInv;
+      }
 
       // Patrimônio A (líquido com custos de venda no mês corrente)
       const corretagemA = valImovel * 0.06;
@@ -86,6 +103,7 @@ export function ManterOuVender() {
         mes: m,
         valorImovel: valImovel,
         aluguel: aluguelMes,
+        iptu: iptuMes,
         saldoAlugueis: saldoAlugueisInvest,
         patrimonioA,
         patrimonioB: saldoVender,
@@ -104,13 +122,14 @@ export function ManterOuVender() {
     const custosVendaFinal = corretagemFinal + irFinal;
     const valorImovelLiquidoFinal = valorImovelFinal - custosVendaFinal;
 
-    const cenarioA: ScenarioResult = {
+    const cenarioA = {
       patrimonioFinal: valorImovelLiquidoFinal + saldoAlugueisInvest,
       valorImovelBruto: valorImovelFinal,
       custosVenda: custosVendaFinal,
       valorImovelLiquido: valorImovelLiquidoFinal,
       saldoAlugueisInvest,
       totalAluguelRecebido,
+      totalIptuPago,
     };
 
     const cenarioB = {
@@ -123,8 +142,22 @@ export function ManterOuVender() {
     const vencedor: 'A' | 'B' = cenarioA.patrimonioFinal >= cenarioB.patrimonioFinal ? 'A' : 'B';
     const diferenca = Math.abs(cenarioA.patrimonioFinal - cenarioB.patrimonioFinal);
 
-    return { cenarioA, cenarioB, tabelaMensal, chartData, vencedor, diferenca };
-  }, [valorAtual, valorOriginal, aluguelLiquido, prazo, valorizacao, reajusteAluguel, retornoInvest]);
+    // ===== Raio-X do 1º Ano =====
+    const valorizacaoAno1 = valorImovel12(va, valorizacaoMensal) - valorImovelInicio;
+    const resultadoAnualA = valorizacaoAno1 + aluguelAno1 - iptuAno1;
+    const resultadoAnualB = rendimentoFiisAno1;
+    const vencedorAno1: 'A' | 'B' = resultadoAnualA >= resultadoAnualB ? 'A' : 'B';
+    const diferencaAno1 = Math.abs(resultadoAnualA - resultadoAnualB);
+
+    const raioX = {
+      A: { valorizacao: valorizacaoAno1, aluguel: aluguelAno1, iptu: iptuAno1, total: resultadoAnualA },
+      B: { capitalInvestido: saldoVenderInicio, rendimento: rendimentoFiisAno1, total: resultadoAnualB },
+      vencedor: vencedorAno1,
+      diferenca: diferencaAno1,
+    };
+
+    return { cenarioA, cenarioB, tabelaMensal, chartData, vencedor, diferenca, raioX };
+  }, [valorAtual, valorOriginal, aluguelLiquido, aporteMensal, iptuPctAA, prazo, valorizacao, reajusteAluguel, retornoInvest]);
 
   return (
     <div className="space-y-4">
@@ -136,8 +169,8 @@ export function ManterOuVender() {
         />
         <div className="p-5">
           <p className="text-sm text-muted-foreground">
-            Compare o resultado de manter um imóvel já quitado gerando aluguel versus vendê-lo hoje
-            (descontando corretagem e IR sobre ganho de capital) e investir o capital líquido.
+            Compare manter um imóvel quitado gerando aluguel (líquido de IPTU/manutenção) versus vendê-lo
+            (descontando corretagem e IR sobre ganho de capital) e investir o capital líquido em FIIs/Renda Fixa.
           </p>
         </div>
       </Card>
@@ -153,7 +186,17 @@ export function ManterOuVender() {
           <InputField label="Valor Atual do Imóvel" prefix="R$" value={valorAtual} onChange={setValorAtual} />
           <InputField label="Valor Original de Compra" prefix="R$" value={valorOriginal} onChange={setValorOriginal} />
           <InputField label="Aluguel Líquido Mensal" prefix="R$" value={aluguelLiquido} onChange={setAluguelLiquido} />
+          <InputField label="Aporte Mensal Extra (opcional)" prefix="R$" value={aporteMensal} onChange={setAporteMensal} />
 
+          <SliderField
+            label="IPTU + Manutenção (a.a. sobre imóvel)"
+            value={iptuPctAA}
+            min={0}
+            max={5}
+            step={0.1}
+            suffix="%"
+            onChange={setIptuPctAA}
+          />
           <SliderField
             label="Prazo de Análise"
             value={prazo}
@@ -182,7 +225,7 @@ export function ManterOuVender() {
             onChange={setReajusteAluguel}
           />
           <SliderField
-            label="Retorno dos Investimentos (a.a.)"
+            label="Rentab. Investimentos/FIIs (a.a.)"
             value={retornoInvest}
             min={0}
             max={25}
@@ -196,7 +239,62 @@ export function ManterOuVender() {
         <div className="lg:col-span-2 space-y-4">
           {data && (
             <>
-              {/* Cards Veredito */}
+              {/* ===== RAIO-X DO 1º ANO (Dark Premium) ===== */}
+              <Card className="p-5 border-border bg-slate-900 text-slate-100 dark:bg-slate-950">
+                <div className="flex items-center gap-2 mb-1">
+                  <Zap className="w-4 h-4 text-amber-400" />
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-100">
+                    Raio-X do 1º Ano
+                  </h3>
+                  <Badge variant="secondary" className="ml-auto bg-slate-800 text-slate-300 border-slate-700">
+                    Curto Prazo
+                  </Badge>
+                </div>
+                <p className="text-xs text-slate-400 mb-4">
+                  Impacto financeiro imediato nos primeiros 12 meses.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* A — Manter */}
+                  <DarkRaioXCard
+                    title="Opção A — Manter Imóvel"
+                    icon={<Home className="w-4 h-4" />}
+                    vencedor={data.raioX.vencedor === 'A'}
+                    rows={[
+                      { label: 'Valorização do imóvel', value: data.raioX.A.valorizacao, positive: true },
+                      { label: 'Aluguel recebido (12m)', value: data.raioX.A.aluguel, positive: true },
+                      { label: 'IPTU + Manutenção', value: -data.raioX.A.iptu, negative: true },
+                    ]}
+                    total={data.raioX.A.total}
+                  />
+                  {/* B — Vender */}
+                  <DarkRaioXCard
+                    title="Opção B — Vender & Investir"
+                    icon={<Coins className="w-4 h-4" />}
+                    vencedor={data.raioX.vencedor === 'B'}
+                    rows={[
+                      { label: 'Capital líquido investido', value: data.raioX.B.capitalInvestido, muted: true },
+                      { label: 'Rendimento FIIs/Invest. (12m)', value: data.raioX.B.rendimento, positive: true },
+                    ]}
+                    total={data.raioX.B.total}
+                  />
+                </div>
+
+                <div className="mt-4 p-3 rounded-lg bg-slate-800/60 border border-slate-700">
+                  <p className="text-xs text-slate-400 uppercase tracking-wide mb-1">Conclusão Curto Prazo</p>
+                  <p className="text-sm text-slate-100">
+                    No cenário atual, a{' '}
+                    <span className="font-bold text-amber-400">
+                      Opção {data.raioX.vencedor} ({data.raioX.vencedor === 'A' ? 'Manter' : 'Vender & Investir'})
+                    </span>{' '}
+                    gera um ganho adicional de{' '}
+                    <span className="font-bold text-emerald-400">{fmt(data.raioX.diferenca)}</span> por ano em
+                    comparação com a Opção {data.raioX.vencedor === 'A' ? 'B' : 'A'}.
+                  </p>
+                </div>
+              </Card>
+
+              {/* ===== Projeção de Longo Prazo ===== */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <ResultBlock
                   vencedor={data.vencedor === 'A'}
@@ -208,19 +306,20 @@ export function ManterOuVender() {
                     { label: 'Custos de venda (6% + 15% IR)', value: -data.cenarioA.custosVenda, negative: true },
                     { label: 'Valor do imóvel (líquido)', value: data.cenarioA.valorImovelLiquido, strong: true },
                     { label: 'Aluguéis investidos (saldo)', value: data.cenarioA.saldoAlugueisInvest },
-                    { label: 'Total de aluguel recebido', value: data.cenarioA.totalAluguelRecebido, muted: true },
+                    { label: 'Total aluguel recebido', value: data.cenarioA.totalAluguelRecebido, muted: true },
+                    { label: 'Total IPTU/manutenção pago', value: -data.cenarioA.totalIptuPago, muted: true },
                   ]}
                 />
                 <ResultBlock
                   vencedor={data.vencedor === 'B'}
                   title="Cenário B — Vender & Investir"
-                  icon={<Coins className="w-4 h-4" />}
+                  icon={<Wallet className="w-4 h-4" />}
                   total={data.cenarioB.patrimonioFinal}
                   rows={[
                     { label: 'Valor de venda (bruto)', value: parseNum(valorAtual) },
                     { label: 'Corretagem (6%)', value: -data.cenarioB.corretagemVendaHoje, negative: true },
                     { label: 'IR sobre ganho (15%)', value: -data.cenarioB.irHoje, negative: true },
-                    { label: 'Capital líquido investido', value: data.cenarioB.capitalLiquidoInicial, strong: true },
+                    { label: 'Investimento inicial líquido (após impostos/corretagem)', value: data.cenarioB.capitalLiquidoInicial, strong: true },
                   ]}
                 />
               </div>
@@ -232,7 +331,9 @@ export function ManterOuVender() {
                     <Trophy className="w-5 h-5" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Veredito</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                      Veredito Longo Prazo ({prazo} anos)
+                    </p>
                     <p className="text-sm font-semibold text-foreground">
                       {data.vencedor === 'A' ? 'Manter o imóvel alugado' : 'Vender e investir'} é a melhor decisão
                     </p>
@@ -243,7 +344,7 @@ export function ManterOuVender() {
                 </div>
               </Card>
 
-              {/* Gráfico de evolução */}
+              {/* Gráfico */}
               <Card className="p-5 border-border">
                 <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-primary" />
@@ -282,8 +383,9 @@ export function ManterOuVender() {
                       <tr className="border-b border-border">
                         <th className="text-left p-2 font-medium text-muted-foreground">Mês</th>
                         <th className="text-right p-2 font-medium text-muted-foreground">Valor Imóvel</th>
-                        <th className="text-right p-2 font-medium text-muted-foreground">Aluguel Recebido</th>
-                        <th className="text-right p-2 font-medium text-muted-foreground">Saldo Alugueis Investidos</th>
+                        <th className="text-right p-2 font-medium text-muted-foreground">Aluguel</th>
+                        <th className="text-right p-2 font-medium text-muted-foreground">IPTU/Manut.</th>
+                        <th className="text-right p-2 font-medium text-muted-foreground">Saldo Investido (A)</th>
                         <th className="text-right p-2 font-medium text-muted-foreground">Patrim. Total (A)</th>
                         <th className="text-right p-2 font-medium text-muted-foreground">Patrim. Total (B)</th>
                       </tr>
@@ -294,6 +396,7 @@ export function ManterOuVender() {
                           <td className="p-2 font-medium text-foreground">{row.mes}</td>
                           <td className="p-2 text-right text-foreground">{fmt(row.valorImovel)}</td>
                           <td className="p-2 text-right text-foreground">{fmt(row.aluguel)}</td>
+                          <td className="p-2 text-right text-destructive">{fmt(row.iptu)}</td>
                           <td className="p-2 text-right text-foreground">{fmt(row.saldoAlugueis)}</td>
                           <td className="p-2 text-right font-semibold text-primary">{fmt(row.patrimonioA)}</td>
                           <td className="p-2 text-right font-semibold text-success">{fmt(row.patrimonioB)}</td>
@@ -309,6 +412,11 @@ export function ManterOuVender() {
       </div>
     </div>
   );
+}
+
+// Helper: valor do imóvel após 12 meses de valorização composta mensal
+function valorImovel12(va: number, valorizacaoMensal: number) {
+  return va * Math.pow(1 + valorizacaoMensal, 12);
 }
 
 interface ResultRow {
@@ -347,10 +455,10 @@ function ResultBlock({
       <p className={`text-2xl font-bold mb-3 ${vencedor ? 'text-success' : 'text-foreground'}`}>{fmt(total)}</p>
       <div className="space-y-1.5 pt-3 border-t border-border">
         {rows.map((r, i) => (
-          <div key={i} className="flex justify-between text-xs">
-            <span className={r.muted ? 'text-muted-foreground' : 'text-muted-foreground'}>{r.label}</span>
+          <div key={i} className="flex justify-between text-xs gap-2">
+            <span className="text-muted-foreground">{r.label}</span>
             <span
-              className={`tabular-nums ${
+              className={`tabular-nums whitespace-nowrap ${
                 r.negative ? 'text-destructive' : r.strong ? 'font-semibold text-foreground' : 'text-foreground'
               }`}
             >
@@ -360,5 +468,67 @@ function ResultBlock({
         ))}
       </div>
     </Card>
+  );
+}
+
+interface DarkRow {
+  label: string;
+  value: number;
+  positive?: boolean;
+  negative?: boolean;
+  muted?: boolean;
+}
+
+function DarkRaioXCard({
+  title,
+  icon,
+  rows,
+  total,
+  vencedor,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  rows: DarkRow[];
+  total: number;
+  vencedor: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-lg p-4 border ${
+        vencedor
+          ? 'border-amber-400/60 bg-gradient-to-br from-slate-800 to-slate-900 shadow-[0_0_20px_-5px_rgba(251,191,36,0.3)]'
+          : 'border-slate-700 bg-slate-800/50'
+      }`}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className={`p-1.5 rounded-md ${vencedor ? 'bg-amber-400/20 text-amber-400' : 'bg-slate-700 text-slate-300'}`}>
+            {icon}
+          </div>
+          <h4 className="text-sm font-semibold text-slate-100">{title}</h4>
+        </div>
+        {vencedor && (
+          <Badge className="bg-amber-400 text-slate-900 hover:bg-amber-400 text-[10px]">Melhor</Badge>
+        )}
+      </div>
+      <div className="space-y-1.5 mb-3">
+        {rows.map((r, i) => (
+          <div key={i} className="flex justify-between text-xs gap-2">
+            <span className={r.muted ? 'text-slate-500' : 'text-slate-400'}>{r.label}</span>
+            <span
+              className={`tabular-nums whitespace-nowrap font-medium ${
+                r.negative ? 'text-rose-400' : r.positive ? 'text-emerald-400' : 'text-slate-300'
+              }`}
+            >
+              {fmt(r.value)}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="pt-3 border-t border-slate-700">
+        <p className="text-[10px] text-slate-500 uppercase tracking-wide">Resultado líquido (12m)</p>
+        <p className={`text-xl font-bold ${vencedor ? 'text-amber-400' : 'text-slate-100'}`}>{fmt(total)}</p>
+      </div>
+    </div>
   );
 }
