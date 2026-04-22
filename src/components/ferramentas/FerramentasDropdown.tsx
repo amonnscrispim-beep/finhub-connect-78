@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Wrench, ChevronDown, Calculator, TrendingUp, DollarSign, Home, ShoppingCart, Percent, Target, Landmark, LineChart, Wallet, PiggyBank } from 'lucide-react';
+import { Wrench, ChevronDown, Calculator, TrendingUp, DollarSign, Home, ShoppingCart, Percent, Target, Landmark, LineChart, Wallet, PiggyBank, Building2 } from 'lucide-react';
 
 export type FerramentaId =
   | 'juros-compostos'
