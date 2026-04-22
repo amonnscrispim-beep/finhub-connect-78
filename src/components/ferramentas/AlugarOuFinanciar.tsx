@@ -358,27 +358,27 @@ export function AlugarOuFinanciar() {
                 </div>
               </div>
 
-              {/* Tabela de Evolução Anual — Aportes Igualados */}
+              {/* Tabela de Evolução Mensal — Aportes Igualados */}
               <div>
-                <h4 className="text-sm font-semibold text-foreground mb-1">Evolução Anual — Fluxo de Caixa Igualado</h4>
-                <p className="text-xs text-muted-foreground mb-4">Ambos os cenários gastam o mesmo orçamento mensal (o maior entre parcela e aluguel). A diferença é investida — provando que o inquilino realmente aporta a diferença.</p>
-                <div className="overflow-x-auto rounded-md border border-border">
+                <h4 className="text-sm font-semibold text-foreground mb-1">Evolução Mensal — Fluxo de Caixa Igualado</h4>
+                <p className="text-xs text-muted-foreground mb-4">Visão mês a mês da simulação. Ambos os cenários gastam o mesmo orçamento mensal (o maior entre parcela e aluguel) — a diferença é investida.</p>
+                <div className="max-h-[500px] overflow-y-auto overflow-x-auto rounded-md border border-border">
                   <table className="w-full text-xs">
-                    <thead className="bg-muted">
+                    <thead className="bg-muted sticky top-0 z-10">
                       <tr className="text-left">
-                        <th className="px-3 py-2 font-semibold text-muted-foreground">Ano</th>
-                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Parcela SAC</th>
-                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Aluguel</th>
-                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Aportes Financiando</th>
-                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Aportes Alugando</th>
-                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Saldo Invest. (Financ.)</th>
-                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right">Saldo Invest. (Aluga)</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground bg-muted">Mês</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right bg-muted">Parcela SAC</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right bg-muted">Aluguel</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right bg-muted">Aportes Financiando</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right bg-muted">Aportes Alugando</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right bg-muted">Saldo Invest. (Financ.)</th>
+                        <th className="px-3 py-2 font-semibold text-muted-foreground text-right bg-muted">Saldo Invest. (Aluga)</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {data.tabelaAnual.map((r) => (
-                        <tr key={r.ano} className="border-t border-border hover:bg-muted/40">
-                          <td className="px-3 py-2 font-medium text-foreground">{r.ano}</td>
+                      {data.tabelaMensal.map((r) => (
+                        <tr key={r.mes} className="border-t border-border hover:bg-muted/40">
+                          <td className="px-3 py-2 font-medium text-foreground">{r.mes}</td>
                           <td className="px-3 py-2 text-right text-foreground">{fmt(r.parcela)}</td>
                           <td className="px-3 py-2 text-right text-foreground">{fmt(r.aluguel)}</td>
                           <td className="px-3 py-2 text-right text-foreground">{fmt(r.aporteFinanciando)}</td>
