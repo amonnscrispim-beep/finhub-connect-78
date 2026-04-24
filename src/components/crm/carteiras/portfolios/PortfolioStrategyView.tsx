@@ -127,7 +127,11 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
   const totalPct = localPcts.acoes_pct + localPcts.fiis_pct + localPcts.internacional_pct + localPcts.renda_fixa_pct;
   const isValid = Math.abs(totalPct - 100) < 0.01;
   const rfTotal = localPcts.rf_pos_pct + localPcts.rf_pre_pct + localPcts.rf_ipca_pct;
-  const rfValid = localPcts.renda_fixa_pct === 0 || Math.abs(rfTotal - 100) < 0.01;
+  // RF subtype percentages are now expressed as % of total portfolio.
+  // Their sum must equal the Renda Fixa class allocation, not 100%.
+  const rfValid = localPcts.renda_fixa_pct === 0
+    ? Math.abs(rfTotal) < 0.01
+    : Math.abs(rfTotal - localPcts.renda_fixa_pct) < 0.01;
 
   const handlePctChange = (field: PctField, value: string) => {
     setLocalPcts(prev => ({ ...prev, [field]: parseFloat(value) || 0 }));
