@@ -557,11 +557,27 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                           )}
                           {!isRf && (
                             <TableCell className="text-right text-sm">
-                              {c.source?.current_price != null
-                                ? `R$ ${Number(c.source.current_price).toFixed(2)}`
-                                : (c.asset as any).current_price != null
-                                  ? `R$ ${Number((c.asset as any).current_price).toFixed(2)}`
-                                  : '...'}
+                              {c.source?.current_price != null ? (
+                                <span className="text-foreground">R$ {Number(c.source.current_price).toFixed(2)}</span>
+                              ) : isConservador ? (
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  className="h-7 w-20 text-sm text-right inline-block"
+                                  defaultValue={(c.asset as any).current_price != null ? Number((c.asset as any).current_price).toFixed(2) : ''}
+                                  key={`cur-${c.asset.id}`}
+                                  placeholder="0,00"
+                                  onBlur={e => {
+                                    const val = parseFloat(e.target.value) || 0;
+                                    const prev = (c.asset as any).current_price != null ? Number((c.asset as any).current_price) : 0;
+                                    if (Math.abs(val - prev) > 0.001) handleUpdateAssetField(c.asset.id, 'current_price', val);
+                                  }}
+                                />
+                              ) : (c.asset as any).current_price != null ? (
+                                <span className="text-foreground">R$ {Number((c.asset as any).current_price).toFixed(2)}</span>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
                             </TableCell>
                           )}
                           <TableCell className="text-right">
