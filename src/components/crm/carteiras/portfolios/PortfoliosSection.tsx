@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMaster } from '@/hooks/useIsMaster';
@@ -10,6 +10,7 @@ import { Briefcase, Share2 } from 'lucide-react';
 import { PortfolioStrategyView } from './PortfolioStrategyView';
 import { ClientPortfolioTab } from './ClientPortfolioTab';
 import { PortfolioAsset } from '../CarteirasRecomendadas';
+import { useCarteiras } from '@/contexts/CarteirasContext';
 
 const PROFILES = ['Conservador', 'Moderado', 'Arrojado'] as const;
 const STRATEGIES = ['Renda', 'Crescimento'] as const;
