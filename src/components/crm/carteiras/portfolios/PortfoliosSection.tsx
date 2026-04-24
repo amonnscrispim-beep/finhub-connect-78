@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { SharedBadge } from '@/components/ui/shared-badge';
 import { Briefcase, Share2 } from 'lucide-react';
-import { PortfolioStrategyView } from './PortfolioStrategyView';
+import { FarolStrategyCard } from './FarolStrategyCard';
 import { ClientPortfolioTab } from './ClientPortfolioTab';
 import { PortfolioAsset } from '../CarteirasRecomendadas';
 import { useCarteiras } from '@/contexts/CarteirasContext';
@@ -215,7 +215,7 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
                 const effectiveAssets = getEffectiveAssets(portfolio);
                 const conservadorPortfolioId = isConservador ? undefined : getConservadorId(strategy);
                 return (
-                  <PortfolioStrategyView
+                  <FarolStrategyCard
                     key={portfolio.id}
                     portfolio={portfolio}
                     assets={effectiveAssets}
@@ -240,7 +240,7 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
                     if (!sharedPortfolio) return null;
                     const effectiveAssets = getEffectiveAssets(sharedPortfolio);
                     return (
-                      <PortfolioStrategyView
+                      <FarolStrategyCard
                         key={`shared-${sharedPortfolio.id}`}
                         portfolio={sharedPortfolio}
                         assets={effectiveAssets}
