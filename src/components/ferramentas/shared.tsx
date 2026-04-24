@@ -48,6 +48,42 @@ export function ResultCard({ label, value, colorVar, icon }: { label: string; va
 }
 
 export function InputField({ label, prefix, value, onChange }: { label: string; prefix: string; value: string; onChange: (v: string) => void }) {
+  const isCurrency = prefix === 'R$';
+
+  // Real-time BRL mask: strip non-digits, treat last 2 as cents
+  const maskBRL = (raw: string): string => {
+    const digits = raw.replace(/\D/g, '');
+    if (!digits) return '';
+    const numeric = parseInt(digits, 10) / 100;
+    return new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(numeric);
+  };
+
+  // For currency: derive display from numeric value when not actively typing
+  const displayValue = (() => {
+    if (!isCurrency) return value;
+    if (!value) return '';
+    // If value already contains formatting (commas/dots in BR style), keep it
+    if (/[.,]/.test(value) && !/^\d+\.?\d*$/.test(value)) return value;
+    const num = parseFloat(value);
+    if (isNaN(num) || num === 0) return value;
+    return new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(num);
+  })();
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isCurrency) {
+      const masked = maskBRL(e.target.value);
+      onChange(masked);
+    } else {
+      onChange(e.target.value);
+    }
+  };
+
   return (
     <div className="space-y-1.5">
       <label className="text-xs font-medium text-muted-foreground">{label}</label>
@@ -55,8 +91,9 @@ export function InputField({ label, prefix, value, onChange }: { label: string; 
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{prefix}</span>
         <input
           className="w-full h-10 rounded-md border border-input bg-background pl-8 pr-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+          inputMode={isCurrency ? 'numeric' : undefined}
+          value={displayValue}
+          onChange={handleChange}
         />
       </div>
     </div>

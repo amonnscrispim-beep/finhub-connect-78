@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { SharedBadge } from '@/components/ui/shared-badge';
@@ -140,7 +141,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     onUpdatePortfolio(portfolio.id, { [field]: localPcts[field] } as any);
   };
   const handleInvestAmountChange = (value: string) => {
-    setInvestAmount(parseFloat(value.replace(/[^\d.,]/g, '').replace(',', '.')) || 0);
+    setInvestAmount(parseFloat(value) || 0);
   };
   const handleInvestAmountBlur = () => {
     onUpdatePortfolio(portfolio.id, { invest_amount: investAmount });
@@ -371,15 +372,13 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
         <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/40 border border-border">
           <Calculator className="w-5 h-5 text-primary" />
           <Label className="text-base font-semibold whitespace-nowrap text-foreground">Valor a Investir:</Label>
-          <div className="flex items-center gap-1">
-            <span className="text-base font-medium text-muted-foreground">R$</span>
-            <Input type="number" className="h-10 w-56 text-base font-bold"
-              value={investAmount || ''}
-              placeholder="0"
-              onChange={e => handleInvestAmountChange(e.target.value)}
-              onBlur={handleInvestAmountBlur}
-            />
-          </div>
+          <CurrencyInput
+            className="h-10 w-56 text-base font-bold"
+            value={investAmount}
+            onChange={handleInvestAmountChange}
+            onBlur={handleInvestAmountBlur}
+            placeholder="R$ 0,00"
+          />
         </div>
 
         {/* Class allocations */}
