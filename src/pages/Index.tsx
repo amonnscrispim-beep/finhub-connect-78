@@ -176,10 +176,10 @@ function CRMDashboard() {
       </div>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-6 space-y-6">
+      <main className={`container mx-auto px-4 py-6 space-y-6 ${dashboardTab === 'carteiras' ? 'bg-[#0A0A0F] min-h-screen' : ''}`}>
         {/* Dashboard Tabs */}
         <Tabs value={dashboardTab} onValueChange={(v) => setDashboardTab(v as typeof dashboardTab)} className="space-y-4">
-          <TabsList className="bg-card border border-border shadow-sm">
+          <TabsList className={dashboardTab === 'carteiras' ? 'bg-[#12121A] border border-[#1E1E2E] shadow-sm' : 'bg-card border border-border shadow-sm'}>
             <TabsTrigger 
               value="operacional" 
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
