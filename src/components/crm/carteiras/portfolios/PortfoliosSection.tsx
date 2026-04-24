@@ -102,7 +102,7 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
     }
 
     toast.success(newVal ? `Perfil ${profile} compartilhado!` : `Compartilhamento do perfil ${profile} removido.`);
-    await loadPortfolios();
+    await refresh(true);
   };
 
   // Share/unshare a single strategy within a profile
@@ -118,7 +118,7 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
     }
 
     toast.success(newVal ? `Estratégia ${strategy} compartilhada!` : `Compartilhamento da estratégia ${strategy} removido.`);
-    await loadPortfolios();
+    await refresh(true);
   };
 
   // Build effective assets for a portfolio: Conservador owns assets, others inherit
@@ -155,7 +155,7 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
     return portfolios.find(p => p.profile === 'Conservador' && p.strategy === strategy && p.user_id === user?.id)?.id;
   }, [portfolios, user]);
 
-  if (loading) return null;
+  if (!loaded) return null;
 
   // For each profile, determine own portfolios vs shared-from-master
   const getProfilePortfolios = (profile: string) => {
