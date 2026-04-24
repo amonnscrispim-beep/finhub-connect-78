@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -17,6 +17,7 @@ import { InvestorPortfolio, PortfolioAssetItem } from './PortfoliosSection';
 import { PortfolioAsset } from '../CarteirasRecomendadas';
 import { PortfolioAssetModal } from './PortfolioAssetModal';
 import { PortfolioPdfPreviewModal } from './PortfolioPdfPreviewModal';
+import { useGoogleFinanceQuotes } from '@/hooks/useGoogleFinanceQuotes';
 
 interface Props {
   portfolio: InvestorPortfolio;
@@ -69,6 +70,7 @@ function computeAsset(
   investAmount: number,
   recommendedAssets: PortfolioAsset[],
   classKey: string,
+  livePrices: Record<string, number | null> = {},
 ): AssetCalc {
   // allocation_pct stores the weight within the class (e.g. 10% of the class)
   const storedClassPct = Number(asset.allocation_pct);
@@ -80,7 +82,17 @@ function computeAsset(
   const assetValue = investAmount * (totalPct / 100);
   
   const source = asset.source_asset_id ? recommendedAssets.find(a => a.id === asset.source_asset_id) || null : null;
-  const currentPrice = source?.current_price ? Number(source.current_price) : null;
+  const tickerKey = (asset.ticker || '').toUpperCase();
+  const livePrice = tickerKey ? livePrices[tickerKey] : null;
+  // Priority: live (Google Finance) > source > manual on asset
+  const currentPrice =
+    livePrice && livePrice > 0
+      ? livePrice
+      : source?.current_price
+        ? Number(source.current_price)
+        : (asset as any).current_price != null
+          ? Number((asset as any).current_price)
+          : null;
   const isRf = classKey === 'renda_fixa';
   const isFii = classKey === 'fiis';
   const cotas = !isRf && currentPrice && currentPrice > 0 ? Math.floor(assetValue / currentPrice) : null;
