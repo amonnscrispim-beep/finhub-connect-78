@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Input } from './input';
 import { cn } from '@/lib/utils';
 
 interface PercentInputProps {
   value: number | string;
+  /** Called once on blur with the committed numeric value. */
   onChange: (value: number) => void;
+  /** Optional alias kept for backwards compatibility. */
   onCommit?: (value: number) => void;
   className?: string;
   id?: string;
@@ -16,8 +18,9 @@ interface PercentInputProps {
 
 /**
  * Numeric input WITHOUT native number spinners.
- * - Accepts comma or dot as decimal separator while typing.
- * - Emits a number through onChange (live) and onCommit (on blur).
+ * - Fully local state while focused — no re-render thrash from parent updates.
+ * - Commits the parsed number ONLY on blur (or Enter), so live validation
+ *   in the parent never interrupts typing or steals focus.
  */
 export function PercentInput({
   value,
@@ -35,27 +38,25 @@ export function PercentInput({
   );
 
   const [text, setText] = useState<string>(() => formatDisplay(Number(value) || 0));
+  const focusedRef = useRef(false);
 
+  // Sync from parent ONLY when the input is not being edited.
   useEffect(() => {
-    const num = Number(value) || 0;
-    setText(formatDisplay(num));
+    if (focusedRef.current) return;
+    setText(formatDisplay(Number(value) || 0));
   }, [value, formatDisplay]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let raw = e.target.value;
-    // Allow only digits, comma, dot, minus
-    raw = raw.replace(/[^\d.,-]/g, '');
+    // Permit digits, comma, dot, minus — purely local, no parent update.
+    const raw = e.target.value.replace(/[^\d.,-]/g, '');
     setText(raw);
-    const normalized = raw.replace(/\./g, '').replace(',', '.');
-    const num = parseFloat(normalized);
-    if (!Number.isNaN(num)) onChange(num);
-    else if (raw === '' || raw === '-') onChange(0);
   };
 
-  const handleBlur = () => {
+  const commit = () => {
     const normalized = text.replace(/\./g, '').replace(',', '.');
     const num = parseFloat(normalized) || 0;
     setText(formatDisplay(num));
+    onChange(num);
     onCommit?.(num);
   };
 
@@ -67,7 +68,9 @@ export function PercentInput({
         inputMode="decimal"
         value={text}
         onChange={handleChange}
-        onBlur={handleBlur}
+        onFocus={() => { focusedRef.current = true; }}
+        onBlur={() => { focusedRef.current = false; commit(); }}
+        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
         disabled={disabled}
         className={cn(showSuffix && 'pr-7', className)}
       />
