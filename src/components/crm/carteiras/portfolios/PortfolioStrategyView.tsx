@@ -101,15 +101,13 @@ function computeAsset(
   let dvMonth: number;
   let dvYear: number;
 
-  if (isFii) {
-    dvMonth = dyInput * (cotas || 0);
-    dvYear = dvMonth * 12;
-  } else if (isRf) {
+  if (isRf) {
     dvYear = assetValue * (dyInput / 100);
     dvMonth = dvYear / 12;
   } else {
-    dvYear = dyInput * (cotas || 0);
-    dvMonth = dvYear / 12;
+    // FII, Ações, Internacional: dyInput = R$/cota mensal
+    dvMonth = dyInput * (cotas || 0);
+    dvYear = dvMonth * 12;
   }
 
   return { asset, allocClassPct, totalPct, assetValue, cotas, dyInput, dvMonth, dvYear, source, isFii, isRf };
