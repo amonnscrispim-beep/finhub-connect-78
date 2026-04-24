@@ -316,8 +316,8 @@ function CRMDashboard() {
             {ferramentaAtiva === 'dividendos' && <ViverDeDividendos />}
           </TabsContent>
 
-          {/* CARTEIRAS RECOMENDADAS */}
-          <TabsContent value="carteiras" className="animate-fade-in">
+          {/* CARTEIRAS RECOMENDADAS — keep mounted to preserve cache & local state */}
+          <TabsContent value="carteiras" forceMount className={dashboardTab === 'carteiras' ? 'animate-fade-in' : 'hidden'}>
             <CarteirasRecomendadas />
           </TabsContent>
 
