@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -17,6 +17,7 @@ import { InvestorPortfolio, PortfolioAssetItem } from './PortfoliosSection';
 import { PortfolioAsset } from '../CarteirasRecomendadas';
 import { PortfolioAssetModal } from './PortfolioAssetModal';
 import { PortfolioPdfPreviewModal } from './PortfolioPdfPreviewModal';
+import { useGoogleFinanceQuotes } from '@/hooks/useGoogleFinanceQuotes';
 
 interface Props {
   portfolio: InvestorPortfolio;
@@ -69,6 +70,7 @@ function computeAsset(
   investAmount: number,
   recommendedAssets: PortfolioAsset[],
   classKey: string,
+  livePrices: Record<string, number | null> = {},
 ): AssetCalc {
   // allocation_pct stores the weight within the class (e.g. 10% of the class)
   const storedClassPct = Number(asset.allocation_pct);
@@ -80,7 +82,17 @@ function computeAsset(
   const assetValue = investAmount * (totalPct / 100);
   
   const source = asset.source_asset_id ? recommendedAssets.find(a => a.id === asset.source_asset_id) || null : null;
-  const currentPrice = source?.current_price ? Number(source.current_price) : null;
+  const tickerKey = (asset.ticker || '').toUpperCase();
+  const livePrice = tickerKey ? livePrices[tickerKey] : null;
+  // Priority: live (Google Finance) > source > manual on asset
+  const currentPrice =
+    livePrice && livePrice > 0
+      ? livePrice
+      : source?.current_price
+        ? Number(source.current_price)
+        : (asset as any).current_price != null
+          ? Number((asset as any).current_price)
+          : null;
   const isRf = classKey === 'renda_fixa';
   const isFii = classKey === 'fiis';
   const cotas = !isRf && currentPrice && currentPrice > 0 ? Math.floor(assetValue / currentPrice) : null;
@@ -196,6 +208,21 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     await onRefreshAssets();
   };
 
+  // Live prices via Google Finance (non-RF tickers only)
+  const liveTickers = useMemo(() => {
+    const seen = new Set<string>();
+    const list: { ticker: string; international?: boolean }[] = [];
+    for (const a of assets) {
+      if (a.asset_class === 'renda_fixa') continue;
+      const t = (a.ticker || '').trim().toUpperCase();
+      if (!t || seen.has(t)) continue;
+      seen.add(t);
+      list.push({ ticker: t, international: a.asset_class === 'internacional' });
+    }
+    return list;
+  }, [assets]);
+  const { prices: livePrices } = useGoogleFinanceQuotes(liveTickers);
+
   // Compute all class data — grand totals exclude RF for dividends
   let grandDvMonth = 0;
   let grandDvYear = 0;
@@ -207,7 +234,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
   ASSET_CLASSES.forEach(cls => {
     const classAssets = assets.filter(a => a.asset_class === cls.key);
     const classPct = localPcts[cls.pctField];
-    const calcs = classAssets.map(a => computeAsset(a, classPct, classAssets.length, investAmount, recommendedAssets, cls.key));
+    const calcs = classAssets.map(a => computeAsset(a, classPct, classAssets.length, investAmount, recommendedAssets, cls.key, livePrices));
     const classDvMonth = calcs.reduce((s, c) => s + c.dvMonth, 0);
     const classDvYear = calcs.reduce((s, c) => s + c.dvYear, 0);
     const classValue = calcs.reduce((s, c) => s + c.assetValue, 0);
@@ -555,31 +582,41 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                                   : '—'}
                             </TableCell>
                           )}
-                          {!isRf && (
-                            <TableCell className="text-right text-sm">
-                              {c.source?.current_price != null ? (
-                                <span className="text-foreground">R$ {Number(c.source.current_price).toFixed(2)}</span>
-                              ) : isConservador ? (
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  className="h-7 w-20 text-sm text-right inline-block"
-                                  defaultValue={(c.asset as any).current_price != null ? Number((c.asset as any).current_price).toFixed(2) : ''}
-                                  key={`cur-${c.asset.id}`}
-                                  placeholder="0,00"
-                                  onBlur={e => {
-                                    const val = parseFloat(e.target.value) || 0;
-                                    const prev = (c.asset as any).current_price != null ? Number((c.asset as any).current_price) : 0;
-                                    if (Math.abs(val - prev) > 0.001) handleUpdateAssetField(c.asset.id, 'current_price', val);
-                                  }}
-                                />
-                              ) : (c.asset as any).current_price != null ? (
-                                <span className="text-foreground">R$ {Number((c.asset as any).current_price).toFixed(2)}</span>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
-                            </TableCell>
-                          )}
+                          {!isRf && (() => {
+                            const tickerKey = (c.asset.ticker || '').toUpperCase();
+                            const livePrice = tickerKey ? livePrices[tickerKey] : null;
+                            const hasLive = livePrice && livePrice > 0;
+                            return (
+                              <TableCell className="text-right text-sm">
+                                {hasLive ? (
+                                  <span className="inline-flex items-center gap-1 text-foreground" title="Cotação Google Finance (atualiza a cada 5 min)">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                    R$ {Number(livePrice).toFixed(2)}
+                                  </span>
+                                ) : c.source?.current_price != null ? (
+                                  <span className="text-foreground">R$ {Number(c.source.current_price).toFixed(2)}</span>
+                                ) : isConservador ? (
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    className="h-7 w-20 text-sm text-right inline-block"
+                                    defaultValue={(c.asset as any).current_price != null ? Number((c.asset as any).current_price).toFixed(2) : ''}
+                                    key={`cur-${c.asset.id}`}
+                                    placeholder="0,00"
+                                    onBlur={e => {
+                                      const val = parseFloat(e.target.value) || 0;
+                                      const prev = (c.asset as any).current_price != null ? Number((c.asset as any).current_price) : 0;
+                                      if (Math.abs(val - prev) > 0.001) handleUpdateAssetField(c.asset.id, 'current_price', val);
+                                    }}
+                                  />
+                                ) : (c.asset as any).current_price != null ? (
+                                  <span className="text-foreground">R$ {Number((c.asset as any).current_price).toFixed(2)}</span>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
+                              </TableCell>
+                            );
+                          })()}
                           <TableCell className="text-right">
                             <Input type="number" step="0.01" className="h-7 w-20 text-sm text-right inline-block"
                               defaultValue={c.allocClassPct.toFixed(2)}
