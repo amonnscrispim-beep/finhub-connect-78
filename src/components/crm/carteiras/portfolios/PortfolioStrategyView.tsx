@@ -367,6 +367,21 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {/* Valor a Investir — Top of card */}
+        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/40 border border-border">
+          <Calculator className="w-5 h-5 text-primary" />
+          <Label className="text-base font-semibold whitespace-nowrap text-foreground">Valor a Investir:</Label>
+          <div className="flex items-center gap-1">
+            <span className="text-base font-medium text-muted-foreground">R$</span>
+            <Input type="number" className="h-10 w-56 text-base font-bold"
+              value={investAmount || ''}
+              placeholder="0"
+              onChange={e => handleInvestAmountChange(e.target.value)}
+              onBlur={handleInvestAmountBlur}
+            />
+          </div>
+        </div>
+
         {/* Class allocations */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {ASSET_CLASSES.map(cls => {
@@ -403,24 +418,38 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
           })}
         </div>
 
-        {/* RF subtypes */}
+        {/* RF subtypes — percentages are over TOTAL portfolio; sum must equal renda_fixa_pct */}
         {localPcts.renda_fixa_pct > 0 && (
           <div className="pl-4 border-l-2 border-muted space-y-2">
-            <p className="text-xs font-medium text-muted-foreground">Distribuição Renda Fixa {!rfValid && <span className="text-destructive">(soma: {rfTotal.toFixed(1)}% — deve ser 100%)</span>}</p>
+            <p className="text-xs font-medium text-muted-foreground">
+              Distribuição Renda Fixa (% do total da carteira){' '}
+              {rfValid ? (
+                <span className="text-emerald-600 font-semibold">✓ {rfTotal.toFixed(1)}% / {localPcts.renda_fixa_pct.toFixed(1)}%</span>
+              ) : (
+                <span className="text-destructive font-semibold">soma: {rfTotal.toFixed(1)}% — deve ser {localPcts.renda_fixa_pct.toFixed(1)}%</span>
+              )}
+            </p>
             <div className="grid grid-cols-3 gap-3">
-              {RF_SUBTYPES.map(rf => (
-                <div key={rf.key} className="space-y-1">
-                  <Label className="text-xs">{rf.label}</Label>
-                  <div className="flex items-center gap-1">
-                    <Input type="number" step="0.1" className="h-8 text-sm"
-                      value={localPcts[rf.pctField]}
-                      onChange={e => handlePctChange(rf.pctField, e.target.value)}
-                      onBlur={() => handlePctBlur(rf.pctField)}
-                    />
-                    <span className="text-xs text-muted-foreground">%</span>
+              {RF_SUBTYPES.map(rf => {
+                const subPct = localPcts[rf.pctField];
+                const subValue = investAmount * (subPct / 100);
+                return (
+                  <div key={rf.key} className="space-y-1">
+                    <Label className="text-xs">{rf.label}</Label>
+                    <div className="flex items-center gap-1">
+                      <Input type="number" step="0.1" className={`h-8 text-sm ${!rfValid ? 'border-destructive' : ''}`}
+                        value={subPct}
+                        onChange={e => handlePctChange(rf.pctField, e.target.value)}
+                        onBlur={() => handlePctBlur(rf.pctField)}
+                      />
+                      <span className="text-xs text-muted-foreground">%</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      R$ {formatBRL(subValue)}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
