@@ -582,31 +582,41 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                                   : '—'}
                             </TableCell>
                           )}
-                          {!isRf && (
-                            <TableCell className="text-right text-sm">
-                              {c.source?.current_price != null ? (
-                                <span className="text-foreground">R$ {Number(c.source.current_price).toFixed(2)}</span>
-                              ) : isConservador ? (
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  className="h-7 w-20 text-sm text-right inline-block"
-                                  defaultValue={(c.asset as any).current_price != null ? Number((c.asset as any).current_price).toFixed(2) : ''}
-                                  key={`cur-${c.asset.id}`}
-                                  placeholder="0,00"
-                                  onBlur={e => {
-                                    const val = parseFloat(e.target.value) || 0;
-                                    const prev = (c.asset as any).current_price != null ? Number((c.asset as any).current_price) : 0;
-                                    if (Math.abs(val - prev) > 0.001) handleUpdateAssetField(c.asset.id, 'current_price', val);
-                                  }}
-                                />
-                              ) : (c.asset as any).current_price != null ? (
-                                <span className="text-foreground">R$ {Number((c.asset as any).current_price).toFixed(2)}</span>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
-                            </TableCell>
-                          )}
+                          {!isRf && (() => {
+                            const tickerKey = (c.asset.ticker || '').toUpperCase();
+                            const livePrice = tickerKey ? livePrices[tickerKey] : null;
+                            const hasLive = livePrice && livePrice > 0;
+                            return (
+                              <TableCell className="text-right text-sm">
+                                {hasLive ? (
+                                  <span className="inline-flex items-center gap-1 text-foreground" title="Cotação Google Finance (atualiza a cada 5 min)">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                    R$ {Number(livePrice).toFixed(2)}
+                                  </span>
+                                ) : c.source?.current_price != null ? (
+                                  <span className="text-foreground">R$ {Number(c.source.current_price).toFixed(2)}</span>
+                                ) : isConservador ? (
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    className="h-7 w-20 text-sm text-right inline-block"
+                                    defaultValue={(c.asset as any).current_price != null ? Number((c.asset as any).current_price).toFixed(2) : ''}
+                                    key={`cur-${c.asset.id}`}
+                                    placeholder="0,00"
+                                    onBlur={e => {
+                                      const val = parseFloat(e.target.value) || 0;
+                                      const prev = (c.asset as any).current_price != null ? Number((c.asset as any).current_price) : 0;
+                                      if (Math.abs(val - prev) > 0.001) handleUpdateAssetField(c.asset.id, 'current_price', val);
+                                    }}
+                                  />
+                                ) : (c.asset as any).current_price != null ? (
+                                  <span className="text-foreground">R$ {Number((c.asset as any).current_price).toFixed(2)}</span>
+                                ) : (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
+                              </TableCell>
+                            );
+                          })()}
                           <TableCell className="text-right">
                             <Input type="number" step="0.01" className="h-7 w-20 text-sm text-right inline-block"
                               defaultValue={c.allocClassPct.toFixed(2)}
