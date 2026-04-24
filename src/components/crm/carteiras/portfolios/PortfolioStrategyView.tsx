@@ -534,22 +534,176 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                 </div>
               </div>
 
-              {data.calcs.length > 0 && (
+              {data.calcs.length > 0 && !isRf && (() => {
+                const gridCols = '160px minmax(160px,1fr) 110px 110px 90px 110px 110px 110px 40px';
+                return (
+                  <div className="border border-border rounded-lg overflow-hidden">
+                    {/* Header */}
+                    <div
+                      className="bg-muted/50 text-xs font-medium text-muted-foreground px-3 py-2"
+                      style={{ display: 'grid', gridTemplateColumns: gridCols, alignItems: 'center', gap: 8 }}
+                    >
+                      <div>Valor / Cotas</div>
+                      <div>Ativo</div>
+                      <div className="text-right">Preço Atual</div>
+                      <div className="text-right">Preço Teto</div>
+                      <div className="text-right">Aloc. %</div>
+                      <div className="text-right">{isFii ? 'DY R$/cota mês' : 'DY R$/cota ano'}</div>
+                      <div className="text-right">Div. Mês R$</div>
+                      <div className="text-right">Div. Ano R$</div>
+                      <div />
+                    </div>
+                    {/* Rows */}
+                    {data.calcs.map(c => {
+                      const tickerKey = (c.asset.ticker || '').toUpperCase();
+                      const livePrice = tickerKey ? livePrices[tickerKey] : null;
+                      const hasLive = !!(livePrice && livePrice > 0);
+                      const manualPrice = (c.asset as any).current_price;
+                      const sourcePrice = c.source?.current_price;
+                      const displayPrice =
+                        manualPrice != null && manualPrice !== ''
+                          ? Number(manualPrice).toFixed(2)
+                          : sourcePrice != null
+                            ? Number(sourcePrice).toFixed(2)
+                            : hasLive
+                              ? Number(livePrice).toFixed(2)
+                              : '';
+                      const ceilingPrice = c.source
+                        ? Number(c.source.ceiling_price)
+                        : (c.asset as any).ceiling_price
+                          ? Number((c.asset as any).ceiling_price)
+                          : null;
+                      return (
+                        <div
+                          key={c.asset.id}
+                          className="px-3 py-3 border-t border-border text-sm"
+                          style={{ display: 'grid', gridTemplateColumns: gridCols, alignItems: 'center', gap: 8 }}
+                        >
+                          {/* Valor + cotas */}
+                          <div className="flex flex-col">
+                            <span className="text-foreground font-medium">R$ {formatBRL(c.assetValue)}</span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {c.totalPct.toFixed(2)}%{c.cotas !== null ? ` · ${c.cotas} cotas` : ''}
+                            </span>
+                          </div>
+                          {/* Ticker + setor */}
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="font-mono font-semibold truncate">{c.asset.ticker || c.asset.name}</span>
+                            {c.source && c.source.sector ? (
+                              <Badge variant="outline" className="text-[9px] px-1 py-0 border-blue-300 text-blue-600 bg-blue-50 shrink-0">{c.source.sector}</Badge>
+                            ) : !c.source ? (
+                              <Badge variant="outline" className="text-[9px] px-1 py-0 border-muted-foreground/30 text-muted-foreground shrink-0">Sem setor</Badge>
+                            ) : null}
+                          </div>
+                          {/* Preço Atual */}
+                          <div className="flex items-center justify-end gap-1">
+                            {hasLive && (
+                              <span
+                                className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shrink-0"
+                                title="Cotação Google Finance (atualiza a cada 5 min)"
+                              />
+                            )}
+                            <Input
+                              type="number"
+                              step="0.01"
+                              className="h-7 w-[90px] text-xs text-right"
+                              defaultValue={displayPrice}
+                              key={`cur-${c.asset.id}`}
+                              placeholder="R$ 0,00"
+                              disabled={readOnly}
+                              onBlur={e => {
+                                const val = parseFloat(e.target.value) || 0;
+                                const prev = manualPrice != null ? Number(manualPrice) : 0;
+                                if (Math.abs(val - prev) > 0.001) {
+                                  handleUpdateAssetField(c.asset.id, 'current_price', val);
+                                }
+                              }}
+                            />
+                          </div>
+                          {/* Preço Teto */}
+                          <div className="text-right text-foreground">
+                            {ceilingPrice != null ? `R$ ${ceilingPrice.toFixed(2)}` : '—'}
+                          </div>
+                          {/* Aloc. Classe % */}
+                          <div className="text-right">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              className="h-7 w-[80px] text-xs text-right inline-block"
+                              defaultValue={c.allocClassPct.toFixed(2)}
+                              key={`cls-${c.asset.id}-${data.calcs.length}-${data.classPct}`}
+                              disabled={readOnly}
+                              onBlur={e => {
+                                const val = parseFloat(e.target.value) || 0;
+                                if (Math.abs(val - c.allocClassPct) > 0.001) handleUpdateAssetField(c.asset.id, 'allocation_pct', val);
+                              }}
+                            />
+                          </div>
+                          {/* DY R$/cota */}
+                          <div className="text-right">
+                            {isConservador ? (
+                              <Input
+                                type="number"
+                                step="0.01"
+                                className="h-7 w-[100px] text-xs text-right inline-block"
+                                defaultValue={c.dyInput.toFixed(2)}
+                                key={`dy-${c.asset.id}`}
+                                onBlur={e => {
+                                  const val = parseFloat(e.target.value) || 0;
+                                  if (Math.abs(val - c.dyInput) > 0.001) handleUpdateAssetField(c.asset.id, 'dy_pct', val);
+                                }}
+                              />
+                            ) : (
+                              <span>{c.dyInput.toFixed(2)}</span>
+                            )}
+                          </div>
+                          {/* Div. Mês */}
+                          <div className="text-right text-emerald-600">R$ {formatBRL(c.dvMonth)}</div>
+                          {/* Div. Ano */}
+                          <div className="text-right text-emerald-600">R$ {formatBRL(c.dvYear)}</div>
+                          {/* Delete */}
+                          <div className="flex justify-end">
+                            {isConservador && (
+                              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteAsset(c.asset.id)}>
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {/* Footer */}
+                    <div
+                      className="bg-muted/30 px-3 py-2 border-t border-border text-xs font-medium"
+                      style={{ display: 'grid', gridTemplateColumns: gridCols, alignItems: 'center', gap: 8 }}
+                    >
+                      <div>R$ {formatBRL(classValue)}</div>
+                      <div>Total {cls.label}</div>
+                      <div />
+                      <div />
+                      <div className="text-right">{classAllocSum.toFixed(2)}%</div>
+                      <div />
+                      <div className="text-right text-emerald-600">R$ {formatBRL(classDvMonth)}</div>
+                      <div className="text-right text-emerald-600">R$ {formatBRL(classDvYear)}</div>
+                      <div />
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {data.calcs.length > 0 && isRf && (
                 <div className="border border-border rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
                         <TableHead className="text-xs">Ativo</TableHead>
-                        {isRf && <TableHead className="text-xs">Tipo</TableHead>}
-                        {isRf && <TableHead className="text-xs">Indexador</TableHead>}
-                        {isRf && <TableHead className="text-xs">Vencimento</TableHead>}
-                        {!isRf && <TableHead className="text-xs text-right">Preço Teto</TableHead>}
-                        {!isRf && <TableHead className="text-xs text-right">Preço Atual</TableHead>}
+                        <TableHead className="text-xs">Tipo</TableHead>
+                        <TableHead className="text-xs">Indexador</TableHead>
+                        <TableHead className="text-xs">Vencimento</TableHead>
                         <TableHead className="text-xs text-right">Aloc. Classe %</TableHead>
                         <TableHead className="text-xs text-right">Alocação %</TableHead>
                         <TableHead className="text-xs text-right">Valor R$</TableHead>
-                        {!isRf && <TableHead className="text-xs text-right">Qtd. Cotas</TableHead>}
-                        <TableHead className="text-xs text-right">{isFii ? 'DY R$/cota mês' : isRf ? 'Taxa % a.a.' : 'DY R$/cota ano'}</TableHead>
+                        <TableHead className="text-xs text-right">Taxa % a.a.</TableHead>
                         <TableHead className="text-xs text-right">Div. Mês R$</TableHead>
                         <TableHead className="text-xs text-right">Div. Ano R$</TableHead>
                         <TableHead className="text-xs w-10" />
@@ -558,73 +712,10 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                     <TableBody>
                       {data.calcs.map(c => (
                         <TableRow key={c.asset.id}>
-                          <TableCell className="font-mono text-sm font-semibold">
-                            <span className="flex items-center gap-1.5">
-                              {c.asset.ticker || c.asset.name}
-                              {!c.isRf && (
-                                c.source && c.source.sector ? (
-                                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-blue-300 text-blue-600 bg-blue-50">{c.source.sector}</Badge>
-                                ) : !c.source ? (
-                                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-muted-foreground/30 text-muted-foreground">Setor não informado</Badge>
-                                ) : null
-                              )}
-                            </span>
-                          </TableCell>
-                          {isRf && <TableCell className="text-xs">{c.asset.rf_type || '—'}</TableCell>}
-                          {isRf && <TableCell className="text-xs">{c.asset.indexador || '—'}</TableCell>}
-                          {isRf && <TableCell className="text-xs">{c.asset.vencimento || '—'}</TableCell>}
-                          {!isRf && (
-                            <TableCell className="text-right text-sm">
-                              {c.source
-                                ? `R$ ${Number(c.source.ceiling_price).toFixed(2)}`
-                                : (c.asset as any).ceiling_price
-                                  ? `R$ ${Number((c.asset as any).ceiling_price).toFixed(2)}`
-                                  : '—'}
-                            </TableCell>
-                          )}
-                          {!isRf && (() => {
-                            const tickerKey = (c.asset.ticker || '').toUpperCase();
-                            const livePrice = tickerKey ? livePrices[tickerKey] : null;
-                            const hasLive = !!(livePrice && livePrice > 0);
-                            const manualPrice = (c.asset as any).current_price;
-                            const sourcePrice = c.source?.current_price;
-                            const displayValue =
-                              manualPrice != null && manualPrice !== ''
-                                ? Number(manualPrice).toFixed(2)
-                                : sourcePrice != null
-                                  ? Number(sourcePrice).toFixed(2)
-                                  : hasLive
-                                    ? Number(livePrice).toFixed(2)
-                                    : '';
-                            return (
-                              <TableCell className="text-right text-sm">
-                                <div className="inline-flex items-center gap-1 justify-end">
-                                  {hasLive && (
-                                    <span
-                                      className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"
-                                      title="Cotação Google Finance (atualiza a cada 5 min)"
-                                    />
-                                  )}
-                                  <Input
-                                    type="number"
-                                    step="0.01"
-                                    className="h-7 w-24 text-sm text-right"
-                                    defaultValue={displayValue}
-                                    key={`cur-${c.asset.id}`}
-                                    placeholder="R$ 0,00"
-                                    disabled={readOnly}
-                                    onBlur={e => {
-                                      const val = parseFloat(e.target.value) || 0;
-                                      const prev = manualPrice != null ? Number(manualPrice) : 0;
-                                      if (Math.abs(val - prev) > 0.001) {
-                                        handleUpdateAssetField(c.asset.id, 'current_price', val);
-                                      }
-                                    }}
-                                  />
-                                </div>
-                              </TableCell>
-                            );
-                          })()}
+                          <TableCell className="font-mono text-sm font-semibold">{c.asset.ticker || c.asset.name}</TableCell>
+                          <TableCell className="text-xs">{c.asset.rf_type || '—'}</TableCell>
+                          <TableCell className="text-xs">{c.asset.indexador || '—'}</TableCell>
+                          <TableCell className="text-xs">{c.asset.vencimento || '—'}</TableCell>
                           <TableCell className="text-right">
                             <Input type="number" step="0.01" className="h-7 w-20 text-sm text-right inline-block"
                               defaultValue={c.allocClassPct.toFixed(2)}
@@ -641,7 +732,6 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                             </span>
                           </TableCell>
                           <TableCell className="text-right text-sm">R$ {formatBRL(c.assetValue)}</TableCell>
-                          {!isRf && <TableCell className="text-right text-sm font-medium">{c.cotas !== null ? c.cotas : '—'}</TableCell>}
                           <TableCell className="text-right">
                             {isConservador ? (
                               <Input type="number" step="0.01" className="h-7 w-20 text-sm text-right inline-block"
@@ -670,12 +760,10 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                     </TableBody>
                     <TableFooter>
                       <TableRow className="bg-muted/30 font-medium text-xs">
-                        <TableCell colSpan={isRf ? 4 : 3}>Total {cls.label}</TableCell>
-                        {!isRf && <TableCell />}
+                        <TableCell colSpan={4}>Total {cls.label}</TableCell>
                         <TableCell className="text-right">{classAllocSum.toFixed(2)}%</TableCell>
                         <TableCell className="text-right">{data.classPct.toFixed(2)}%</TableCell>
                         <TableCell className="text-right">R$ {formatBRL(classValue)}</TableCell>
-                        {!isRf && <TableCell />}
                         <TableCell />
                         <TableCell className="text-right text-emerald-600">R$ {formatBRL(classDvMonth)}</TableCell>
                         <TableCell className="text-right text-emerald-600">R$ {formatBRL(classDvYear)}</TableCell>
@@ -685,6 +773,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                   </Table>
                 </div>
               )}
+
 
               {/* Class totals panel — skip for Renda Fixa */}
               {classValue > 0 && !isRf && (
