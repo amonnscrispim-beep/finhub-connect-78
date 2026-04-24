@@ -36,7 +36,7 @@ export function useGoogleFinanceQuotes(tickers: QuoteRequest[]) {
     const fetchPrices = async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase.functions.invoke('fetch-google-finance', {
+        const { data, error } = await supabase.functions.invoke('fetch-stock-price', {
           body: { tickers },
         });
         if (cancelled || keyRef.current !== key) return;
