@@ -70,7 +70,7 @@ export function CarteirasRecomendadas() {
   if (selectedPortfolio) {
     const isOwnPortfolio = selectedPortfolio.user_id === user?.id;
     return (
-      <div className="carteiras-dark rounded-lg p-4 -m-4 md:-m-6">
+      <div className="carteiras-dark rounded-lg p-4 -m-4 md:-m-6 min-h-screen">
         <CarteiraDetail
           portfolio={selectedPortfolio}
           assets={allAssets.filter(a => a.portfolio_id === selectedPortfolio.id)}
@@ -85,7 +85,7 @@ export function CarteirasRecomendadas() {
   }
 
   return (
-    <div className="carteiras-dark rounded-lg p-4 -m-4 md:-m-6 space-y-8">
+    <div className="carteiras-dark rounded-lg p-4 -m-4 md:-m-6 space-y-8 min-h-screen">
       <CarteiraGrid
         portfolios={portfolios}
         allAssets={allAssets}
