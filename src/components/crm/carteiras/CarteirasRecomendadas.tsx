@@ -59,7 +59,7 @@ export function CarteirasRecomendadas() {
   // Show spinner ONLY on first load (no cached data yet).
   if (!loaded && loading) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div className="carteiras-dark rounded-lg flex items-center justify-center py-20">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -70,20 +70,22 @@ export function CarteirasRecomendadas() {
   if (selectedPortfolio) {
     const isOwnPortfolio = selectedPortfolio.user_id === user?.id;
     return (
-      <CarteiraDetail
-        portfolio={selectedPortfolio}
-        assets={allAssets.filter(a => a.portfolio_id === selectedPortfolio.id)}
-        allPortfolios={portfolios}
-        onBack={() => setSelectedPortfolio(null)}
-        onRefresh={refreshAssets}
-        isMaster={isMaster}
-        readOnly={!isOwnPortfolio}
-      />
+      <div className="carteiras-dark rounded-lg p-4 -m-4 md:-m-6">
+        <CarteiraDetail
+          portfolio={selectedPortfolio}
+          assets={allAssets.filter(a => a.portfolio_id === selectedPortfolio.id)}
+          allPortfolios={portfolios}
+          onBack={() => setSelectedPortfolio(null)}
+          onRefresh={refreshAssets}
+          isMaster={isMaster}
+          readOnly={!isOwnPortfolio}
+        />
+      </div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <div className="carteiras-dark rounded-lg p-4 -m-4 md:-m-6 space-y-8">
       <CarteiraGrid
         portfolios={portfolios}
         allAssets={allAssets}

@@ -261,4 +261,74 @@
     display: block;
     -webkit-overflow-scrolling: touch;
   }
+
+  /* ============================================================
+     CARTEIRAS DARK — Identidade BTG/Finclass (escopada à aba)
+     Sobrescreve tokens semânticos shadcn dentro do wrapper
+     ============================================================ */
+  .carteiras-dark {
+    /* Base */
+    --background: 240 16% 5%;          /* #0A0A0F */
+    --foreground: 0 0% 100%;            /* #FFFFFF */
+
+    /* Surfaces */
+    --card: 240 14% 9%;                 /* #12121A */
+    --card-foreground: 0 0% 100%;
+    --popover: 240 14% 9%;
+    --popover-foreground: 0 0% 100%;
+
+    /* Primary = teal BTG */
+    --primary: 174 100% 38%;            /* #00C4B4 */
+    --primary-foreground: 240 16% 5%;
+
+    /* Secondary / muted */
+    --secondary: 240 10% 14%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 240 10% 12%;               /* slightly lighter than card */
+    --muted-foreground: 240 8% 57%;     /* #8A8A9A */
+    --accent: 174 100% 38%;
+    --accent-foreground: 240 16% 5%;
+
+    --destructive: 343 100% 61%;        /* #FF3B6B */
+    --destructive-foreground: 0 0% 100%;
+    --success: 174 100% 38%;
+    --success-foreground: 240 16% 5%;
+
+    --border: 240 22% 15%;              /* #1E1E2E */
+    --input: 240 22% 15%;
+    --ring: 174 100% 38%;
+
+    /* FAROL palette (also exposed as utilities below) */
+    --farol-f: 174 100% 38%;            /* F - FIIs            #00C4B4 */
+    --farol-a: 213 100% 65%;            /* A - Ações Brasil    #4A9EFF */
+    --farol-r: 252 100% 68%;            /* R - Renda Fixa      #7B61FF */
+    --farol-o: 16 100% 60%;             /* O - Oportunidades   #FF6B35 */
+    --farol-l: 343 100% 61%;            /* L - Lá fora         #FF3B6B */
+
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+
+  /* Hide native number spinners inside the dark scope */
+  .carteiras-dark input[type="number"]::-webkit-inner-spin-button,
+  .carteiras-dark input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .carteiras-dark input[type="number"] {
+    -moz-appearance: textfield;
+  }
+}
+
+@layer utilities {
+  .text-farol-f { color: hsl(var(--farol-f)); }
+  .text-farol-a { color: hsl(var(--farol-a)); }
+  .text-farol-r { color: hsl(var(--farol-r)); }
+  .text-farol-o { color: hsl(var(--farol-o)); }
+  .text-farol-l { color: hsl(var(--farol-l)); }
+  .bg-farol-f { background-color: hsl(var(--farol-f)); }
+  .bg-farol-a { background-color: hsl(var(--farol-a)); }
+  .bg-farol-r { background-color: hsl(var(--farol-r)); }
+  .bg-farol-o { background-color: hsl(var(--farol-o)); }
+  .bg-farol-l { background-color: hsl(var(--farol-l)); }
 }
