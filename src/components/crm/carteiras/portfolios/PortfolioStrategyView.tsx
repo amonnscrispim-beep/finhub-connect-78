@@ -208,6 +208,21 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     await onRefreshAssets();
   };
 
+  // Live prices via Google Finance (non-RF tickers only)
+  const liveTickers = useMemo(() => {
+    const seen = new Set<string>();
+    const list: { ticker: string; international?: boolean }[] = [];
+    for (const a of assets) {
+      if (a.asset_class === 'renda_fixa') continue;
+      const t = (a.ticker || '').trim().toUpperCase();
+      if (!t || seen.has(t)) continue;
+      seen.add(t);
+      list.push({ ticker: t, international: a.asset_class === 'internacional' });
+    }
+    return list;
+  }, [assets]);
+  const { prices: livePrices } = useGoogleFinanceQuotes(liveTickers);
+
   // Compute all class data — grand totals exclude RF for dividends
   let grandDvMonth = 0;
   let grandDvYear = 0;
@@ -219,7 +234,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
   ASSET_CLASSES.forEach(cls => {
     const classAssets = assets.filter(a => a.asset_class === cls.key);
     const classPct = localPcts[cls.pctField];
-    const calcs = classAssets.map(a => computeAsset(a, classPct, classAssets.length, investAmount, recommendedAssets, cls.key));
+    const calcs = classAssets.map(a => computeAsset(a, classPct, classAssets.length, investAmount, recommendedAssets, cls.key, livePrices));
     const classDvMonth = calcs.reduce((s, c) => s + c.dvMonth, 0);
     const classDvYear = calcs.reduce((s, c) => s + c.dvYear, 0);
     const classValue = calcs.reduce((s, c) => s + c.assetValue, 0);
