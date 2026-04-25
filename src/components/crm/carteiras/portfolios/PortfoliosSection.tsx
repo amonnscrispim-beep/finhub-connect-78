@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMaster } from '@/hooks/useIsMaster';
@@ -11,6 +11,17 @@ import { PortfolioStrategyView } from './PortfolioStrategyView';
 import { ClientPortfolioTab } from './ClientPortfolioTab';
 import { FarolDonut } from './FarolDonut';
 import { PortfolioAsset } from '../CarteirasRecomendadas';
+
+// Module-level cache to survive tab unmount/remount (parallels CarteirasRecomendadas cache)
+const PORTFOLIOS_CACHE_TTL_MS = 5 * 60 * 1000;
+type PortfoliosCache = {
+  userId: string;
+  portfolios: any[];
+  assets: any[];
+  fetchedAt: number;
+};
+let portfoliosCache: PortfoliosCache | null = null;
+
 
 const PROFILES = ['Conservador', 'Moderado', 'Arrojado'] as const;
 const STRATEGIES = ['Renda', 'Crescimento'] as const;
@@ -60,10 +71,11 @@ interface Props {
 export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props) {
   const { user } = useAuth();
   const isMaster = useIsMaster();
-  const [portfolios, setPortfolios] = useState<InvestorPortfolio[]>([]);
-  const [portfolioAssets, setPortfolioAssets] = useState<PortfolioAssetItem[]>([]);
+  const cached = portfoliosCache && portfoliosCache.userId === user?.id ? portfoliosCache : null;
+  const [portfolios, setPortfolios] = useState<InvestorPortfolio[]>(cached?.portfolios ?? []);
+  const [portfolioAssets, setPortfolioAssets] = useState<PortfolioAssetItem[]>(cached?.assets ?? []);
   const [activeProfile, setActiveProfile] = useState<string>('Conservador');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cached);
 
   // Per-strategy collapse state, persisted in localStorage. Default: collapsed.
   const STRATEGY_COLLAPSE_KEY = 'portfolios-strategy-collapse';
@@ -83,22 +95,23 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
   const strategyKey = (profile: string, strategy: string) => `${profile}::${strategy}`;
   const isStrategyCollapsed = (profile: string, strategy: string) => {
     const k = strategyKey(profile, strategy);
-    // Default to collapsed when no entry yet
     return k in collapsedStrategies ? collapsedStrategies[k] : true;
   };
   const toggleStrategyCollapse = (profile: string, strategy: string) =>
     setCollapsedStrategies(prev => ({ ...prev, [strategyKey(profile, strategy)]: !isStrategyCollapsed(profile, strategy) }));
 
-  const loadPortfolios = useCallback(async () => {
+  const loadPortfolios = useCallback(async (opts: { silent?: boolean } = {}) => {
     if (!user) return;
-    setLoading(true);
+    if (!opts.silent) setLoading(true);
 
-    const { data: existing } = await supabase
-      .from('investor_portfolios')
-      .select('*')
-      .or(`user_id.eq.${user.id},shared.eq.true`);
+    // Parallelize portfolio + assets fetch into a single round-trip
+    const [{ data: existing }, { data: assetsData }] = await Promise.all([
+      supabase.from('investor_portfolios').select('*').or(`user_id.eq.${user.id},shared.eq.true`),
+      supabase.from('portfolio_assets').select('*').or(`user_id.eq.${user.id},shared.eq.true`).order('display_order'),
+    ]);
 
     let portfolioList = (existing || []) as unknown as InvestorPortfolio[];
+    let assetList = (assetsData || []) as unknown as PortfolioAssetItem[];
 
     // Only seed if the user has NO own portfolios
     const ownPortfolios = portfolioList.filter(p => p.user_id === user.id);
@@ -107,19 +120,10 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
       for (const profile of PROFILES) {
         for (const strategy of STRATEGIES) {
           const defaults = getDefaultAllocations(profile, strategy);
-          toInsert.push({
-            user_id: user.id,
-            profile,
-            strategy,
-            ...defaults,
-          });
+          toInsert.push({ user_id: user.id, profile, strategy, ...defaults });
         }
       }
-      const { data: inserted } = await supabase
-        .from('investor_portfolios')
-        .insert(toInsert)
-        .select();
-      // Re-fetch to include shared ones too
+      await supabase.from('investor_portfolios').insert(toInsert).select();
       const { data: all } = await supabase
         .from('investor_portfolios')
         .select('*')
@@ -128,23 +132,28 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
     }
 
     setPortfolios(portfolioList);
-
-    const portfolioIds = portfolioList.map(p => p.id);
-    if (portfolioIds.length > 0) {
-      const { data: assets } = await supabase
-        .from('portfolio_assets')
-        .select('*')
-        .or(`user_id.eq.${user.id},shared.eq.true`)
-        .order('display_order');
-      setPortfolioAssets((assets || []) as unknown as PortfolioAssetItem[]);
-    }
-
+    setPortfolioAssets(assetList);
+    portfoliosCache = {
+      userId: user.id,
+      portfolios: portfolioList,
+      assets: assetList,
+      fetchedAt: Date.now(),
+    };
     setLoading(false);
   }, [user]);
 
   useEffect(() => {
-    loadPortfolios();
-  }, [loadPortfolios]);
+    if (!user) return;
+    const c = portfoliosCache;
+    const fresh = c && c.userId === user.id && Date.now() - c.fetchedAt < PORTFOLIOS_CACHE_TTL_MS;
+    if (fresh) {
+      setPortfolios(c!.portfolios);
+      setPortfolioAssets(c!.assets);
+      setLoading(false);
+      return;
+    }
+    loadPortfolios({ silent: !!c && c.userId === user.id });
+  }, [user, loadPortfolios]);
 
   const refreshPortfolioAssets = async () => {
     if (!user) return;
@@ -153,8 +162,13 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
       .select('*')
       .or(`user_id.eq.${user.id},shared.eq.true`)
       .order('display_order');
-    setPortfolioAssets((assets || []) as unknown as PortfolioAssetItem[]);
+    const assetList = (assets || []) as unknown as PortfolioAssetItem[];
+    setPortfolioAssets(assetList);
+    if (portfoliosCache && portfoliosCache.userId === user.id) {
+      portfoliosCache = { ...portfoliosCache, assets: assetList, fetchedAt: Date.now() };
+    }
   };
+
 
   const updatePortfolio = async (id: string, updates: Partial<InvestorPortfolio>) => {
     await supabase.from('investor_portfolios').update(updates as any).eq('id', id);
@@ -231,6 +245,29 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
     return portfolios.find(p => p.profile === 'Conservador' && p.strategy === strategy && p.user_id === user?.id)?.id;
   }, [portfolios, user]);
 
+  // Pre-compute FAROL aggregates per profile (memoized — no re-render churn)
+  const farolByProfile = useMemo(() => {
+    const result: Record<string, { total: number; acoes: number; fiis: number; rendaFixa: number; internacional: number }> = {};
+    for (const profile of PROFILES) {
+      const own = portfolios.filter(p => p.profile === profile && p.user_id === user?.id);
+      const shared = portfolios.filter(p => p.profile === profile && p.user_id !== user?.id && p.shared);
+      const list = own.length > 0 ? own : shared;
+      result[profile] = list.reduce(
+        (acc, p) => {
+          const invest = Number(p.invest_amount) || 0;
+          acc.total += invest;
+          acc.acoes += invest * (Number(p.acoes_pct) || 0) / 100;
+          acc.fiis += invest * (Number(p.fiis_pct) || 0) / 100;
+          acc.rendaFixa += invest * (Number(p.renda_fixa_pct) || 0) / 100;
+          acc.internacional += invest * (Number(p.internacional_pct) || 0) / 100;
+          return acc;
+        },
+        { total: 0, acoes: 0, fiis: 0, rendaFixa: 0, internacional: 0 }
+      );
+    }
+    return result;
+  }, [portfolios, user]);
+
   if (loading) return null;
 
   // For each profile, determine own portfolios vs shared-from-master
@@ -262,21 +299,7 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
           const { own, shared } = getProfilePortfolios(profile);
           const profileShared = own.length > 0 && own.every(p => p.shared);
           const hasSharedFromMaster = shared.length > 0;
-
-          // Aggregate FAROL data: sum across both strategies of this profile (own portfolios)
-          const portfoliosForFarol = own.length > 0 ? own : shared;
-          const farolAgg = portfoliosForFarol.reduce(
-            (acc, p) => {
-              const invest = Number(p.invest_amount) || 0;
-              acc.total += invest;
-              acc.acoes += invest * (Number(p.acoes_pct) || 0) / 100;
-              acc.fiis += invest * (Number(p.fiis_pct) || 0) / 100;
-              acc.rendaFixa += invest * (Number(p.renda_fixa_pct) || 0) / 100;
-              acc.internacional += invest * (Number(p.internacional_pct) || 0) / 100;
-              return acc;
-            },
-            { total: 0, acoes: 0, fiis: 0, rendaFixa: 0, internacional: 0 }
-          );
+          const farolAgg = farolByProfile[profile] ?? { total: 0, acoes: 0, fiis: 0, rendaFixa: 0, internacional: 0 };
 
           return (
             <TabsContent key={profile} value={profile} className="space-y-6 mt-4">
