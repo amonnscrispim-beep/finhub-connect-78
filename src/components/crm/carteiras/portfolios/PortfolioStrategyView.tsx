@@ -726,20 +726,6 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
           );
         })()}
 
-        {/* Calculator */}
-        <div className="flex items-center gap-3 pt-2 border-t border-border">
-          <Calculator className="w-4 h-4 text-primary" />
-          <Label className="text-sm font-medium whitespace-nowrap">Valor a investir:</Label>
-          <div className="flex items-center gap-1">
-            <span className="text-sm text-muted-foreground">R$</span>
-            <Input type="number" className="no-spinner h-8 w-48 text-sm"
-              value={investAmount || ''}
-              placeholder="0"
-              onChange={e => handleInvestAmountChange(e.target.value)}
-              onBlur={handleInvestAmountBlur}
-            />
-          </div>
-        </div>
       </CardContent>
 
       <PortfolioAssetModal
