@@ -562,7 +562,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                             </TableCell>
                           )}
                           <TableCell className="text-right">
-                            <Input type="number" step="0.01" className="h-7 w-20 text-sm text-right inline-block"
+                            <Input type="number" step="0.01" className="no-spinner h-7 w-20 text-sm text-right inline-block"
                               defaultValue={c.allocClassPct.toFixed(2)}
                               key={`cls-${c.asset.id}-${data.calcs.length}-${data.classPct}`}
                               onBlur={e => {
@@ -580,7 +580,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                           {!isRf && <TableCell className="text-right text-sm font-medium">{c.cotas !== null ? c.cotas : '—'}</TableCell>}
                           <TableCell className="text-right">
                             {isConservador ? (
-                              <Input type="number" step="0.01" className="h-7 w-20 text-sm text-right inline-block"
+                              <Input type="number" step="0.01" className="no-spinner h-7 w-20 text-sm text-right inline-block"
                                 defaultValue={c.dyInput.toFixed(2)}
                                 key={`dy-${c.asset.id}`}
                                 onBlur={e => {
