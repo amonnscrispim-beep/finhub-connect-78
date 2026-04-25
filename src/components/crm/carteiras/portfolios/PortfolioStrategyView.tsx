@@ -435,27 +435,50 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
           })}
         </div>
 
-        {/* RF subtypes */}
+        {/* RF subtypes — % são sobre o TOTAL do portfólio (devem somar = renda_fixa_pct) */}
         {localPcts.renda_fixa_pct > 0 && (
           <div className="pl-4 border-l-2 border-muted space-y-2">
-            <p className="text-xs font-medium text-muted-foreground">Distribuição Renda Fixa {!rfValid && <span className="text-destructive">(soma: {rfTotal.toFixed(1)}% — deve ser 100%)</span>}</p>
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+              Distribuição Renda Fixa
+              <span className="text-muted-foreground/70">
+                (alvo: {localPcts.renda_fixa_pct.toFixed(1)}% do portfólio)
+              </span>
+              {rfValid ? (
+                <span className="text-emerald-600 inline-flex items-center gap-0.5">
+                  <CheckCircle2 className="w-3 h-3" /> {rfTotal.toFixed(1)}%
+                </span>
+              ) : (
+                <span className="text-destructive inline-flex items-center gap-0.5">
+                  <AlertTriangle className="w-3 h-3" />
+                  soma: {rfTotal.toFixed(1)}% {rfOver ? '(excede)' : '(faltam)'} {rfOver ? '' : `→ ${(localPcts.renda_fixa_pct - rfTotal).toFixed(1)}% restantes`}
+                </span>
+              )}
+            </p>
             <div className="grid grid-cols-3 gap-3">
-              {RF_SUBTYPES.map(rf => (
-                <div key={rf.key} className="space-y-1">
-                  <Label className="text-xs">{rf.label}</Label>
-                  <div className="flex items-center gap-1">
-                    <Input type="number" step="0.1" className="no-spinner h-8 text-sm"
-                      value={localPcts[rf.pctField]}
-                      onChange={e => handlePctChange(rf.pctField, e.target.value)}
-                      onBlur={() => handlePctBlur(rf.pctField)}
-                    />
-                    <span className="text-xs text-muted-foreground">%</span>
+              {RF_SUBTYPES.map(rf => {
+                const subPct = localPcts[rf.pctField];
+                const subValue = investAmount * (subPct / 100);
+                return (
+                  <div key={rf.key} className="space-y-1">
+                    <Label className="text-xs">{rf.label}</Label>
+                    <div className="flex items-center gap-1">
+                      <Input type="number" step="0.1" className="no-spinner h-8 text-sm w-20"
+                        value={subPct}
+                        onChange={e => handlePctChange(rf.pctField, e.target.value)}
+                        onBlur={() => handlePctBlur(rf.pctField)}
+                      />
+                      <span className="text-xs text-muted-foreground">%</span>
+                      <span className="text-xs text-muted-foreground ml-1">
+                        R$ {formatBRL(subValue)}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
+
 
         {/* Assets per class */}
         {ASSET_CLASSES.map(cls => {
