@@ -368,6 +368,7 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap, portfol
                           portfolioSlugMap={portfolioSlugMap}
                           onUpdatePortfolio={updatePortfolio}
                           onRefreshAssets={refreshPortfolioAssets}
+                          onRefreshRecommended={onRefreshRecommended}
                           isConservador={isConservador}
                           conservadorPortfolioId={conservadorPortfolioId}
                           isMaster={isMaster}
