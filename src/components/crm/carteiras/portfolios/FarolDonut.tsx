@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from 'recharts';
 import { FAROL_COLORS } from '@/lib/farol-colors';
 
+const DONUT_CENTER_BG = '#0B1929';
+
 export interface FarolInput {
   /** R$ em Ações Brasileiras */
   acoes: number;
