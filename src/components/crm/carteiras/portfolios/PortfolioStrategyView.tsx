@@ -490,8 +490,9 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                   <div key={rf.key} className="space-y-1">
                     <Label className="text-xs">{rf.label}</Label>
                     <div className="flex items-center gap-1">
-                      <Input type="number" step="0.1" className="no-spinner h-8 text-sm w-20"
-                        value={subPct}
+                      <Input type="text" inputMode="decimal" className="h-8 text-sm w-20"
+                        value={pctDisplay(rf.pctField)}
+                        onFocus={selectAllOnFocus}
                         onChange={e => handlePctChange(rf.pctField, e.target.value)}
                         onBlur={() => handlePctBlur(rf.pctField)}
                       />
