@@ -71,13 +71,6 @@ interface Props {
 export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props) {
   const { user } = useAuth();
   const isMaster = useIsMaster();
-  const [portfolios, setPortfolios] = useState<InvestorPortfolio[]>([]);
-  const [portfolioAssets, setPortfolioAssets] = useState<PortfolioAssetItem[]>([]);
-  const [activeProfile, setActiveProfile] = useState<string>('Conservador');
-  const [loading, setLoading] = useState(true);
-
-  // Per-strategy collapse state, persisted in localStorage. Default: collapsed.
-  const STRATEGY_COLLAPSE_KEY = 'portfolios-strategy-collapse';
   const cached = portfoliosCache && portfoliosCache.userId === user?.id ? portfoliosCache : null;
   const [portfolios, setPortfolios] = useState<InvestorPortfolio[]>(cached?.portfolios ?? []);
   const [portfolioAssets, setPortfolioAssets] = useState<PortfolioAssetItem[]>(cached?.assets ?? []);
