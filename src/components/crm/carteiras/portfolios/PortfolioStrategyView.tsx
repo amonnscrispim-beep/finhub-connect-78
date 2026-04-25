@@ -127,24 +127,21 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
   // String drafts for in-progress typing — prevents "010" leading zero and value jitter
   const [pctDrafts, setPctDrafts] = useState<Partial<Record<PctField, string>>>({});
 
-  // Per-class collapse state, persisted in localStorage. Default: collapsed.
-  const collapseStorageKey = `portfolio-class-collapse:${portfolio.id}`;
-  const [collapsedClasses, setCollapsedClasses] = useState<Record<string, boolean>>(() => {
-    if (typeof window === 'undefined') return {};
+  // Active FAROL tab, persisted in localStorage. Default: 'A' (Ações Brasil).
+  const farolTabStorageKey = `portfolio-farol-tab:${portfolio.id}`;
+  const [activeFarolTab, setActiveFarolTab] = useState<string>(() => {
+    if (typeof window === 'undefined') return 'A';
     try {
-      const raw = window.localStorage.getItem(collapseStorageKey);
-      if (raw) return JSON.parse(raw);
+      const raw = window.localStorage.getItem(farolTabStorageKey);
+      if (raw) return raw;
     } catch {}
-    // Default: all classes collapsed
-    return { acoes_brasileiras: true, fiis: true, internacional: true, renda_fixa: true };
+    return 'A';
   });
   useEffect(() => {
     try {
-      window.localStorage.setItem(collapseStorageKey, JSON.stringify(collapsedClasses));
+      window.localStorage.setItem(farolTabStorageKey, activeFarolTab);
     } catch {}
-  }, [collapsedClasses, collapseStorageKey]);
-  const toggleClassCollapse = (key: string) =>
-    setCollapsedClasses(prev => ({ ...prev, [key]: !prev[key] }));
+  }, [activeFarolTab, farolTabStorageKey]);
 
   const totalPct = localPcts.acoes_pct + localPcts.fiis_pct + localPcts.internacional_pct + localPcts.renda_fixa_pct;
   const isValid = Math.abs(totalPct - 100) < 0.01;
@@ -509,190 +506,180 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
         )}
 
 
-        {/* Assets per class */}
-        {ASSET_CLASSES.map(cls => {
-          const data = classDataMap[cls.key];
-          if (!data || (data.classPct === 0 && data.calcs.length === 0)) return null;
-          const isRf = cls.key === 'renda_fixa';
-          const isFii = cls.key === 'fiis';
-          const classDvMonth = data.calcs.reduce((s, c) => s + c.dvMonth, 0);
-          const classDvYear = data.calcs.reduce((s, c) => s + c.dvYear, 0);
-          const classValue = data.calcs.reduce((s, c) => s + c.assetValue, 0);
-          const classAllocSum = data.calcs.reduce((s, c) => s + c.allocClassPct, 0);
-          const classAllocValid = data.calcs.length === 0 || Math.abs(classAllocSum - 100) < 0.01;
+        {/* FAROL Method — pill tabs */}
+        {(() => {
+          const FAROL_TABS = [
+            { code: 'F', label: 'F — Fundos Imobiliários', classKey: 'fiis', color: 'bg-amber-500' },
+            { code: 'A', label: 'A — Ações Brasil', classKey: 'acoes_brasileiras', color: 'bg-blue-600' },
+            { code: 'R', label: 'R — Renda Fixa', classKey: 'renda_fixa', color: 'bg-emerald-600' },
+            { code: 'O', label: 'O — Oportunidades', classKey: null as string | null, color: 'bg-purple-600' },
+            { code: 'L', label: 'L — Lá Fora', classKey: 'internacional', color: 'bg-cyan-600' },
+          ];
 
-          const isCollapsed = !!collapsedClasses[cls.key];
-          return (
-            <div key={cls.key} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => toggleClassCollapse(cls.key)}
-                    className="flex items-center gap-1 text-sm font-medium hover:text-primary transition-colors"
-                    aria-expanded={!isCollapsed}
-                    aria-label={isCollapsed ? `Expandir ${cls.label}` : `Recolher ${cls.label}`}
-                  >
-                    {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    <span>{cls.label} ({data.classPct}%)</span>
-                  </button>
-                  <div className="flex items-center gap-0.5">
-                    <span className="text-xs text-muted-foreground">R$</span>
-                    <Input type="text" className="h-6 w-28 text-xs"
-                      key={`secval-${cls.key}-${investAmount}-${data.classPct}`}
-                      defaultValue={formatBRL(investAmount * (data.classPct / 100))}
-                      onBlur={e => {
-                        const raw = parseFloat(e.target.value.replace(/\./g, '').replace(',', '.')) || 0;
-                        if (investAmount > 0) {
-                          const newPct = parseFloat(((raw / investAmount) * 100).toFixed(2));
-                          setLocalPcts(prev => ({ ...prev, [cls.pctField]: newPct }));
-                          onUpdatePortfolio(portfolio.id, { [cls.pctField]: newPct } as any);
-                        }
-                      }}
-                    />
+          const renderClassContent = (classKey: string) => {
+            const cls = ASSET_CLASSES.find(c => c.key === classKey);
+            if (!cls) return null;
+            const data = classDataMap[cls.key];
+            if (!data) return null;
+            const isRf = cls.key === 'renda_fixa';
+            const isFii = cls.key === 'fiis';
+            const classDvMonth = data.calcs.reduce((s, c) => s + c.dvMonth, 0);
+            const classDvYear = data.calcs.reduce((s, c) => s + c.dvYear, 0);
+            const classValue = data.calcs.reduce((s, c) => s + c.assetValue, 0);
+            const classAllocSum = data.calcs.reduce((s, c) => s + c.allocClassPct, 0);
+            const classAllocValid = data.calcs.length === 0 || Math.abs(classAllocSum - 100) < 0.01;
+
+            return (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">{cls.label} ({data.classPct}%)</span>
+                    {!classAllocValid && data.calcs.length > 0 && (
+                      <Badge variant="destructive" className="text-[10px] h-5">
+                        <AlertTriangle className="w-3 h-3 mr-0.5" />
+                        Classe: {classAllocSum.toFixed(1)}%
+                      </Badge>
+                    )}
                   </div>
-                  {!classAllocValid && data.calcs.length > 0 && (
-                    <Badge variant="destructive" className="text-[10px] h-5">
-                      <AlertTriangle className="w-3 h-3 mr-0.5" />
-                      Classe: {classAllocSum.toFixed(1)}%
-                    </Badge>
-                  )}
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleCopyClass(cls.key)}>
-                    <Copy className="w-3 h-3 mr-1" /> Copiar
-                  </Button>
-                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleExportClassPdf(cls.key)}>
-                    <FileText className="w-3 h-3 mr-1" /> PDF
-                  </Button>
-                  {isConservador && (
-                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => openAddAsset(cls.key)}>
-                      <Plus className="w-3 h-3 mr-1" /> Adicionar
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleCopyClass(cls.key)}>
+                      <Copy className="w-3 h-3 mr-1" /> Copiar
                     </Button>
-                  )}
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleExportClassPdf(cls.key)}>
+                      <FileText className="w-3 h-3 mr-1" /> PDF
+                    </Button>
+                    {isConservador && (
+                      <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => openAddAsset(cls.key)}>
+                        <Plus className="w-3 h-3 mr-1" /> Adicionar
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {!isCollapsed && data.calcs.length > 0 && (
-                <div className="border border-border rounded-lg overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead className="text-xs">Ativo</TableHead>
-                        {isRf && <TableHead className="text-xs">Tipo</TableHead>}
-                        {isRf && <TableHead className="text-xs">Indexador</TableHead>}
-                        {isRf && <TableHead className="text-xs">Vencimento</TableHead>}
-                        {!isRf && <TableHead className="text-xs text-right">Preço Teto</TableHead>}
-                        {!isRf && <TableHead className="text-xs text-right">Preço Atual</TableHead>}
-                        <TableHead className="text-xs text-right">Aloc. Classe %</TableHead>
-                        <TableHead className="text-xs text-right">Alocação %</TableHead>
-                        <TableHead className="text-xs text-right">Valor R$</TableHead>
-                        {!isRf && <TableHead className="text-xs text-right">Qtd. Cotas</TableHead>}
-                        <TableHead className="text-xs text-right">{isFii ? 'DY R$/cota mês' : isRf ? 'Taxa % a.a.' : 'DY R$/cota ano'}</TableHead>
-                        <TableHead className="text-xs text-right">Div. Mês R$</TableHead>
-                        <TableHead className="text-xs text-right">Div. Ano R$</TableHead>
-                        <TableHead className="text-xs w-10" />
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data.calcs.map(c => (
-                        <TableRow key={c.asset.id}>
-                          <TableCell className="font-mono text-sm font-semibold">
-                            <span className="flex items-center gap-1.5">
-                              {c.asset.ticker || c.asset.name}
-                              {!c.isRf && (
-                                c.source && c.source.sector ? (
-                                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-blue-300 text-blue-600 bg-blue-50">{c.source.sector}</Badge>
-                                ) : !c.source ? (
-                                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-muted-foreground/30 text-muted-foreground">Setor não informado</Badge>
-                                ) : null
-                              )}
-                            </span>
-                          </TableCell>
-                          {isRf && <TableCell className="text-xs">{c.asset.rf_type || '—'}</TableCell>}
-                          {isRf && <TableCell className="text-xs">{c.asset.indexador || '—'}</TableCell>}
-                          {isRf && <TableCell className="text-xs">{c.asset.vencimento || '—'}</TableCell>}
-                          {!isRf && (
-                            <TableCell className="text-right text-sm">
-                              {c.source
-                                ? `R$ ${Number(c.source.ceiling_price).toFixed(2)}`
-                                : (c.asset as any).ceiling_price
-                                  ? `R$ ${Number((c.asset as any).ceiling_price).toFixed(2)}`
-                                  : '—'}
+                {data.calcs.length > 0 ? (
+                  <div className="border border-border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="text-xs">Ativo</TableHead>
+                          {isRf && <TableHead className="text-xs">Tipo</TableHead>}
+                          {isRf && <TableHead className="text-xs">Indexador</TableHead>}
+                          {isRf && <TableHead className="text-xs">Vencimento</TableHead>}
+                          {!isRf && <TableHead className="text-xs text-right">Preço Teto</TableHead>}
+                          {!isRf && <TableHead className="text-xs text-right">Preço Atual</TableHead>}
+                          <TableHead className="text-xs text-right">Aloc. Classe %</TableHead>
+                          <TableHead className="text-xs text-right">Alocação %</TableHead>
+                          <TableHead className="text-xs text-right">Valor R$</TableHead>
+                          {!isRf && <TableHead className="text-xs text-right">Qtd. Cotas</TableHead>}
+                          <TableHead className="text-xs text-right">{isFii ? 'DY R$/cota mês' : isRf ? 'Taxa % a.a.' : 'DY R$/cota ano'}</TableHead>
+                          <TableHead className="text-xs text-right">Div. Mês R$</TableHead>
+                          <TableHead className="text-xs text-right">Div. Ano R$</TableHead>
+                          <TableHead className="text-xs w-10" />
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {data.calcs.map(c => (
+                          <TableRow key={c.asset.id}>
+                            <TableCell className="font-mono text-sm font-semibold">
+                              <span className="flex items-center gap-1.5">
+                                {c.asset.ticker || c.asset.name}
+                                {!c.isRf && (
+                                  c.source && c.source.sector ? (
+                                    <Badge variant="outline" className="text-[9px] px-1 py-0 border-blue-300 text-blue-600 bg-blue-50">{c.source.sector}</Badge>
+                                  ) : !c.source ? (
+                                    <Badge variant="outline" className="text-[9px] px-1 py-0 border-muted-foreground/30 text-muted-foreground">Setor não informado</Badge>
+                                  ) : null
+                                )}
+                              </span>
                             </TableCell>
-                          )}
-                          {!isRf && (
-                            <TableCell className="text-right text-sm">
-                              {c.source?.current_price != null
-                                ? `R$ ${Number(c.source.current_price).toFixed(2)}`
-                                : (c.asset as any).current_price != null
-                                  ? `R$ ${Number((c.asset as any).current_price).toFixed(2)}`
-                                  : '...'}
-                            </TableCell>
-                          )}
-                          <TableCell className="text-right">
-                            <Input type="number" step="0.01" className="no-spinner h-7 w-20 text-sm text-right inline-block"
-                              defaultValue={c.allocClassPct.toFixed(2)}
-                              key={`cls-${c.asset.id}-${data.calcs.length}-${data.classPct}`}
-                              onBlur={e => {
-                                const val = parseFloat(e.target.value) || 0;
-                                if (Math.abs(val - c.allocClassPct) > 0.001) handleUpdateAssetField(c.asset.id, 'allocation_pct', val);
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground">
-                              {c.totalPct.toFixed(2)}%
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right text-sm">R$ {formatBRL(c.assetValue)}</TableCell>
-                          {!isRf && <TableCell className="text-right text-sm font-medium">{c.cotas !== null ? c.cotas : '—'}</TableCell>}
-                          <TableCell className="text-right">
-                            {isConservador ? (
+                            {isRf && <TableCell className="text-xs">{c.asset.rf_type || '—'}</TableCell>}
+                            {isRf && <TableCell className="text-xs">{c.asset.indexador || '—'}</TableCell>}
+                            {isRf && <TableCell className="text-xs">{c.asset.vencimento || '—'}</TableCell>}
+                            {!isRf && (
+                              <TableCell className="text-right text-sm">
+                                {c.source
+                                  ? `R$ ${Number(c.source.ceiling_price).toFixed(2)}`
+                                  : (c.asset as any).ceiling_price
+                                    ? `R$ ${Number((c.asset as any).ceiling_price).toFixed(2)}`
+                                    : '—'}
+                              </TableCell>
+                            )}
+                            {!isRf && (
+                              <TableCell className="text-right text-sm">
+                                {c.source?.current_price != null
+                                  ? `R$ ${Number(c.source.current_price).toFixed(2)}`
+                                  : (c.asset as any).current_price != null
+                                    ? `R$ ${Number((c.asset as any).current_price).toFixed(2)}`
+                                    : '...'}
+                              </TableCell>
+                            )}
+                            <TableCell className="text-right">
                               <Input type="number" step="0.01" className="no-spinner h-7 w-20 text-sm text-right inline-block"
-                                defaultValue={c.dyInput.toFixed(2)}
-                                key={`dy-${c.asset.id}`}
+                                defaultValue={c.allocClassPct.toFixed(2)}
+                                key={`cls-${c.asset.id}-${data.calcs.length}-${data.classPct}`}
                                 onBlur={e => {
                                   const val = parseFloat(e.target.value) || 0;
-                                  if (Math.abs(val - c.dyInput) > 0.001) handleUpdateAssetField(c.asset.id, 'dy_pct', val);
+                                  if (Math.abs(val - c.allocClassPct) > 0.001) handleUpdateAssetField(c.asset.id, 'allocation_pct', val);
                                 }}
                               />
-                            ) : (
-                              <span className="text-sm">{c.dyInput.toFixed(2)}</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right text-sm text-emerald-600">R$ {formatBRL(c.dvMonth)}</TableCell>
-                          <TableCell className="text-right text-sm text-emerald-600">R$ {formatBRL(c.dvYear)}</TableCell>
-                          <TableCell>
-                            {isConservador && (
-                              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteAsset(c.asset.id)}>
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            )}
-                          </TableCell>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground">
+                                {c.totalPct.toFixed(2)}%
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right text-sm">R$ {formatBRL(c.assetValue)}</TableCell>
+                            {!isRf && <TableCell className="text-right text-sm font-medium">{c.cotas !== null ? c.cotas : '—'}</TableCell>}
+                            <TableCell className="text-right">
+                              {isConservador ? (
+                                <Input type="number" step="0.01" className="no-spinner h-7 w-20 text-sm text-right inline-block"
+                                  defaultValue={c.dyInput.toFixed(2)}
+                                  key={`dy-${c.asset.id}`}
+                                  onBlur={e => {
+                                    const val = parseFloat(e.target.value) || 0;
+                                    if (Math.abs(val - c.dyInput) > 0.001) handleUpdateAssetField(c.asset.id, 'dy_pct', val);
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-sm">{c.dyInput.toFixed(2)}</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right text-sm text-emerald-600">R$ {formatBRL(c.dvMonth)}</TableCell>
+                            <TableCell className="text-right text-sm text-emerald-600">R$ {formatBRL(c.dvYear)}</TableCell>
+                            <TableCell>
+                              {isConservador && (
+                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteAsset(c.asset.id)}>
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                      <TableFooter>
+                        <TableRow className="bg-muted/30 font-medium text-xs">
+                          <TableCell colSpan={isRf ? 4 : 3}>Total {cls.label}</TableCell>
+                          {!isRf && <TableCell />}
+                          <TableCell className="text-right">{classAllocSum.toFixed(2)}%</TableCell>
+                          <TableCell className="text-right">{data.classPct.toFixed(2)}%</TableCell>
+                          <TableCell className="text-right">R$ {formatBRL(classValue)}</TableCell>
+                          {!isRf && <TableCell />}
+                          <TableCell />
+                          <TableCell className="text-right text-emerald-600">R$ {formatBRL(classDvMonth)}</TableCell>
+                          <TableCell className="text-right text-emerald-600">R$ {formatBRL(classDvYear)}</TableCell>
+                          <TableCell />
                         </TableRow>
-                      ))}
-                    </TableBody>
-                    <TableFooter>
-                      <TableRow className="bg-muted/30 font-medium text-xs">
-                        <TableCell colSpan={isRf ? 4 : 3}>Total {cls.label}</TableCell>
-                        {!isRf && <TableCell />}
-                        <TableCell className="text-right">{classAllocSum.toFixed(2)}%</TableCell>
-                        <TableCell className="text-right">{data.classPct.toFixed(2)}%</TableCell>
-                        <TableCell className="text-right">R$ {formatBRL(classValue)}</TableCell>
-                        {!isRf && <TableCell />}
-                        <TableCell />
-                        <TableCell className="text-right text-emerald-600">R$ {formatBRL(classDvMonth)}</TableCell>
-                        <TableCell className="text-right text-emerald-600">R$ {formatBRL(classDvYear)}</TableCell>
-                        <TableCell />
-                      </TableRow>
-                    </TableFooter>
-                  </Table>
-                </div>
-              )}
+                      </TableFooter>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="border border-dashed border-border rounded-lg p-6 text-center text-sm text-muted-foreground">
+                    Nenhum ativo nesta classe.
+                  </div>
+                )}
 
-              {/* Class totals panel — skip for Renda Fixa */}
-              {!isCollapsed && classValue > 0 && !isRf && (
+                {/* Class totals panel — skip for Renda Fixa */}
+                {classValue > 0 && !isRf && (
                   <div className="bg-emerald-50 rounded-lg p-3 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
                     <div>
                       <p className="text-emerald-700/70 text-xs">Valor Investido</p>
@@ -720,10 +707,51 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                       </p>
                     </div>
                   </div>
+                )}
+              </div>
+            );
+          };
+
+          const activeTab = FAROL_TABS.find(t => t.code === activeFarolTab) || FAROL_TABS[1];
+
+          return (
+            <div className="space-y-3">
+              {/* FAROL pill tabs */}
+              <div className="flex flex-wrap gap-2 border-b border-border pb-2">
+                {FAROL_TABS.map(tab => {
+                  const isActive = tab.code === activeFarolTab;
+                  return (
+                    <button
+                      key={tab.code}
+                      type="button"
+                      onClick={() => setActiveFarolTab(tab.code)}
+                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
+                        isActive
+                          ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                          : 'bg-background text-muted-foreground border-border hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white ${tab.color}`}>
+                        {tab.code}
+                      </span>
+                      <span className="hidden sm:inline">{tab.label.split(' — ')[1]}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Active tab content */}
+              {activeTab.classKey ? (
+                renderClassContent(activeTab.classKey)
+              ) : (
+                <div className="border border-dashed border-border rounded-lg p-8 text-center text-sm text-muted-foreground">
+                  <p className="font-medium text-foreground mb-1">Oportunidades</p>
+                  <p>Categoria reservada para alocações táticas e oportunidades pontuais. Em breve.</p>
+                </div>
               )}
             </div>
           );
-        })}
+        })()}
 
         {/* Portfolio totals */}
         {grandValue > 0 && (() => {
