@@ -1,12 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { Wrench, ChevronDown, Calculator, TrendingUp, DollarSign, Home, ShoppingCart, Percent, Target, Landmark, LineChart, Wallet, PiggyBank, Building2 } from 'lucide-react';
+import { Wrench, ChevronDown, Calculator, TrendingUp, DollarSign, Home, ShoppingCart, Percent, Target, Landmark, LineChart, Wallet, PiggyBank } from 'lucide-react';
 
 export type FerramentaId =
   | 'juros-compostos'
   | 'milhao'
   | 'patrimonio-idade'
   | 'alugar-financiar'
-  | 'manter-vender'
   | 'vista-parcelada'
   | 'iof-caixinha'
   | 'cdb'
@@ -25,7 +24,6 @@ const calculadoras = [
   { id: 'milhao' as FerramentaId, label: 'Calculadora do Milhão', icon: Target },
   { id: 'patrimonio-idade' as FerramentaId, label: 'Calculadora Patrimônio por Idade', icon: TrendingUp },
   { id: 'alugar-financiar' as FerramentaId, label: 'Calculadora Alugar ou Financiar', icon: Home },
-  { id: 'manter-vender' as FerramentaId, label: 'Manter Imóvel Alugado vs. Vender', icon: Building2 },
   { id: 'vista-parcelada' as FerramentaId, label: 'Compra à Vista ou Parcelada', icon: ShoppingCart },
   { id: 'iof-caixinha' as FerramentaId, label: 'Calculadora de IOF da Caixinha', icon: Percent },
 ];

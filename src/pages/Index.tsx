@@ -31,7 +31,6 @@ import { JurosCompostos } from '@/components/ferramentas/JurosCompostos';
 import { CalculadoraMilhao } from '@/components/ferramentas/CalculadoraMilhao';
 import { PatrimonioIdade } from '@/components/ferramentas/PatrimonioIdade';
 import { AlugarOuFinanciar } from '@/components/ferramentas/AlugarOuFinanciar';
-import { ManterOuVender } from '@/components/ferramentas/ManterOuVender';
 import { VistaOuParcelada } from '@/components/ferramentas/VistaOuParcelada';
 import { IOFCaixinha } from '@/components/ferramentas/IOFCaixinha';
 import { SimuladorCDB } from '@/components/ferramentas/SimuladorCDB';
@@ -176,10 +175,10 @@ function CRMDashboard() {
       </div>
 
       {/* Main Content */}
-      <main className={`container mx-auto px-4 py-6 space-y-6 ${dashboardTab === 'carteiras' ? 'bg-[#0A0A0F] min-h-screen' : ''}`}>
+      <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Dashboard Tabs */}
         <Tabs value={dashboardTab} onValueChange={(v) => setDashboardTab(v as typeof dashboardTab)} className="space-y-4">
-          <TabsList className={dashboardTab === 'carteiras' ? 'bg-[#12121A] border border-[#1E1E2E] shadow-sm' : 'bg-card border border-border shadow-sm'}>
+          <TabsList className="bg-card border border-border shadow-sm">
             <TabsTrigger 
               value="operacional" 
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
@@ -306,7 +305,6 @@ function CRMDashboard() {
             {ferramentaAtiva === 'milhao' && <CalculadoraMilhao />}
             {ferramentaAtiva === 'patrimonio-idade' && <PatrimonioIdade />}
             {ferramentaAtiva === 'alugar-financiar' && <AlugarOuFinanciar />}
-            {ferramentaAtiva === 'manter-vender' && <ManterOuVender />}
             {ferramentaAtiva === 'vista-parcelada' && <VistaOuParcelada />}
             {ferramentaAtiva === 'iof-caixinha' && <IOFCaixinha />}
             {ferramentaAtiva === 'cdb' && <SimuladorCDB />}
@@ -316,8 +314,8 @@ function CRMDashboard() {
             {ferramentaAtiva === 'dividendos' && <ViverDeDividendos />}
           </TabsContent>
 
-          {/* CARTEIRAS RECOMENDADAS — keep mounted to preserve cache & local state */}
-          <TabsContent value="carteiras" forceMount className={dashboardTab === 'carteiras' ? 'animate-fade-in' : 'hidden'}>
+          {/* CARTEIRAS RECOMENDADAS */}
+          <TabsContent value="carteiras" className="animate-fade-in">
             <CarteirasRecomendadas />
           </TabsContent>
 

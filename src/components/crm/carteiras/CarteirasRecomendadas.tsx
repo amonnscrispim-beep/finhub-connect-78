@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMaster } from '@/hooks/useIsMaster';
+import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { CarteiraGrid } from './CarteiraGrid';
 import { CarteiraDetail } from './CarteiraDetail';
 import { PortfoliosSection } from './portfolios/PortfoliosSection';
-import { useCarteiras } from '@/contexts/CarteirasContext';
 
 export interface RecommendedPortfolio {
   id: string;
@@ -17,7 +17,6 @@ export interface RecommendedPortfolio {
   display_order: number;
   created_at: string;
   updated_at: string;
-  shared?: boolean;
 }
 
 export interface PortfolioAsset {
@@ -40,11 +39,110 @@ export interface PortfolioAsset {
   updated_at: string;
 }
 
+const DEFAULT_PORTFOLIOS = [
+  { name: 'Crescimento', slug: 'crescimento', display_order: 0, description: 'Small Caps + Valor' },
+  { name: 'Dividendos', slug: 'dividendos', display_order: 1, description: 'Ações pagadoras de dividendos' },
+  { name: 'FIIs', slug: 'fiis', display_order: 2, description: 'Fundos Imobiliários' },
+  { name: 'Internacional', slug: 'internacional', display_order: 3, description: 'Ativos internacionais' },
+];
+
 export function CarteirasRecomendadas() {
   const { user } = useAuth();
   const isMaster = useIsMaster();
-  const { portfolios, allAssets, loaded, loading, refresh, setAllAssets } = useCarteiras();
+  const [portfolios, setPortfolios] = useState<RecommendedPortfolio[]>([]);
+  const [allAssets, setAllAssets] = useState<PortfolioAsset[]>([]);
   const [selectedPortfolio, setSelectedPortfolio] = useState<RecommendedPortfolio | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) loadData();
+  }, [user]);
+
+  const loadData = async () => {
+    if (!user) return;
+    setLoading(true);
+
+    const { data: existingPortfolios } = await supabase
+      .from('recommended_portfolios')
+      .select('*')
+      .or(`user_id.eq.${user.id},shared.eq.true`)
+      .order('display_order');
+
+    let portfolioList = (existingPortfolios || []) as unknown as RecommendedPortfolio[];
+
+    // Migrate old structure: merge Small Caps + Valor into Crescimento
+    const slugs = portfolioList.map(p => p.slug);
+    const hasOldStructure = (slugs.includes('small-caps') || slugs.includes('valor')) && !slugs.includes('crescimento');
+
+    if (hasOldStructure) {
+      // Create Crescimento portfolio
+      const { data: crescimento } = await supabase
+        .from('recommended_portfolios')
+        .insert({ name: 'Crescimento', slug: 'crescimento', display_order: 0, user_id: user.id, description: 'Small Caps + Valor' })
+        .select()
+        .single();
+
+      if (crescimento) {
+        const crescimentoId = crescimento.id;
+        // Migrate Small Caps assets
+        const smallCaps = portfolioList.find(p => p.slug === 'small-caps');
+        if (smallCaps) {
+          await supabase
+            .from('recommended_portfolio_assets')
+            .update({ portfolio_id: crescimentoId, sub_classification: 'Small Caps' } as any)
+            .eq('portfolio_id', smallCaps.id);
+          await supabase.from('recommended_portfolios').delete().eq('id', smallCaps.id);
+        }
+        // Migrate Valor assets
+        const valor = portfolioList.find(p => p.slug === 'valor');
+        if (valor) {
+          await supabase
+            .from('recommended_portfolio_assets')
+            .update({ portfolio_id: crescimentoId, sub_classification: 'Valor' } as any)
+            .eq('portfolio_id', valor.id);
+          await supabase.from('recommended_portfolios').delete().eq('id', valor.id);
+        }
+        // Update display_order of remaining portfolios
+        for (const p of portfolioList) {
+          if (p.slug === 'dividendos') await supabase.from('recommended_portfolios').update({ display_order: 1 }).eq('id', p.id);
+          if (p.slug === 'fiis') await supabase.from('recommended_portfolios').update({ display_order: 2 }).eq('id', p.id);
+          if (p.slug === 'internacional') await supabase.from('recommended_portfolios').update({ display_order: 3 }).eq('id', p.id);
+        }
+      }
+
+      // Reload after migration
+      const { data: refreshed } = await supabase
+        .from('recommended_portfolios')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('display_order');
+      portfolioList = (refreshed || []) as unknown as RecommendedPortfolio[];
+    }
+
+    // Seed defaults if none exist
+    if (portfolioList.length === 0) {
+      const toInsert = DEFAULT_PORTFOLIOS.map(p => ({
+        ...p,
+        user_id: user.id,
+      }));
+      const { data: inserted } = await supabase
+        .from('recommended_portfolios')
+        .insert(toInsert)
+        .select();
+      portfolioList = (inserted || []) as unknown as RecommendedPortfolio[];
+    }
+
+    setPortfolios(portfolioList);
+
+    const { data: assets } = await supabase
+      .from('recommended_portfolio_assets')
+      .select('*')
+      .or(`user_id.eq.${user.id},shared.eq.true`)
+      .order('display_order');
+
+    setAllAssets((assets || []) as unknown as PortfolioAsset[]);
+    setLoading(false);
+  };
 
   const refreshAssets = async () => {
     if (!user) return;
@@ -56,36 +154,31 @@ export function CarteirasRecomendadas() {
     setAllAssets((data || []) as unknown as PortfolioAsset[]);
   };
 
-  // Show spinner ONLY on first load (no cached data yet).
-  if (!loaded && loading) {
+  if (loading) {
     return (
-      <div className="carteiras-dark rounded-lg flex items-center justify-center py-20">
+      <div className="flex items-center justify-center py-20">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (!loaded) return null;
-
   if (selectedPortfolio) {
     const isOwnPortfolio = selectedPortfolio.user_id === user?.id;
     return (
-      <div className="carteiras-dark rounded-lg p-4 -m-4 md:-m-6 min-h-screen">
-        <CarteiraDetail
-          portfolio={selectedPortfolio}
-          assets={allAssets.filter(a => a.portfolio_id === selectedPortfolio.id)}
-          allPortfolios={portfolios}
-          onBack={() => setSelectedPortfolio(null)}
-          onRefresh={refreshAssets}
-          isMaster={isMaster}
-          readOnly={!isOwnPortfolio}
-        />
-      </div>
+      <CarteiraDetail
+        portfolio={selectedPortfolio}
+        assets={allAssets.filter(a => a.portfolio_id === selectedPortfolio.id)}
+        allPortfolios={portfolios}
+        onBack={() => setSelectedPortfolio(null)}
+        onRefresh={refreshAssets}
+        isMaster={isMaster}
+        readOnly={!isOwnPortfolio}
+      />
     );
   }
 
   return (
-    <div className="carteiras-dark rounded-lg p-4 -m-4 md:-m-6 space-y-8 min-h-screen">
+    <div className="space-y-8">
       <CarteiraGrid
         portfolios={portfolios}
         allAssets={allAssets}

@@ -2,9 +2,6 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Upload, FileText, AlertTriangle, Copy, Check, Edit3, RotateCcw, Loader2, Calendar, ChevronDown, ChevronUp, Trash2, Building2 } from 'lucide-react';
 import { RelatorioExecutivoLiquidez } from './RelatorioExecutivoLiquidez';
 import { LiquidityDashboard } from './performance/LiquidityDashboard';
-import { FixedIncomeAnalysis } from './performance/FixedIncomeAnalysis';
-import { DashboardEnhancements } from './performance/DashboardEnhancements';
-import { buildConsolidatedSummary } from './performance/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -914,27 +911,17 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
           </TabsList>
 
           {/* Dashboard */}
-          <TabsContent value="dashboard" className="mt-4 space-y-6">
-            {(() => {
-              const liteReports = reports.map(r => ({
-                id: r.id,
-                pdfFilename: r.pdfFilename,
-                broker: r.broker,
-                reportType: r.reportType,
-                reportDate: r.reportDate,
-                status: r.status,
-                extractedData: r.extractedData,
-                alerts: r.alerts,
-              }));
-              const summary = buildConsolidatedSummary(liteReports);
-              return (
-                <>
-                  <DashboardEnhancements data={summary} reports={liteReports} />
-                  <LiquidityDashboard reports={liteReports} />
-                  <FixedIncomeAnalysis reportIds={extractedReports.map(r => r.id)} />
-                </>
-              );
-            })()}
+          <TabsContent value="dashboard" className="mt-4">
+            <LiquidityDashboard reports={reports.map(r => ({
+              id: r.id,
+              pdfFilename: r.pdfFilename,
+              broker: r.broker,
+              reportType: r.reportType,
+              reportDate: r.reportDate,
+              status: r.status,
+              extractedData: r.extractedData,
+              alerts: r.alerts,
+            }))} />
           </TabsContent>
 
           {/* A) Consolidated */}

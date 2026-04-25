@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { Users, RefreshCw, DollarSign, Bell, Clock, CalendarClock } from 'lucide-react';
 import { useClients } from '@/contexts/ClientContext';
 import { differenceInDays } from 'date-fns';
-import { WeeklyAlertsDrawer } from './DailyAlertsDrawer';
-import { useWeeklyTasks } from '@/hooks/useWeeklyTasks';
+import { WeeklyAlertsDrawer, type WeeklyTask } from './DailyAlertsDrawer';
 
 interface StatsCardsProps {
   onTotalClientsClick: () => void;
@@ -14,7 +13,7 @@ interface StatsCardsProps {
 
 export function StatsCards({ onTotalClientsClick, onRenewalsClick, onFinancialAssetsClick }: StatsCardsProps) {
   const { clients } = useClients();
-  const { tasks: weeklyTasks } = useWeeklyTasks();
+  const [weeklyTasks, setWeeklyTasks] = useState<WeeklyTask[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const activeClients = clients.filter(c => !c.consultingFinished);
@@ -49,9 +48,6 @@ export function StatsCards({ onTotalClientsClick, onRenewalsClick, onFinancialAs
     return differenceInDays(today, lastMeeting) > period;
   }).length;
 
-  // Total de pendências = reuniões em atraso (clientes) + tarefas semanais pendentes (banco)
-  const totalPendingCount = overdueMeetingsCount + pendingCount;
-
   const stats = [
     {
       label: 'Total de Clientes',
@@ -62,13 +58,10 @@ export function StatsCards({ onTotalClientsClick, onRenewalsClick, onFinancialAs
     },
     {
       label: 'Reuniões Pendentes',
-      value: totalPendingCount,
-      subtitle: pendingCount > 0
-        ? `${overdueMeetingsCount} em atraso · ${pendingCount} tarefa${pendingCount > 1 ? 's' : ''} semana`
-        : (overdueMeetingsCount > 0 ? `${overdueMeetingsCount} em atraso` : undefined),
+      value: overdueMeetingsCount,
       icon: CalendarClock,
-      color: totalPendingCount > 0 ? 'bg-destructive/10 text-destructive' : 'bg-muted/10 text-muted-foreground',
-      highlight: totalPendingCount > 0,
+      color: overdueMeetingsCount > 0 ? 'bg-destructive/10 text-destructive' : 'bg-muted/10 text-muted-foreground',
+      highlight: overdueMeetingsCount > 0,
       onClick: () => setDrawerOpen(true),
     },
     {
@@ -127,6 +120,8 @@ export function StatsCards({ onTotalClientsClick, onRenewalsClick, onFinancialAs
       <WeeklyAlertsDrawer
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
+        tasks={weeklyTasks}
+        onTasksChange={setWeeklyTasks}
       />
     </div>
   );

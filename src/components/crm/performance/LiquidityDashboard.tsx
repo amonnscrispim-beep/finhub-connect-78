@@ -8,7 +8,6 @@ import { LiquidityChart } from './LiquidityChart';
 import { BrokerCard } from './BrokerCard';
 import { MaturityAgenda } from './MaturityAgenda';
 import { StrategicAlerts } from './StrategicAlerts';
-import { MaturityRadar } from './MaturityRadar';
 
 interface LiquidityDashboardProps {
   reports: {
@@ -163,9 +162,6 @@ export function LiquidityDashboard({ reports }: LiquidityDashboardProps) {
           <LiquidityChart bands={data.liquidityBands} height={250} />
         </div>
       </div>
-
-      {/* ── Section 1.5: Radar de Vencimentos (próximos 120 dias) ── */}
-      <MaturityRadar data={data} />
 
       {/* ── Section 2: Por Corretora ── */}
       {data.brokers.length > 0 && (

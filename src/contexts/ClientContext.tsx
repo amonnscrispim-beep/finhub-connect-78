@@ -66,8 +66,12 @@ export function ClientProvider({ children }: { children: ReactNode }) {
   }, [addClientToDb]);
 
   const updateClient = useCallback(async (id: string, updates: Partial<Client>) => {
-    // Re-throw so callers can react (show toast, keep modal open, etc.)
-    return await updateClientInDb(id, updates);
+    try {
+      const result = await updateClientInDb(id, updates);
+      return result;
+    } catch (error) {
+      console.error('Error updating client:', error);
+    }
   }, [updateClientInDb]);
 
   const deleteClient = useCallback(async (id: string) => {

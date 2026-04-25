@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMaster } from '@/hooks/useIsMaster';
@@ -7,10 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { SharedBadge } from '@/components/ui/shared-badge';
 import { Briefcase, Share2 } from 'lucide-react';
-import { FarolStrategyCard } from './FarolStrategyCard';
+import { PortfolioStrategyView } from './PortfolioStrategyView';
 import { ClientPortfolioTab } from './ClientPortfolioTab';
 import { PortfolioAsset } from '../CarteirasRecomendadas';
-import { useCarteiras } from '@/contexts/CarteirasContext';
 
 const PROFILES = ['Conservador', 'Moderado', 'Arrojado'] as const;
 const STRATEGIES = ['Renda', 'Crescimento'] as const;
@@ -60,17 +59,69 @@ interface Props {
 export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props) {
   const { user } = useAuth();
   const isMaster = useIsMaster();
-  const {
-    investorPortfolios: portfolios,
-    portfolioAssets,
-    loaded,
-    setInvestorPortfolios,
-    setPortfolioAssets,
-    refresh,
-  } = useCarteiras();
+  const [portfolios, setPortfolios] = useState<InvestorPortfolio[]>([]);
+  const [portfolioAssets, setPortfolioAssets] = useState<PortfolioAssetItem[]>([]);
   const [activeProfile, setActiveProfile] = useState<string>('Conservador');
+  const [loading, setLoading] = useState(true);
 
-  const refreshPortfolioAssets = useCallback(async () => {
+  const loadPortfolios = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+
+    const { data: existing } = await supabase
+      .from('investor_portfolios')
+      .select('*')
+      .or(`user_id.eq.${user.id},shared.eq.true`);
+
+    let portfolioList = (existing || []) as unknown as InvestorPortfolio[];
+
+    // Only seed if the user has NO own portfolios
+    const ownPortfolios = portfolioList.filter(p => p.user_id === user.id);
+    if (ownPortfolios.length === 0) {
+      const toInsert: any[] = [];
+      for (const profile of PROFILES) {
+        for (const strategy of STRATEGIES) {
+          const defaults = getDefaultAllocations(profile, strategy);
+          toInsert.push({
+            user_id: user.id,
+            profile,
+            strategy,
+            ...defaults,
+          });
+        }
+      }
+      const { data: inserted } = await supabase
+        .from('investor_portfolios')
+        .insert(toInsert)
+        .select();
+      // Re-fetch to include shared ones too
+      const { data: all } = await supabase
+        .from('investor_portfolios')
+        .select('*')
+        .or(`user_id.eq.${user.id},shared.eq.true`);
+      portfolioList = (all || []) as unknown as InvestorPortfolio[];
+    }
+
+    setPortfolios(portfolioList);
+
+    const portfolioIds = portfolioList.map(p => p.id);
+    if (portfolioIds.length > 0) {
+      const { data: assets } = await supabase
+        .from('portfolio_assets')
+        .select('*')
+        .or(`user_id.eq.${user.id},shared.eq.true`)
+        .order('display_order');
+      setPortfolioAssets((assets || []) as unknown as PortfolioAssetItem[]);
+    }
+
+    setLoading(false);
+  }, [user]);
+
+  useEffect(() => {
+    loadPortfolios();
+  }, [loadPortfolios]);
+
+  const refreshPortfolioAssets = async () => {
     if (!user) return;
     const { data: assets } = await supabase
       .from('portfolio_assets')
@@ -78,11 +129,11 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
       .or(`user_id.eq.${user.id},shared.eq.true`)
       .order('display_order');
     setPortfolioAssets((assets || []) as unknown as PortfolioAssetItem[]);
-  }, [user, setPortfolioAssets]);
+  };
 
   const updatePortfolio = async (id: string, updates: Partial<InvestorPortfolio>) => {
     await supabase.from('investor_portfolios').update(updates as any).eq('id', id);
-    setInvestorPortfolios(portfolios.map(p => p.id === id ? { ...p, ...updates } as InvestorPortfolio : p));
+    setPortfolios(prev => prev.map(p => p.id === id ? { ...p, ...updates } as InvestorPortfolio : p));
   };
 
   // Share/unshare a full profile (both strategies)
@@ -102,7 +153,7 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
     }
 
     toast.success(newVal ? `Perfil ${profile} compartilhado!` : `Compartilhamento do perfil ${profile} removido.`);
-    await refresh(true);
+    await loadPortfolios();
   };
 
   // Share/unshare a single strategy within a profile
@@ -118,7 +169,7 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
     }
 
     toast.success(newVal ? `Estratégia ${strategy} compartilhada!` : `Compartilhamento da estratégia ${strategy} removido.`);
-    await refresh(true);
+    await loadPortfolios();
   };
 
   // Build effective assets for a portfolio: Conservador owns assets, others inherit
@@ -155,7 +206,7 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
     return portfolios.find(p => p.profile === 'Conservador' && p.strategy === strategy && p.user_id === user?.id)?.id;
   }, [portfolios, user]);
 
-  if (!loaded) return null;
+  if (loading) return null;
 
   // For each profile, determine own portfolios vs shared-from-master
   const getProfilePortfolios = (profile: string) => {
@@ -215,7 +266,7 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
                 const effectiveAssets = getEffectiveAssets(portfolio);
                 const conservadorPortfolioId = isConservador ? undefined : getConservadorId(strategy);
                 return (
-                  <FarolStrategyCard
+                  <PortfolioStrategyView
                     key={portfolio.id}
                     portfolio={portfolio}
                     assets={effectiveAssets}
@@ -240,7 +291,7 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
                     if (!sharedPortfolio) return null;
                     const effectiveAssets = getEffectiveAssets(sharedPortfolio);
                     return (
-                      <FarolStrategyCard
+                      <PortfolioStrategyView
                         key={`shared-${sharedPortfolio.id}`}
                         portfolio={sharedPortfolio}
                         assets={effectiveAssets}

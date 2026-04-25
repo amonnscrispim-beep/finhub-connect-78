@@ -50,7 +50,7 @@ import { CalendarIcon, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useClients } from '@/contexts/ClientContext';
 import { ClientFiles } from './ClientFiles';
-
+import { RaioXConsolidado } from './RaioXConsolidado';
 import { Progress } from '@/components/ui/progress';
 import { CollapsibleSection } from './CollapsibleSection';
 import { FinancialGoalsSection } from './FinancialGoalsSection';
@@ -573,7 +573,6 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       if (client) {
         await updateClient(client.id, clientData);
         await logActivity('edicao', 'Cliente atualizado', client.id, clientData.name);
-        toast.success('Alterações salvas com sucesso!');
       } else {
         // Add new client and save draft goals
         const newClient = await addClient(clientData);
@@ -610,17 +609,9 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       
       setIsSaving(false);
       onOpenChange(false);
-    } catch (error: any) {
-      console.error('[ClientModal] Error saving client:', error);
-      console.error('[ClientModal] Error details:', {
-        message: error?.message,
-        code: error?.code,
-        details: error?.details,
-        hint: error?.hint,
-      });
+    } catch (error) {
+      console.error('Error saving client:', error);
       setIsSaving(false);
-      const errMsg = error?.message || error?.details || 'tente novamente';
-      toast.error(`Erro ao salvar: ${errMsg}. Seus dados continuam preenchidos.`);
       // Don't close modal on error - keep draft data
     }
   };
@@ -719,7 +710,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     { id: 'debts', label: 'Dívidas e Obrigações', icon: CreditCard },
     { id: 'pension', label: 'Previdência e Aposentadoria', icon: Landmark },
     { id: 'goals', label: 'Metas Financeiras', icon: Target },
-    
+    { id: 'portfolio', label: 'Arquitetura da Carteira', icon: PieChart },
     { id: 'contracts', label: 'Contratos e Entregas', icon: ClipboardList },
     { id: 'tasks', label: 'Tarefas e Status', icon: CheckCircle },
     { id: 'performance', label: 'Relatório de Performance', icon: BarChart3 },
@@ -1222,6 +1213,21 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               />
             </div>
 
+            {/* SECTION 7: Arquitetura Estratégica da Carteira (Painel Automático) */}
+            <div hidden={activeTab !== 'portfolio'} className="space-y-4">
+              <ArquiteturaEstrategicaPainel
+                arquiteturaCarteira={formData.arquiteturaCarteira}
+                arquiteturaEstrategica={formData.arquiteturaEstrategica}
+                consultantNote={formData.moduleNotes.allocation || ''}
+                onConsultantNoteChange={(value) => setFormData(prev => ({
+                  ...prev,
+                  moduleNotes: { ...prev.moduleNotes, allocation: value }
+                }))}
+                clientName={formData.name}
+                advisorName=""
+              />
+            </div>
+
             {/* SECTION 8: Contratos e Entregas (sub-bloco de anotações por reunião foi movido para a aba "Reuniões") */}
             <div hidden={activeTab !== 'contracts'} className="space-y-4">
               <div className="space-y-2">
@@ -1375,6 +1381,11 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
             {/* SECTION: Relatório de Performance (aba dedicada) */}
             <div hidden={activeTab !== 'performance'} className="space-y-4">
               <RelatorioPerformance clientId={client?.id} investorProfile={formData.investorProfile} />
+
+              {/* Raio-X Consolidado (IA) */}
+              <div className="border-t border-border pt-4">
+                <RaioXConsolidado />
+              </div>
             </div>
 
             {/* SECTION: Arquivos e Resumos (Resultado da Consultoria + Arquivos do Cliente) */}

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { SharedBadge } from '@/components/ui/shared-badge';
@@ -17,7 +16,6 @@ import { InvestorPortfolio, PortfolioAssetItem } from './PortfoliosSection';
 import { PortfolioAsset } from '../CarteirasRecomendadas';
 import { PortfolioAssetModal } from './PortfolioAssetModal';
 import { PortfolioPdfPreviewModal } from './PortfolioPdfPreviewModal';
-import { useGoogleFinanceQuotes } from '@/hooks/useGoogleFinanceQuotes';
 
 interface Props {
   portfolio: InvestorPortfolio;
@@ -70,7 +68,6 @@ function computeAsset(
   investAmount: number,
   recommendedAssets: PortfolioAsset[],
   classKey: string,
-  livePrices: Record<string, number | null> = {},
 ): AssetCalc {
   // allocation_pct stores the weight within the class (e.g. 10% of the class)
   const storedClassPct = Number(asset.allocation_pct);
@@ -82,17 +79,7 @@ function computeAsset(
   const assetValue = investAmount * (totalPct / 100);
   
   const source = asset.source_asset_id ? recommendedAssets.find(a => a.id === asset.source_asset_id) || null : null;
-  const tickerKey = (asset.ticker || '').toUpperCase();
-  const livePrice = tickerKey ? livePrices[tickerKey] : null;
-  // Priority: live (Google Finance) > source > manual on asset
-  const currentPrice =
-    livePrice && livePrice > 0
-      ? livePrice
-      : source?.current_price
-        ? Number(source.current_price)
-        : (asset as any).current_price != null
-          ? Number((asset as any).current_price)
-          : null;
+  const currentPrice = source?.current_price ? Number(source.current_price) : null;
   const isRf = classKey === 'renda_fixa';
   const isFii = classKey === 'fiis';
   const cotas = !isRf && currentPrice && currentPrice > 0 ? Math.floor(assetValue / currentPrice) : null;
@@ -101,13 +88,15 @@ function computeAsset(
   let dvMonth: number;
   let dvYear: number;
 
-  if (isRf) {
+  if (isFii) {
+    dvMonth = dyInput * (cotas || 0);
+    dvYear = dvMonth * 12;
+  } else if (isRf) {
     dvYear = assetValue * (dyInput / 100);
     dvMonth = dvYear / 12;
   } else {
-    // FII, Ações, Internacional: dyInput = R$/cota mensal
-    dvMonth = dyInput * (cotas || 0);
-    dvYear = dvMonth * 12;
+    dvYear = dyInput * (cotas || 0);
+    dvMonth = dvYear / 12;
   }
 
   return { asset, allocClassPct, totalPct, assetValue, cotas, dyInput, dvMonth, dvYear, source, isFii, isRf };
@@ -138,11 +127,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
   const totalPct = localPcts.acoes_pct + localPcts.fiis_pct + localPcts.internacional_pct + localPcts.renda_fixa_pct;
   const isValid = Math.abs(totalPct - 100) < 0.01;
   const rfTotal = localPcts.rf_pos_pct + localPcts.rf_pre_pct + localPcts.rf_ipca_pct;
-  // RF subtype percentages are now expressed as % of total portfolio.
-  // Their sum must equal the Renda Fixa class allocation, not 100%.
-  const rfValid = localPcts.renda_fixa_pct === 0
-    ? Math.abs(rfTotal) < 0.01
-    : Math.abs(rfTotal - localPcts.renda_fixa_pct) < 0.01;
+  const rfValid = localPcts.renda_fixa_pct === 0 || Math.abs(rfTotal - 100) < 0.01;
 
   const handlePctChange = (field: PctField, value: string) => {
     setLocalPcts(prev => ({ ...prev, [field]: parseFloat(value) || 0 }));
@@ -151,7 +136,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     onUpdatePortfolio(portfolio.id, { [field]: localPcts[field] } as any);
   };
   const handleInvestAmountChange = (value: string) => {
-    setInvestAmount(parseFloat(value) || 0);
+    setInvestAmount(parseFloat(value.replace(/[^\d.,]/g, '').replace(',', '.')) || 0);
   };
   const handleInvestAmountBlur = () => {
     onUpdatePortfolio(portfolio.id, { invest_amount: investAmount });
@@ -206,21 +191,6 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     await onRefreshAssets();
   };
 
-  // Live prices via Google Finance (non-RF tickers only)
-  const liveTickers = useMemo(() => {
-    const seen = new Set<string>();
-    const list: { ticker: string; international?: boolean }[] = [];
-    for (const a of assets) {
-      if (a.asset_class === 'renda_fixa') continue;
-      const t = (a.ticker || '').trim().toUpperCase();
-      if (!t || seen.has(t)) continue;
-      seen.add(t);
-      list.push({ ticker: t, international: a.asset_class === 'internacional' });
-    }
-    return list;
-  }, [assets]);
-  const { prices: livePrices } = useGoogleFinanceQuotes(liveTickers);
-
   // Compute all class data — grand totals exclude RF for dividends
   let grandDvMonth = 0;
   let grandDvYear = 0;
@@ -232,7 +202,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
   ASSET_CLASSES.forEach(cls => {
     const classAssets = assets.filter(a => a.asset_class === cls.key);
     const classPct = localPcts[cls.pctField];
-    const calcs = classAssets.map(a => computeAsset(a, classPct, classAssets.length, investAmount, recommendedAssets, cls.key, livePrices));
+    const calcs = classAssets.map(a => computeAsset(a, classPct, classAssets.length, investAmount, recommendedAssets, cls.key));
     const classDvMonth = calcs.reduce((s, c) => s + c.dvMonth, 0);
     const classDvYear = calcs.reduce((s, c) => s + c.dvYear, 0);
     const classValue = calcs.reduce((s, c) => s + c.assetValue, 0);
@@ -393,19 +363,6 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Valor a Investir — Top of card */}
-        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/40 border border-border">
-          <Calculator className="w-5 h-5 text-primary" />
-          <Label className="text-base font-semibold whitespace-nowrap text-foreground">Valor a Investir:</Label>
-          <CurrencyInput
-            className="h-10 w-56 text-base font-bold"
-            value={investAmount}
-            onChange={handleInvestAmountChange}
-            onBlur={handleInvestAmountBlur}
-            placeholder="R$ 0,00"
-          />
-        </div>
-
         {/* Class allocations */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {ASSET_CLASSES.map(cls => {
@@ -442,38 +399,24 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
           })}
         </div>
 
-        {/* RF subtypes — percentages are over TOTAL portfolio; sum must equal renda_fixa_pct */}
+        {/* RF subtypes */}
         {localPcts.renda_fixa_pct > 0 && (
           <div className="pl-4 border-l-2 border-muted space-y-2">
-            <p className="text-xs font-medium text-muted-foreground">
-              Distribuição Renda Fixa (% do total da carteira){' '}
-              {rfValid ? (
-                <span className="text-emerald-600 font-semibold">✓ {rfTotal.toFixed(1)}% / {localPcts.renda_fixa_pct.toFixed(1)}%</span>
-              ) : (
-                <span className="text-destructive font-semibold">soma: {rfTotal.toFixed(1)}% — deve ser {localPcts.renda_fixa_pct.toFixed(1)}%</span>
-              )}
-            </p>
+            <p className="text-xs font-medium text-muted-foreground">Distribuição Renda Fixa {!rfValid && <span className="text-destructive">(soma: {rfTotal.toFixed(1)}% — deve ser 100%)</span>}</p>
             <div className="grid grid-cols-3 gap-3">
-              {RF_SUBTYPES.map(rf => {
-                const subPct = localPcts[rf.pctField];
-                const subValue = investAmount * (subPct / 100);
-                return (
-                  <div key={rf.key} className="space-y-1">
-                    <Label className="text-xs">{rf.label}</Label>
-                    <div className="flex items-center gap-1">
-                      <Input type="number" step="0.1" className={`h-8 text-sm ${!rfValid ? 'border-destructive' : ''}`}
-                        value={subPct}
-                        onChange={e => handlePctChange(rf.pctField, e.target.value)}
-                        onBlur={() => handlePctBlur(rf.pctField)}
-                      />
-                      <span className="text-xs text-muted-foreground">%</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      R$ {formatBRL(subValue)}
-                    </div>
+              {RF_SUBTYPES.map(rf => (
+                <div key={rf.key} className="space-y-1">
+                  <Label className="text-xs">{rf.label}</Label>
+                  <div className="flex items-center gap-1">
+                    <Input type="number" step="0.1" className="h-8 text-sm"
+                      value={localPcts[rf.pctField]}
+                      onChange={e => handlePctChange(rf.pctField, e.target.value)}
+                      onBlur={() => handlePctBlur(rf.pctField)}
+                    />
+                    <span className="text-xs text-muted-foreground">%</span>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -532,179 +475,22 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                 </div>
               </div>
 
-              {data.calcs.length > 0 && !isRf && (
-                <div className="border border-border rounded-lg overflow-hidden bg-background">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50 hover:bg-muted/50">
-                        <TableHead className="text-xs">Ativo</TableHead>
-                        <TableHead className="text-xs text-right">Preço Teto</TableHead>
-                        <TableHead className="text-xs text-right">Preço Atual</TableHead>
-                        <TableHead className="text-xs text-right">Aloc. Classe %</TableHead>
-                        <TableHead className="text-xs text-right">Alocação %</TableHead>
-                        <TableHead className="text-xs text-right">Valor R$</TableHead>
-                        <TableHead className="text-xs text-right">Qtd. Cotas</TableHead>
-                        <TableHead className="text-xs text-right">{isFii ? 'DY R$/cota mês' : 'DY R$/cota ano'}</TableHead>
-                        <TableHead className="text-xs text-right">Div. Mês R$</TableHead>
-                        <TableHead className="text-xs text-right">Div. Ano R$</TableHead>
-                        <TableHead className="text-xs w-10" />
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data.calcs.map(c => {
-                        const tickerKey = (c.asset.ticker || '').toUpperCase();
-                        const livePrice = tickerKey ? livePrices[tickerKey] : null;
-                        const hasLive = !!(livePrice && livePrice > 0);
-                        const manualPrice = (c.asset as any).current_price;
-                        const sourcePrice = c.source?.current_price;
-                        const displayPrice =
-                          manualPrice != null && manualPrice !== ''
-                            ? Number(manualPrice).toFixed(2)
-                            : sourcePrice != null
-                              ? Number(sourcePrice).toFixed(2)
-                              : hasLive
-                                ? Number(livePrice).toFixed(2)
-                                : '';
-                        const ceilingPrice = c.source
-                          ? Number(c.source.ceiling_price)
-                          : (c.asset as any).ceiling_price
-                            ? Number((c.asset as any).ceiling_price)
-                            : null;
-                        return (
-                          <TableRow key={c.asset.id}>
-                            {/* Ativo + setor */}
-                            <TableCell className="py-2">
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <span className="font-mono font-semibold text-sm">{c.asset.ticker || c.asset.name}</span>
-                                {c.source && c.source.sector ? (
-                                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-blue-300 text-blue-600 bg-blue-50 shrink-0">{c.source.sector}</Badge>
-                                ) : !c.source ? (
-                                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-muted-foreground/30 text-muted-foreground shrink-0">Sem setor</Badge>
-                                ) : null}
-                              </div>
-                            </TableCell>
-                            {/* Preço Teto */}
-                            <TableCell className="text-right text-sm py-2">
-                              {ceilingPrice != null ? `R$ ${ceilingPrice.toFixed(2)}` : '—'}
-                            </TableCell>
-                            {/* Preço Atual */}
-                            <TableCell className="text-right py-2">
-                              <div className="flex items-center justify-end gap-1">
-                                {hasLive && (
-                                  <span
-                                    className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shrink-0"
-                                    title="Cotação Yahoo Finance (atualiza a cada 5 min)"
-                                  />
-                                )}
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  className="h-7 w-[90px] text-xs text-right"
-                                  defaultValue={displayPrice}
-                                  key={`cur-${c.asset.id}`}
-                                  placeholder="R$ 0,00"
-                                  disabled={readOnly}
-                                  onBlur={e => {
-                                    const val = parseFloat(e.target.value) || 0;
-                                    const prev = manualPrice != null ? Number(manualPrice) : 0;
-                                    if (Math.abs(val - prev) > 0.001) {
-                                      handleUpdateAssetField(c.asset.id, 'current_price', val);
-                                    }
-                                  }}
-                                />
-                              </div>
-                            </TableCell>
-                            {/* Aloc. Classe % */}
-                            <TableCell className="text-right py-2">
-                              <Input
-                                type="number"
-                                step="0.01"
-                                className="h-7 w-[80px] text-xs text-right inline-block"
-                                defaultValue={c.allocClassPct.toFixed(2)}
-                                key={`cls-${c.asset.id}-${data.calcs.length}-${data.classPct}`}
-                                disabled={readOnly}
-                                onBlur={e => {
-                                  const val = parseFloat(e.target.value) || 0;
-                                  if (Math.abs(val - c.allocClassPct) > 0.001) handleUpdateAssetField(c.asset.id, 'allocation_pct', val);
-                                }}
-                              />
-                            </TableCell>
-                            {/* Alocação % (total) */}
-                            <TableCell className="text-right py-2">
-                              <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground">
-                                {c.totalPct.toFixed(2)}%
-                              </span>
-                            </TableCell>
-                            {/* Valor R$ */}
-                            <TableCell className="text-right text-sm font-medium py-2">R$ {formatBRL(c.assetValue)}</TableCell>
-                            {/* Qtd. Cotas */}
-                            <TableCell className="text-right text-sm py-2">{c.cotas ?? '—'}</TableCell>
-                            {/* DY R$/cota */}
-                            <TableCell className="text-right py-2">
-                              {isConservador ? (
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  className="h-7 w-[100px] text-xs text-right inline-block"
-                                  defaultValue={c.dyInput.toFixed(2)}
-                                  key={`dy-${c.asset.id}`}
-                                  onBlur={e => {
-                                    const val = parseFloat(e.target.value) || 0;
-                                    if (Math.abs(val - c.dyInput) > 0.001) handleUpdateAssetField(c.asset.id, 'dy_pct', val);
-                                  }}
-                                />
-                              ) : (
-                                <span className="text-sm">{c.dyInput.toFixed(2)}</span>
-                              )}
-                            </TableCell>
-                            {/* Div. Mês */}
-                            <TableCell className="text-right text-sm text-emerald-600 py-2">R$ {formatBRL(c.dvMonth)}</TableCell>
-                            {/* Div. Ano */}
-                            <TableCell className="text-right text-sm text-emerald-600 py-2">R$ {formatBRL(c.dvYear)}</TableCell>
-                            {/* Delete */}
-                            <TableCell className="py-2">
-                              {isConservador && (
-                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteAsset(c.asset.id)}>
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                    <TableFooter>
-                      <TableRow className="bg-muted/30">
-                        <TableCell className="text-xs font-medium">Total {cls.label}</TableCell>
-                        <TableCell />
-                        <TableCell />
-                        <TableCell className="text-right text-xs font-medium">{classAllocSum.toFixed(2)}%</TableCell>
-                        <TableCell />
-                        <TableCell className="text-right text-xs font-medium">R$ {formatBRL(classValue)}</TableCell>
-                        <TableCell />
-                        <TableCell />
-                        <TableCell className="text-right text-xs font-medium text-emerald-600">R$ {formatBRL(classDvMonth)}</TableCell>
-                        <TableCell className="text-right text-xs font-medium text-emerald-600">R$ {formatBRL(classDvYear)}</TableCell>
-                        <TableCell />
-                      </TableRow>
-                    </TableFooter>
-                  </Table>
-                </div>
-              )}
-
-              {data.calcs.length > 0 && isRf && (
+              {data.calcs.length > 0 && (
                 <div className="border border-border rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
                         <TableHead className="text-xs">Ativo</TableHead>
-                        <TableHead className="text-xs">Tipo</TableHead>
-                        <TableHead className="text-xs">Indexador</TableHead>
-                        <TableHead className="text-xs">Vencimento</TableHead>
+                        {isRf && <TableHead className="text-xs">Tipo</TableHead>}
+                        {isRf && <TableHead className="text-xs">Indexador</TableHead>}
+                        {isRf && <TableHead className="text-xs">Vencimento</TableHead>}
+                        {!isRf && <TableHead className="text-xs text-right">Preço Teto</TableHead>}
+                        {!isRf && <TableHead className="text-xs text-right">Preço Atual</TableHead>}
                         <TableHead className="text-xs text-right">Aloc. Classe %</TableHead>
                         <TableHead className="text-xs text-right">Alocação %</TableHead>
                         <TableHead className="text-xs text-right">Valor R$</TableHead>
-                        <TableHead className="text-xs text-right">Taxa % a.a.</TableHead>
+                        {!isRf && <TableHead className="text-xs text-right">Qtd. Cotas</TableHead>}
+                        <TableHead className="text-xs text-right">{isFii ? 'DY R$/cota mês' : isRf ? 'Taxa % a.a.' : 'DY R$/cota ano'}</TableHead>
                         <TableHead className="text-xs text-right">Div. Mês R$</TableHead>
                         <TableHead className="text-xs text-right">Div. Ano R$</TableHead>
                         <TableHead className="text-xs w-10" />
@@ -713,10 +499,39 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                     <TableBody>
                       {data.calcs.map(c => (
                         <TableRow key={c.asset.id}>
-                          <TableCell className="font-mono text-sm font-semibold">{c.asset.ticker || c.asset.name}</TableCell>
-                          <TableCell className="text-xs">{c.asset.rf_type || '—'}</TableCell>
-                          <TableCell className="text-xs">{c.asset.indexador || '—'}</TableCell>
-                          <TableCell className="text-xs">{c.asset.vencimento || '—'}</TableCell>
+                          <TableCell className="font-mono text-sm font-semibold">
+                            <span className="flex items-center gap-1.5">
+                              {c.asset.ticker || c.asset.name}
+                              {!c.isRf && (
+                                c.source && c.source.sector ? (
+                                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-blue-300 text-blue-600 bg-blue-50">{c.source.sector}</Badge>
+                                ) : !c.source ? (
+                                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-muted-foreground/30 text-muted-foreground">Setor não informado</Badge>
+                                ) : null
+                              )}
+                            </span>
+                          </TableCell>
+                          {isRf && <TableCell className="text-xs">{c.asset.rf_type || '—'}</TableCell>}
+                          {isRf && <TableCell className="text-xs">{c.asset.indexador || '—'}</TableCell>}
+                          {isRf && <TableCell className="text-xs">{c.asset.vencimento || '—'}</TableCell>}
+                          {!isRf && (
+                            <TableCell className="text-right text-sm">
+                              {c.source
+                                ? `R$ ${Number(c.source.ceiling_price).toFixed(2)}`
+                                : (c.asset as any).ceiling_price
+                                  ? `R$ ${Number((c.asset as any).ceiling_price).toFixed(2)}`
+                                  : '—'}
+                            </TableCell>
+                          )}
+                          {!isRf && (
+                            <TableCell className="text-right text-sm">
+                              {c.source?.current_price != null
+                                ? `R$ ${Number(c.source.current_price).toFixed(2)}`
+                                : (c.asset as any).current_price != null
+                                  ? `R$ ${Number((c.asset as any).current_price).toFixed(2)}`
+                                  : '...'}
+                            </TableCell>
+                          )}
                           <TableCell className="text-right">
                             <Input type="number" step="0.01" className="h-7 w-20 text-sm text-right inline-block"
                               defaultValue={c.allocClassPct.toFixed(2)}
@@ -733,6 +548,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                             </span>
                           </TableCell>
                           <TableCell className="text-right text-sm">R$ {formatBRL(c.assetValue)}</TableCell>
+                          {!isRf && <TableCell className="text-right text-sm font-medium">{c.cotas !== null ? c.cotas : '—'}</TableCell>}
                           <TableCell className="text-right">
                             {isConservador ? (
                               <Input type="number" step="0.01" className="h-7 w-20 text-sm text-right inline-block"
@@ -761,10 +577,12 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                     </TableBody>
                     <TableFooter>
                       <TableRow className="bg-muted/30 font-medium text-xs">
-                        <TableCell colSpan={4}>Total {cls.label}</TableCell>
+                        <TableCell colSpan={isRf ? 4 : 3}>Total {cls.label}</TableCell>
+                        {!isRf && <TableCell />}
                         <TableCell className="text-right">{classAllocSum.toFixed(2)}%</TableCell>
                         <TableCell className="text-right">{data.classPct.toFixed(2)}%</TableCell>
                         <TableCell className="text-right">R$ {formatBRL(classValue)}</TableCell>
+                        {!isRf && <TableCell />}
                         <TableCell />
                         <TableCell className="text-right text-emerald-600">R$ {formatBRL(classDvMonth)}</TableCell>
                         <TableCell className="text-right text-emerald-600">R$ {formatBRL(classDvYear)}</TableCell>
@@ -774,7 +592,6 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                   </Table>
                 </div>
               )}
-
 
               {/* Class totals panel — skip for Renda Fixa */}
               {classValue > 0 && !isRf && (
@@ -840,6 +657,20 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
           );
         })()}
 
+        {/* Calculator */}
+        <div className="flex items-center gap-3 pt-2 border-t border-border">
+          <Calculator className="w-4 h-4 text-primary" />
+          <Label className="text-sm font-medium whitespace-nowrap">Valor a investir:</Label>
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-muted-foreground">R$</span>
+            <Input type="number" className="h-8 w-48 text-sm"
+              value={investAmount || ''}
+              placeholder="0"
+              onChange={e => handleInvestAmountChange(e.target.value)}
+              onBlur={handleInvestAmountBlur}
+            />
+          </div>
+        </div>
       </CardContent>
 
       <PortfolioAssetModal
