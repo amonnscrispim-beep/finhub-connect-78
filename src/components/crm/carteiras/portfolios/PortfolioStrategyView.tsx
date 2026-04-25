@@ -504,7 +504,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                 </div>
               </div>
 
-              {data.calcs.length > 0 && (
+              {!isCollapsed && data.calcs.length > 0 && (
                 <div className="border border-border rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
