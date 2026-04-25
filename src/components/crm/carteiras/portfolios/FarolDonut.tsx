@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from 'recharts';
+import { FAROL_COLORS } from '@/lib/farol-colors';
 
 export interface FarolInput {
   /** R$ em Ações Brasileiras */
@@ -24,14 +25,8 @@ interface FarolSlice {
   color: string;
 }
 
-// BTG Pactual palette — degradê azul marinho → azul claro
-const COLORS = {
-  F: '#0B2859', // Fundos Imobiliários — azul marinho escuro
-  A: '#1A4A9C', // Ações Brasil — azul médio-escuro
-  R: '#2E6FD8', // Renda Fixa — azul médio
-  O: '#6B9FEF', // Oportunidades — azul claro
-  L: '#A8C8F8', // Lá Fora — azul bem claro
-};
+// Use shared FAROL palette so donut, legend, and pill tabs always match.
+const COLORS = FAROL_COLORS;
 
 const BTG_NAVY = '#0B2859';
 const CARD_BORDER = '#e8e8e8';
