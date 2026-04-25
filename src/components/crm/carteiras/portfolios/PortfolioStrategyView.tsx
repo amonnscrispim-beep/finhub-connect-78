@@ -452,11 +452,21 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
           const classAllocSum = data.calcs.reduce((s, c) => s + c.allocClassPct, 0);
           const classAllocValid = data.calcs.length === 0 || Math.abs(classAllocSum - 100) < 0.01;
 
+          const isCollapsed = !!collapsedClasses[cls.key];
           return (
             <div key={cls.key} className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-medium">{cls.label} ({data.classPct}%)</h4>
+                  <button
+                    type="button"
+                    onClick={() => toggleClassCollapse(cls.key)}
+                    className="flex items-center gap-1 text-sm font-medium hover:text-primary transition-colors"
+                    aria-expanded={!isCollapsed}
+                    aria-label={isCollapsed ? `Expandir ${cls.label}` : `Recolher ${cls.label}`}
+                  >
+                    {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    <span>{cls.label} ({data.classPct}%)</span>
+                  </button>
                   <div className="flex items-center gap-0.5">
                     <span className="text-xs text-muted-foreground">R$</span>
                     <Input type="text" className="h-6 w-28 text-xs"
