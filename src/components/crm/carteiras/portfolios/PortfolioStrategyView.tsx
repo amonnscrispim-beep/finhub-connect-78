@@ -416,9 +416,10 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
           <Label className="text-base font-semibold whitespace-nowrap">Valor a Investir:</Label>
           <div className="flex items-center gap-1 flex-1 max-w-xs">
             <span className="text-base font-semibold text-muted-foreground">R$</span>
-            <Input type="number" className="no-spinner h-10 text-lg font-bold"
-              value={investAmount || ''}
+            <Input type="text" inputMode="decimal" className="h-10 text-lg font-bold"
+              value={investAmountDraft !== undefined ? investAmountDraft : (investAmount ? String(investAmount) : '')}
               placeholder="0"
+              onFocus={selectAllOnFocus}
               onChange={e => handleInvestAmountChange(e.target.value)}
               onBlur={handleInvestAmountBlur}
             />
@@ -434,8 +435,9 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
               <div key={cls.key} className="space-y-1">
                 <Label className="text-xs">{cls.label}</Label>
                 <div className="flex items-center gap-1">
-                  <Input type="number" step="0.1" className="no-spinner h-8 text-sm w-20"
-                    value={classPctVal}
+                  <Input type="text" inputMode="decimal" className="h-8 text-sm w-20"
+                    value={pctDisplay(cls.pctField)}
+                    onFocus={selectAllOnFocus}
                     onChange={e => handlePctChange(cls.pctField, e.target.value)}
                     onBlur={() => handlePctBlur(cls.pctField)}
                   />
