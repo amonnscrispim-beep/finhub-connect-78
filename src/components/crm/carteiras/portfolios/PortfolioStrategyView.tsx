@@ -16,6 +16,7 @@ import { InvestorPortfolio, PortfolioAssetItem } from './PortfoliosSection';
 import { PortfolioAsset } from '../CarteirasRecomendadas';
 import { PortfolioAssetModal } from './PortfolioAssetModal';
 import { PortfolioPdfPreviewModal } from './PortfolioPdfPreviewModal';
+import { FAROL_COLORS } from '@/lib/farol-colors';
 
 interface Props {
   portfolio: InvestorPortfolio;
@@ -323,13 +324,14 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
           dyInput: c.dyInput,
           dvMonth: c.dvMonth,
           dvYear: c.dvYear,
-          ceilingPrice: c.source ? Number(c.source.ceiling_price) : null,
-          currentPrice: c.source?.current_price != null ? Number(c.source.current_price) : null,
+          ceilingPrice: c.source ? Number(c.source.ceiling_price) : ((c.asset as any).ceiling_price != null ? Number((c.asset as any).ceiling_price) : null),
+          currentPrice: c.source?.current_price != null ? Number(c.source.current_price) : ((c.asset as any).current_price != null ? Number((c.asset as any).current_price) : null),
           isRf: c.isRf,
           isFii: c.isFii,
           rfType: c.asset.rf_type || undefined,
           indexador: c.asset.indexador || undefined,
           vencimento: c.asset.vencimento || undefined,
+          sector: c.source?.sector ?? null,
         })),
       };
     }),
@@ -515,12 +517,13 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
 
         {/* FAROL Method — pill tabs */}
         {(() => {
+          // Pill colors come from the shared FAROL palette so donut and tabs always match.
           const FAROL_TABS = [
-            { code: 'F', label: 'F — Fundos Imobiliários', classKey: 'fiis', color: 'bg-amber-500' },
-            { code: 'A', label: 'A — Ações Brasil', classKey: 'acoes_brasileiras', color: 'bg-blue-600' },
-            { code: 'R', label: 'R — Renda Fixa', classKey: 'renda_fixa', color: 'bg-emerald-600' },
-            { code: 'O', label: 'O — Oportunidades', classKey: null as string | null, color: 'bg-purple-600' },
-            { code: 'L', label: 'L — Lá Fora', classKey: 'internacional', color: 'bg-cyan-600' },
+            { code: 'F', label: 'F — Fundos Imobiliários', classKey: 'fiis', color: FAROL_COLORS.F },
+            { code: 'A', label: 'A — Ações Brasil', classKey: 'acoes_brasileiras', color: FAROL_COLORS.A },
+            { code: 'R', label: 'R — Renda Fixa', classKey: 'renda_fixa', color: FAROL_COLORS.R },
+            { code: 'O', label: 'O — Oportunidades', classKey: null as string | null, color: FAROL_COLORS.O },
+            { code: 'L', label: 'L — Lá Fora', classKey: 'internacional', color: FAROL_COLORS.L },
           ];
 
           const renderClassContent = (classKey: string) => {
@@ -760,7 +763,10 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                           : 'bg-background text-muted-foreground border-border hover:bg-muted hover:text-foreground'
                       }`}
                     >
-                      <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white ${tab.color}`}>
+                      <span
+                        className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white"
+                        style={{ backgroundColor: tab.color }}
+                      >
                         {tab.code}
                       </span>
                       <span className="hidden sm:inline">{tab.label.split(' — ')[1]}</span>
