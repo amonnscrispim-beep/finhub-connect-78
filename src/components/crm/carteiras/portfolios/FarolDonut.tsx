@@ -39,6 +39,7 @@ function formatBRL(v: number): string {
 }
 
 // Active slice renderer — slight outward offset for hover emphasis
+// Active slice renderer — outward offset + brightness for hover emphasis
 const renderActiveShape = (props: any) => {
   const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
   return (
@@ -47,12 +48,13 @@ const renderActiveShape = (props: any) => {
         cx={cx}
         cy={cy}
         innerRadius={innerRadius}
-        outerRadius={outerRadius + 6}
+        outerRadius={outerRadius + 8}
         startAngle={startAngle}
         endAngle={endAngle}
         fill={fill}
-        stroke="#ffffff"
-        strokeWidth={3}
+        stroke={DONUT_CENTER_BG}
+        strokeWidth={2}
+        style={{ filter: 'brightness(1.15) drop-shadow(0 0 6px rgba(255,255,255,0.25))' }}
       />
     </g>
   );
