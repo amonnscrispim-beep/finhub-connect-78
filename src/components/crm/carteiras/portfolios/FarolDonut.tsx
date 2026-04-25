@@ -65,13 +65,15 @@ export function FarolDonut({ acoes, fiis, rendaFixa, internacional, total, title
     const oportunidades = Math.max(0, total - classified);
     const denom = classified + oportunidades;
     const safePct = (v: number) => (denom > 0 ? (v / denom) * 100 : 0);
-    return [
+    const all: FarolSlice[] = [
       { letter: 'F', name: 'Fundos Imobiliários', value: fiis, pct: safePct(fiis), color: COLORS.F },
       { letter: 'A', name: 'Ações Brasil', value: acoes, pct: safePct(acoes), color: COLORS.A },
       { letter: 'R', name: 'Renda Fixa', value: rendaFixa, pct: safePct(rendaFixa), color: COLORS.R },
       { letter: 'O', name: 'Oportunidades', value: oportunidades, pct: safePct(oportunidades), color: COLORS.O },
       { letter: 'L', name: 'Lá Fora / Internacional', value: internacional, pct: safePct(internacional), color: COLORS.L },
     ];
+    // Hide categories with no allocation — they reappear automatically when value > 0.
+    return all.filter(s => s.value > 0);
   }, [acoes, fiis, rendaFixa, internacional, total]);
 
   const totalValue = slices.reduce((s, x) => s + x.value, 0);
