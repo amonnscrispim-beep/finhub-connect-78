@@ -432,7 +432,25 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
               <div key={cls.key} className="space-y-1">
                 <Label className="text-xs flex items-center justify-between gap-2">
                   <span>{cls.label} ({(classPctVal || 0).toFixed(1)}%)</span>
-                  <span className="text-muted-foreground font-normal">R$ {formatBRL(classValueCalc)}</span>
+                  <span className="inline-flex items-center gap-1 font-normal">
+                    <span className="text-muted-foreground">R$</span>
+                    <input
+                      type="text"
+                      key={`clsval-${cls.key}-${investAmount}-${classPctVal}`}
+                      defaultValue={formatBRL(classValueCalc)}
+                      onFocus={selectAllOnFocus}
+                      onBlur={e => {
+                        const raw = parseFloat(e.target.value.replace(/\./g, '').replace(',', '.')) || 0;
+                        if (investAmount > 0) {
+                          const newPct = (raw / investAmount) * 100;
+                          setLocalPcts(prev => ({ ...prev, [cls.pctField]: parseFloat(newPct.toFixed(2)) }));
+                          onUpdatePortfolio(portfolio.id, { [cls.pctField]: parseFloat(newPct.toFixed(2)) } as any);
+                        }
+                        e.target.value = formatBRL(investAmount > 0 ? raw : classValueCalc);
+                      }}
+                      className="w-24 text-right bg-transparent border-0 border-b border-transparent hover:border-border focus:border-primary focus:outline-none px-0.5 text-xs text-foreground transition-colors"
+                    />
+                  </span>
                 </Label>
                 <div className="flex items-center gap-1">
                   <Input type="text" inputMode="decimal" className="h-8 text-sm w-20"
@@ -442,21 +460,6 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                     onBlur={() => handlePctBlur(cls.pctField)}
                   />
                   <span className="text-xs text-muted-foreground">%</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-muted-foreground">R$</span>
-                  <Input type="text" className="h-8 text-sm w-28"
-                    key={`clsval-${cls.key}-${investAmount}-${classPctVal}`}
-                    defaultValue={formatBRL(classValueCalc)}
-                    onBlur={e => {
-                      const raw = parseFloat(e.target.value.replace(/\./g, '').replace(',', '.')) || 0;
-                      if (investAmount > 0) {
-                        const newPct = (raw / investAmount) * 100;
-                        setLocalPcts(prev => ({ ...prev, [cls.pctField]: parseFloat(newPct.toFixed(2)) }));
-                        onUpdatePortfolio(portfolio.id, { [cls.pctField]: parseFloat(newPct.toFixed(2)) } as any);
-                      }
-                    }}
-                  />
                 </div>
               </div>
             );
