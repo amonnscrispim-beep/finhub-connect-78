@@ -759,28 +759,43 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                   </div>
                 )}
 
-                {/* Class totals panel — skip for Renda Fixa */}
-                {classValue > 0 && !isRf && (() => {
+                {/* Unified class totals row — BTG navy style */}
+                {classValue > 0 && (() => {
                   const dyMonthPct = classValue > 0 ? (classDvMonth / classValue) * 100 : 0;
                   const dyYearPct = (Math.pow(1 + dyMonthPct / 100, 12) - 1) * 100;
-                  const items = [
-                    { label: 'Valor Investido', value: `R$ ${formatBRL(classValue)}`, emphasis: false },
-                    { label: 'Div. Mês', value: `R$ ${formatBRL(classDvMonth)}`, emphasis: true },
-                    { label: 'Div. Ano', value: `R$ ${formatBRL(classDvYear)}`, emphasis: true },
-                    { label: 'DY Mês', value: `${dyMonthPct.toFixed(2)}%`, emphasis: false },
-                    { label: 'DY Ano', value: `${dyYearPct.toFixed(2)}%`, emphasis: true },
+                  const items: Array<{ label?: string; value: string; emphasis?: boolean; strong?: boolean }> = [
+                    { value: `Total ${cls.label}`, strong: true },
+                    { value: `${classAllocSum.toFixed(2)}%` },
+                    { label: '% carteira', value: `${data.classPct.toFixed(2)}%` },
+                    { label: 'Valor Investido', value: `R$ ${formatBRL(classValue)}` },
+                    ...(!isRf ? [
+                      { label: 'Div. Mês', value: `R$ ${formatBRL(classDvMonth)}`, emphasis: true },
+                      { label: 'Div. Ano', value: `R$ ${formatBRL(classDvYear)}`, emphasis: true },
+                      { label: 'DY Mês', value: `${dyMonthPct.toFixed(2)}%` },
+                      { label: 'DY Ano', value: `${dyYearPct.toFixed(2)}%`, emphasis: true },
+                    ] : []),
                   ];
                   return (
-                    <div className="bg-emerald-50 rounded-lg px-4 py-3 flex items-center justify-between gap-2 overflow-x-auto">
+                    <div
+                      className="rounded-lg flex items-center gap-1 overflow-x-auto"
+                      style={{ backgroundColor: '#0B2859', padding: '12px 20px' }}
+                    >
                       {items.map((it, i) => (
-                        <div key={it.label} className="flex items-center gap-2 flex-shrink-0">
-                          <div className="flex flex-col">
-                            <span className="text-emerald-700/70 text-[11px] leading-tight">{it.label}</span>
-                            <span className={`text-emerald-700 font-bold leading-tight ${it.emphasis ? 'text-base' : 'text-sm'}`}>
+                        <div key={i} className="flex items-center gap-3 flex-shrink-0">
+                          <div className="flex flex-col leading-tight">
+                            {it.label && (
+                              <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.7)' }}>{it.label}</span>
+                            )}
+                            <span
+                              className={`font-bold ${it.emphasis ? 'text-base' : it.strong ? 'text-sm' : 'text-sm'}`}
+                              style={{ color: '#ffffff' }}
+                            >
                               {it.value}
                             </span>
                           </div>
-                          {i < items.length - 1 && <span className="text-emerald-300 mx-2">|</span>}
+                          {i < items.length - 1 && (
+                            <span className="mx-2 select-none" style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
+                          )}
                         </div>
                       ))}
                     </div>
