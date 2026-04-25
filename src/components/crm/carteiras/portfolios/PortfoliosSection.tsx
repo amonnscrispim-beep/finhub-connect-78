@@ -245,6 +245,29 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
     return portfolios.find(p => p.profile === 'Conservador' && p.strategy === strategy && p.user_id === user?.id)?.id;
   }, [portfolios, user]);
 
+  // Pre-compute FAROL aggregates per profile (memoized — no re-render churn)
+  const farolByProfile = useMemo(() => {
+    const result: Record<string, { total: number; acoes: number; fiis: number; rendaFixa: number; internacional: number }> = {};
+    for (const profile of PROFILES) {
+      const own = portfolios.filter(p => p.profile === profile && p.user_id === user?.id);
+      const shared = portfolios.filter(p => p.profile === profile && p.user_id !== user?.id && p.shared);
+      const list = own.length > 0 ? own : shared;
+      result[profile] = list.reduce(
+        (acc, p) => {
+          const invest = Number(p.invest_amount) || 0;
+          acc.total += invest;
+          acc.acoes += invest * (Number(p.acoes_pct) || 0) / 100;
+          acc.fiis += invest * (Number(p.fiis_pct) || 0) / 100;
+          acc.rendaFixa += invest * (Number(p.renda_fixa_pct) || 0) / 100;
+          acc.internacional += invest * (Number(p.internacional_pct) || 0) / 100;
+          return acc;
+        },
+        { total: 0, acoes: 0, fiis: 0, rendaFixa: 0, internacional: 0 }
+      );
+    }
+    return result;
+  }, [portfolios, user]);
+
   if (loading) return null;
 
   // For each profile, determine own portfolios vs shared-from-master
