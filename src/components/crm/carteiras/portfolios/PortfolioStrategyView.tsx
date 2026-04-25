@@ -238,6 +238,45 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     await onRefreshAssets();
   };
 
+  // Edit Preço Teto inline — syncs to recommended_portfolio_assets (by ticker)
+  // so changes propagate everywhere the asset appears.
+  const handleUpdateCeilingPrice = async (calc: AssetCalc, value: number) => {
+    if (readOnly) return;
+    const ticker = (calc.asset.ticker || '').trim().toUpperCase();
+    let synced = false;
+
+    if (calc.source?.id) {
+      // Update the recommended source so all derived portfolios reflect the new ceiling.
+      const { error } = await supabase
+        .from('recommended_portfolio_assets')
+        .update({ ceiling_price: value } as any)
+        .eq('id', calc.source.id);
+      if (!error) synced = true;
+    } else if (ticker) {
+      // No source linked — try to find any recommended asset with the same ticker (own or shared).
+      const { data: matches } = await supabase
+        .from('recommended_portfolio_assets')
+        .select('id')
+        .eq('ticker', ticker);
+      if (matches && matches.length > 0) {
+        await supabase
+          .from('recommended_portfolio_assets')
+          .update({ ceiling_price: value } as any)
+          .in('id', matches.map((m: any) => m.id));
+        synced = true;
+      }
+    }
+
+    // Always persist locally on the portfolio asset row too (covers virtual/no-source cases).
+    if (!calc.asset.id.startsWith('virtual-')) {
+      await supabase.from('portfolio_assets').update({ ceiling_price: value } as any).eq('id', calc.asset.id);
+    }
+
+    await onRefreshAssets();
+    if (synced && onRefreshRecommended) await onRefreshRecommended();
+    toast.success('Preço Teto atualizado');
+  };
+
   // Compute all class data — grand totals exclude RF for dividends
   let grandDvMonth = 0;
   let grandDvYear = 0;
