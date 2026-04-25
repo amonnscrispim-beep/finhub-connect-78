@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { SharedBadge } from '@/components/ui/shared-badge';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Calculator, AlertTriangle, CheckCircle2, Trash2, Copy, Share2, FileText } from 'lucide-react';
+import { Plus, Calculator, AlertTriangle, CheckCircle2, Trash2, Copy, Share2, FileText, ChevronDown, ChevronRight } from 'lucide-react';
 import type { PortfolioPdfData } from '@/lib/portfolio-pdf-generator';
 import { InvestorPortfolio, PortfolioAssetItem } from './PortfoliosSection';
 import { PortfolioAsset } from '../CarteirasRecomendadas';
@@ -123,6 +123,25 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     rf_pre_pct: Number(portfolio.rf_pre_pct),
     rf_ipca_pct: Number(portfolio.rf_ipca_pct),
   });
+
+  // Per-class collapse state, persisted in localStorage. Default: collapsed.
+  const collapseStorageKey = `portfolio-class-collapse:${portfolio.id}`;
+  const [collapsedClasses, setCollapsedClasses] = useState<Record<string, boolean>>(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const raw = window.localStorage.getItem(collapseStorageKey);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    // Default: all classes collapsed
+    return { acoes_brasileiras: true, fiis: true, internacional: true, renda_fixa: true };
+  });
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(collapseStorageKey, JSON.stringify(collapsedClasses));
+    } catch {}
+  }, [collapsedClasses, collapseStorageKey]);
+  const toggleClassCollapse = (key: string) =>
+    setCollapsedClasses(prev => ({ ...prev, [key]: !prev[key] }));
 
   const totalPct = localPcts.acoes_pct + localPcts.fiis_pct + localPcts.internacional_pct + localPcts.renda_fixa_pct;
   const isValid = Math.abs(totalPct - 100) < 0.01;
@@ -372,7 +391,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
               <div key={cls.key} className="space-y-1">
                 <Label className="text-xs">{cls.label}</Label>
                 <div className="flex items-center gap-1">
-                  <Input type="number" step="0.1" className="h-8 text-sm w-20"
+                  <Input type="number" step="0.1" className="no-spinner h-8 text-sm w-20"
                     value={classPctVal}
                     onChange={e => handlePctChange(cls.pctField, e.target.value)}
                     onBlur={() => handlePctBlur(cls.pctField)}
@@ -408,7 +427,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                 <div key={rf.key} className="space-y-1">
                   <Label className="text-xs">{rf.label}</Label>
                   <div className="flex items-center gap-1">
-                    <Input type="number" step="0.1" className="h-8 text-sm"
+                    <Input type="number" step="0.1" className="no-spinner h-8 text-sm"
                       value={localPcts[rf.pctField]}
                       onChange={e => handlePctChange(rf.pctField, e.target.value)}
                       onBlur={() => handlePctBlur(rf.pctField)}
@@ -433,11 +452,21 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
           const classAllocSum = data.calcs.reduce((s, c) => s + c.allocClassPct, 0);
           const classAllocValid = data.calcs.length === 0 || Math.abs(classAllocSum - 100) < 0.01;
 
+          const isCollapsed = !!collapsedClasses[cls.key];
           return (
             <div key={cls.key} className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-medium">{cls.label} ({data.classPct}%)</h4>
+                  <button
+                    type="button"
+                    onClick={() => toggleClassCollapse(cls.key)}
+                    className="flex items-center gap-1 text-sm font-medium hover:text-primary transition-colors"
+                    aria-expanded={!isCollapsed}
+                    aria-label={isCollapsed ? `Expandir ${cls.label}` : `Recolher ${cls.label}`}
+                  >
+                    {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    <span>{cls.label} ({data.classPct}%)</span>
+                  </button>
                   <div className="flex items-center gap-0.5">
                     <span className="text-xs text-muted-foreground">R$</span>
                     <Input type="text" className="h-6 w-28 text-xs"
@@ -475,7 +504,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                 </div>
               </div>
 
-              {data.calcs.length > 0 && (
+              {!isCollapsed && data.calcs.length > 0 && (
                 <div className="border border-border rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
@@ -533,7 +562,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                             </TableCell>
                           )}
                           <TableCell className="text-right">
-                            <Input type="number" step="0.01" className="h-7 w-20 text-sm text-right inline-block"
+                            <Input type="number" step="0.01" className="no-spinner h-7 w-20 text-sm text-right inline-block"
                               defaultValue={c.allocClassPct.toFixed(2)}
                               key={`cls-${c.asset.id}-${data.calcs.length}-${data.classPct}`}
                               onBlur={e => {
@@ -551,7 +580,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                           {!isRf && <TableCell className="text-right text-sm font-medium">{c.cotas !== null ? c.cotas : '—'}</TableCell>}
                           <TableCell className="text-right">
                             {isConservador ? (
-                              <Input type="number" step="0.01" className="h-7 w-20 text-sm text-right inline-block"
+                              <Input type="number" step="0.01" className="no-spinner h-7 w-20 text-sm text-right inline-block"
                                 defaultValue={c.dyInput.toFixed(2)}
                                 key={`dy-${c.asset.id}`}
                                 onBlur={e => {
@@ -594,7 +623,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
               )}
 
               {/* Class totals panel — skip for Renda Fixa */}
-              {classValue > 0 && !isRf && (
+              {!isCollapsed && classValue > 0 && !isRf && (
                   <div className="bg-emerald-50 rounded-lg p-3 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
                     <div>
                       <p className="text-emerald-700/70 text-xs">Valor Investido</p>
@@ -663,7 +692,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
           <Label className="text-sm font-medium whitespace-nowrap">Valor a investir:</Label>
           <div className="flex items-center gap-1">
             <span className="text-sm text-muted-foreground">R$</span>
-            <Input type="number" className="h-8 w-48 text-sm"
+            <Input type="number" className="no-spinner h-8 w-48 text-sm"
               value={investAmount || ''}
               placeholder="0"
               onChange={e => handleInvestAmountChange(e.target.value)}

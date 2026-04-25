@@ -6,9 +6,10 @@ import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { SharedBadge } from '@/components/ui/shared-badge';
-import { Briefcase, Share2 } from 'lucide-react';
+import { Briefcase, Share2, ChevronDown, ChevronRight } from 'lucide-react';
 import { PortfolioStrategyView } from './PortfolioStrategyView';
 import { ClientPortfolioTab } from './ClientPortfolioTab';
+import { FarolDonut } from './FarolDonut';
 import { PortfolioAsset } from '../CarteirasRecomendadas';
 
 const PROFILES = ['Conservador', 'Moderado', 'Arrojado'] as const;
@@ -63,6 +64,30 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
   const [portfolioAssets, setPortfolioAssets] = useState<PortfolioAssetItem[]>([]);
   const [activeProfile, setActiveProfile] = useState<string>('Conservador');
   const [loading, setLoading] = useState(true);
+
+  // Per-strategy collapse state, persisted in localStorage. Default: collapsed.
+  const STRATEGY_COLLAPSE_KEY = 'portfolios-strategy-collapse';
+  const [collapsedStrategies, setCollapsedStrategies] = useState<Record<string, boolean>>(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const raw = window.localStorage.getItem(STRATEGY_COLLAPSE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return {};
+  });
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(STRATEGY_COLLAPSE_KEY, JSON.stringify(collapsedStrategies));
+    } catch {}
+  }, [collapsedStrategies]);
+  const strategyKey = (profile: string, strategy: string) => `${profile}::${strategy}`;
+  const isStrategyCollapsed = (profile: string, strategy: string) => {
+    const k = strategyKey(profile, strategy);
+    // Default to collapsed when no entry yet
+    return k in collapsedStrategies ? collapsedStrategies[k] : true;
+  };
+  const toggleStrategyCollapse = (profile: string, strategy: string) =>
+    setCollapsedStrategies(prev => ({ ...prev, [strategyKey(profile, strategy)]: !isStrategyCollapsed(profile, strategy) }));
 
   const loadPortfolios = useCallback(async () => {
     if (!user) return;
@@ -238,6 +263,21 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
           const profileShared = own.length > 0 && own.every(p => p.shared);
           const hasSharedFromMaster = shared.length > 0;
 
+          // Aggregate FAROL data: sum across both strategies of this profile (own portfolios)
+          const portfoliosForFarol = own.length > 0 ? own : shared;
+          const farolAgg = portfoliosForFarol.reduce(
+            (acc, p) => {
+              const invest = Number(p.invest_amount) || 0;
+              acc.total += invest;
+              acc.acoes += invest * (Number(p.acoes_pct) || 0) / 100;
+              acc.fiis += invest * (Number(p.fiis_pct) || 0) / 100;
+              acc.rendaFixa += invest * (Number(p.renda_fixa_pct) || 0) / 100;
+              acc.internacional += invest * (Number(p.internacional_pct) || 0) / 100;
+              return acc;
+            },
+            { total: 0, acoes: 0, fiis: 0, rendaFixa: 0, internacional: 0 }
+          );
+
           return (
             <TabsContent key={profile} value={profile} className="space-y-6 mt-4">
               {/* Profile-level share button (master only) */}
@@ -258,6 +298,16 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
                 </div>
               )}
 
+              {/* FAROL — Donut overview */}
+              <FarolDonut
+                title={profile}
+                acoes={farolAgg.acoes}
+                fiis={farolAgg.fiis}
+                rendaFixa={farolAgg.rendaFixa}
+                internacional={farolAgg.internacional}
+                total={farolAgg.total}
+              />
+
               {/* Own portfolios */}
               {STRATEGIES.map(strategy => {
                 const portfolio = own.find(p => p.strategy === strategy);
@@ -265,21 +315,42 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
                 const isConservador = profile === 'Conservador';
                 const effectiveAssets = getEffectiveAssets(portfolio);
                 const conservadorPortfolioId = isConservador ? undefined : getConservadorId(strategy);
+                const collapsed = isStrategyCollapsed(profile, strategy);
                 return (
-                  <PortfolioStrategyView
-                    key={portfolio.id}
-                    portfolio={portfolio}
-                    assets={effectiveAssets}
-                    recommendedAssets={recommendedAssets}
-                    portfolioNameMap={portfolioNameMap}
-                    onUpdatePortfolio={updatePortfolio}
-                    onRefreshAssets={refreshPortfolioAssets}
-                    isConservador={isConservador}
-                    conservadorPortfolioId={conservadorPortfolioId}
-                    isMaster={isMaster}
-                    isOwnPortfolio={true}
-                    onToggleShareStrategy={() => toggleShareStrategy(portfolio.id, strategy)}
-                  />
+                  <div key={portfolio.id} className="border border-border rounded-lg overflow-hidden bg-card">
+                    <button
+                      type="button"
+                      onClick={() => toggleStrategyCollapse(profile, strategy)}
+                      className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/50 transition-colors"
+                      aria-expanded={!collapsed}
+                    >
+                      <div className="flex items-center gap-2">
+                        {collapsed ? <ChevronRight className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                        <span className="text-base font-semibold text-foreground">{strategy}</span>
+                        {portfolio.shared && <SharedBadge />}
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {collapsed ? 'Clique para expandir' : 'Clique para recolher'}
+                      </span>
+                    </button>
+                    {!collapsed && (
+                      <div className="border-t border-border p-3 animate-fade-in">
+                        <PortfolioStrategyView
+                          portfolio={portfolio}
+                          assets={effectiveAssets}
+                          recommendedAssets={recommendedAssets}
+                          portfolioNameMap={portfolioNameMap}
+                          onUpdatePortfolio={updatePortfolio}
+                          onRefreshAssets={refreshPortfolioAssets}
+                          isConservador={isConservador}
+                          conservadorPortfolioId={conservadorPortfolioId}
+                          isMaster={isMaster}
+                          isOwnPortfolio={true}
+                          onToggleShareStrategy={() => toggleShareStrategy(portfolio.id, strategy)}
+                        />
+                      </div>
+                    )}
+                  </div>
                 );
               })}
 
@@ -290,20 +361,41 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
                     const sharedPortfolio = shared.find(p => p.strategy === strategy);
                     if (!sharedPortfolio) return null;
                     const effectiveAssets = getEffectiveAssets(sharedPortfolio);
+                    const collapsed = isStrategyCollapsed(profile, `shared-${strategy}`);
                     return (
-                      <PortfolioStrategyView
-                        key={`shared-${sharedPortfolio.id}`}
-                        portfolio={sharedPortfolio}
-                        assets={effectiveAssets}
-                        recommendedAssets={recommendedAssets}
-                        portfolioNameMap={portfolioNameMap}
-                        onUpdatePortfolio={async () => {}}
-                        onRefreshAssets={async () => {}}
-                        isConservador={false}
-                        readOnly={true}
-                        isMaster={false}
-                        isOwnPortfolio={false}
-                      />
+                      <div key={`shared-${sharedPortfolio.id}`} className="border border-border rounded-lg overflow-hidden bg-card">
+                        <button
+                          type="button"
+                          onClick={() => toggleStrategyCollapse(profile, `shared-${strategy}`)}
+                          className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/50 transition-colors"
+                          aria-expanded={!collapsed}
+                        >
+                          <div className="flex items-center gap-2">
+                            {collapsed ? <ChevronRight className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                            <span className="text-base font-semibold text-foreground">{strategy}</span>
+                            <SharedBadge />
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {collapsed ? 'Clique para expandir' : 'Clique para recolher'}
+                          </span>
+                        </button>
+                        {!collapsed && (
+                          <div className="border-t border-border p-3 animate-fade-in">
+                            <PortfolioStrategyView
+                              portfolio={sharedPortfolio}
+                              assets={effectiveAssets}
+                              recommendedAssets={recommendedAssets}
+                              portfolioNameMap={portfolioNameMap}
+                              onUpdatePortfolio={async () => {}}
+                              onRefreshAssets={async () => {}}
+                              isConservador={false}
+                              readOnly={true}
+                              isMaster={false}
+                              isOwnPortfolio={false}
+                            />
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </>
