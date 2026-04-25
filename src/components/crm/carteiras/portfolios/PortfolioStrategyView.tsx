@@ -384,6 +384,21 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {/* Valor a investir — destaque no topo */}
+        <div className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+          <Calculator className="w-5 h-5 text-primary" />
+          <Label className="text-base font-semibold whitespace-nowrap">Valor a Investir:</Label>
+          <div className="flex items-center gap-1 flex-1 max-w-xs">
+            <span className="text-base font-semibold text-muted-foreground">R$</span>
+            <Input type="number" className="no-spinner h-10 text-lg font-bold"
+              value={investAmount || ''}
+              placeholder="0"
+              onChange={e => handleInvestAmountChange(e.target.value)}
+              onBlur={handleInvestAmountBlur}
+            />
+          </div>
+        </div>
+
         {/* Class allocations */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {ASSET_CLASSES.map(cls => {
