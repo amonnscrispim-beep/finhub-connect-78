@@ -430,7 +430,10 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
             const classValueCalc = investAmount * (classPctVal / 100);
             return (
               <div key={cls.key} className="space-y-1">
-                <Label className="text-xs">{cls.label}</Label>
+                <Label className="text-xs flex items-center justify-between gap-2">
+                  <span>{cls.label} ({(classPctVal || 0).toFixed(1)}%)</span>
+                  <span className="text-muted-foreground font-normal">R$ {formatBRL(classValueCalc)}</span>
+                </Label>
                 <div className="flex items-center gap-1">
                   <Input type="text" inputMode="decimal" className="h-8 text-sm w-20"
                     value={pctDisplay(cls.pctField)}
