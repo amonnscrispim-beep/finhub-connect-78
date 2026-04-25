@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Card, CardContent } from '@/components/ui/card';
+import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from 'recharts';
 
 export interface FarolInput {
   /** R$ em Ações Brasileiras */
@@ -25,20 +24,46 @@ interface FarolSlice {
   color: string;
 }
 
+// BTG Pactual palette — degradê azul marinho → azul claro
 const COLORS = {
-  F: 'hsl(210 90% 55%)',   // azul - Fundos Imobiliários
-  A: 'hsl(145 65% 42%)',   // verde - Ações Brasil
-  R: 'hsl(42 90% 50%)',    // dourado - Renda Fixa
-  O: 'hsl(8 75% 55%)',     // coral/vermelho - Oportunidades
-  L: 'hsl(270 55% 55%)',   // roxo - Lá Fora / Internacional
+  F: '#0B2859', // Fundos Imobiliários — azul marinho escuro
+  A: '#1A4A9C', // Ações Brasil — azul médio-escuro
+  R: '#2E6FD8', // Renda Fixa — azul médio
+  O: '#6B9FEF', // Oportunidades — azul claro
+  L: '#A8C8F8', // Lá Fora — azul bem claro
 };
+
+const BTG_NAVY = '#0B2859';
+const CARD_BORDER = '#e8e8e8';
+const CARD_SHADOW = '0 2px 12px rgba(11,40,89,0.08)';
 
 function formatBRL(v: number): string {
   return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+// Active slice renderer — slight outward offset for hover emphasis
+const renderActiveShape = (props: any) => {
+  const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
+  return (
+    <g>
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius + 6}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+        stroke="#ffffff"
+        strokeWidth={3}
+      />
+    </g>
+  );
+};
+
 export function FarolDonut({ acoes, fiis, rendaFixa, internacional, total, title }: FarolInput) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
 
   const slices = useMemo<FarolSlice[]>(() => {
     const classified = acoes + fiis + rendaFixa + internacional;
@@ -56,26 +81,45 @@ export function FarolDonut({ acoes, fiis, rendaFixa, internacional, total, title
 
   const totalValue = slices.reduce((s, x) => s + x.value, 0);
   const active = hoverIdx !== null ? slices[hoverIdx] : null;
-
   const hasData = totalValue > 0;
 
   return (
-    <Card className="border-border">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-3">
+    <div
+      className="rounded-lg bg-white animate-fade-in"
+      style={{ border: `1px solid ${CARD_BORDER}`, boxShadow: CARD_SHADOW }}
+    >
+      <div className="p-5">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-5">
           <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Método FAROL</p>
-            <h3 className="text-base font-semibold text-foreground">{title}</h3>
+            <p
+              className="text-[11px] font-semibold mb-1"
+              style={{ color: BTG_NAVY, letterSpacing: '1.5px' }}
+            >
+              MÉTODO FAROL
+            </p>
+            <h3 className="text-lg font-bold text-black leading-tight">{title}</h3>
           </div>
           <div className="text-right">
-            <p className="text-xs text-muted-foreground">Valor total investido</p>
-            <p className="text-lg font-semibold text-foreground">R$ {formatBRL(totalValue)}</p>
+            <p className="text-[11px] text-gray-500 uppercase tracking-wide mb-0.5">
+              Valor total investido
+            </p>
+            <p className="text-2xl font-bold leading-tight" style={{ color: BTG_NAVY }}>
+              R$ {formatBRL(totalValue)}
+            </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
           {/* Donut */}
-          <div className="relative h-[220px]">
+          <div
+            className="relative mx-auto"
+            style={{ width: '100%', maxWidth: 320, height: 280 }}
+            onMouseLeave={() => {
+              setHoverIdx(null);
+              setTooltipPos(null);
+            }}
+          >
             {hasData ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -85,26 +129,48 @@ export function FarolDonut({ acoes, fiis, rendaFixa, internacional, total, title
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={95}
-                    paddingAngle={2}
-                    stroke="hsl(var(--background))"
+                    innerRadius={95}
+                    outerRadius={120}
+                    paddingAngle={1}
+                    stroke="#ffffff"
                     strokeWidth={2}
-                    onMouseEnter={(_, idx) => setHoverIdx(idx)}
-                    onMouseLeave={() => setHoverIdx(null)}
+                    activeIndex={hoverIdx ?? -1}
+                    activeShape={renderActiveShape}
+                    isAnimationActive
+                    animationDuration={800}
+                    animationEasing="ease-out"
+                    onMouseEnter={(_, idx, e: any) => {
+                      setHoverIdx(idx);
+                      if (e?.nativeEvent) {
+                        const rect = (e.currentTarget as Element)?.closest('.recharts-wrapper')?.getBoundingClientRect();
+                        if (rect) {
+                          setTooltipPos({
+                            x: e.nativeEvent.clientX - rect.left,
+                            y: e.nativeEvent.clientY - rect.top,
+                          });
+                        }
+                      }
+                    }}
+                    onMouseMove={(_, idx, e: any) => {
+                      if (e?.nativeEvent) {
+                        const rect = (e.currentTarget as Element)?.closest('.recharts-wrapper')?.getBoundingClientRect();
+                        if (rect) {
+                          setTooltipPos({
+                            x: e.nativeEvent.clientX - rect.left,
+                            y: e.nativeEvent.clientY - rect.top,
+                          });
+                        }
+                      }
+                    }}
                   >
-                    {slices.map((s, i) => (
-                      <Cell key={s.letter} fill={s.color} opacity={hoverIdx === null || hoverIdx === i ? 1 : 0.35} />
+                    {slices.map((s) => (
+                      <Cell key={s.letter} fill={s.color} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    cursor={false}
-                    content={() => null}
-                  />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
+              <div className="h-full flex items-center justify-center text-xs text-gray-500">
                 Sem dados de alocação
               </div>
             )}
@@ -112,60 +178,77 @@ export function FarolDonut({ acoes, fiis, rendaFixa, internacional, total, title
             {/* Center label */}
             {hasData && (
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                {active ? (
-                  <>
-                    <span className="text-[10px] font-bold tracking-wider" style={{ color: active.color }}>
-                      {active.letter} — {active.name}
-                    </span>
-                    <span className="text-2xl font-bold text-foreground leading-tight">
-                      {active.pct.toFixed(1)}%
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      R$ {formatBRL(active.value)}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Total</span>
-                    <span className="text-xl font-bold text-foreground leading-tight">
-                      R$ {formatBRL(totalValue)}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">passe o mouse</span>
-                  </>
-                )}
+                <span className="text-[10px] uppercase tracking-[1.5px] text-gray-500 font-medium mb-1">
+                  Total
+                </span>
+                <span className="text-2xl font-bold leading-tight" style={{ color: BTG_NAVY }}>
+                  R$ {formatBRL(totalValue)}
+                </span>
+              </div>
+            )}
+
+            {/* Elegant tooltip on hover */}
+            {hasData && active && tooltipPos && (
+              <div
+                className="absolute pointer-events-none z-10 rounded-md px-3 py-2 text-xs animate-fade-in"
+                style={{
+                  left: tooltipPos.x + 12,
+                  top: tooltipPos.y + 12,
+                  backgroundColor: BTG_NAVY,
+                  color: '#ffffff',
+                  boxShadow: '0 4px 14px rgba(11,40,89,0.25)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span
+                    className="inline-block w-2.5 h-2.5 rounded-sm"
+                    style={{ backgroundColor: active.color }}
+                  />
+                  <span className="font-semibold">{active.name}</span>
+                </div>
+                <div className="text-white/80">
+                  {active.pct.toFixed(1)}% · R$ {formatBRL(active.value)}
+                </div>
               </div>
             )}
           </div>
 
           {/* Legend */}
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             {slices.map((s, i) => (
               <div
                 key={s.letter}
                 onMouseEnter={() => setHoverIdx(i)}
                 onMouseLeave={() => setHoverIdx(null)}
-                className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-md transition-colors cursor-default ${
-                  hoverIdx === i ? 'bg-muted' : 'hover:bg-muted/50'
-                }`}
+                className="flex items-center justify-between gap-3 px-2 py-2 rounded-md cursor-default transition-colors"
+                style={{
+                  backgroundColor: hoverIdx === i ? 'rgba(11,40,89,0.04)' : 'transparent',
+                }}
               >
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-2.5 min-w-0">
                   <span
-                    className="inline-flex items-center justify-center w-6 h-6 rounded text-[11px] font-bold text-white shrink-0"
+                    className="inline-block w-3.5 h-3.5 rounded-[4px] shrink-0"
                     style={{ backgroundColor: s.color }}
-                  >
-                    {s.letter}
+                  />
+                  <span className="text-sm text-gray-700 truncate">
+                    <span className="font-semibold mr-1" style={{ color: BTG_NAVY }}>
+                      {s.letter}
+                    </span>
+                    {s.name}
                   </span>
-                  <span className="text-xs text-foreground truncate">{s.name}</span>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="text-xs font-semibold text-foreground">{s.pct.toFixed(1)}%</div>
-                  <div className="text-[10px] text-muted-foreground">R$ {formatBRL(s.value)}</div>
+                  <div className="text-sm font-bold" style={{ color: BTG_NAVY }}>
+                    {s.pct.toFixed(1)}%
+                  </div>
+                  <div className="text-[11px] text-gray-500">R$ {formatBRL(s.value)}</div>
                 </div>
               </div>
             ))}
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
