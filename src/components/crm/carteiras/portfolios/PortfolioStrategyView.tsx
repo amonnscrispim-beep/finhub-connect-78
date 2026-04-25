@@ -124,6 +124,25 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     rf_ipca_pct: Number(portfolio.rf_ipca_pct),
   });
 
+  // Per-class collapse state, persisted in localStorage. Default: collapsed.
+  const collapseStorageKey = `portfolio-class-collapse:${portfolio.id}`;
+  const [collapsedClasses, setCollapsedClasses] = useState<Record<string, boolean>>(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const raw = window.localStorage.getItem(collapseStorageKey);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    // Default: all classes collapsed
+    return { acoes_brasileiras: true, fiis: true, internacional: true, renda_fixa: true };
+  });
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(collapseStorageKey, JSON.stringify(collapsedClasses));
+    } catch {}
+  }, [collapsedClasses, collapseStorageKey]);
+  const toggleClassCollapse = (key: string) =>
+    setCollapsedClasses(prev => ({ ...prev, [key]: !prev[key] }));
+
   const totalPct = localPcts.acoes_pct + localPcts.fiis_pct + localPcts.internacional_pct + localPcts.renda_fixa_pct;
   const isValid = Math.abs(totalPct - 100) < 0.01;
   const rfTotal = localPcts.rf_pos_pct + localPcts.rf_pre_pct + localPcts.rf_ipca_pct;
