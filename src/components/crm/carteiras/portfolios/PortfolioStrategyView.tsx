@@ -646,6 +646,9 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                               <Input type="number" step="0.01" className="no-spinner h-7 w-20 text-sm text-right inline-block"
                                 defaultValue={c.allocClassPct.toFixed(2)}
                                 key={`cls-${c.asset.id}-${data.calcs.length}-${data.classPct}`}
+                                {...((cls.key === 'fiis' || cls.key === 'acoes_brasileiras') && {
+                                  onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select(),
+                                })}
                                 onBlur={e => {
                                   const val = parseFloat(e.target.value) || 0;
                                   if (Math.abs(val - c.allocClassPct) > 0.001) handleUpdateAssetField(c.asset.id, 'allocation_pct', val);
@@ -664,6 +667,9 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                                 <Input type="number" step="0.01" className="no-spinner h-7 w-20 text-sm text-right inline-block"
                                   defaultValue={c.dyInput.toFixed(2)}
                                   key={`dy-${c.asset.id}`}
+                                  {...((cls.key === 'fiis' || cls.key === 'acoes_brasileiras') && {
+                                    onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select(),
+                                  })}
                                   onBlur={e => {
                                     const val = parseFloat(e.target.value) || 0;
                                     if (Math.abs(val - c.dyInput) > 0.001) handleUpdateAssetField(c.asset.id, 'dy_pct', val);
