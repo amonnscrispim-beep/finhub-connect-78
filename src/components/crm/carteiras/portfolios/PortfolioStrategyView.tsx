@@ -26,6 +26,7 @@ interface Props {
   portfolioSlugMap?: Record<string, string>;
   onUpdatePortfolio: (id: string, updates: Partial<InvestorPortfolio>) => Promise<void>;
   onRefreshAssets: () => Promise<void>;
+  onRefreshRecommended?: () => Promise<void>;
   isConservador?: boolean;
   conservadorPortfolioId?: string;
   isMaster?: boolean;
@@ -108,7 +109,7 @@ function formatBRL(v: number): string {
   return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, portfolioNameMap, portfolioSlugMap = {}, onUpdatePortfolio, onRefreshAssets, isConservador = true, conservadorPortfolioId, isMaster = false, isOwnPortfolio = true, readOnly = false, onToggleShareStrategy }: Props) {
+export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, portfolioNameMap, portfolioSlugMap = {}, onUpdatePortfolio, onRefreshAssets, onRefreshRecommended, isConservador = true, conservadorPortfolioId, isMaster = false, isOwnPortfolio = true, readOnly = false, onToggleShareStrategy }: Props) {
   const { user } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalClass, setModalClass] = useState('acoes_brasileiras');
@@ -235,6 +236,45 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     
     await supabase.from('portfolio_assets').update({ [field]: value } as any).eq('id', assetId);
     await onRefreshAssets();
+  };
+
+  // Edit Preço Teto inline — syncs to recommended_portfolio_assets (by ticker)
+  // so changes propagate everywhere the asset appears.
+  const handleUpdateCeilingPrice = async (calc: AssetCalc, value: number) => {
+    if (readOnly) return;
+    const ticker = (calc.asset.ticker || '').trim().toUpperCase();
+    let synced = false;
+
+    if (calc.source?.id) {
+      // Update the recommended source so all derived portfolios reflect the new ceiling.
+      const { error } = await supabase
+        .from('recommended_portfolio_assets')
+        .update({ ceiling_price: value } as any)
+        .eq('id', calc.source.id);
+      if (!error) synced = true;
+    } else if (ticker) {
+      // No source linked — try to find any recommended asset with the same ticker (own or shared).
+      const { data: matches } = await supabase
+        .from('recommended_portfolio_assets')
+        .select('id')
+        .eq('ticker', ticker);
+      if (matches && matches.length > 0) {
+        await supabase
+          .from('recommended_portfolio_assets')
+          .update({ ceiling_price: value } as any)
+          .in('id', matches.map((m: any) => m.id));
+        synced = true;
+      }
+    }
+
+    // Always persist locally on the portfolio asset row too (covers virtual/no-source cases).
+    if (!calc.asset.id.startsWith('virtual-')) {
+      await supabase.from('portfolio_assets').update({ ceiling_price: value } as any).eq('id', calc.asset.id);
+    }
+
+    await onRefreshAssets();
+    if (synced && onRefreshRecommended) await onRefreshRecommended();
+    toast.success('Preço Teto atualizado');
   };
 
   // Compute all class data — grand totals exclude RF for dividends
@@ -625,12 +665,32 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                             {isRf && <TableCell className="text-xs">{c.asset.indexador || '—'}</TableCell>}
                             {isRf && <TableCell className="text-xs">{c.asset.vencimento || '—'}</TableCell>}
                             {!isRf && (
-                              <TableCell className="text-right text-sm">
-                                {c.source
-                                  ? `R$ ${Number(c.source.ceiling_price).toFixed(2)}`
-                                  : (c.asset as any).ceiling_price
-                                    ? `R$ ${Number((c.asset as any).ceiling_price).toFixed(2)}`
-                                    : '—'}
+                              <TableCell className="text-right">
+                                {(() => {
+                                  const currentCeiling = c.source
+                                    ? Number(c.source.ceiling_price) || 0
+                                    : Number((c.asset as any).ceiling_price) || 0;
+                                  return (
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      disabled={readOnly}
+                                      className="no-spinner h-7 w-24 text-sm text-right inline-block focus:ring-2 focus:ring-primary focus:border-primary"
+                                      defaultValue={currentCeiling > 0 ? currentCeiling.toFixed(2) : ''}
+                                      key={`ceil-${c.asset.id}-${currentCeiling}`}
+                                      onFocus={e => e.target.select()}
+                                      onKeyDown={e => {
+                                        if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                                      }}
+                                      onBlur={e => {
+                                        const val = parseFloat(e.target.value) || 0;
+                                        if (Math.abs(val - currentCeiling) > 0.001) {
+                                          handleUpdateCeilingPrice(c, val);
+                                        }
+                                      }}
+                                    />
+                                  );
+                                })()}
                               </TableCell>
                             )}
                             {!isRf && (

@@ -67,9 +67,10 @@ interface Props {
   recommendedAssets: PortfolioAsset[];
   portfolioNameMap: Record<string, string>;
   portfolioSlugMap?: Record<string, string>;
+  onRefreshRecommended?: () => Promise<void>;
 }
 
-export function PortfoliosSection({ recommendedAssets, portfolioNameMap, portfolioSlugMap = {} }: Props) {
+export function PortfoliosSection({ recommendedAssets, portfolioNameMap, portfolioSlugMap = {}, onRefreshRecommended }: Props) {
   const { user } = useAuth();
   const isMaster = useIsMaster();
   const cached = portfoliosCache && portfoliosCache.userId === user?.id ? portfoliosCache : null;
@@ -367,6 +368,7 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap, portfol
                           portfolioSlugMap={portfolioSlugMap}
                           onUpdatePortfolio={updatePortfolio}
                           onRefreshAssets={refreshPortfolioAssets}
+                          onRefreshRecommended={onRefreshRecommended}
                           isConservador={isConservador}
                           conservadorPortfolioId={conservadorPortfolioId}
                           isMaster={isMaster}

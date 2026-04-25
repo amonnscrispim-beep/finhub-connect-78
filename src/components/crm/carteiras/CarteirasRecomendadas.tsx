@@ -80,6 +80,19 @@ export function CarteirasRecomendadas() {
     loadData({ silent: !!c && c.userId === user.id });
   }, [user]);
 
+  // Realtime: keep recommended assets in sync across tabs/views (e.g. Preço Teto edits)
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel('recommended-portfolio-assets-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'recommended_portfolio_assets' }, () => {
+        refreshAssets();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   const loadData = async (opts: { silent?: boolean } = {}) => {
     if (!user) return;
     if (!opts.silent) setLoading(true);
@@ -223,6 +236,7 @@ export function CarteirasRecomendadas() {
         recommendedAssets={allAssets}
         portfolioNameMap={Object.fromEntries(portfolios.map(p => [p.id, p.name]))}
         portfolioSlugMap={Object.fromEntries(portfolios.map(p => [p.id, p.slug]))}
+        onRefreshRecommended={refreshAssets}
       />
     </div>
   );
