@@ -751,20 +751,6 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                           </TableRow>
                         ))}
                       </TableBody>
-                      <TableFooter>
-                        <TableRow className="bg-muted/30 font-medium text-xs">
-                          <TableCell colSpan={isRf ? 4 : 3}>Total {cls.label}</TableCell>
-                          {!isRf && <TableCell />}
-                          <TableCell className="text-right">{classAllocSum.toFixed(2)}%</TableCell>
-                          <TableCell className="text-right">{data.classPct.toFixed(2)}%</TableCell>
-                          <TableCell className="text-right">R$ {formatBRL(classValue)}</TableCell>
-                          {!isRf && <TableCell />}
-                          <TableCell />
-                          <TableCell className="text-right text-emerald-600">R$ {formatBRL(classDvMonth)}</TableCell>
-                          <TableCell className="text-right text-emerald-600">R$ {formatBRL(classDvYear)}</TableCell>
-                          <TableCell />
-                        </TableRow>
-                      </TableFooter>
                     </Table>
                   </div>
                 ) : (
