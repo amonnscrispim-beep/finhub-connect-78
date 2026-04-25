@@ -19,11 +19,12 @@ interface Props {
   assetClass: string;
   recommendedAssets: PortfolioAsset[];
   portfolioNameMap: Record<string, string>;
+  portfolioSlugMap?: Record<string, string>;
   nextOrder: number;
   onSaved: () => void;
 }
 
-export function PortfolioAssetModal({ open, onOpenChange, portfolioId, assetClass, recommendedAssets, portfolioNameMap, nextOrder, onSaved }: Props) {
+export function PortfolioAssetModal({ open, onOpenChange, portfolioId, assetClass, recommendedAssets, portfolioNameMap, portfolioSlugMap = {}, nextOrder, onSaved }: Props) {
   const { user } = useAuth();
   const isRendaFixa = assetClass === 'renda_fixa';
 
@@ -48,8 +49,19 @@ export function PortfolioAssetModal({ open, onOpenChange, portfolioId, assetClas
 
   const availableAssets = useMemo(() => {
     if (isRendaFixa) return [];
-    return recommendedAssets;
-  }, [recommendedAssets, isRendaFixa]);
+    // Filter by FAROL category based on the active asset class tab.
+    // Map: assetClass -> allowed recommended portfolio slugs.
+    // 'oportunidades' (O) shows all assets — no slug filter.
+    const slugFilter: Record<string, string[] | null> = {
+      acoes_brasileiras: ['crescimento', 'dividendos'],
+      fiis: ['fiis'],
+      internacional: ['internacional'],
+      oportunidades: null,
+    };
+    const allowed = slugFilter[assetClass];
+    if (allowed === undefined || allowed === null) return recommendedAssets;
+    return recommendedAssets.filter(a => allowed.includes(portfolioSlugMap[a.portfolio_id] || ''));
+  }, [recommendedAssets, isRendaFixa, assetClass, portfolioSlugMap]);
 
   useEffect(() => {
     if (open) {
