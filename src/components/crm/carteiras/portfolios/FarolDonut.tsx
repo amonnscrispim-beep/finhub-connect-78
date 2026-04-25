@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from 'recharts';
 import { FAROL_COLORS } from '@/lib/farol-colors';
 
-const DONUT_CENTER_BG = '#0B1929';
+const DONUT_CENTER_BG = '#ffffff';
+const CENTER_TEXT_DARK = '#0B2859';
 
 export interface FarolInput {
   /** R$ em Ações Brasileiras */
@@ -69,16 +70,18 @@ export function FarolDonut({ acoes, fiis, rendaFixa, internacional, total, title
     const oportunidades = Math.max(0, total - classified);
     const denom = classified + oportunidades;
     const safePct = (v: number) => (denom > 0 ? (v / denom) * 100 : 0);
-    const all: FarolSlice[] = [
+    // Always return all 5 categories — legend shows them even at 0%.
+    return [
       { letter: 'F', name: 'Fundos Imobiliários', value: fiis, pct: safePct(fiis), color: COLORS.F },
       { letter: 'A', name: 'Ações Brasil', value: acoes, pct: safePct(acoes), color: COLORS.A },
       { letter: 'R', name: 'Renda Fixa', value: rendaFixa, pct: safePct(rendaFixa), color: COLORS.R },
       { letter: 'O', name: 'Oportunidades', value: oportunidades, pct: safePct(oportunidades), color: COLORS.O },
       { letter: 'L', name: 'Lá Fora / Internacional', value: internacional, pct: safePct(internacional), color: COLORS.L },
     ];
-    // Hide categories with no allocation — they reappear automatically when value > 0.
-    return all.filter(s => s.value > 0);
   }, [acoes, fiis, rendaFixa, internacional, total]);
+
+  // Donut renders only slices with value > 0 (no zero-width slivers)
+  const donutSlices = useMemo(() => slices.filter(s => s.value > 0), [slices]);
 
   const totalValue = slices.reduce((s, x) => s + x.value, 0);
   const active = hoverIdx !== null ? slices[hoverIdx] : null;
@@ -124,21 +127,8 @@ export function FarolDonut({ acoes, fiis, rendaFixa, internacional, total, title
             {hasData ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  {/* Dark center disc — Finclass-style depth */}
                   <Pie
-                    data={[{ v: 1 }]}
-                    dataKey="v"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={0}
-                    outerRadius={88}
-                    isAnimationActive={false}
-                    stroke="none"
-                  >
-                    <Cell fill={DONUT_CENTER_BG} />
-                  </Pie>
-                  <Pie
-                    data={slices}
+                    data={donutSlices}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
@@ -148,13 +138,19 @@ export function FarolDonut({ acoes, fiis, rendaFixa, internacional, total, title
                     paddingAngle={1}
                     stroke={DONUT_CENTER_BG}
                     strokeWidth={2}
-                    activeIndex={hoverIdx ?? -1}
+                    activeIndex={
+                      active && donutSlices.findIndex(d => d.letter === active.letter) >= 0
+                        ? donutSlices.findIndex(d => d.letter === active.letter)
+                        : -1
+                    }
                     activeShape={renderActiveShape}
                     isAnimationActive
                     animationDuration={800}
                     animationEasing="ease-out"
                     onMouseEnter={(_, idx, e: any) => {
-                      setHoverIdx(idx);
+                      const letter = donutSlices[idx]?.letter;
+                      const fullIdx = slices.findIndex(s => s.letter === letter);
+                      if (fullIdx >= 0) setHoverIdx(fullIdx);
                       if (e?.nativeEvent) {
                         const rect = (e.currentTarget as Element)?.closest('.recharts-wrapper')?.getBoundingClientRect();
                         if (rect) {
@@ -177,7 +173,7 @@ export function FarolDonut({ acoes, fiis, rendaFixa, internacional, total, title
                       }
                     }}
                   >
-                    {slices.map((s) => (
+                    {donutSlices.map((s) => (
                       <Cell key={s.letter} fill={s.color} />
                     ))}
                   </Pie>
@@ -197,22 +193,22 @@ export function FarolDonut({ acoes, fiis, rendaFixa, internacional, total, title
               >
                 {active ? (
                   <div key={`a-${hoverIdx}`} className="animate-fade-in flex flex-col items-center">
-                    <span className="text-3xl font-bold text-white leading-tight">
+                    <span className="text-3xl font-bold leading-tight" style={{ color: CENTER_TEXT_DARK }}>
                       {active.pct.toFixed(1)}%
                     </span>
-                    <span className="text-sm font-semibold text-white/90 mt-1">
+                    <span className="text-sm font-semibold mt-1" style={{ color: CENTER_TEXT_DARK }}>
                       R$ {formatBRL(active.value)}
                     </span>
-                    <span className="text-[11px] text-white/60 mt-1.5 leading-tight">
+                    <span className="text-[11px] text-gray-500 mt-1.5 leading-tight">
                       {active.letter} · {active.name}
                     </span>
                   </div>
                 ) : (
                   <div key="total" className="animate-fade-in flex flex-col items-center">
-                    <span className="text-[10px] uppercase tracking-[1.5px] text-white/50 font-medium mb-1">
+                    <span className="text-[10px] uppercase tracking-[1.5px] text-gray-500 font-medium mb-1">
                       Total
                     </span>
-                    <span className="text-2xl font-bold text-white leading-tight">
+                    <span className="text-2xl font-bold leading-tight" style={{ color: CENTER_TEXT_DARK }}>
                       R$ {formatBRL(totalValue)}
                     </span>
                   </div>
