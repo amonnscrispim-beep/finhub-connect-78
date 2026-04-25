@@ -723,6 +723,9 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
               <div className="flex flex-wrap gap-2 border-b border-border pb-2">
                 {FAROL_TABS.map(tab => {
                   const isActive = tab.code === activeFarolTab;
+                  const tabClassValue = tab.classKey
+                    ? (classDataMap[tab.classKey]?.calcs.reduce((s, c) => s + c.assetValue, 0) ?? 0)
+                    : 0;
                   return (
                     <button
                       key={tab.code}
@@ -738,6 +741,11 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                         {tab.code}
                       </span>
                       <span className="hidden sm:inline">{tab.label.split(' — ')[1]}</span>
+                      {tab.classKey && (
+                        <span className={`hidden md:inline text-[11px] ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                          — R$ {formatBRL(tabClassValue)}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
