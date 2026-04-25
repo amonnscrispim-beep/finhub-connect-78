@@ -219,7 +219,11 @@ export function CarteirasRecomendadas() {
         isMaster={isMaster}
         userId={user?.id}
       />
-      <PortfoliosSection recommendedAssets={allAssets} portfolioNameMap={Object.fromEntries(portfolios.map(p => [p.id, p.name]))} />
+      <PortfoliosSection
+        recommendedAssets={allAssets}
+        portfolioNameMap={Object.fromEntries(portfolios.map(p => [p.id, p.name]))}
+        portfolioSlugMap={Object.fromEntries(portfolios.map(p => [p.id, p.slug]))}
+      />
     </div>
   );
 }
