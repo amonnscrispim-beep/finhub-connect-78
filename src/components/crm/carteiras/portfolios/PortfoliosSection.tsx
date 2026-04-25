@@ -66,9 +66,10 @@ export interface PortfolioAssetItem {
 interface Props {
   recommendedAssets: PortfolioAsset[];
   portfolioNameMap: Record<string, string>;
+  portfolioSlugMap?: Record<string, string>;
 }
 
-export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props) {
+export function PortfoliosSection({ recommendedAssets, portfolioNameMap, portfolioSlugMap = {} }: Props) {
   const { user } = useAuth();
   const isMaster = useIsMaster();
   const cached = portfoliosCache && portfoliosCache.userId === user?.id ? portfoliosCache : null;
@@ -363,6 +364,7 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
                           assets={effectiveAssets}
                           recommendedAssets={recommendedAssets}
                           portfolioNameMap={portfolioNameMap}
+                          portfolioSlugMap={portfolioSlugMap}
                           onUpdatePortfolio={updatePortfolio}
                           onRefreshAssets={refreshPortfolioAssets}
                           isConservador={isConservador}
@@ -409,6 +411,7 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
                               assets={effectiveAssets}
                               recommendedAssets={recommendedAssets}
                               portfolioNameMap={portfolioNameMap}
+                              portfolioSlugMap={portfolioSlugMap}
                               onUpdatePortfolio={async () => {}}
                               onRefreshAssets={async () => {}}
                               isConservador={false}
