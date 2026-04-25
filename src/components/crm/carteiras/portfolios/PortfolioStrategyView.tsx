@@ -111,6 +111,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
   const [modalOpen, setModalOpen] = useState(false);
   const [modalClass, setModalClass] = useState('acoes_brasileiras');
   const [investAmount, setInvestAmount] = useState(portfolio.invest_amount || 0);
+  const [investAmountDraft, setInvestAmountDraft] = useState<string | undefined>(undefined);
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
   const [pdfPreviewData, setPdfPreviewData] = useState<PortfolioPdfData | null>(null);
 
@@ -123,6 +124,8 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     rf_pre_pct: Number(portfolio.rf_pre_pct),
     rf_ipca_pct: Number(portfolio.rf_ipca_pct),
   });
+  // String drafts for in-progress typing — prevents "010" leading zero and value jitter
+  const [pctDrafts, setPctDrafts] = useState<Partial<Record<PctField, string>>>({});
 
   // Per-class collapse state, persisted in localStorage. Default: collapsed.
   const collapseStorageKey = `portfolio-class-collapse:${portfolio.id}`;
@@ -150,18 +153,41 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
   const rfValid = localPcts.renda_fixa_pct === 0 || Math.abs(rfTotal - localPcts.renda_fixa_pct) < 0.01;
   const rfOver = rfTotal > localPcts.renda_fixa_pct + 0.01;
 
-  const handlePctChange = (field: PctField, value: string) => {
-    setLocalPcts(prev => ({ ...prev, [field]: parseFloat(value) || 0 }));
+  // Display value for a % field: draft string if user is typing, else formatted number (no leading zero)
+  const pctDisplay = (field: PctField): string => {
+    if (pctDrafts[field] !== undefined) return pctDrafts[field]!;
+    const n = localPcts[field];
+    return Number.isFinite(n) ? String(n) : '';
+  };
+  const handlePctChange = (field: PctField, raw: string) => {
+    // Strip leading zeros (but allow "0.x" and empty)
+    let cleaned = raw.replace(/[^\d.,]/g, '').replace(',', '.');
+    if (/^0\d/.test(cleaned)) cleaned = cleaned.replace(/^0+/, '');
+    setPctDrafts(prev => ({ ...prev, [field]: cleaned }));
+    const parsed = parseFloat(cleaned);
+    setLocalPcts(prev => ({ ...prev, [field]: Number.isFinite(parsed) ? parsed : 0 }));
   };
   const handlePctBlur = (field: PctField) => {
+    setPctDrafts(prev => {
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
     onUpdatePortfolio(portfolio.id, { [field]: localPcts[field] } as any);
   };
-  const handleInvestAmountChange = (value: string) => {
-    setInvestAmount(parseFloat(value.replace(/[^\d.,]/g, '').replace(',', '.')) || 0);
+  const handleInvestAmountChange = (raw: string) => {
+    let cleaned = raw.replace(/[^\d.,]/g, '').replace(',', '.');
+    if (/^0\d/.test(cleaned)) cleaned = cleaned.replace(/^0+/, '');
+    setInvestAmountDraft(cleaned);
+    const parsed = parseFloat(cleaned);
+    setInvestAmount(Number.isFinite(parsed) ? parsed : 0);
   };
   const handleInvestAmountBlur = () => {
+    setInvestAmountDraft(undefined);
     onUpdatePortfolio(portfolio.id, { invest_amount: investAmount });
   };
+  const selectAllOnFocus = (e: React.FocusEvent<HTMLInputElement>) => e.target.select();
+
 
   const openAddAsset = (assetClass: string) => { setModalClass(assetClass); setModalOpen(true); };
 
