@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { SharedBadge } from '@/components/ui/shared-badge';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Calculator, AlertTriangle, CheckCircle2, Trash2, Copy, Share2, FileText } from 'lucide-react';
+import { Plus, Calculator, AlertTriangle, CheckCircle2, Trash2, Copy, Share2, FileText, ChevronDown, ChevronRight } from 'lucide-react';
 import type { PortfolioPdfData } from '@/lib/portfolio-pdf-generator';
 import { InvestorPortfolio, PortfolioAssetItem } from './PortfoliosSection';
 import { PortfolioAsset } from '../CarteirasRecomendadas';
