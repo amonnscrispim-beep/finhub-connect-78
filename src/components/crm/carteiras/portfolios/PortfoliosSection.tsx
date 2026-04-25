@@ -6,9 +6,10 @@ import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { SharedBadge } from '@/components/ui/shared-badge';
-import { Briefcase, Share2 } from 'lucide-react';
+import { Briefcase, Share2, ChevronDown, ChevronRight } from 'lucide-react';
 import { PortfolioStrategyView } from './PortfolioStrategyView';
 import { ClientPortfolioTab } from './ClientPortfolioTab';
+import { FarolDonut } from './FarolDonut';
 import { PortfolioAsset } from '../CarteirasRecomendadas';
 
 const PROFILES = ['Conservador', 'Moderado', 'Arrojado'] as const;
