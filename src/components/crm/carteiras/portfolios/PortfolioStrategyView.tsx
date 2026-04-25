@@ -751,20 +751,6 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                           </TableRow>
                         ))}
                       </TableBody>
-                      <TableFooter>
-                        <TableRow className="bg-muted/30 font-medium text-xs">
-                          <TableCell colSpan={isRf ? 4 : 3}>Total {cls.label}</TableCell>
-                          {!isRf && <TableCell />}
-                          <TableCell className="text-right">{classAllocSum.toFixed(2)}%</TableCell>
-                          <TableCell className="text-right">{data.classPct.toFixed(2)}%</TableCell>
-                          <TableCell className="text-right">R$ {formatBRL(classValue)}</TableCell>
-                          {!isRf && <TableCell />}
-                          <TableCell />
-                          <TableCell className="text-right text-emerald-600">R$ {formatBRL(classDvMonth)}</TableCell>
-                          <TableCell className="text-right text-emerald-600">R$ {formatBRL(classDvYear)}</TableCell>
-                          <TableCell />
-                        </TableRow>
-                      </TableFooter>
                     </Table>
                   </div>
                 ) : (
@@ -774,35 +760,32 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                 )}
 
                 {/* Class totals panel — skip for Renda Fixa */}
-                {classValue > 0 && !isRf && (
-                  <div className="bg-emerald-50 rounded-lg p-3 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
-                    <div>
-                      <p className="text-emerald-700/70 text-xs">Valor Investido</p>
-                      <p className="font-semibold text-emerald-700">R$ {formatBRL(classValue)}</p>
+                {classValue > 0 && !isRf && (() => {
+                  const dyMonthPct = classValue > 0 ? (classDvMonth / classValue) * 100 : 0;
+                  const dyYearPct = (Math.pow(1 + dyMonthPct / 100, 12) - 1) * 100;
+                  const items = [
+                    { label: 'Valor Investido', value: `R$ ${formatBRL(classValue)}`, emphasis: false },
+                    { label: 'Div. Mês', value: `R$ ${formatBRL(classDvMonth)}`, emphasis: true },
+                    { label: 'Div. Ano', value: `R$ ${formatBRL(classDvYear)}`, emphasis: true },
+                    { label: 'DY Mês', value: `${dyMonthPct.toFixed(2)}%`, emphasis: false },
+                    { label: 'DY Ano', value: `${dyYearPct.toFixed(2)}%`, emphasis: true },
+                  ];
+                  return (
+                    <div className="bg-emerald-50 rounded-lg px-4 py-3 flex items-center justify-between gap-2 overflow-x-auto">
+                      {items.map((it, i) => (
+                        <div key={it.label} className="flex items-center gap-2 flex-shrink-0">
+                          <div className="flex flex-col">
+                            <span className="text-emerald-700/70 text-[11px] leading-tight">{it.label}</span>
+                            <span className={`text-emerald-700 font-bold leading-tight ${it.emphasis ? 'text-base' : 'text-sm'}`}>
+                              {it.value}
+                            </span>
+                          </div>
+                          {i < items.length - 1 && <span className="text-emerald-300 mx-2">|</span>}
+                        </div>
+                      ))}
                     </div>
-                    <div>
-                      <p className="text-emerald-700/70 text-xs">Dividendo Mês</p>
-                      <p className="font-semibold text-emerald-700">R$ {formatBRL(classDvMonth)}</p>
-                    </div>
-                    <div>
-                      <p className="text-emerald-700/70 text-xs">Dividendo Ano</p>
-                      <p className="font-semibold text-emerald-700">R$ {formatBRL(classDvYear)}</p>
-                    </div>
-                    <div>
-                      <p className="text-emerald-700/70 text-xs">DY Mês %</p>
-                      <p className="font-semibold text-emerald-700">{(classValue > 0 ? (classDvMonth / classValue) * 100 : 0).toFixed(2)}%</p>
-                    </div>
-                    <div>
-                      <p className="text-emerald-700/70 text-xs">DY Ano %</p>
-                      <p className="font-semibold text-emerald-700">
-                        {(() => {
-                          const dyMonthPct = classValue > 0 ? classDvMonth / classValue : 0;
-                          return ((Math.pow(1 + dyMonthPct, 12) - 1) * 100).toFixed(2);
-                        })()}%
-                      </p>
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             );
           };
@@ -859,35 +842,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
           );
         })()}
 
-        {/* Portfolio totals */}
-        {grandValue > 0 && (() => {
-          const grandDyMonthPct = grandValueNonRf > 0 ? grandDvMonth / grandValueNonRf : 0;
-          const grandDyYearPct = (Math.pow(1 + grandDyMonthPct, 12) - 1) * 100;
-          return (
-            <div className="bg-emerald-50 rounded-lg p-3 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm border-2 border-emerald-200">
-              <div>
-                <p className="text-emerald-700/70 text-xs">Valor Investido Total</p>
-                <p className="font-semibold text-emerald-700">R$ {formatBRL(grandValue)}</p>
-              </div>
-              <div>
-                <p className="text-emerald-700/70 text-xs">Dividendo Mês</p>
-                <p className="font-semibold text-emerald-700">R$ {formatBRL(grandDvMonth)}</p>
-              </div>
-              <div>
-                <p className="text-emerald-700/70 text-xs">Dividendo Ano</p>
-                <p className="font-semibold text-emerald-700">R$ {formatBRL(grandDvYear)}</p>
-              </div>
-              <div>
-                <p className="text-emerald-700/70 text-xs">DY Mês %</p>
-                <p className="font-semibold text-emerald-700">{(grandDyMonthPct * 100).toFixed(2)}%</p>
-              </div>
-              <div>
-                <p className="text-emerald-700/70 text-xs">DY Ano %</p>
-                <p className="font-semibold text-emerald-700">{grandDyYearPct.toFixed(2)}%</p>
-              </div>
-            </div>
-          );
-        })()}
+
 
       </CardContent>
 
