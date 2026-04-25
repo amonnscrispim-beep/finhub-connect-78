@@ -46,21 +46,43 @@ const DEFAULT_PORTFOLIOS = [
   { name: 'Internacional', slug: 'internacional', display_order: 3, description: 'Ativos internacionais' },
 ];
 
+// Module-level cache to survive tab unmount/remount
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+type CarteirasCache = {
+  userId: string;
+  portfolios: RecommendedPortfolio[];
+  assets: PortfolioAsset[];
+  fetchedAt: number;
+};
+let carteirasCache: CarteirasCache | null = null;
+
 export function CarteirasRecomendadas() {
   const { user } = useAuth();
   const isMaster = useIsMaster();
-  const [portfolios, setPortfolios] = useState<RecommendedPortfolio[]>([]);
-  const [allAssets, setAllAssets] = useState<PortfolioAsset[]>([]);
+  const cached = carteirasCache && carteirasCache.userId === user?.id ? carteirasCache : null;
+  const [portfolios, setPortfolios] = useState<RecommendedPortfolio[]>(cached?.portfolios ?? []);
+  const [allAssets, setAllAssets] = useState<PortfolioAsset[]>(cached?.assets ?? []);
   const [selectedPortfolio, setSelectedPortfolio] = useState<RecommendedPortfolio | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cached);
 
   useEffect(() => {
-    if (user) loadData();
+    if (!user) return;
+    const c = carteirasCache;
+    const fresh = c && c.userId === user.id && Date.now() - c.fetchedAt < CACHE_TTL_MS;
+    if (fresh) {
+      // Use cache; no refetch, no spinner
+      setPortfolios(c!.portfolios);
+      setAllAssets(c!.assets);
+      setLoading(false);
+      return;
+    }
+    // Stale or empty cache: if we have stale data, show it and refresh silently
+    loadData({ silent: !!c && c.userId === user.id });
   }, [user]);
 
-  const loadData = async () => {
+  const loadData = async (opts: { silent?: boolean } = {}) => {
     if (!user) return;
-    setLoading(true);
+    if (!opts.silent) setLoading(true);
 
     const { data: existingPortfolios } = await supabase
       .from('recommended_portfolios')
