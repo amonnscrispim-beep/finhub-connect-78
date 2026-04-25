@@ -299,21 +299,7 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
           const { own, shared } = getProfilePortfolios(profile);
           const profileShared = own.length > 0 && own.every(p => p.shared);
           const hasSharedFromMaster = shared.length > 0;
-
-          // Aggregate FAROL data: sum across both strategies of this profile (own portfolios)
-          const portfoliosForFarol = own.length > 0 ? own : shared;
-          const farolAgg = portfoliosForFarol.reduce(
-            (acc, p) => {
-              const invest = Number(p.invest_amount) || 0;
-              acc.total += invest;
-              acc.acoes += invest * (Number(p.acoes_pct) || 0) / 100;
-              acc.fiis += invest * (Number(p.fiis_pct) || 0) / 100;
-              acc.rendaFixa += invest * (Number(p.renda_fixa_pct) || 0) / 100;
-              acc.internacional += invest * (Number(p.internacional_pct) || 0) / 100;
-              return acc;
-            },
-            { total: 0, acoes: 0, fiis: 0, rendaFixa: 0, internacional: 0 }
-          );
+          const farolAgg = farolByProfile[profile] ?? { total: 0, acoes: 0, fiis: 0, rendaFixa: 0, internacional: 0 };
 
           return (
             <TabsContent key={profile} value={profile} className="space-y-6 mt-4">
