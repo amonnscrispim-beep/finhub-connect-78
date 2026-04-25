@@ -430,27 +430,8 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
             const classValueCalc = investAmount * (classPctVal / 100);
             return (
               <div key={cls.key} className="space-y-1">
-                <Label className="text-xs flex items-center justify-between gap-2">
-                  <span>{cls.label} ({(classPctVal || 0).toFixed(1)}%)</span>
-                  <span className="inline-flex items-center gap-1 font-normal">
-                    <span className="text-muted-foreground">R$</span>
-                    <input
-                      type="text"
-                      key={`clsval-${cls.key}-${investAmount}-${classPctVal}`}
-                      defaultValue={formatBRL(classValueCalc)}
-                      onFocus={selectAllOnFocus}
-                      onBlur={e => {
-                        const raw = parseFloat(e.target.value.replace(/\./g, '').replace(',', '.')) || 0;
-                        if (investAmount > 0) {
-                          const newPct = (raw / investAmount) * 100;
-                          setLocalPcts(prev => ({ ...prev, [cls.pctField]: parseFloat(newPct.toFixed(2)) }));
-                          onUpdatePortfolio(portfolio.id, { [cls.pctField]: parseFloat(newPct.toFixed(2)) } as any);
-                        }
-                        e.target.value = formatBRL(investAmount > 0 ? raw : classValueCalc);
-                      }}
-                      className="w-24 text-right bg-transparent border-0 border-b border-transparent hover:border-border focus:border-primary focus:outline-none px-0.5 text-xs text-foreground transition-colors"
-                    />
-                  </span>
+                <Label className="text-xs">
+                  {cls.label} ({(classPctVal || 0).toFixed(1)}%)
                 </Label>
                 <div className="flex items-center gap-1">
                   <Input type="text" inputMode="decimal" className="h-8 text-sm w-20"
@@ -539,7 +520,26 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">{cls.label} ({data.classPct}%) — R$ {formatBRL(classValue)}</span>
+                    <span className="text-sm font-medium inline-flex items-center gap-1">
+                      <span>{cls.label} ({data.classPct}%) —</span>
+                      <span className="text-muted-foreground">R$</span>
+                      <input
+                        type="text"
+                        key={`tabval-${cls.key}-${investAmount}-${data.classPct}`}
+                        defaultValue={formatBRL(classValue)}
+                        onFocus={selectAllOnFocus}
+                        onBlur={e => {
+                          const raw = parseFloat(e.target.value.replace(/\./g, '').replace(',', '.')) || 0;
+                          if (investAmount > 0) {
+                            const newPct = (raw / investAmount) * 100;
+                            setLocalPcts(prev => ({ ...prev, [cls.pctField]: parseFloat(newPct.toFixed(2)) }));
+                            onUpdatePortfolio(portfolio.id, { [cls.pctField]: parseFloat(newPct.toFixed(2)) } as any);
+                          }
+                          e.target.value = formatBRL(investAmount > 0 ? raw : classValue);
+                        }}
+                        className="w-28 text-left bg-transparent border-0 border-b border-transparent hover:border-border focus:border-primary focus:outline-none px-0.5 text-sm font-medium text-foreground transition-colors"
+                      />
+                    </span>
                     {!classAllocValid && data.calcs.length > 0 && (
                       <Badge variant="destructive" className="text-[10px] h-5">
                         <AlertTriangle className="w-3 h-3 mr-0.5" />
