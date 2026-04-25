@@ -162,7 +162,14 @@ export function CarteirasRecomendadas() {
       .or(`user_id.eq.${user.id},shared.eq.true`)
       .order('display_order');
 
-    setAllAssets((assets || []) as unknown as PortfolioAsset[]);
+    const assetList = (assets || []) as unknown as PortfolioAsset[];
+    setAllAssets(assetList);
+    carteirasCache = {
+      userId: user.id,
+      portfolios: portfolioList,
+      assets: assetList,
+      fetchedAt: Date.now(),
+    };
     setLoading(false);
   };
 
@@ -173,7 +180,11 @@ export function CarteirasRecomendadas() {
       .select('*')
       .or(`user_id.eq.${user.id},shared.eq.true`)
       .order('display_order');
-    setAllAssets((data || []) as unknown as PortfolioAsset[]);
+    const assetList = (data || []) as unknown as PortfolioAsset[];
+    setAllAssets(assetList);
+    if (carteirasCache && carteirasCache.userId === user.id) {
+      carteirasCache = { ...carteirasCache, assets: assetList, fetchedAt: Date.now() };
+    }
   };
 
   if (loading) {
