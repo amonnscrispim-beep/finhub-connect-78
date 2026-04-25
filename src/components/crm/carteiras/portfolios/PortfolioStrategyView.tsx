@@ -127,24 +127,21 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
   // String drafts for in-progress typing — prevents "010" leading zero and value jitter
   const [pctDrafts, setPctDrafts] = useState<Partial<Record<PctField, string>>>({});
 
-  // Per-class collapse state, persisted in localStorage. Default: collapsed.
-  const collapseStorageKey = `portfolio-class-collapse:${portfolio.id}`;
-  const [collapsedClasses, setCollapsedClasses] = useState<Record<string, boolean>>(() => {
-    if (typeof window === 'undefined') return {};
+  // Active FAROL tab, persisted in localStorage. Default: 'A' (Ações Brasil).
+  const farolTabStorageKey = `portfolio-farol-tab:${portfolio.id}`;
+  const [activeFarolTab, setActiveFarolTab] = useState<string>(() => {
+    if (typeof window === 'undefined') return 'A';
     try {
-      const raw = window.localStorage.getItem(collapseStorageKey);
-      if (raw) return JSON.parse(raw);
+      const raw = window.localStorage.getItem(farolTabStorageKey);
+      if (raw) return raw;
     } catch {}
-    // Default: all classes collapsed
-    return { acoes_brasileiras: true, fiis: true, internacional: true, renda_fixa: true };
+    return 'A';
   });
   useEffect(() => {
     try {
-      window.localStorage.setItem(collapseStorageKey, JSON.stringify(collapsedClasses));
+      window.localStorage.setItem(farolTabStorageKey, activeFarolTab);
     } catch {}
-  }, [collapsedClasses, collapseStorageKey]);
-  const toggleClassCollapse = (key: string) =>
-    setCollapsedClasses(prev => ({ ...prev, [key]: !prev[key] }));
+  }, [activeFarolTab, farolTabStorageKey]);
 
   const totalPct = localPcts.acoes_pct + localPcts.fiis_pct + localPcts.internacional_pct + localPcts.renda_fixa_pct;
   const isValid = Math.abs(totalPct - 100) < 0.01;
