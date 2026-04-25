@@ -665,12 +665,32 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                             {isRf && <TableCell className="text-xs">{c.asset.indexador || '—'}</TableCell>}
                             {isRf && <TableCell className="text-xs">{c.asset.vencimento || '—'}</TableCell>}
                             {!isRf && (
-                              <TableCell className="text-right text-sm">
-                                {c.source
-                                  ? `R$ ${Number(c.source.ceiling_price).toFixed(2)}`
-                                  : (c.asset as any).ceiling_price
-                                    ? `R$ ${Number((c.asset as any).ceiling_price).toFixed(2)}`
-                                    : '—'}
+                              <TableCell className="text-right">
+                                {(() => {
+                                  const currentCeiling = c.source
+                                    ? Number(c.source.ceiling_price) || 0
+                                    : Number((c.asset as any).ceiling_price) || 0;
+                                  return (
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      disabled={readOnly}
+                                      className="no-spinner h-7 w-24 text-sm text-right inline-block focus:ring-2 focus:ring-primary focus:border-primary"
+                                      defaultValue={currentCeiling > 0 ? currentCeiling.toFixed(2) : ''}
+                                      key={`ceil-${c.asset.id}-${currentCeiling}`}
+                                      onFocus={e => e.target.select()}
+                                      onKeyDown={e => {
+                                        if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                                      }}
+                                      onBlur={e => {
+                                        const val = parseFloat(e.target.value) || 0;
+                                        if (Math.abs(val - currentCeiling) > 0.001) {
+                                          handleUpdateCeilingPrice(c, val);
+                                        }
+                                      }}
+                                    />
+                                  );
+                                })()}
                               </TableCell>
                             )}
                             {!isRf && (
