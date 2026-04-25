@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMaster } from '@/hooks/useIsMaster';
@@ -11,6 +11,17 @@ import { PortfolioStrategyView } from './PortfolioStrategyView';
 import { ClientPortfolioTab } from './ClientPortfolioTab';
 import { FarolDonut } from './FarolDonut';
 import { PortfolioAsset } from '../CarteirasRecomendadas';
+
+// Module-level cache to survive tab unmount/remount (parallels CarteirasRecomendadas cache)
+const PORTFOLIOS_CACHE_TTL_MS = 5 * 60 * 1000;
+type PortfoliosCache = {
+  userId: string;
+  portfolios: any[];
+  assets: any[];
+  fetchedAt: number;
+};
+let portfoliosCache: PortfoliosCache | null = null;
+
 
 const PROFILES = ['Conservador', 'Moderado', 'Arrojado'] as const;
 const STRATEGIES = ['Renda', 'Crescimento'] as const;
