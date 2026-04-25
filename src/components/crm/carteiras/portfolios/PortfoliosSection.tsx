@@ -65,6 +65,30 @@ export function PortfoliosSection({ recommendedAssets, portfolioNameMap }: Props
   const [activeProfile, setActiveProfile] = useState<string>('Conservador');
   const [loading, setLoading] = useState(true);
 
+  // Per-strategy collapse state, persisted in localStorage. Default: collapsed.
+  const STRATEGY_COLLAPSE_KEY = 'portfolios-strategy-collapse';
+  const [collapsedStrategies, setCollapsedStrategies] = useState<Record<string, boolean>>(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const raw = window.localStorage.getItem(STRATEGY_COLLAPSE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return {};
+  });
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(STRATEGY_COLLAPSE_KEY, JSON.stringify(collapsedStrategies));
+    } catch {}
+  }, [collapsedStrategies]);
+  const strategyKey = (profile: string, strategy: string) => `${profile}::${strategy}`;
+  const isStrategyCollapsed = (profile: string, strategy: string) => {
+    const k = strategyKey(profile, strategy);
+    // Default to collapsed when no entry yet
+    return k in collapsedStrategies ? collapsedStrategies[k] : true;
+  };
+  const toggleStrategyCollapse = (profile: string, strategy: string) =>
+    setCollapsedStrategies(prev => ({ ...prev, [strategyKey(profile, strategy)]: !isStrategyCollapsed(profile, strategy) }));
+
   const loadPortfolios = useCallback(async () => {
     if (!user) return;
     setLoading(true);
