@@ -760,35 +760,32 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                 )}
 
                 {/* Class totals panel — skip for Renda Fixa */}
-                {classValue > 0 && !isRf && (
-                  <div className="bg-emerald-50 rounded-lg p-3 grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
-                    <div>
-                      <p className="text-emerald-700/70 text-xs">Valor Investido</p>
-                      <p className="font-semibold text-emerald-700">R$ {formatBRL(classValue)}</p>
+                {classValue > 0 && !isRf && (() => {
+                  const dyMonthPct = classValue > 0 ? (classDvMonth / classValue) * 100 : 0;
+                  const dyYearPct = (Math.pow(1 + dyMonthPct / 100, 12) - 1) * 100;
+                  const items = [
+                    { label: 'Valor Investido', value: `R$ ${formatBRL(classValue)}`, emphasis: false },
+                    { label: 'Div. Mês', value: `R$ ${formatBRL(classDvMonth)}`, emphasis: true },
+                    { label: 'Div. Ano', value: `R$ ${formatBRL(classDvYear)}`, emphasis: true },
+                    { label: 'DY Mês', value: `${dyMonthPct.toFixed(2)}%`, emphasis: false },
+                    { label: 'DY Ano', value: `${dyYearPct.toFixed(2)}%`, emphasis: true },
+                  ];
+                  return (
+                    <div className="bg-emerald-50 rounded-lg px-4 py-3 flex items-center justify-between gap-2 overflow-x-auto">
+                      {items.map((it, i) => (
+                        <div key={it.label} className="flex items-center gap-2 flex-shrink-0">
+                          <div className="flex flex-col">
+                            <span className="text-emerald-700/70 text-[11px] leading-tight">{it.label}</span>
+                            <span className={`text-emerald-700 font-bold leading-tight ${it.emphasis ? 'text-base' : 'text-sm'}`}>
+                              {it.value}
+                            </span>
+                          </div>
+                          {i < items.length - 1 && <span className="text-emerald-300 mx-2">|</span>}
+                        </div>
+                      ))}
                     </div>
-                    <div>
-                      <p className="text-emerald-700/70 text-xs">Dividendo Mês</p>
-                      <p className="font-semibold text-emerald-700">R$ {formatBRL(classDvMonth)}</p>
-                    </div>
-                    <div>
-                      <p className="text-emerald-700/70 text-xs">Dividendo Ano</p>
-                      <p className="font-semibold text-emerald-700">R$ {formatBRL(classDvYear)}</p>
-                    </div>
-                    <div>
-                      <p className="text-emerald-700/70 text-xs">DY Mês %</p>
-                      <p className="font-semibold text-emerald-700">{(classValue > 0 ? (classDvMonth / classValue) * 100 : 0).toFixed(2)}%</p>
-                    </div>
-                    <div>
-                      <p className="text-emerald-700/70 text-xs">DY Ano %</p>
-                      <p className="font-semibold text-emerald-700">
-                        {(() => {
-                          const dyMonthPct = classValue > 0 ? classDvMonth / classValue : 0;
-                          return ((Math.pow(1 + dyMonthPct, 12) - 1) * 100).toFixed(2);
-                        })()}%
-                      </p>
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             );
           };
