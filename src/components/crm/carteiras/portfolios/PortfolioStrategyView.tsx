@@ -26,6 +26,7 @@ interface Props {
   portfolioSlugMap?: Record<string, string>;
   onUpdatePortfolio: (id: string, updates: Partial<InvestorPortfolio>) => Promise<void>;
   onRefreshAssets: () => Promise<void>;
+  onRefreshRecommended?: () => Promise<void>;
   isConservador?: boolean;
   conservadorPortfolioId?: string;
   isMaster?: boolean;
