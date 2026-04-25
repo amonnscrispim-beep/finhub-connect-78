@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from 'recharts';
 import { FAROL_COLORS } from '@/lib/farol-colors';
 
+const DONUT_CENTER_BG = '#0B1929';
+
 export interface FarolInput {
   /** R$ em Ações Brasileiras */
   acoes: number;
@@ -37,6 +39,7 @@ function formatBRL(v: number): string {
 }
 
 // Active slice renderer — slight outward offset for hover emphasis
+// Active slice renderer — outward offset + brightness for hover emphasis
 const renderActiveShape = (props: any) => {
   const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
   return (
@@ -45,12 +48,13 @@ const renderActiveShape = (props: any) => {
         cx={cx}
         cy={cy}
         innerRadius={innerRadius}
-        outerRadius={outerRadius + 6}
+        outerRadius={outerRadius + 8}
         startAngle={startAngle}
         endAngle={endAngle}
         fill={fill}
-        stroke="#ffffff"
-        strokeWidth={3}
+        stroke={DONUT_CENTER_BG}
+        strokeWidth={2}
+        style={{ filter: 'brightness(1.15) drop-shadow(0 0 6px rgba(255,255,255,0.25))' }}
       />
     </g>
   );
@@ -120,16 +124,29 @@ export function FarolDonut({ acoes, fiis, rendaFixa, internacional, total, title
             {hasData ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
+                  {/* Dark center disc — Finclass-style depth */}
+                  <Pie
+                    data={[{ v: 1 }]}
+                    dataKey="v"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={0}
+                    outerRadius={88}
+                    isAnimationActive={false}
+                    stroke="none"
+                  >
+                    <Cell fill={DONUT_CENTER_BG} />
+                  </Pie>
                   <Pie
                     data={slices}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    innerRadius={95}
-                    outerRadius={120}
+                    innerRadius={88}
+                    outerRadius={130}
                     paddingAngle={1}
-                    stroke="#ffffff"
+                    stroke={DONUT_CENTER_BG}
                     strokeWidth={2}
                     activeIndex={hoverIdx ?? -1}
                     activeShape={renderActiveShape}
@@ -172,15 +189,34 @@ export function FarolDonut({ acoes, fiis, rendaFixa, internacional, total, title
               </div>
             )}
 
-            {/* Center label */}
+            {/* Center label — swaps between total and active slice on hover */}
             {hasData && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-[10px] uppercase tracking-[1.5px] text-gray-500 font-medium mb-1">
-                  Total
-                </span>
-                <span className="text-2xl font-bold leading-tight" style={{ color: BTG_NAVY }}>
-                  R$ {formatBRL(totalValue)}
-                </span>
+              <div
+                className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-6 text-center transition-opacity"
+                style={{ transitionDuration: '200ms', transitionTimingFunction: 'ease' }}
+              >
+                {active ? (
+                  <div key={`a-${hoverIdx}`} className="animate-fade-in flex flex-col items-center">
+                    <span className="text-3xl font-bold text-white leading-tight">
+                      {active.pct.toFixed(1)}%
+                    </span>
+                    <span className="text-sm font-semibold text-white/90 mt-1">
+                      R$ {formatBRL(active.value)}
+                    </span>
+                    <span className="text-[11px] text-white/60 mt-1.5 leading-tight">
+                      {active.letter} · {active.name}
+                    </span>
+                  </div>
+                ) : (
+                  <div key="total" className="animate-fade-in flex flex-col items-center">
+                    <span className="text-[10px] uppercase tracking-[1.5px] text-white/50 font-medium mb-1">
+                      Total
+                    </span>
+                    <span className="text-2xl font-bold text-white leading-tight">
+                      R$ {formatBRL(totalValue)}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 
