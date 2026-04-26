@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { Link2, Copy, RefreshCw, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Link2, Copy, RefreshCw, ExternalLink, AlertTriangle, FileText } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -13,6 +13,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { ClientSummaryModal } from './ClientSummaryModal';
 
 interface ClientFormLinkProps {
   clientId: string;
