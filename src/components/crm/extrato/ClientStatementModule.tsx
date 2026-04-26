@@ -157,8 +157,13 @@ export function ClientStatementModule({ clientId }: Props) {
               className="hidden"
             />
             <Button
+              type="button"
               size="sm"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
               disabled={isExtracting}
             >
               {isExtracting ? (
