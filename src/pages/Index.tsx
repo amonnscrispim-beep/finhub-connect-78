@@ -43,6 +43,59 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
+// Safe date formatter — returns '' for null/undefined or invalid dates
+function safeDate(value: Date | string | null | undefined): string {
+  if (!value) return '';
+  try {
+    return new Date(value).toISOString().split('T')[0];
+  } catch {
+    return '';
+  }
+}
+
+// Error boundary to prevent a single tab/module crash from breaking the whole app
+interface ErrorBoundaryProps {
+  children: ReactNode;
+  label?: string;
+}
+interface ErrorBoundaryState {
+  hasError: boolean;
+  errorMessage: string;
+}
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, errorMessage: '' };
+  }
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, errorMessage: error.message };
+  }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error(`[ErrorBoundary:${this.props.label ?? 'unknown'}]`, error, info);
+  }
+  handleReset = () => this.setState({ hasError: false, errorMessage: '' });
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="border border-destructive/30 bg-destructive/5 rounded-lg p-6 text-center space-y-3">
+          <p className="text-sm font-medium text-destructive">
+            Ocorreu um erro em {this.props.label ?? 'este módulo'}.
+          </p>
+          {this.state.errorMessage && (
+            <p className="text-xs text-muted-foreground font-mono break-all">
+              {this.state.errorMessage}
+            </p>
+          )}
+          <Button variant="outline" size="sm" onClick={this.handleReset}>
+            Tentar novamente
+          </Button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function CRMDashboard() {
   const { clients, isLoading } = useClients();
   const { user, signOut } = useAuth();
