@@ -46,6 +46,7 @@ export function ClientFormLink({ clientId, clientName, onFormCompleted }: Client
   const [generating, setGenerating] = useState(false);
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [summaryOpen, setSummaryOpen] = useState(false);
 
   useEffect(() => {
     loadToken();
