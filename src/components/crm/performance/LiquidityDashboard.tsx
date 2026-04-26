@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Copy, Check, Download } from 'lucide-react';
+import { Copy, Check, Download, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { ConsolidatedSummary } from './types';
@@ -8,8 +8,10 @@ import { LiquidityChart } from './LiquidityChart';
 import { BrokerCard } from './BrokerCard';
 import { MaturityAgenda } from './MaturityAgenda';
 import { StrategicAlerts } from './StrategicAlerts';
+import { PerformanceSummaryModal, type PerformanceSnapshot } from './PerformanceSummaryModal';
 
 interface LiquidityDashboardProps {
+  clientName?: string;
   reports: {
     id: string;
     pdfFilename: string;
@@ -22,8 +24,9 @@ interface LiquidityDashboardProps {
   }[];
 }
 
-export function LiquidityDashboard({ reports }: LiquidityDashboardProps) {
+export function LiquidityDashboard({ reports, clientName = '' }: LiquidityDashboardProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [summaryOpen, setSummaryOpen] = useState(false);
 
   const data = useMemo(() => buildConsolidatedSummary(reports), [reports]);
 
@@ -35,6 +38,19 @@ export function LiquidityDashboard({ reports }: LiquidityDashboardProps) {
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 2000);
   };
+
+  const snapshot: PerformanceSnapshot = useMemo(() => ({
+    clientName,
+    totalGross: data.totalGross,
+    totalNet: data.netCoverage.available > 0 ? data.totalNet : null,
+    netCoverage: data.netCoverage,
+    brokers: data.brokers.map(b => ({ broker: b.broker, totalGross: b.totalGross })),
+    liquidityBands: data.liquidityBands.map(b => ({
+      label: b.label, valueR$: b['valueR$'], pct: b.pct,
+    })),
+    alerts: data.alerts,
+    reportsCount: extractedCount,
+  }), [clientName, data, extractedCount]);
 
   const consolidatedText = useMemo(() => {
     const lines: string[] = [];
