@@ -56,22 +56,13 @@ export function ArquiteturaEstrategicaPainel({
   const riskLevel = arquiteturaCarteira.riskLevel || arquiteturaEstrategica.riskLevel || '';
   const liquidity = arquiteturaCarteira.minLiquidity || arquiteturaEstrategica.structuralLiquidity || '';
   const horizon = arquiteturaEstrategica.strategicHorizon || '';
-  const taxDirective = arquiteturaCarteira.taxDirective || '';
+  const taxDirective = '';
   const pillars = arquiteturaEstrategica.pillars || [];
 
-  // Macro allocation from Conhecer o Cliente — now with 3 RF subcategories
+  // Macro allocation: campos da carteira foram removidos — usar somente legado
   const macroFields = useMemo(() => {
-    const fromCarteira = [
-      { label: 'Pós-Fixado', value: arquiteturaCarteira.posFixadoPct },
-      { label: 'Pré-Fixado', value: arquiteturaCarteira.preFixadoPct },
-      { label: 'Indexado à Inflação', value: arquiteturaCarteira.indexadoInflacaoPct },
-      { label: 'Renda Variável', value: arquiteturaCarteira.equitiesPct },
-      { label: 'Renda Passiva (FIIs)', value: arquiteturaCarteira.passiveIncomePct },
-      { label: 'Internacional', value: arquiteturaCarteira.internationalPct },
-      { label: 'Alternativos', value: arquiteturaCarteira.alternativesPct },
-      { label: 'Caixa / Oportunidade', value: arquiteturaCarteira.cashPct },
-    ];
-    const hasData = fromCarteira.some(f => f.value && parseFloat(f.value) > 0);
+    const fromCarteira: { label: string; value: string }[] = [];
+    const hasData = false;
     if (hasData) return { source: 'carteira' as const, fields: fromCarteira };
 
     // Fallback to legacy (old rendaFixaPct)
