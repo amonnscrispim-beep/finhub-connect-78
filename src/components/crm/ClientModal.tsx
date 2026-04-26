@@ -731,6 +731,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     contracts: !!formData.contractedMeetings || !!formData.workDone,
     tasks: !!formData.funnelStage,
     performance: !!client,
+    extrato: !!client,
     reports: (formData.files?.length || 0) > 0 || !!formData.consultingInitialPatrimony,
   };
   const completedCount = Object.values(completionSignals).filter(Boolean).length;
