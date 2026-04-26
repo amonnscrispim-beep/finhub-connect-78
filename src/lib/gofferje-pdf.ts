@@ -319,8 +319,7 @@ export function generateGofferjePdf(opts: GofferjePdfOptions): void {
   // ── Rodapé em todas as páginas (exceto capa) ──
   const total = doc.getNumberOfPages();
   for (let i = 2; i <= total; i++) {
-    doc.setPage(i);
-    drawFooter(doc, advisor, reportDate);
+    drawFooterOnPage(doc, advisor, reportDate, i, total);
   }
   // ajusta rodapé da capa (queremos texto institucional, sem nº)
   // já desenhado no drawCover
