@@ -715,6 +715,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     { id: 'contracts', label: 'Contratos e Entregas', icon: ClipboardList },
     { id: 'tasks', label: 'Tarefas e Status', icon: CheckCircle },
     { id: 'performance', label: 'Relatório de Performance', icon: BarChart3 },
+    { id: 'extrato', label: 'Extrato do Cliente', icon: Wallet },
     { id: 'reports', label: 'Arquivos e Resumos', icon: FileText },
   ] as const;
 
