@@ -121,7 +121,9 @@ function CRMDashboard() {
     return clients.filter(client => 
       client.name.toLowerCase().includes(query) ||
       client.profession.toLowerCase().includes(query) ||
-      client.objective.toLowerCase().includes(query)
+      client.objective.toLowerCase().includes(query) ||
+      client.city?.toLowerCase().includes(query) ||
+      client.email?.toLowerCase().includes(query)
     );
   }, [clients, searchQuery]);
 
