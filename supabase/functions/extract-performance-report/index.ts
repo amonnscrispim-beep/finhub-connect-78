@@ -196,37 +196,62 @@ Se o relatório INFORMAR a liquidez, use o valor informado e ignore os padrões 
 - Datas no formato YYYY-MM-DD
 - Extraia TODOS os ativos listados, sem exceção
 
+### 9. ATIVOS ISENTOS DE IR — ASTERISCO (*)
+- Se o nome do ativo no relatório vier marcado com asterisco (ex: "LCI Banco X*", "CRA Klabin*"), defina taxExempt: true.
+- LCI, LCA, CRI, CRA, Debêntures Incentivadas e dividendos de Ações/FIIs (no fluxo de proventos) são tipicamente isentos de IR para PF — se o relatório indicar explicitamente, marque taxExempt: true.
+- Em caso de dúvida, taxExempt: false.
+
+### 10. RENTABILIDADE MÊS A MÊS (monthlyHistory)
+Procure por uma TABELA de rentabilidade mensal histórica (geralmente nomeada "Rentabilidade Mensal", "Histórico", "Performance Mensal").
+Para cada linha de mês informada no PDF, extraia:
+{
+  "month": "YYYY-MM",          // ex: 2024-01
+  "portfolioPct": number,      // rentabilidade do portfólio no mês, em %
+  "cdiPct": number ou null,    // rentabilidade do CDI no mês, em %
+  "pctOfCdi": number ou null,  // % do CDI alcançado (ex: 110 para 110% do CDI)
+  "gainBRL": number ou null    // ganho em R$ no mês, se informado
+}
+Se a tabela não existir, retorne monthlyHistory: [].
+
+### 11. COMPOSIÇÃO POR CLASSE (composition)
+Procure pela tabela/gráfico de composição da carteira por classe/indexador.
+Retorne ARRAY com:
+{
+  "className": "Pré-fixado | Inflação (IPCA+) | Pós-fixado (CDI) | FIIs | Ações | Multimercado | Internacional | Previdência | Caixa | Outro",
+  "valueR$": number ou null,
+  "pct": number,                 // % do patrimônio
+  "taxExemptPct": number ou null // % desta classe que é isento de IR (se inferível)
+}
+
 IMPORTANTE: Retorne APENAS o JSON válido, sem markdown, sem backticks. Retorne o JSON COMPLETO sem truncar.
 
 Estrutura obrigatória:
 {
   "reportDate": "YYYY-MM-DD ou null",
-  "liquidityNotInformed": boolean (true SOMENTE se o relatório não tiver NENHUMA informação de liquidez E nenhum ativo tem tipo identificável para aplicar padrão),
+  "periodStart": "YYYY-MM-DD ou null (data inicial do período do relatório, se informada)",
+  "liquidityNotInformed": boolean,
   "generalData": {
     "grossPatrimony": number ou null,
     "netPatrimony": number ou null,
     "monthReturn": number ou null,
+    "monthReturnBRL": number ou null,
     "yearReturn": number ou null,
+    "yearReturnBRL": number ou null,
     "twelveMonthReturn": number ou null,
     "cumulativeReturn": number ou null,
-    "cdiEquivalent": number ou null
+    "cumulativeReturnBRL": number ou null,
+    "cdiEquivalent": number ou null,
+    "cdiMonth": number ou null,
+    "cdiYear": number ou null,
+    "cdiCumulative": number ou null,
+    "irProvision": number ou null
   },
-  "liquidity": {
-    "dPlus1": number ou null (% do patrimônio com liquidez D+0 ou D+1),
-    "dPlus2": number ou null (% com liquidez D+2),
-    "upTo30": number ou null (% com liquidez até 30 dias),
-    "upTo1Year": number ou null (% com liquidez até 1 ano),
-    "oneToFiveYears": number ou null,
-    "aboveFiveYears": number ou null
-  },
-  "positions": [ ...conforme estrutura acima... ],
-  "indexerExposure": {
-    "ipca": number ou null,
-    "prefixed": number ou null,
-    "postFixed": number ou null,
-    "other": number ou null
-  },
-  "erros": [ "lista de campos que não foi possível extrair com clareza" ]
+  "liquidity": { "dPlus1": number ou null, "dPlus2": number ou null, "upTo30": number ou null, "upTo1Year": number ou null, "oneToFiveYears": number ou null, "aboveFiveYears": number ou null },
+  "positions": [ ...inclua o campo "taxExempt": boolean conforme regra 9... ],
+  "indexerExposure": { "ipca": number ou null, "prefixed": number ou null, "postFixed": number ou null, "other": number ou null },
+  "monthlyHistory": [ ...conforme regra 10... ],
+  "composition": [ ...conforme regra 11... ],
+  "erros": [ ]
 }`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

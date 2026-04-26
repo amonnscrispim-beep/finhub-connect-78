@@ -39,18 +39,7 @@ export function LiquidityDashboard({ reports, clientName = '' }: LiquidityDashbo
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const snapshot: PerformanceSnapshot = useMemo(() => ({
-    clientName,
-    totalGross: data.totalGross,
-    totalNet: data.netCoverage.available > 0 ? data.totalNet : null,
-    netCoverage: data.netCoverage,
-    brokers: data.brokers.map(b => ({ broker: b.broker, totalGross: b.totalGross })),
-    liquidityBands: data.liquidityBands.map(b => ({
-      label: b.label, valueR$: b['valueR$'], pct: b.pct,
-    })),
-    alerts: data.alerts,
-    reportsCount: extractedCount,
-  }), [clientName, data, extractedCount]);
+  // snapshot agora é construído dentro do modal a partir dos reports brutos
 
   const consolidatedText = useMemo(() => {
     const lines: string[] = [];
@@ -212,7 +201,8 @@ export function LiquidityDashboard({ reports, clientName = '' }: LiquidityDashbo
       <PerformanceSummaryModal
         open={summaryOpen}
         onOpenChange={setSummaryOpen}
-        snapshot={summaryOpen ? snapshot : null}
+        reports={reports}
+        clientName={clientName}
       />
     </div>
   );
