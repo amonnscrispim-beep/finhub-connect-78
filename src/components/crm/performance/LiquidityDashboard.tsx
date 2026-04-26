@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Copy, Check, Download } from 'lucide-react';
+import { Copy, Check, Download, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { ConsolidatedSummary } from './types';
@@ -8,8 +8,10 @@ import { LiquidityChart } from './LiquidityChart';
 import { BrokerCard } from './BrokerCard';
 import { MaturityAgenda } from './MaturityAgenda';
 import { StrategicAlerts } from './StrategicAlerts';
+import { PerformanceSummaryModal, type PerformanceSnapshot } from './PerformanceSummaryModal';
 
 interface LiquidityDashboardProps {
+  clientName?: string;
   reports: {
     id: string;
     pdfFilename: string;
@@ -22,8 +24,9 @@ interface LiquidityDashboardProps {
   }[];
 }
 
-export function LiquidityDashboard({ reports }: LiquidityDashboardProps) {
+export function LiquidityDashboard({ reports, clientName = '' }: LiquidityDashboardProps) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [summaryOpen, setSummaryOpen] = useState(false);
 
   const data = useMemo(() => buildConsolidatedSummary(reports), [reports]);
 
@@ -35,6 +38,19 @@ export function LiquidityDashboard({ reports }: LiquidityDashboardProps) {
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 2000);
   };
+
+  const snapshot: PerformanceSnapshot = useMemo(() => ({
+    clientName,
+    totalGross: data.totalGross,
+    totalNet: data.netCoverage.available > 0 ? data.totalNet : null,
+    netCoverage: data.netCoverage,
+    brokers: data.brokers.map(b => ({ broker: b.broker, totalGross: b.totalGross })),
+    liquidityBands: data.liquidityBands.map(b => ({
+      label: b.label, valueR$: b['valueR$'], pct: b.pct,
+    })),
+    alerts: data.alerts,
+    reportsCount: extractedCount,
+  }), [clientName, data, extractedCount]);
 
   const consolidatedText = useMemo(() => {
     const lines: string[] = [];
@@ -90,6 +106,16 @@ export function LiquidityDashboard({ reports }: LiquidityDashboardProps) {
             <Button type="button" variant="outline" size="sm" onClick={() => handleCopy(consolidatedText, 'dash_copy')}>
               {copiedField === 'dash_copy' ? <Check className="w-4 h-4 text-primary mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
               Copiar resumo
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSummaryOpen(true); }}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              disabled={data.totalGross === 0}
+            >
+              <Sparkles className="w-4 h-4 mr-1" />
+              Gerar Resumo do Relatório
             </Button>
           </div>
         </div>
@@ -182,6 +208,12 @@ export function LiquidityDashboard({ reports }: LiquidityDashboardProps) {
 
       {/* ── Section 4: Alertas ── */}
       <StrategicAlerts alerts={data.alerts} />
+
+      <PerformanceSummaryModal
+        open={summaryOpen}
+        onOpenChange={setSummaryOpen}
+        snapshot={summaryOpen ? snapshot : null}
+      />
     </div>
   );
 }

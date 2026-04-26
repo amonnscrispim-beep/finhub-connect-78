@@ -79,6 +79,7 @@ const REPORT_TYPES = ['Renda fixa', 'Renda variável', 'Consolidado', 'Outro'];
 
 interface RelatorioPerformanceProps {
   clientId?: string;
+  clientName?: string;
   investorProfile?: string | null;
 }
 
@@ -96,7 +97,7 @@ const fmtPct = (v: number | null | undefined) => {
 
 // ---------- Component ----------
 
-export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPerformanceProps) {
+export function RelatorioPerformance({ clientId, clientName, investorProfile }: RelatorioPerformanceProps) {
   const { user } = useAuth();
   const [reports, setReports] = useState<ReportRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -912,16 +913,19 @@ export function RelatorioPerformance({ clientId, investorProfile }: RelatorioPer
 
           {/* Dashboard */}
           <TabsContent value="dashboard" className="mt-4">
-            <LiquidityDashboard reports={reports.map(r => ({
-              id: r.id,
-              pdfFilename: r.pdfFilename,
-              broker: r.broker,
-              reportType: r.reportType,
-              reportDate: r.reportDate,
-              status: r.status,
-              extractedData: r.extractedData,
-              alerts: r.alerts,
-            }))} />
+            <LiquidityDashboard
+              clientName={clientName || ''}
+              reports={reports.map(r => ({
+                id: r.id,
+                pdfFilename: r.pdfFilename,
+                broker: r.broker,
+                reportType: r.reportType,
+                reportDate: r.reportDate,
+                status: r.status,
+                extractedData: r.extractedData,
+                alerts: r.alerts,
+              }))}
+            />
           </TabsContent>
 
           {/* A) Consolidated */}
