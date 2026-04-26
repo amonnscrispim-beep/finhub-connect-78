@@ -68,15 +68,18 @@ interface Props {
   portfolioNameMap: Record<string, string>;
   portfolioSlugMap?: Record<string, string>;
   onRefreshRecommended?: () => Promise<void>;
+  defaultProfile?: string;
 }
 
-export function PortfoliosSection({ recommendedAssets, portfolioNameMap, portfolioSlugMap = {}, onRefreshRecommended }: Props) {
+export function PortfoliosSection({ recommendedAssets, portfolioNameMap, portfolioSlugMap = {}, onRefreshRecommended, defaultProfile }: Props) {
   const { user } = useAuth();
   const isMaster = useIsMaster();
   const cached = portfoliosCache && portfoliosCache.userId === user?.id ? portfoliosCache : null;
   const [portfolios, setPortfolios] = useState<InvestorPortfolio[]>(cached?.portfolios ?? []);
   const [portfolioAssets, setPortfolioAssets] = useState<PortfolioAssetItem[]>(cached?.assets ?? []);
-  const [activeProfile, setActiveProfile] = useState<string>('Conservador');
+  const [activeProfile, setActiveProfile] = useState<string>(
+    defaultProfile && (PROFILES as readonly string[]).includes(defaultProfile) ? defaultProfile : 'Conservador'
+  );
   const [loading, setLoading] = useState(!cached);
 
   // Per-strategy collapse state, persisted in localStorage. Default: collapsed.
