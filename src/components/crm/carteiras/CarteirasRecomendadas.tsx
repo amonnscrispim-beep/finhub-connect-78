@@ -56,7 +56,11 @@ type CarteirasCache = {
 };
 let carteirasCache: CarteirasCache | null = null;
 
-export function CarteirasRecomendadas() {
+interface CarteirasRecomendadasProps {
+  defaultProfile?: string;
+}
+
+export function CarteirasRecomendadas({ defaultProfile }: CarteirasRecomendadasProps = {}) {
   const { user } = useAuth();
   const isMaster = useIsMaster();
   const cached = carteirasCache && carteirasCache.userId === user?.id ? carteirasCache : null;
