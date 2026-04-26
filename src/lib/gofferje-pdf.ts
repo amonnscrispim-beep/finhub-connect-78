@@ -82,23 +82,20 @@ function drawHeader(doc: jsPDF, advisorName: string) {
   doc.line(MARGIN_X, 25, PAGE_W - MARGIN_X, 25);
 }
 
-/** Rodapé: nome do consultor + data + número da página. */
-function drawFooter(doc: jsPDF, advisorName: string, reportDate: string) {
-  const total = doc.getNumberOfPages();
-  for (let i = 1; i <= total; i++) {
-    doc.setPage(i);
-    setDraw(doc, RULE);
-    doc.setLineWidth(0.3);
-    doc.line(MARGIN_X, PAGE_H - 15, PAGE_W - MARGIN_X, PAGE_H - 15);
+/** Rodapé de uma página específica: nome do consultor + data + número. */
+function drawFooterOnPage(doc: jsPDF, advisorName: string, reportDate: string, pageIndex: number, total: number) {
+  doc.setPage(pageIndex);
+  setDraw(doc, RULE);
+  doc.setLineWidth(0.3);
+  doc.line(MARGIN_X, PAGE_H - 15, PAGE_W - MARGIN_X, PAGE_H - 15);
 
-    setText(doc, MUTED);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    const left = advisorName ? `Consultor: ${advisorName}` : 'Gofferje Investimentos';
-    doc.text(left, MARGIN_X, PAGE_H - 9);
-    doc.text(reportDate, PAGE_W / 2, PAGE_H - 9, { align: 'center' });
-    doc.text(`${i} / ${total}`, PAGE_W - MARGIN_X, PAGE_H - 9, { align: 'right' });
-  }
+  setText(doc, MUTED);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  const left = advisorName ? `Consultor: ${advisorName}` : 'Gofferje Investimentos';
+  doc.text(left, MARGIN_X, PAGE_H - 9);
+  doc.text(reportDate, PAGE_W / 2, PAGE_H - 9, { align: 'center' });
+  doc.text(`${pageIndex} / ${total}`, PAGE_W - MARGIN_X, PAGE_H - 9, { align: 'right' });
 }
 
 /** CAPA dedicada — fundo branco, faixa azul lateral, logo grande centralizada. */
