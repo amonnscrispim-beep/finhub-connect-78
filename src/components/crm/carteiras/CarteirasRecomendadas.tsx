@@ -56,11 +56,7 @@ type CarteirasCache = {
 };
 let carteirasCache: CarteirasCache | null = null;
 
-interface CarteirasRecomendadasProps {
-  defaultProfile?: string;
-}
-
-export function CarteirasRecomendadas({ defaultProfile }: CarteirasRecomendadasProps = {}) {
+export function CarteirasRecomendadas() {
   const { user } = useAuth();
   const isMaster = useIsMaster();
   const cached = carteirasCache && carteirasCache.userId === user?.id ? carteirasCache : null;
@@ -241,7 +237,6 @@ export function CarteirasRecomendadas({ defaultProfile }: CarteirasRecomendadasP
         portfolioNameMap={Object.fromEntries(portfolios.map(p => [p.id, p.name]))}
         portfolioSlugMap={Object.fromEntries(portfolios.map(p => [p.id, p.slug]))}
         onRefreshRecommended={refreshAssets}
-        defaultProfile={defaultProfile}
       />
     </div>
   );

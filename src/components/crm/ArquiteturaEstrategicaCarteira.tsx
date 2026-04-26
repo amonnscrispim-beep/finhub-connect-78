@@ -131,7 +131,7 @@ export function ArquiteturaEstrategicaCarteira({ data, onChange }: Props) {
           <p className="text-xs text-muted-foreground">
             Sugestões para perfil <strong>{safeData.riskLevel}</strong> com objetivo de <strong>{safeData.dominantObjective}</strong>.
           </p>
-          <CarteirasRecomendadas defaultProfile={safeData.riskLevel} />
+          <CarteirasRecomendadas />
         </div>
       )}
     </div>

@@ -1029,6 +1029,15 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-1">
+                  <Label>Grau de complexidade</Label>
+                  <Select value={data.complexityLevel} onValueChange={(v) => update({ complexityLevel: v })}>
+                    <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      {['Simples', 'Moderado', 'Complexo'].map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="space-y-1"><Label>Principais riscos identificados</Label><Textarea value={data.identifiedRisks} onChange={(e) => update({ identifiedRisks: e.target.value })} className="crm-input min-h-[60px]" /></div>
 
@@ -1039,7 +1048,7 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
                   <Select value={data.portfolioObjective} onValueChange={(v) => update({ portfolioObjective: v })}>
                     <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                     <SelectContent>
-                      {['Renda', 'Crescimento'].map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                      {['Preservação', 'Renda', 'Crescimento', 'Balanceado'].map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1056,6 +1065,86 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1"><Label>Liquidez mínima necessária (%)</Label><Input type="number" value={data.minLiquidityPct} onChange={(e) => update({ minLiquidityPct: e.target.value })} className="crm-input" /></div>
                 <div className="space-y-1"><Label>Justificativa</Label><Input value={data.minLiquidityJustification} onChange={(e) => update({ minLiquidityJustification: e.target.value })} className="crm-input" /></div>
+              </div>
+
+              <div className="pt-3 border-t border-border space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="font-medium">Distribuição macro por pilares (soma = 100%)</Label>
+                  <span className={`text-sm font-bold ${allocationTotal === 100 ? 'text-green-500' : 'text-red-500'}`}>{allocationTotal}%</span>
+                </div>
+                {allocationTotal !== 100 && <p className="text-xs text-red-500">⚠️ A soma deve ser exatamente 100% (atual: {allocationTotal}%)</p>}
+                <div className="grid grid-cols-4 gap-3">
+                  {[
+                    { key: 'posFixadoPct', label: 'Pós-Fixado (%)' },
+                    { key: 'preFixadoPct', label: 'Pré-Fixado (%)' },
+                    { key: 'indexadoInflacaoPct', label: 'Indexado à Inflação (%)' },
+                    { key: 'rendaVariavelPct', label: 'Renda Variável (%)' },
+                    { key: 'rendaPassivaPct', label: 'Renda Passiva / FIIs (%)' },
+                    { key: 'internacionalPct', label: 'Internacional (%)' },
+                    { key: 'alternativosPct', label: 'Alternativos (%)' },
+                    { key: 'caixaPct', label: 'Caixa / Oportunidade (%)' },
+                  ].map(({ key, label }) => (
+                    <div key={key} className="space-y-1">
+                      <Label className="text-xs">{label}</Label>
+                      <Input type="number" min="0" max="100" value={(data as any)[key]} onChange={(e) => update({ [key]: e.target.value } as any)} className="crm-input" />
+                    </div>
+                  ))}
+                </div>
+
+                {pieData.length > 0 && (
+                  <div className="h-[220px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2}>
+                          {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                        </Pie>
+                        <Tooltip formatter={(value: number) => `${value}%`} />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-3 border-t border-border space-y-2">
+                <Label className="font-medium">Pilares estratégicos (até 5)</Label>
+                {data.strategicPillars.map((p) => (
+                  <div key={p.id} className="flex gap-2 items-center">
+                    <Input value={p.name} onChange={(e) => updatePillar(p.id, e.target.value)} className="crm-input" placeholder="Ex: Diversificação financeira" />
+                    <Button type="button" variant="ghost" size="icon" onClick={() => removePillar(p.id)} className="h-9 w-9 text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                  </div>
+                ))}
+                {data.strategicPillars.length < 5 && (
+                  <Button type="button" variant="outline" size="sm" onClick={addPillar}><Plus className="w-4 h-4 mr-1" />Adicionar pilar</Button>
+                )}
+              </div>
+
+              <div className="pt-3 border-t border-border space-y-3">
+                <h5 className="font-medium text-foreground">Diretrizes</h5>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label>Eficiência tributária</Label>
+                    <Select value={data.taxEfficiency} onValueChange={(v) => update({ taxEfficiency: v })}>
+                      <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                      <SelectContent>
+                        {['Alta prioridade', 'Moderada', 'Baixa prioridade'].map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1"><Label>Notas sobre tributação</Label><Input value={data.taxEfficiencyNotes} onChange={(e) => update({ taxEfficiencyNotes: e.target.value })} className="crm-input" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label>Regra de rebalanceamento</Label>
+                    <Select value={data.rebalancingRule} onValueChange={(v) => update({ rebalancingRule: v })}>
+                      <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                      <SelectContent>
+                        {['Trimestral fixo', 'Semestral fixo', 'Anual fixo', 'Sob demanda (desvio > X%)'].map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1"><Label>Estrutura recomendada</Label><Input value={data.recommendedStructure} onChange={(e) => update({ recommendedStructure: e.target.value })} className="crm-input" placeholder="Ex: PF + PJ + Holding" /></div>
+                </div>
               </div>
             </div>
             <CommentButton value={data.bloco8Comment} onChange={(v) => update({ bloco8Comment: v })} />
