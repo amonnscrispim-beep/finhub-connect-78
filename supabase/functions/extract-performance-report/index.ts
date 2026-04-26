@@ -62,7 +62,7 @@ serve(async (req) => {
 
     // Read file as base64
     const arrayBuffer = await file.arrayBuffer();
-    const base64 = base64Encode(new Uint8Array(arrayBuffer));
+    const base64 = base64Encode(arrayBuffer);
 
     const ext = file.name.split('.').pop()?.toLowerCase();
     let dataMime = mimeType;
