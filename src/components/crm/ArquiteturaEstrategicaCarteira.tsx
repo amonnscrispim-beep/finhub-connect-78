@@ -1,11 +1,7 @@
-import { useState, useMemo } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Progress } from '@/components/ui/progress';
-import { Plus, Trash2 } from 'lucide-react';
+import { CarteirasRecomendadas } from '@/components/crm/carteiras/CarteirasRecomendadas';
 
 export interface ArquiteturaEstrategicaData {
   dominantObjective: string;
@@ -13,13 +9,13 @@ export interface ArquiteturaEstrategicaData {
   strategicHorizon: string;
   structuralLiquidity: string;
   pillars: string[];
-  // Macro allocation
+  // Macro allocation (legacy, mantido para retrocompatibilidade)
   fixedIncomePct: number;
   equitiesPct: number;
   internationalPct: number;
   alternativesPct: number;
   cashPct: number;
-  // Final synthesis
+  // Final synthesis (legacy)
   strategicSummary: string;
 }
 
@@ -37,13 +33,7 @@ export const defaultArquiteturaEstrategica: ArquiteturaEstrategicaData = {
   strategicSummary: '',
 };
 
-const OBJECTIVES = [
-  'Preservação patrimonial',
-  'Crescimento de patrimônio',
-  'Construção de renda passiva',
-  'Estratégia equilibrada',
-  'Estratégia fiscal/tributária',
-];
+const OBJECTIVES = ['Renda', 'Crescimento'];
 
 const RISK_LEVELS = ['Conservador', 'Moderado', 'Arrojado'];
 
@@ -74,34 +64,7 @@ export function ArquiteturaEstrategicaCarteira({ data, onChange }: Props) {
     onChange({ ...safeData, ...partial });
   };
 
-  const [newPillar, setNewPillar] = useState('');
-
-  const addPillar = () => {
-    const trimmed = newPillar.trim();
-    if (trimmed && (safeData.pillars?.length || 0) < 5) {
-      update({ pillars: [...(safeData.pillars || []), trimmed] });
-      setNewPillar('');
-    }
-  };
-
-  const removePillar = (index: number) => {
-    update({ pillars: (safeData.pillars || []).filter((_, i) => i !== index) });
-  };
-
-  const pctFields = [
-    { key: 'fixedIncomePct' as const, label: 'Renda Fixa (%)' },
-    { key: 'equitiesPct' as const, label: 'Renda Variável (%)' },
-    { key: 'internationalPct' as const, label: 'Internacional (%)' },
-    { key: 'alternativesPct' as const, label: 'Alternativos / Estruturados (%)' },
-    { key: 'cashPct' as const, label: 'Caixa / Oportunidade (%)' },
-  ];
-
-  const totalPct = useMemo(() => {
-    return pctFields.reduce((sum, f) => sum + (safeData[f.key] || 0), 0);
-  }, [safeData.fixedIncomePct, safeData.equitiesPct, safeData.internationalPct, safeData.alternativesPct, safeData.cashPct]);
-
-  const isValid = Math.abs(totalPct - 100) < 0.01;
-  const hasAnyValue = totalPct > 0;
+  const showCarteiras = !!safeData.dominantObjective && !!safeData.riskLevel;
 
   return (
     <div className="space-y-6">
@@ -161,99 +124,16 @@ export function ArquiteturaEstrategicaCarteira({ data, onChange }: Props) {
         <ConsultantNote>Liquidez é o "cinto de segurança" que evita resgate em crise.</ConsultantNote>
       </div>
 
-      {/* 5️⃣ Pilares Estratégicos */}
-      <div className="p-4 bg-muted/20 rounded-lg border border-border space-y-3">
-        <h4 className="font-medium text-foreground">5️⃣ Pilares Estratégicos da Carteira</h4>
-        <Label>Defina até 5 pilares estratégicos:</Label>
-        <div className="space-y-2">
-          {(safeData.pillars || []).map((pillar, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <span className="text-sm flex-1 bg-muted/50 px-3 py-2 rounded-md border border-border">{pillar}</span>
-              <Button type="button" variant="ghost" size="sm" onClick={() => removePillar(index)} className="text-destructive hover:text-destructive">
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
-          ))}
-          {(safeData.pillars?.length || 0) < 5 && (
-            <div className="flex items-center gap-2">
-              <Input
-                value={newPillar}
-                onChange={(e) => setNewPillar(e.target.value)}
-                placeholder="Ex: Diversificação financeira"
-                className="crm-input flex-1"
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addPillar(); } }}
-              />
-              <Button type="button" variant="outline" size="sm" onClick={addPillar} disabled={!newPillar.trim()}>
-                <Plus className="w-4 h-4 mr-1" /> Adicionar
-              </Button>
-            </div>
-          )}
+      {/* Carteiras Recomendadas — exibido quando objetivo + risco preenchidos */}
+      {showCarteiras && (
+        <div className="p-4 bg-muted/20 rounded-lg border border-border space-y-3">
+          <h4 className="font-medium text-foreground">Carteiras Recomendadas</h4>
+          <p className="text-xs text-muted-foreground">
+            Sugestões para perfil <strong>{safeData.riskLevel}</strong> com objetivo de <strong>{safeData.dominantObjective}</strong>.
+          </p>
+          <CarteirasRecomendadas />
         </div>
-        <ConsultantNote>Definir arquitetura antes da seleção de ativos.</ConsultantNote>
-      </div>
-
-      {/* 6️⃣ Diretrizes de Alocação Macro */}
-      <div className="p-4 bg-muted/50 rounded-lg border border-border space-y-4">
-        <h4 className="font-medium text-foreground">6️⃣ Diretrizes de Alocação Macro</h4>
-        <div className="space-y-3">
-          {pctFields.map(f => (
-            <div key={f.key} className="flex items-center gap-3">
-              <Label className="flex-1 text-sm">{f.label}</Label>
-              <div className="flex items-center gap-1">
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.5"
-                  value={safeData[f.key] || ''}
-                  onChange={(e) => update({ [f.key]: parseFloat(e.target.value) || 0 } as any)}
-                  className="crm-input w-[80px] text-right"
-                  placeholder="0"
-                />
-                <span className="text-sm text-muted-foreground">%</span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Total validation */}
-        {hasAnyValue && (
-          <div className="space-y-2 pt-2 border-t border-border">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Total da Alocação:</span>
-              <span className={isValid ? 'text-green-600 font-medium' : 'text-destructive font-medium'}>
-                {totalPct.toFixed(1)}%
-              </span>
-            </div>
-            <Progress 
-              value={Math.min(totalPct, 100)} 
-              className={`h-2 ${!isValid ? '[&>div]:bg-destructive' : '[&>div]:bg-green-600'}`} 
-            />
-            {!isValid && (
-              <p className="text-xs text-destructive">
-                {totalPct < 100 
-                  ? `Faltam ${(100 - totalPct).toFixed(1)}% para completar a alocação.`
-                  : `Alocação excede 100% em ${(totalPct - 100).toFixed(1)}%.`
-                }
-              </p>
-            )}
-          </div>
-        )}
-        <ConsultantNote>Aqui nasce o mapa da carteira. Depois você só "preenche" com ativos.</ConsultantNote>
-      </div>
-
-      {/* 7️⃣ Síntese Estratégica Final */}
-      <div className="p-4 bg-primary/5 rounded-lg border-2 border-primary/30 space-y-3">
-        <h4 className="font-semibold text-primary">7️⃣ Síntese Estratégica Final</h4>
-        <Label>Resumo estratégico da arquitetura da carteira</Label>
-        <Textarea
-          value={safeData.strategicSummary}
-          onChange={(e) => update({ strategicSummary: e.target.value })}
-          placeholder="Descreva: onde o cliente está, para onde precisa ir, o que corrigir e qual o caminho estratégico da carteira..."
-          className="crm-input min-h-[120px]"
-        />
-        <ConsultantNote>Este campo consolida a visão estratégica antes da seleção de ativos.</ConsultantNote>
-      </div>
+      )}
     </div>
   );
 }
