@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import DOMPurify from 'dompurify';
 import { FileDown, Copy, MessageCircle, Trash2, PenLine, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -144,7 +145,7 @@ export function ResumoDetailModal({ report, open, onOpenChange, onDelete, onWhat
             />
           ) : (
             <>
-              <div dangerouslySetInnerHTML={{ __html: `<div class="text-sm leading-relaxed">${markdownToHtml(currentContent)}</div>` }} />
+              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(`<div class="text-sm leading-relaxed">${markdownToHtml(currentContent)}</div>`) }} />
               {report.images?.length > 0 && (
                 <div className="mt-4 space-y-3 pt-4 border-t border-border">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Anexos visuais</p>
