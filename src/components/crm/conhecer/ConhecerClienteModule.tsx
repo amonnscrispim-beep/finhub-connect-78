@@ -1029,15 +1029,6 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1">
-                  <Label>Grau de complexidade</Label>
-                  <Select value={data.complexityLevel} onValueChange={(v) => update({ complexityLevel: v })}>
-                    <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>
-                      {['Simples', 'Moderado', 'Complexo'].map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
               <div className="space-y-1"><Label>Principais riscos identificados</Label><Textarea value={data.identifiedRisks} onChange={(e) => update({ identifiedRisks: e.target.value })} className="crm-input min-h-[60px]" /></div>
 
