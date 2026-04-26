@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
         // Map form responses to strategic_diagnostic structure
         const formResponses = responses as Record<string, unknown>;
 
-        const strategicDiagnostic = {
+        const strategicDiagnostic: Record<string, unknown> = {
           ...existing,
           wealthBuilding: formResponses.wealthBuilding || existing.wealthBuilding || "",
           lifePhaseAnswer: formResponses.lifePhaseAnswer || existing.lifePhaseAnswer || "",
