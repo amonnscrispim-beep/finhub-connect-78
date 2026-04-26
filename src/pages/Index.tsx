@@ -326,59 +326,73 @@ function CRMDashboard() {
               </div>
 
               <TabsContent value="table" className="mt-4 animate-fade-in">
-                <TableView onEditClient={handleEditClient} searchQuery={searchQuery} />
+                <ErrorBoundary label="Tabela de Clientes">
+                  <TableView onEditClient={handleEditClient} searchQuery={searchQuery} />
+                </ErrorBoundary>
               </TabsContent>
 
               <TabsContent value="kanban" className="mt-4 animate-fade-in">
-                <div className="crm-card overflow-hidden">
-                  <KanbanView
-                    onEditClient={handleEditClient}
-                    searchQuery={searchQuery}
-                    clientIdsWithPendencies={clientIdsWithPendencies}
-                    pendencies={pendencies}
-                    pendenciesLoading={pendenciesLoading}
-                    onAddPendency={addPendency}
-                    onCompletePendency={completePendency}
-                    onRemovePendency={removePendency}
-                  />
-                </div>
+                <ErrorBoundary label="Kanban">
+                  <div className="crm-card overflow-hidden">
+                    <KanbanView
+                      onEditClient={handleEditClient}
+                      searchQuery={searchQuery}
+                      clientIdsWithPendencies={clientIdsWithPendencies}
+                      pendencies={pendencies}
+                      pendenciesLoading={pendenciesLoading}
+                      onAddPendency={addPendency}
+                      onCompletePendency={completePendency}
+                      onRemovePendency={removePendency}
+                    />
+                  </div>
+                </ErrorBoundary>
               </TabsContent>
             </Tabs>
           </TabsContent>
 
           {/* DASHBOARD EXECUTIVO - New strategic dashboard */}
           <TabsContent value="executivo" className="animate-fade-in">
-            <DashboardExecutive onEditClient={handleEditClient} />
+            <ErrorBoundary label="Dashboard Executivo">
+              <DashboardExecutive onEditClient={handleEditClient} />
+            </ErrorBoundary>
           </TabsContent>
 
           {/* ÁREA DE ESTUDOS - Educational content */}
           <TabsContent value="estudos" className="animate-fade-in">
-            <StudiesArea />
+            <ErrorBoundary label="Área de Estudos">
+              <StudiesArea />
+            </ErrorBoundary>
           </TabsContent>
 
           {/* FERRAMENTAS */}
           <TabsContent value="ferramentas" className="animate-fade-in">
-            {ferramentaAtiva === 'juros-compostos' && <JurosCompostos />}
-            {ferramentaAtiva === 'milhao' && <CalculadoraMilhao />}
-            {ferramentaAtiva === 'patrimonio-idade' && <PatrimonioIdade />}
-            {ferramentaAtiva === 'alugar-financiar' && <AlugarOuFinanciar />}
-            {ferramentaAtiva === 'vista-parcelada' && <VistaOuParcelada />}
-            {ferramentaAtiva === 'iof-caixinha' && <IOFCaixinha />}
-            {ferramentaAtiva === 'cdb' && <SimuladorCDB />}
-            {ferramentaAtiva === 'lci-lca' && <SimuladorLCILCA />}
-            {ferramentaAtiva === 'tesouro-pre' && <SimuladorTesouroPre />}
-            {ferramentaAtiva === 'tesouro-selic' && <SimuladorTesouroSelic />}
-            {ferramentaAtiva === 'dividendos' && <ViverDeDividendos />}
+            <ErrorBoundary label="Ferramentas">
+              {ferramentaAtiva === 'juros-compostos' && <JurosCompostos />}
+              {ferramentaAtiva === 'milhao' && <CalculadoraMilhao />}
+              {ferramentaAtiva === 'patrimonio-idade' && <PatrimonioIdade />}
+              {ferramentaAtiva === 'alugar-financiar' && <AlugarOuFinanciar />}
+              {ferramentaAtiva === 'vista-parcelada' && <VistaOuParcelada />}
+              {ferramentaAtiva === 'iof-caixinha' && <IOFCaixinha />}
+              {ferramentaAtiva === 'cdb' && <SimuladorCDB />}
+              {ferramentaAtiva === 'lci-lca' && <SimuladorLCILCA />}
+              {ferramentaAtiva === 'tesouro-pre' && <SimuladorTesouroPre />}
+              {ferramentaAtiva === 'tesouro-selic' && <SimuladorTesouroSelic />}
+              {ferramentaAtiva === 'dividendos' && <ViverDeDividendos />}
+            </ErrorBoundary>
           </TabsContent>
 
           {/* CARTEIRAS RECOMENDADAS */}
           <TabsContent value="carteiras" className="animate-fade-in">
-            <CarteirasRecomendadas />
+            <ErrorBoundary label="Carteiras Recomendadas">
+              <CarteirasRecomendadas />
+            </ErrorBoundary>
           </TabsContent>
 
           {/* GERADOR DE RESUMOS */}
           <TabsContent value="gerador" className="animate-fade-in">
-            <GeradorResumos />
+            <ErrorBoundary label="Gerador de Resumos">
+              <GeradorResumos />
+            </ErrorBoundary>
           </TabsContent>
         </Tabs>
       </main>
