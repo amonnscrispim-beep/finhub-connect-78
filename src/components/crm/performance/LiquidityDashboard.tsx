@@ -208,6 +208,12 @@ export function LiquidityDashboard({ reports, clientName = '' }: LiquidityDashbo
 
       {/* ── Section 4: Alertas ── */}
       <StrategicAlerts alerts={data.alerts} />
+
+      <PerformanceSummaryModal
+        open={summaryOpen}
+        onOpenChange={setSummaryOpen}
+        snapshot={summaryOpen ? snapshot : null}
+      />
     </div>
   );
 }
