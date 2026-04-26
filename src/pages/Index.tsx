@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Component, ReactNode, ErrorInfo } from 'react';
 import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2, CalendarPlus, GraduationCap, Users, History, Briefcase, FileText } from 'lucide-react';
 import { ClientProvider, useClients } from '@/contexts/ClientContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -43,6 +43,59 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
+// Safe date formatter — returns '' for null/undefined or invalid dates
+function safeDate(value: Date | string | null | undefined): string {
+  if (!value) return '';
+  try {
+    return new Date(value).toISOString().split('T')[0];
+  } catch {
+    return '';
+  }
+}
+
+// Error boundary to prevent a single tab/module crash from breaking the whole app
+interface ErrorBoundaryProps {
+  children: ReactNode;
+  label?: string;
+}
+interface ErrorBoundaryState {
+  hasError: boolean;
+  errorMessage: string;
+}
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, errorMessage: '' };
+  }
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, errorMessage: error.message };
+  }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error(`[ErrorBoundary:${this.props.label ?? 'unknown'}]`, error, info);
+  }
+  handleReset = () => this.setState({ hasError: false, errorMessage: '' });
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="border border-destructive/30 bg-destructive/5 rounded-lg p-6 text-center space-y-3">
+          <p className="text-sm font-medium text-destructive">
+            Ocorreu um erro em {this.props.label ?? 'este módulo'}.
+          </p>
+          {this.state.errorMessage && (
+            <p className="text-xs text-muted-foreground font-mono break-all">
+              {this.state.errorMessage}
+            </p>
+          )}
+          <Button variant="outline" size="sm" onClick={this.handleReset}>
+            Tentar novamente
+          </Button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function CRMDashboard() {
   const { clients, isLoading } = useClients();
   const { user, signOut } = useAuth();
@@ -68,7 +121,9 @@ function CRMDashboard() {
     return clients.filter(client => 
       client.name.toLowerCase().includes(query) ||
       client.profession.toLowerCase().includes(query) ||
-      client.objective.toLowerCase().includes(query)
+      client.objective.toLowerCase().includes(query) ||
+      client.city?.toLowerCase().includes(query) ||
+      client.email?.toLowerCase().includes(query)
     );
   }, [clients, searchQuery]);
 
@@ -108,11 +163,11 @@ function CRMDashboard() {
       client.monthlyContribution.toString(),
       client.funnelStage,
       client.renewalStatus || '',
-      client.renewalDate ? new Date(client.renewalDate).toISOString().split('T')[0] : '',
+      safeDate(client.renewalDate),
       client.renewed ? 'Sim' : 'Não',
       client.renewalPotential ? 'Sim' : 'Não',
-      client.contractStart.toISOString().split('T')[0],
-      client.contractEnd.toISOString().split('T')[0],
+      safeDate(client.contractStart),
+      safeDate(client.contractEnd),
     ]);
 
     const csvContent = [
@@ -223,17 +278,19 @@ function CRMDashboard() {
           {/* DASHBOARD OPERACIONAL - Existing functionality preserved */}
           <TabsContent value="operacional" className="space-y-6 animate-fade-in">
             {/* Alerts */}
-            <BirthdayAlerts onEditClient={handleEditClient} />
-            <RenewalAlerts onEditClient={handleEditClient} />
-            <MeetingAlerts onEditClient={handleEditClient} />
-            <InactivityAlerts onEditClient={handleEditClient} />
+            <ErrorBoundary label="Aniversários"><BirthdayAlerts onEditClient={handleEditClient} /></ErrorBoundary>
+            <ErrorBoundary label="Renovações"><RenewalAlerts onEditClient={handleEditClient} /></ErrorBoundary>
+            <ErrorBoundary label="Reuniões"><MeetingAlerts onEditClient={handleEditClient} /></ErrorBoundary>
+            <ErrorBoundary label="Inatividade"><InactivityAlerts onEditClient={handleEditClient} /></ErrorBoundary>
 
             {/* Stats */}
-            <StatsCards 
-              onTotalClientsClick={() => setTotalClientsModalOpen(true)}
-              onRenewalsClick={() => setRenewalsModalOpen(true)}
-              onFinancialAssetsClick={() => setFinancialAssetsModalOpen(true)}
-            />
+            <ErrorBoundary label="Indicadores">
+              <StatsCards 
+                onTotalClientsClick={() => setTotalClientsModalOpen(true)}
+                onRenewalsClick={() => setRenewalsModalOpen(true)}
+                onFinancialAssetsClick={() => setFinancialAssetsModalOpen(true)}
+              />
+            </ErrorBoundary>
 
             {/* Views */}
             <Tabs value={view} onValueChange={(v) => setView(v as 'table' | 'kanban')} className="space-y-4">
@@ -269,59 +326,73 @@ function CRMDashboard() {
               </div>
 
               <TabsContent value="table" className="mt-4 animate-fade-in">
-                <TableView onEditClient={handleEditClient} searchQuery={searchQuery} />
+                <ErrorBoundary label="Tabela de Clientes">
+                  <TableView onEditClient={handleEditClient} searchQuery={searchQuery} />
+                </ErrorBoundary>
               </TabsContent>
 
               <TabsContent value="kanban" className="mt-4 animate-fade-in">
-                <div className="crm-card overflow-hidden">
-                  <KanbanView
-                    onEditClient={handleEditClient}
-                    searchQuery={searchQuery}
-                    clientIdsWithPendencies={clientIdsWithPendencies}
-                    pendencies={pendencies}
-                    pendenciesLoading={pendenciesLoading}
-                    onAddPendency={addPendency}
-                    onCompletePendency={completePendency}
-                    onRemovePendency={removePendency}
-                  />
-                </div>
+                <ErrorBoundary label="Kanban">
+                  <div className="crm-card overflow-hidden">
+                    <KanbanView
+                      onEditClient={handleEditClient}
+                      searchQuery={searchQuery}
+                      clientIdsWithPendencies={clientIdsWithPendencies}
+                      pendencies={pendencies}
+                      pendenciesLoading={pendenciesLoading}
+                      onAddPendency={addPendency}
+                      onCompletePendency={completePendency}
+                      onRemovePendency={removePendency}
+                    />
+                  </div>
+                </ErrorBoundary>
               </TabsContent>
             </Tabs>
           </TabsContent>
 
           {/* DASHBOARD EXECUTIVO - New strategic dashboard */}
           <TabsContent value="executivo" className="animate-fade-in">
-            <DashboardExecutive onEditClient={handleEditClient} />
+            <ErrorBoundary label="Dashboard Executivo">
+              <DashboardExecutive onEditClient={handleEditClient} />
+            </ErrorBoundary>
           </TabsContent>
 
           {/* ÁREA DE ESTUDOS - Educational content */}
           <TabsContent value="estudos" className="animate-fade-in">
-            <StudiesArea />
+            <ErrorBoundary label="Área de Estudos">
+              <StudiesArea />
+            </ErrorBoundary>
           </TabsContent>
 
           {/* FERRAMENTAS */}
           <TabsContent value="ferramentas" className="animate-fade-in">
-            {ferramentaAtiva === 'juros-compostos' && <JurosCompostos />}
-            {ferramentaAtiva === 'milhao' && <CalculadoraMilhao />}
-            {ferramentaAtiva === 'patrimonio-idade' && <PatrimonioIdade />}
-            {ferramentaAtiva === 'alugar-financiar' && <AlugarOuFinanciar />}
-            {ferramentaAtiva === 'vista-parcelada' && <VistaOuParcelada />}
-            {ferramentaAtiva === 'iof-caixinha' && <IOFCaixinha />}
-            {ferramentaAtiva === 'cdb' && <SimuladorCDB />}
-            {ferramentaAtiva === 'lci-lca' && <SimuladorLCILCA />}
-            {ferramentaAtiva === 'tesouro-pre' && <SimuladorTesouroPre />}
-            {ferramentaAtiva === 'tesouro-selic' && <SimuladorTesouroSelic />}
-            {ferramentaAtiva === 'dividendos' && <ViverDeDividendos />}
+            <ErrorBoundary label="Ferramentas">
+              {ferramentaAtiva === 'juros-compostos' && <JurosCompostos />}
+              {ferramentaAtiva === 'milhao' && <CalculadoraMilhao />}
+              {ferramentaAtiva === 'patrimonio-idade' && <PatrimonioIdade />}
+              {ferramentaAtiva === 'alugar-financiar' && <AlugarOuFinanciar />}
+              {ferramentaAtiva === 'vista-parcelada' && <VistaOuParcelada />}
+              {ferramentaAtiva === 'iof-caixinha' && <IOFCaixinha />}
+              {ferramentaAtiva === 'cdb' && <SimuladorCDB />}
+              {ferramentaAtiva === 'lci-lca' && <SimuladorLCILCA />}
+              {ferramentaAtiva === 'tesouro-pre' && <SimuladorTesouroPre />}
+              {ferramentaAtiva === 'tesouro-selic' && <SimuladorTesouroSelic />}
+              {ferramentaAtiva === 'dividendos' && <ViverDeDividendos />}
+            </ErrorBoundary>
           </TabsContent>
 
           {/* CARTEIRAS RECOMENDADAS */}
           <TabsContent value="carteiras" className="animate-fade-in">
-            <CarteirasRecomendadas />
+            <ErrorBoundary label="Carteiras Recomendadas">
+              <CarteirasRecomendadas />
+            </ErrorBoundary>
           </TabsContent>
 
           {/* GERADOR DE RESUMOS */}
           <TabsContent value="gerador" className="animate-fade-in">
-            <GeradorResumos />
+            <ErrorBoundary label="Gerador de Resumos">
+              <GeradorResumos />
+            </ErrorBoundary>
           </TabsContent>
         </Tabs>
       </main>
