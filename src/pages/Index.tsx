@@ -278,17 +278,19 @@ function CRMDashboard() {
           {/* DASHBOARD OPERACIONAL - Existing functionality preserved */}
           <TabsContent value="operacional" className="space-y-6 animate-fade-in">
             {/* Alerts */}
-            <BirthdayAlerts onEditClient={handleEditClient} />
-            <RenewalAlerts onEditClient={handleEditClient} />
-            <MeetingAlerts onEditClient={handleEditClient} />
-            <InactivityAlerts onEditClient={handleEditClient} />
+            <ErrorBoundary label="Aniversários"><BirthdayAlerts onEditClient={handleEditClient} /></ErrorBoundary>
+            <ErrorBoundary label="Renovações"><RenewalAlerts onEditClient={handleEditClient} /></ErrorBoundary>
+            <ErrorBoundary label="Reuniões"><MeetingAlerts onEditClient={handleEditClient} /></ErrorBoundary>
+            <ErrorBoundary label="Inatividade"><InactivityAlerts onEditClient={handleEditClient} /></ErrorBoundary>
 
             {/* Stats */}
-            <StatsCards 
-              onTotalClientsClick={() => setTotalClientsModalOpen(true)}
-              onRenewalsClick={() => setRenewalsModalOpen(true)}
-              onFinancialAssetsClick={() => setFinancialAssetsModalOpen(true)}
-            />
+            <ErrorBoundary label="Indicadores">
+              <StatsCards 
+                onTotalClientsClick={() => setTotalClientsModalOpen(true)}
+                onRenewalsClick={() => setRenewalsModalOpen(true)}
+                onFinancialAssetsClick={() => setFinancialAssetsModalOpen(true)}
+              />
+            </ErrorBoundary>
 
             {/* Views */}
             <Tabs value={view} onValueChange={(v) => setView(v as 'table' | 'kanban')} className="space-y-4">
