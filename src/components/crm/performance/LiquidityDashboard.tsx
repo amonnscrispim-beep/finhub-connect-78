@@ -107,6 +107,16 @@ export function LiquidityDashboard({ reports, clientName = '' }: LiquidityDashbo
               {copiedField === 'dash_copy' ? <Check className="w-4 h-4 text-primary mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
               Copiar resumo
             </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSummaryOpen(true); }}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              disabled={data.totalGross === 0}
+            >
+              <Sparkles className="w-4 h-4 mr-1" />
+              Gerar Resumo do Relatório
+            </Button>
           </div>
         </div>
 
