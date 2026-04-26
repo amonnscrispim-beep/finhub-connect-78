@@ -159,7 +159,16 @@ export function ClientFormLink({ clientId, clientName, onFormCompleted }: Client
           <span className="text-sm font-medium text-foreground">Resumo do Cliente</span>
         </div>
 
-        <Button size="sm" onClick={() => setSummaryOpen(true)} className="gap-1.5">
+        <Button
+          size="sm"
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setSummaryOpen(true);
+          }}
+          className="gap-1.5"
+        >
           <FileText className="w-3.5 h-3.5" />
           Gerar Resumo do Cliente
         </Button>
