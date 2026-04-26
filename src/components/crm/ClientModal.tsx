@@ -1376,6 +1376,11 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               </div>
             </div>
 
+            {/* SECTION: Extrato do Cliente */}
+            <div hidden={activeTab !== 'extrato'} className="space-y-4">
+              <ClientStatementModule clientId={client?.id} clientName={formData.name || client?.name || ''} />
+            </div>
+
             {/* SECTION: Arquivos e Resumos (Resultado da Consultoria + Arquivos do Cliente) */}
             <div hidden={activeTab !== 'reports'} className="space-y-4">
               {/* Resultado da Consultoria */}
