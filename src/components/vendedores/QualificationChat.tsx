@@ -58,11 +58,13 @@ export function QualificationChat({ lead, qualificacaoId, onBack, onReportGenera
     let assistantContent = '';
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('Não autenticado');
       const resp = await fetch(CHAT_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ messages: [], leadName: lead.nome }),
       });
@@ -132,11 +134,13 @@ export function QualificationChat({ lead, qualificacaoId, onBack, onReportGenera
     let assistantContent = '';
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('Não autenticado');
       const resp = await fetch(CHAT_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ messages: allMessages, leadName: lead.nome }),
       });
@@ -190,11 +194,13 @@ export function QualificationChat({ lead, qualificacaoId, onBack, onReportGenera
     if (!user) return;
     setIsGeneratingReport(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('Não autenticado');
       const resp = await fetch(REPORT_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ chatHistory: messages, leadName: lead.nome }),
       });

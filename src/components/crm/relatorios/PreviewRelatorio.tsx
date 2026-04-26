@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import DOMPurify from 'dompurify';
 import { FileText, Copy, MessageCircle, FileDown, PenLine, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -143,7 +144,7 @@ export function PreviewRelatorio({ markdown, isGenerating, images, onOpenWhatsAp
               </div>
               <div
                 className="report-content"
-                dangerouslySetInnerHTML={{ __html: markdownToHtml(markdown) }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(markdownToHtml(markdown)) }}
               />
               {images.length > 0 && (
                 <div className="space-y-3 pt-4 border-t border-border">

@@ -71,9 +71,22 @@ Deno.serve(async (req) => {
       exp: Date.now() + 10 * 60 * 1000, // 10 minutes expiration
       nonce: crypto.randomUUID()
     };
-    
-    // Encode state as base64
-    const state = btoa(JSON.stringify(stateData));
+
+    // Sign the state with HMAC-SHA256 to prevent tampering
+    const stateJson = JSON.stringify(stateData);
+    const secret = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    const sigBuf = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(stateJson));
+    const sig = btoa(String.fromCharCode(...new Uint8Array(sigBuf)));
+
+    // Encode signed state as base64
+    const state = btoa(JSON.stringify({ data: stateData, sig }));
 
     // Build Google OAuth URL
     const scopes = [
