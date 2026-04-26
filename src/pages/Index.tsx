@@ -163,11 +163,11 @@ function CRMDashboard() {
       client.monthlyContribution.toString(),
       client.funnelStage,
       client.renewalStatus || '',
-      client.renewalDate ? new Date(client.renewalDate).toISOString().split('T')[0] : '',
+      safeDate(client.renewalDate),
       client.renewed ? 'Sim' : 'Não',
       client.renewalPotential ? 'Sim' : 'Não',
-      client.contractStart.toISOString().split('T')[0],
-      client.contractEnd.toISOString().split('T')[0],
+      safeDate(client.contractStart),
+      safeDate(client.contractEnd),
     ]);
 
     const csvContent = [
