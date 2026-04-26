@@ -31,13 +31,43 @@ Deno.serve(async (req) => {
       return new Response('Missing authorization code or state', { status: 400 });
     }
 
-    // Decode and validate state
-    let stateData;
+    // Decode and validate state (signed envelope)
+    let envelope;
     try {
-      stateData = JSON.parse(atob(stateParam));
+      envelope = JSON.parse(atob(stateParam));
     } catch (e) {
       console.error('Invalid state format:', e);
       return new Response('Invalid state', { status: 400 });
+    }
+
+    const { data: stateData, sig } = envelope || {};
+    if (!stateData || !sig) {
+      console.error('State missing data or signature');
+      return new Response('Invalid state', { status: 400 });
+    }
+
+    // Verify HMAC signature
+    const secret = SUPABASE_SERVICE_ROLE_KEY;
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+    const sigBytes = Uint8Array.from(atob(sig), c => c.charCodeAt(0));
+    const valid = await crypto.subtle.verify(
+      'HMAC',
+      key,
+      sigBytes,
+      new TextEncoder().encode(JSON.stringify(stateData))
+    );
+    if (!valid) {
+      console.error('Invalid state signature - possible tampering');
+      return new Response(null, {
+        status: 302,
+        headers: { 'Location': '/?google_error=invalid_state' }
+      });
     }
 
     const { userId, returnUrl, exp } = stateData;
@@ -127,18 +157,27 @@ Deno.serve(async (req) => {
 
     console.log('OAuth tokens saved successfully');
 
-    // Redirect back to the app - returnUrl should be a full URL
-    // If it's just a path, we need a fallback
+    // Redirect back to the app - validate returnUrl against allowlist
+    const ALLOWED_ORIGINS = [
+      'https://finhub-connect-78.lovable.app',
+      'https://id-preview--deeca564-47f8-41b0-9377-28804c48eb94.lovable.app',
+    ];
+    const FRONTEND_FALLBACK = 'https://finhub-connect-78.lovable.app';
+
     let successUrl = returnUrl || '/';
-    
-    // If returnUrl is just a path (starts with /), we can't redirect to it from edge function
-    // We need to use a known frontend URL
+
+    // If returnUrl is just a path (starts with /), prefix with fallback frontend URL
     if (successUrl.startsWith('/')) {
-      // Use the preview or published URL based on environment
-      const frontendUrl = 'https://finhub-connect-78.lovable.app';
-      successUrl = frontendUrl + successUrl;
+      successUrl = FRONTEND_FALLBACK + successUrl;
     }
-    
+
+    // Enforce allowlist - reject any URL not on a known origin
+    const isAllowed = ALLOWED_ORIGINS.some(origin => successUrl.startsWith(origin + '/') || successUrl === origin);
+    if (!isAllowed) {
+      console.warn('Rejected returnUrl not in allowlist:', successUrl);
+      successUrl = FRONTEND_FALLBACK + '/';
+    }
+
     // Add success parameter
     successUrl = successUrl + (successUrl.includes('?') ? '&' : '?') + 'google=connected';
     
