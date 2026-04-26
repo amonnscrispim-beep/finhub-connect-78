@@ -52,6 +52,115 @@ export type Database = {
           },
         ]
       }
+      client_extract_assets: {
+        Row: {
+          asset_class: string
+          asset_name: string
+          asset_type: string
+          created_at: string
+          display_order: number
+          gross_value: number
+          id: string
+          is_tax_exempt: boolean
+          issuer: string | null
+          maturity_date: string | null
+          percentage: number
+          rate: string | null
+          snapshot_id: string
+          user_id: string
+        }
+        Insert: {
+          asset_class?: string
+          asset_name?: string
+          asset_type?: string
+          created_at?: string
+          display_order?: number
+          gross_value?: number
+          id?: string
+          is_tax_exempt?: boolean
+          issuer?: string | null
+          maturity_date?: string | null
+          percentage?: number
+          rate?: string | null
+          snapshot_id: string
+          user_id: string
+        }
+        Update: {
+          asset_class?: string
+          asset_name?: string
+          asset_type?: string
+          created_at?: string
+          display_order?: number
+          gross_value?: number
+          id?: string
+          is_tax_exempt?: boolean
+          issuer?: string | null
+          maturity_date?: string | null
+          percentage?: number
+          rate?: string | null
+          snapshot_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_extract_assets_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "client_extract_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_extract_snapshots: {
+        Row: {
+          broker: string | null
+          client_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          pdf_filename: string | null
+          pdf_url: string | null
+          snapshot_date: string
+          total_patrimony: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          broker?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          pdf_filename?: string | null
+          pdf_url?: string | null
+          snapshot_date?: string
+          total_patrimony?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          broker?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          pdf_filename?: string | null
+          pdf_url?: string | null
+          snapshot_date?: string
+          total_patrimony?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_extract_snapshots_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_form_tokens: {
         Row: {
           client_id: string

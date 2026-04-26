@@ -80,6 +80,7 @@ import { ClientFormLink } from './ClientFormLink';
 import { useClientPortfolio } from '@/hooks/useClientPortfolio';
 import { DirecionamentoEstrategico, defaultDirecionamentoEstrategico, DirecionamentoEstrategicoData } from './DirecionamentoEstrategico';
 import { ClientPortfolioSection } from './ClientPortfolioSection';
+import { ClientStatementModule } from './extrato/ClientStatementModule';
 
 import { ArquiteturaCarteira, defaultArquiteturaCarteira, ArquiteturaCarteiraData } from './ArquiteturaCarteira';
 import { ConhecerClienteModule } from './conhecer/ConhecerClienteModule';
@@ -714,6 +715,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     { id: 'contracts', label: 'Contratos e Entregas', icon: ClipboardList },
     { id: 'tasks', label: 'Tarefas e Status', icon: CheckCircle },
     { id: 'performance', label: 'Relatório de Performance', icon: BarChart3 },
+    { id: 'extrato', label: 'Extrato do Cliente', icon: Wallet },
     { id: 'reports', label: 'Arquivos e Resumos', icon: FileText },
   ] as const;
 
@@ -729,6 +731,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     contracts: !!formData.contractedMeetings || !!formData.workDone,
     tasks: !!formData.funnelStage,
     performance: !!client,
+    extrato: !!client,
     reports: (formData.files?.length || 0) > 0 || !!formData.consultingInitialPatrimony,
   };
   const completedCount = Object.values(completionSignals).filter(Boolean).length;
@@ -1371,6 +1374,11 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               <div className="border-t border-border pt-4">
                 <RaioXConsolidado />
               </div>
+            </div>
+
+            {/* SECTION: Extrato do Cliente */}
+            <div hidden={activeTab !== 'extrato'} className="space-y-4">
+              <ClientStatementModule clientId={client?.id} clientName={formData.name || client?.name || ''} />
             </div>
 
             {/* SECTION: Arquivos e Resumos (Resultado da Consultoria + Arquivos do Cliente) */}
