@@ -271,6 +271,7 @@ export function CarteirasRecomendadas() {
         onSelect={setSelectedPortfolio}
         isMaster={isMaster}
         userId={user?.id}
+        onPortfolioCreated={() => loadData({ silent: true })}
       />
       <PortfoliosSection
         recommendedAssets={allAssets}
