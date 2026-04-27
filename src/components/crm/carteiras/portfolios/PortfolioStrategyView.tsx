@@ -85,7 +85,17 @@ function computeAsset(
   const currentPrice = source?.current_price ? Number(source.current_price) : null;
   const isRf = classKey === 'renda_fixa';
   const isFii = classKey === 'fiis';
-  const cotas = !isRf && currentPrice && currentPrice > 0 ? Math.floor(assetValue / currentPrice) : null;
+  // Quantidade de cotas/ações:
+  // - Ações brasileiras e Internacionais (não FII, não RF): número INTEIRO (Math.floor)
+  //   e o valor investido real é recalculado como Qtd × Preço Atual.
+  // - FIIs: aceitam frações (mantém Math.floor mas valor real = qtd × preço também).
+  // - RF: sem cotas.
+  let cotas: number | null = null;
+  let realValue = assetValue;
+  if (!isRf && currentPrice && currentPrice > 0) {
+    cotas = Math.floor(assetValue / currentPrice);
+    realValue = cotas * currentPrice;
+  }
 
   const dyInput = Number(asset.dy_pct) || 0;
   let dvMonth: number;
@@ -95,14 +105,14 @@ function computeAsset(
     dvMonth = dyInput * (cotas || 0);
     dvYear = dvMonth * 12;
   } else if (isRf) {
-    dvYear = assetValue * (dyInput / 100);
+    dvYear = realValue * (dyInput / 100);
     dvMonth = dvYear / 12;
   } else {
     dvYear = dyInput * (cotas || 0);
     dvMonth = dvYear / 12;
   }
 
-  return { asset, allocClassPct, totalPct, assetValue, cotas, dyInput, dvMonth, dvYear, source, isFii, isRf };
+  return { asset, allocClassPct, totalPct, assetValue: realValue, cotas, dyInput, dvMonth, dvYear, source, isFii, isRf };
 }
 
 function formatBRL(v: number): string {
@@ -289,6 +299,14 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     const classAssets = assets.filter(a => a.asset_class === cls.key);
     const classPct = localPcts[cls.pctField];
     const calcs = classAssets.map(a => computeAsset(a, classPct, classAssets.length, investAmount, recommendedAssets, cls.key));
+    // Recalculate Aloc. Classe % dynamically from the real (rounded) values
+    const classRealTotal = calcs.reduce((s, c) => s + c.assetValue, 0);
+    if (classRealTotal > 0) {
+      calcs.forEach(c => {
+        c.allocClassPct = (c.assetValue / classRealTotal) * 100;
+        c.totalPct = classPct * (c.allocClassPct / 100);
+      });
+    }
     const classDvMonth = calcs.reduce((s, c) => s + c.dvMonth, 0);
     const classDvYear = calcs.reduce((s, c) => s + c.dvYear, 0);
     const classValue = calcs.reduce((s, c) => s + c.assetValue, 0);
@@ -304,18 +322,32 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
 
   
 
-  // Copy helpers — format: TICKER: X cotas (R$ Y)
+  // Copy helpers
+  // Ações brasileiras: "TICKER[F]: X ações (R$ Y)" + total no topo. Sufixo "F" se qtd < 100.
+  // FIIs e Internacional: "TICKER: X cotas (R$ Y)"
+  // RF: "NOME: R$ Y"
   const buildClassLines = (classKey: string): string => {
     const data = classDataMap[classKey];
     if (!data || data.calcs.length === 0) return '';
-    return data.calcs.map(c => {
-      const name = c.asset.ticker || c.asset.name;
+    const isAcoesBR = classKey === 'acoes_brasileiras';
+    const lines = data.calcs.map(c => {
+      const baseTicker = c.asset.ticker || c.asset.name;
       const valuePart = `R$ ${formatBRL(c.assetValue)}`;
       if (c.isRf) {
-        return `${name}: ${valuePart}`;
+        return `${baseTicker}: ${valuePart}`;
       }
-      return `${name}: ${c.cotas ?? 0} cotas (${valuePart})`;
+      const qtd = c.cotas ?? 0;
+      if (isAcoesBR) {
+        const ticker = qtd < 100 ? `${baseTicker}F` : baseTicker;
+        return `${ticker}: ${qtd} ações (${valuePart})`;
+      }
+      return `${baseTicker}: ${qtd} cotas (${valuePart})`;
     }).join('\n');
+    if (isAcoesBR) {
+      const total = data.calcs.reduce((s, c) => s + c.assetValue, 0);
+      return `Total em ações: ~R$ ${formatBRL(total)}\n\n${lines}`;
+    }
+    return lines;
   };
 
   const handleCopyClass = (classKey: string) => {
@@ -703,17 +735,9 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                               </TableCell>
                             )}
                             <TableCell className="text-right">
-                              <Input type="number" step="0.01" className="no-spinner h-7 w-20 text-sm text-right inline-block"
-                                defaultValue={c.allocClassPct.toFixed(2)}
-                                key={`cls-${c.asset.id}-${data.calcs.length}-${data.classPct}`}
-                                {...((cls.key === 'fiis' || cls.key === 'acoes_brasileiras') && {
-                                  onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select(),
-                                })}
-                                onBlur={e => {
-                                  const val = parseFloat(e.target.value) || 0;
-                                  if (Math.abs(val - c.allocClassPct) > 0.001) handleUpdateAssetField(c.asset.id, 'allocation_pct', val);
-                                }}
-                              />
+                              <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-muted/40 text-foreground">
+                                {c.allocClassPct.toFixed(2)}%
+                              </span>
                             </TableCell>
                             <TableCell className="text-right">
                               <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground">
