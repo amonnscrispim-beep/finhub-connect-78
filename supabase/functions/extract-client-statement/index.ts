@@ -204,6 +204,15 @@ Deno.serve(async (req: Request) => {
 
     const parsed: ExtractedSnapshot = JSON.parse(toolCall.function.arguments);
 
+    // Auto-mark debêntures as tax exempt (incentivadas — lei 12.431)
+    parsed.assets = (parsed.assets || []).map((a) => {
+      const blob = `${a.asset_type || ""} ${a.asset_name || ""}`.toUpperCase();
+      if (blob.includes("DEB")) {
+        return { ...a, is_tax_exempt: true };
+      }
+      return a;
+    });
+
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
