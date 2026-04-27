@@ -354,22 +354,26 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     const classPct = localPcts[cls.pctField];
 
     // Step 1: distribute Aloc. Classe % respecting manual overrides.
-    // - Manual (allocation_pct > 0): keep stored value.
-    // - Auto: split the REMAINING % equally among auto assets.
-    const manualSum = classAssets.reduce((s, a) => s + (Number(a.allocation_pct) > 0 ? Number(a.allocation_pct) : 0), 0);
-    const autoCount = classAssets.filter(a => !(Number(a.allocation_pct) > 0)).length;
+    // - Manual (allocation_pct >= 0, including 0): keep stored value.
+    // - Auto (allocation_pct < 0, sentinel -1): split the REMAINING % equally among auto assets.
+    const isManualA = (a: PortfolioAssetItem) => {
+      const v = Number(a.allocation_pct);
+      return Number.isFinite(v) && v >= 0;
+    };
+    const manualSum = classAssets.reduce((s, a) => s + (isManualA(a) ? Number(a.allocation_pct) : 0), 0);
+    const autoCount = classAssets.filter(a => !isManualA(a)).length;
     const remaining = Math.max(0, 100 - manualSum);
     const autoShare = autoCount > 0 ? remaining / autoCount : 0;
 
     // Build effective allocations per asset, then run computeAsset with synthetic classCount
     // so the internal auto fallback matches our distribution.
     const calcs = classAssets.map(a => {
-      const isManual = Number(a.allocation_pct) > 0;
+      const isManual = isManualA(a);
       const effectivePct = isManual ? Number(a.allocation_pct) : autoShare;
       // Inject synthetic asset with allocation_pct set so computeAsset uses it as stored.
       const synthetic = { ...a, allocation_pct: effectivePct } as PortfolioAssetItem;
       const c = computeAsset(synthetic, classPct, classAssets.length, investAmount, recommendedAssets, cls.key);
-      // Preserve the original manual flag (computeAsset will mark synthetic as manual since pct>0)
+      // Preserve the original manual flag (computeAsset will mark synthetic as manual since pct>=0)
       c.isManualAlloc = isManual;
       return c;
     });
