@@ -262,7 +262,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     if (deletedAsset) {
       const remaining = assets.filter(a => a.id !== id && a.asset_class === deletedAsset.asset_class);
       for (const a of remaining) {
-        await supabase.from('portfolio_assets').update({ allocation_pct: 0 }).eq('id', a.id);
+        await supabase.from('portfolio_assets').update({ allocation_pct: -1 }).eq('id', a.id);
       }
     }
     toast.success('Ativo removido');
