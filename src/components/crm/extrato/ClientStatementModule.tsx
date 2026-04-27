@@ -1,17 +1,27 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Upload, FileText, AlertTriangle, ShieldCheck, Trash2 } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Loader2, Upload, FileText, AlertTriangle, ShieldCheck, Trash2, Sparkles, Download, Save,
+} from 'lucide-react';
 import { useClientStatements, AssetClass, ExtractAsset } from '@/hooks/useClientStatements';
+import { useAuth } from '@/hooks/useAuth';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toast } from 'sonner';
+import { generateExtractSummaryPdf } from '@/lib/extract-summary-pdf';
 
 const fmtCurrency = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
@@ -35,31 +45,134 @@ const ALL_CLASSES: AssetClass[] = [
   'Caixa',
 ];
 
+const CONSOLIDATED = '__CONSOLIDATED__';
+
 interface Props {
   clientId?: string;
   clientName?: string;
 }
 
-export function ClientStatementModule({ clientId }: Props) {
+// IR regressivo por prazo restante (em dias)
+function irRateForDays(days: number | null): number {
+  if (days === null) return 0.15; // sem vencimento (ações/fundos abertos): considera 15%
+  if (days > 720) return 0.15;
+  if (days > 540) return 0.175;
+  if (days > 360) return 0.20;
+  return 0.225;
+}
+
+// IR estimado para um ativo, baseado em isenção e prazo até vencimento
+function assetIrRate(a: ExtractAsset): number {
+  if (a.is_tax_exempt) return 0;
+  // FIIs: rendimentos isentos para PF, mas ganho de capital tem IR. Simplificamos: 0
+  if (a.asset_class === 'Fundos Imobiliários') return 0;
+  let days: number | null = null;
+  if (a.maturity_date) {
+    try { days = differenceInDays(parseISO(a.maturity_date), new Date()); } catch { days = null; }
+  }
+  return irRateForDays(days);
+}
+
+export function ClientStatementModule({ clientId, clientName }: Props) {
+  const { user } = useAuth();
   const {
     snapshots, activeSnapshotId, setActiveSnapshotId,
-    assets, isExtracting, extractAndSave, deleteSnapshot,
+    assets, isExtracting, extractAndSave, deleteSnapshot, updateSnapshot,
   } = useClientStatements(clientId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [filterClass, setFilterClass] = useState<AssetClass | 'all'>('all');
+  const [activeBroker, setActiveBroker] = useState<string>(CONSOLIDATED);
+
+  // Estado do Resumo Técnico
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [techText, setTechText] = useState('');
+  const [comments, setComments] = useState('');
+  const [savingSummary, setSavingSummary] = useState(false);
 
   const activeSnapshot = useMemo(
     () => snapshots.find((s) => s.id === activeSnapshotId) || null,
     [snapshots, activeSnapshotId]
   );
 
-  const total = activeSnapshot?.total_patrimony || assets.reduce((s, a) => s + a.gross_value, 0);
+  // Inicializa textos quando snapshot muda
+  useEffect(() => {
+    if (activeSnapshot) {
+      setTechText(activeSnapshot.technical_summary || '');
+      setComments(activeSnapshot.consultant_comments || '');
+    }
+  }, [activeSnapshot?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Totals by class
+  // Brokers únicos no snapshot ativo (do próprio snapshot)
+  const brokers = useMemo(() => {
+    const set = new Set<string>();
+    if (activeSnapshot?.broker) set.add(activeSnapshot.broker);
+    // Também tentar enriquecer pelo issuer? Não — broker do snapshot é único por upload.
+    return Array.from(set);
+  }, [activeSnapshot]);
+
+  // Brokers consolidados de TODOS os snapshots (para visão multi-corretora)
+  const allBrokerSnapshots = useMemo(() => {
+    const map: Record<string, typeof snapshots> = {};
+    snapshots.forEach((s) => {
+      const b = s.broker || 'Sem corretora';
+      if (!map[b]) map[b] = [];
+      map[b].push(s);
+    });
+    return map;
+  }, [snapshots]);
+
+  // Pega o snapshot mais recente de cada corretora para o consolidado
+  const latestPerBroker = useMemo(() => {
+    return Object.entries(allBrokerSnapshots).map(([broker, list]) => {
+      const sorted = [...list].sort((a, b) => b.snapshot_date.localeCompare(a.snapshot_date));
+      return { broker, snapshot: sorted[0] };
+    });
+  }, [allBrokerSnapshots]);
+
+  // Carrega assets de TODOS os snapshots mais recentes (para consolidado entre corretoras)
+  const [allAssets, setAllAssets] = useState<Array<ExtractAsset & { __broker: string }>>([]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (latestPerBroker.length === 0) {
+        setAllAssets([]);
+        return;
+      }
+      const { supabase } = await import('@/integrations/supabase/client');
+      const ids = latestPerBroker.map((x) => x.snapshot.id);
+      const { data, error } = await supabase
+        .from('client_extract_assets')
+        .select('*')
+        .in('snapshot_id', ids);
+      if (cancelled) return;
+      if (error) { setAllAssets([]); return; }
+      const byId: Record<string, string> = {};
+      latestPerBroker.forEach((x) => { byId[x.snapshot.id] = x.broker; });
+      setAllAssets((data || []).map((a: any) => ({ ...a, __broker: byId[a.snapshot_id] || 'Sem corretora' })));
+    })();
+    return () => { cancelled = true; };
+  }, [latestPerBroker.map((x) => x.snapshot.id).join('|')]); // eslint-disable-line
+
+  const brokerTabs = useMemo(() => latestPerBroker.map((x) => x.broker), [latestPerBroker]);
+
+  // Assets a exibir conforme aba ativa
+  const visibleAssets = useMemo(() => {
+    if (activeBroker === CONSOLIDATED) return allAssets;
+    return allAssets.filter((a) => a.__broker === activeBroker);
+  }, [allAssets, activeBroker]);
+
+  const visibleSnapshots = useMemo(() => {
+    if (activeBroker === CONSOLIDATED) return latestPerBroker.map((x) => x.snapshot);
+    return latestPerBroker.filter((x) => x.broker === activeBroker).map((x) => x.snapshot);
+  }, [latestPerBroker, activeBroker]);
+
+  const total = visibleAssets.reduce((s, a) => s + (a.gross_value || 0), 0);
+
+  // Totais por classe
   const totalsByClass = useMemo(() => {
     const map: Record<string, { value: number; pct: number; count: number }> = {};
     ALL_CLASSES.forEach((c) => (map[c] = { value: 0, pct: 0, count: 0 }));
-    assets.forEach((a) => {
+    visibleAssets.forEach((a) => {
       const k = a.asset_class as AssetClass;
       if (!map[k]) map[k] = { value: 0, pct: 0, count: 0 };
       map[k].value += a.gross_value;
@@ -69,12 +182,12 @@ export function ClientStatementModule({ clientId }: Props) {
       map[k].pct = total > 0 ? (map[k].value / total) * 100 : 0;
     });
     return map;
-  }, [assets, total]);
+  }, [visibleAssets, total]);
 
-  // Concentration by issuer >20%
+  // Concentração por emissor
   const concentrationAlerts = useMemo(() => {
     const map: Record<string, number> = {};
-    assets.forEach((a) => {
+    visibleAssets.forEach((a) => {
       const issuer = (a.issuer || a.asset_name).trim();
       if (!issuer) return;
       map[issuer] = (map[issuer] || 0) + a.gross_value;
@@ -83,32 +196,57 @@ export function ClientStatementModule({ clientId }: Props) {
       .map(([issuer, value]) => ({ issuer, value, pct: total > 0 ? (value / total) * 100 : 0 }))
       .filter((x) => x.pct > 20)
       .sort((a, b) => b.pct - a.pct);
-  }, [assets, total]);
+  }, [visibleAssets, total]);
 
-  // Upcoming maturities ≤ 90d
+  // Vencimentos próximos
   const upcomingMaturities = useMemo(() => {
     const today = new Date();
-    return assets.filter((a) => {
+    return visibleAssets.filter((a) => {
       if (!a.maturity_date) return false;
       try {
         const days = differenceInDays(parseISO(a.maturity_date), today);
         return days >= 0 && days <= 90;
-      } catch {
-        return false;
-      }
+      } catch { return false; }
     });
-  }, [assets]);
+  }, [visibleAssets]);
 
-  // Tax exempt summary
+  // Isento de IR
   const taxExempt = useMemo(() => {
-    const value = assets.filter((a) => a.is_tax_exempt).reduce((s, a) => s + a.gross_value, 0);
+    const value = visibleAssets.filter((a) => a.is_tax_exempt).reduce((s, a) => s + a.gross_value, 0);
     return { value, pct: total > 0 ? (value / total) * 100 : 0 };
-  }, [assets, total]);
+  }, [visibleAssets, total]);
+
+  // Retornos: somar de cada snapshot visível (mês e ano em R$ e %)
+  const returns = useMemo(() => {
+    let mesValor = 0, anoValor = 0, mesBase = 0, anoBase = 0;
+    visibleSnapshots.forEach((s) => {
+      mesValor += Number(s.return_month_value) || 0;
+      anoValor += Number(s.return_year_value) || 0;
+      mesBase += Number(s.total_patrimony) || 0;
+      anoBase += Number(s.total_patrimony) || 0;
+    });
+    const mesPct = mesBase > 0 ? (mesValor / mesBase) * 100 : 0;
+    const anoPct = anoBase > 0 ? (anoValor / anoBase) * 100 : 0;
+
+    // IR ponderado dos ativos visíveis (taxa média)
+    const irByAsset = visibleAssets.map((a) => ({ value: a.gross_value, ir: assetIrRate(a) }));
+    const irBase = irByAsset.reduce((s, x) => s + x.value, 0);
+    const irMedio = irBase > 0 ? irByAsset.reduce((s, x) => s + x.value * x.ir, 0) / irBase : 0;
+
+    const mesValorLiq = mesValor * (1 - irMedio);
+    const anoValorLiq = anoValor * (1 - irMedio);
+    const mesPctLiq = mesPct * (1 - irMedio);
+    const anoPctLiq = anoPct * (1 - irMedio);
+
+    return { mesValor, mesPct, anoValor, anoPct, mesValorLiq, mesPctLiq, anoValorLiq, anoPctLiq, irMedio };
+  }, [visibleSnapshots, visibleAssets]);
 
   const filteredAssets = useMemo(() => {
-    const list = filterClass === 'all' ? assets : assets.filter((a) => a.asset_class === filterClass);
+    const list = filterClass === 'all'
+      ? visibleAssets
+      : visibleAssets.filter((a) => a.asset_class === filterClass);
     return [...list].sort((a, b) => b.gross_value - a.gross_value);
-  }, [assets, filterClass]);
+  }, [visibleAssets, filterClass]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -122,9 +260,102 @@ export function ClientStatementModule({ clientId }: Props) {
     try {
       const d = differenceInDays(parseISO(asset.maturity_date), new Date());
       return d >= 0 && d <= 90;
-    } catch {
-      return false;
+    } catch { return false; }
+  };
+
+  // Gera o texto técnico automático
+  const generateTechnicalText = (): string => {
+    const lines: string[] = [];
+    lines.push(`Análise consolidada da carteira do cliente em ${activeSnapshot ? format(parseISO(activeSnapshot.snapshot_date), 'dd/MM/yyyy', { locale: ptBR }) : '—'}.`);
+    lines.push('');
+
+    // Patrimônio por corretora
+    if (latestPerBroker.length > 1) {
+      lines.push('PATRIMÔNIO POR CORRETORA:');
+      latestPerBroker.forEach(({ broker, snapshot }) => {
+        lines.push(`• ${broker}: ${fmtCurrency(snapshot.total_patrimony)}`);
+      });
+      const totalGeral = latestPerBroker.reduce((s, x) => s + x.snapshot.total_patrimony, 0);
+      lines.push(`• TOTAL CONSOLIDADO: ${fmtCurrency(totalGeral)}`);
+      lines.push('');
+    } else {
+      lines.push(`Patrimônio total: ${fmtCurrency(total)}`);
+      lines.push('');
     }
+
+    // Composição por classe
+    lines.push('COMPOSIÇÃO POR CLASSE DE ATIVO:');
+    ALL_CLASSES.forEach((c) => {
+      const t = totalsByClass[c];
+      if (t.value > 0) {
+        lines.push(`• ${c}: ${fmtCurrency(t.value)} (${fmtPct(t.pct)})`);
+      }
+    });
+    lines.push('');
+
+    // Top 5 posições
+    const top5 = [...visibleAssets].sort((a, b) => b.gross_value - a.gross_value).slice(0, 5);
+    if (top5.length > 0) {
+      lines.push('PRINCIPAIS POSIÇÕES (TOP 5):');
+      top5.forEach((a, i) => {
+        const pct = total > 0 ? (a.gross_value / total) * 100 : 0;
+        lines.push(`${i + 1}. ${a.asset_name} — ${fmtCurrency(a.gross_value)} (${fmtPct(pct)})`);
+      });
+      lines.push('');
+    }
+
+    // Concentração
+    if (concentrationAlerts.length > 0) {
+      lines.push('CONCENTRAÇÃO POR EMISSOR (>20%):');
+      concentrationAlerts.forEach((c) => {
+        lines.push(`• ${c.issuer}: ${fmtCurrency(c.value)} (${fmtPct(c.pct)})`);
+      });
+      lines.push('');
+    }
+
+    // Isento de IR
+    lines.push(`PARTICIPAÇÃO ISENTA DE IR: ${fmtCurrency(taxExempt.value)} (${fmtPct(taxExempt.pct)} da carteira).`);
+    lines.push('');
+
+    // Retornos
+    lines.push('RETORNO LÍQUIDO (após IR estimado):');
+    lines.push(`• Mês: ${fmtCurrency(returns.mesValorLiq)} (${fmtPct(returns.mesPctLiq)})`);
+    lines.push(`• Ano: ${fmtCurrency(returns.anoValorLiq)} (${fmtPct(returns.anoPctLiq)})`);
+    lines.push(`• IR médio ponderado aplicado: ${fmtPct(returns.irMedio * 100)}`);
+
+    return lines.join('\n');
+  };
+
+  const openSummary = () => {
+    const auto = generateTechnicalText();
+    setTechText(auto);
+    if (activeSnapshot?.consultant_comments) setComments(activeSnapshot.consultant_comments);
+    setSummaryOpen(true);
+  };
+
+  const handleSaveSummary = async () => {
+    if (!activeSnapshot) return;
+    setSavingSummary(true);
+    const ok = await updateSnapshot(activeSnapshot.id, {
+      technical_summary: techText,
+      consultant_comments: comments,
+    });
+    setSavingSummary(false);
+    if (ok) toast.success('Resumo salvo');
+  };
+
+  const handleExportPdf = async () => {
+    if (!activeSnapshot) return;
+    await handleSaveSummary();
+    const advisorName = (user?.user_metadata as any)?.full_name || user?.email || '';
+    await generateExtractSummaryPdf({
+      clientName: clientName || '—',
+      snapshotDate: format(parseISO(activeSnapshot.snapshot_date), 'dd/MM/yyyy', { locale: ptBR }),
+      technicalSummary: techText,
+      consultantComments: comments,
+      advisorName,
+      filename: `resumo-extrato-${(clientName || 'cliente').toLowerCase().replace(/[^a-z0-9]/g, '-')}-${activeSnapshot.snapshot_date}.pdf`,
+    });
   };
 
   if (!clientId) {
@@ -139,7 +370,7 @@ export function ClientStatementModule({ clientId }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* HEADER: upload + seletor */}
+      {/* HEADER: upload + seletor + resumo técnico */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4 pb-3">
           <div>
@@ -149,6 +380,16 @@ export function ClientStatementModule({ clientId }: Props) {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {snapshots.length > 0 && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); openSummary(); }}
+              >
+                <Sparkles className="w-4 h-4 mr-2" /> Gerar Resumo Técnico
+              </Button>
+            )}
             <input
               ref={fileInputRef}
               type="file"
@@ -159,11 +400,7 @@ export function ClientStatementModule({ clientId }: Props) {
             <Button
               type="button"
               size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                fileInputRef.current?.click();
-              }}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); fileInputRef.current?.click(); }}
               disabled={isExtracting}
             >
               {isExtracting ? (
@@ -176,14 +413,11 @@ export function ClientStatementModule({ clientId }: Props) {
         </CardHeader>
 
         {snapshots.length > 0 && (
-          <CardContent className="pt-0">
+          <CardContent className="pt-0 space-y-3">
             <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-xs text-muted-foreground">Snapshot:</span>
-              <Select
-                value={activeSnapshotId || ''}
-                onValueChange={(v) => setActiveSnapshotId(v)}
-              >
-                <SelectTrigger className="h-8 w-[280px] text-xs">
+              <span className="text-xs text-muted-foreground">Snapshot atual:</span>
+              <Select value={activeSnapshotId || ''} onValueChange={(v) => setActiveSnapshotId(v)}>
+                <SelectTrigger className="h-8 w-[320px] text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -195,26 +429,34 @@ export function ClientStatementModule({ clientId }: Props) {
                   ))}
                 </SelectContent>
               </Select>
+              {activeSnapshot?.pdf_filename && (
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <FileText className="w-3 h-3" /> {activeSnapshot.pdf_filename}
+                </span>
+              )}
               {activeSnapshot && (
-                <>
-                  {activeSnapshot.pdf_filename && (
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <FileText className="w-3 h-3" /> {activeSnapshot.pdf_filename}
-                    </span>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      if (confirm('Remover este snapshot?')) deleteSnapshot(activeSnapshot.id);
-                    }}
-                    className="h-7 px-2 text-xs text-destructive hover:text-destructive ml-auto"
-                  >
-                    <Trash2 className="w-3 h-3 mr-1" /> Remover
-                  </Button>
-                </>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => { if (confirm('Remover este snapshot?')) deleteSnapshot(activeSnapshot.id); }}
+                  className="h-7 px-2 text-xs text-destructive hover:text-destructive ml-auto"
+                >
+                  <Trash2 className="w-3 h-3 mr-1" /> Remover
+                </Button>
               )}
             </div>
+
+            {/* TABS POR CORRETORA */}
+            {brokerTabs.length > 0 && (
+              <Tabs value={activeBroker} onValueChange={setActiveBroker}>
+                <TabsList>
+                  <TabsTrigger value={CONSOLIDATED}>Consolidado</TabsTrigger>
+                  {brokerTabs.map((b) => (
+                    <TabsTrigger key={b} value={b}>{b}</TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            )}
           </CardContent>
         )}
       </Card>
@@ -227,8 +469,83 @@ export function ClientStatementModule({ clientId }: Props) {
         </Card>
       )}
 
-      {activeSnapshot && (
+      {snapshots.length > 0 && (
         <>
+          {/* RETORNOS — campos editáveis para o snapshot ativo */}
+          {activeSnapshot && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">
+                  Retornos — {activeBroker === CONSOLIDATED ? 'Consolidado' : activeBroker}
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Edite os retornos brutos do snapshot ativo. O líquido é calculado automaticamente
+                  com IR regressivo por prazo de vencimento de cada ativo.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium">Retorno bruto do mês (R$)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="w-full h-9 px-3 rounded-md border bg-background text-sm"
+                      value={activeSnapshot.return_month_value || 0}
+                      onChange={(e) => updateSnapshot(activeSnapshot.id, { return_month_value: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium">Retorno bruto do ano (R$)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="w-full h-9 px-3 rounded-md border bg-background text-sm"
+                      value={activeSnapshot.return_year_value || 0}
+                      onChange={(e) => updateSnapshot(activeSnapshot.id, { return_year_value: Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
+                  <Card className="bg-slate-50 border-slate-200">
+                    <CardContent className="p-3">
+                      <div className="text-[11px] text-muted-foreground">Bruto Mês</div>
+                      <div className="text-base font-bold">{fmtCurrency(returns.mesValor)}</div>
+                      <div className="text-xs text-slate-700">{fmtPct(returns.mesPct)}</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-slate-50 border-slate-200">
+                    <CardContent className="p-3">
+                      <div className="text-[11px] text-muted-foreground">Bruto Ano</div>
+                      <div className="text-base font-bold">{fmtCurrency(returns.anoValor)}</div>
+                      <div className="text-xs text-slate-700">{fmtPct(returns.anoPct)}</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-emerald-50 border-emerald-200">
+                    <CardContent className="p-3">
+                      <div className="text-[11px] text-emerald-800">Líquido Mês</div>
+                      <div className="text-base font-bold text-emerald-800">{fmtCurrency(returns.mesValorLiq)}</div>
+                      <div className="text-xs text-emerald-700">{fmtPct(returns.mesPctLiq)}</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-emerald-50 border-emerald-200">
+                    <CardContent className="p-3">
+                      <div className="text-[11px] text-emerald-800">Líquido Ano</div>
+                      <div className="text-base font-bold text-emerald-800">{fmtCurrency(returns.anoValorLiq)}</div>
+                      <div className="text-xs text-emerald-700">{fmtPct(returns.anoPctLiq)}</div>
+                    </CardContent>
+                  </Card>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  IR médio ponderado aplicado: <strong>{fmtPct(returns.irMedio * 100)}</strong>
+                  {' '}— calculado pelo prazo de vencimento de cada ativo (tabela regressiva: 22,5% → 15%).
+                  Ativos isentos (LCI/LCA/CRI/CRA/Debêntures incentivadas/FIIs) entram com 0%.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           {/* ALERTAS */}
           {(concentrationAlerts.length > 0 || upcomingMaturities.length > 0) && (
             <div className="grid md:grid-cols-2 gap-3">
@@ -300,7 +617,7 @@ export function ClientStatementModule({ clientId }: Props) {
             <Card>
               <CardContent className="p-4">
                 <div className="text-xs text-muted-foreground">Total de ativos</div>
-                <div className="text-2xl font-bold mt-1">{assets.length}</div>
+                <div className="text-2xl font-bold mt-1">{visibleAssets.length}</div>
               </CardContent>
             </Card>
             <Card className="border-emerald-300 bg-emerald-50/40">
@@ -319,7 +636,9 @@ export function ClientStatementModule({ clientId }: Props) {
           {/* TABELA */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-3 pb-3">
-              <CardTitle className="text-base">Composição da carteira</CardTitle>
+              <CardTitle className="text-base">
+                Composição da carteira — {activeBroker === CONSOLIDATED ? 'Consolidado' : activeBroker}
+              </CardTitle>
               <Select value={filterClass} onValueChange={(v) => setFilterClass(v as any)}>
                 <SelectTrigger className="h-8 w-[200px] text-xs">
                   <SelectValue />
@@ -337,6 +656,7 @@ export function ClientStatementModule({ clientId }: Props) {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Ativo</TableHead>
+                    {activeBroker === CONSOLIDATED && <TableHead>Corretora</TableHead>}
                     <TableHead>Tipo</TableHead>
                     <TableHead>Classe</TableHead>
                     <TableHead>Taxa</TableHead>
@@ -348,13 +668,14 @@ export function ClientStatementModule({ clientId }: Props) {
                 <TableBody>
                   {filteredAssets.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-6">
+                      <TableCell colSpan={activeBroker === CONSOLIDATED ? 8 : 7} className="text-center text-sm text-muted-foreground py-6">
                         Sem ativos nesta seleção.
                       </TableCell>
                     </TableRow>
                   )}
                   {filteredAssets.map((a) => {
                     const matClose = isMaturityClose(a);
+                    const pctOfTotal = total > 0 ? (a.gross_value / total) * 100 : 0;
                     return (
                       <TableRow key={a.id}>
                         <TableCell className="font-medium">
@@ -370,6 +691,9 @@ export function ClientStatementModule({ clientId }: Props) {
                             <div className="text-xs text-muted-foreground">{a.issuer}</div>
                           )}
                         </TableCell>
+                        {activeBroker === CONSOLIDATED && (
+                          <TableCell className="text-xs">{(a as any).__broker}</TableCell>
+                        )}
                         <TableCell className="text-sm">{a.asset_type}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className={`text-[10px] ${CLASS_COLORS[a.asset_class as AssetClass] || ''}`}>
@@ -378,14 +702,12 @@ export function ClientStatementModule({ clientId }: Props) {
                         </TableCell>
                         <TableCell className="text-sm">{a.rate || '—'}</TableCell>
                         <TableCell className={`text-sm ${matClose ? 'text-red-600 font-semibold' : ''}`}>
-                          {a.maturity_date
-                            ? format(parseISO(a.maturity_date), 'dd/MM/yyyy')
-                            : '—'}
+                          {a.maturity_date ? format(parseISO(a.maturity_date), 'dd/MM/yyyy') : '—'}
                         </TableCell>
                         <TableCell className="text-right font-semibold">
                           {fmtCurrency(a.gross_value)}
                         </TableCell>
-                        <TableCell className="text-right text-sm">{fmtPct(a.percentage)}</TableCell>
+                        <TableCell className="text-right text-sm">{fmtPct(pctOfTotal)}</TableCell>
                       </TableRow>
                     );
                   })}
@@ -395,6 +717,61 @@ export function ClientStatementModule({ clientId }: Props) {
           </Card>
         </>
       )}
+
+      {/* MODAL: Resumo Técnico */}
+      <Dialog open={summaryOpen} onOpenChange={setSummaryOpen}>
+        <DialogContent
+          className="max-w-3xl max-h-[90vh] overflow-y-auto"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" /> Resumo Técnico da Carteira
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-semibold mb-1 block">Análise consolidada (auto-gerada — editável)</label>
+              <Textarea
+                value={techText}
+                onChange={(e) => setTechText(e.target.value)}
+                rows={16}
+                className="font-mono text-xs"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold mb-1 block">Comentários do consultor</label>
+              <Textarea
+                value={comments}
+                onChange={(e) => setComments(e.target.value)}
+                rows={6}
+                placeholder="Adicione recomendações, observações estratégicas ou próximos passos..."
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-row justify-between gap-2">
+            <Button variant="outline" onClick={() => setSummaryOpen(false)}>
+              Fechar
+            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleSaveSummary}
+                disabled={savingSummary}
+              >
+                {savingSummary ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                Salvar
+              </Button>
+              <Button onClick={handleExportPdf}>
+                <Download className="w-4 h-4 mr-2" /> Gerar PDF
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

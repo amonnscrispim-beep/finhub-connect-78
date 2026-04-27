@@ -35,6 +35,12 @@ export interface ExtractSnapshot {
   pdf_filename: string | null;
   pdf_url: string | null;
   notes: string | null;
+  return_month_value: number;
+  return_month_pct: number;
+  return_year_value: number;
+  return_year_pct: number;
+  technical_summary: string;
+  consultant_comments: string;
   created_at: string;
 }
 
@@ -153,21 +159,25 @@ export function useClientStatements(clientId: string | undefined) {
           return null;
         }
 
-        // 5. Insert assets
-        const assetRows = (extracted.assets || []).map((a: any, i: number) => ({
-          snapshot_id: snap.id,
-          user_id: user.id,
-          asset_type: a.asset_type || '',
-          asset_name: a.asset_name || '',
-          issuer: a.issuer || null,
-          rate: a.rate || null,
-          maturity_date: a.maturity_date || null,
-          gross_value: Number(a.gross_value) || 0,
-          percentage: Number(a.percentage) || 0,
-          asset_class: a.asset_class || 'Renda Fixa',
-          is_tax_exempt: !!a.is_tax_exempt,
-          display_order: i,
-        }));
+        // 5. Insert assets — auto-mark Debêntures as tax exempt
+        const assetRows = (extracted.assets || []).map((a: any, i: number) => {
+          const blob = `${a.asset_type || ''} ${a.asset_name || ''}`.toUpperCase();
+          const isDeb = blob.includes('DEB');
+          return {
+            snapshot_id: snap.id,
+            user_id: user.id,
+            asset_type: a.asset_type || '',
+            asset_name: a.asset_name || '',
+            issuer: a.issuer || null,
+            rate: a.rate || null,
+            maturity_date: a.maturity_date || null,
+            gross_value: Number(a.gross_value) || 0,
+            percentage: Number(a.percentage) || 0,
+            asset_class: a.asset_class || 'Renda Fixa',
+            is_tax_exempt: isDeb ? true : !!a.is_tax_exempt,
+            display_order: i,
+          };
+        });
         if (assetRows.length > 0) {
           const { error: assetsErr } = await supabase.from('client_extract_assets').insert(assetRows);
           if (assetsErr) {
@@ -205,6 +215,22 @@ export function useClientStatements(clientId: string | undefined) {
     [activeSnapshotId, loadSnapshots]
   );
 
+  const updateSnapshot = useCallback(
+    async (snapshotId: string, patch: Partial<ExtractSnapshot>) => {
+      const { error } = await supabase
+        .from('client_extract_snapshots')
+        .update(patch)
+        .eq('id', snapshotId);
+      if (error) {
+        toast.error('Erro ao salvar');
+        return false;
+      }
+      setSnapshots((prev) => prev.map((s) => (s.id === snapshotId ? { ...s, ...patch } as ExtractSnapshot : s)));
+      return true;
+    },
+    []
+  );
+
   return {
     snapshots,
     activeSnapshotId,
@@ -214,6 +240,8 @@ export function useClientStatements(clientId: string | undefined) {
     isExtracting,
     extractAndSave,
     deleteSnapshot,
+    updateSnapshot,
     reload: loadSnapshots,
   };
 }
+

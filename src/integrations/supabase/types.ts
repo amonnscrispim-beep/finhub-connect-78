@@ -115,12 +115,18 @@ export type Database = {
         Row: {
           broker: string | null
           client_id: string
+          consultant_comments: string | null
           created_at: string
           id: string
           notes: string | null
           pdf_filename: string | null
           pdf_url: string | null
+          return_month_pct: number | null
+          return_month_value: number | null
+          return_year_pct: number | null
+          return_year_value: number | null
           snapshot_date: string
+          technical_summary: string | null
           total_patrimony: number
           updated_at: string
           user_id: string
@@ -128,12 +134,18 @@ export type Database = {
         Insert: {
           broker?: string | null
           client_id: string
+          consultant_comments?: string | null
           created_at?: string
           id?: string
           notes?: string | null
           pdf_filename?: string | null
           pdf_url?: string | null
+          return_month_pct?: number | null
+          return_month_value?: number | null
+          return_year_pct?: number | null
+          return_year_value?: number | null
           snapshot_date?: string
+          technical_summary?: string | null
           total_patrimony?: number
           updated_at?: string
           user_id: string
@@ -141,12 +153,18 @@ export type Database = {
         Update: {
           broker?: string | null
           client_id?: string
+          consultant_comments?: string | null
           created_at?: string
           id?: string
           notes?: string | null
           pdf_filename?: string | null
           pdf_url?: string | null
+          return_month_pct?: number | null
+          return_month_value?: number | null
+          return_year_pct?: number | null
+          return_year_value?: number | null
           snapshot_date?: string
+          technical_summary?: string | null
           total_patrimony?: number
           updated_at?: string
           user_id?: string
