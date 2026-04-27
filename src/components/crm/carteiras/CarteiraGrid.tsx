@@ -1,8 +1,12 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SharedBadge } from '@/components/ui/shared-badge';
-import { BarChart3, Calendar, Share2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { BarChart3, Calendar, Share2, Plus } from 'lucide-react';
 import { RecommendedPortfolio, PortfolioAsset } from './CarteirasRecomendadas';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -15,6 +19,7 @@ interface Props {
   onSelect: (p: RecommendedPortfolio) => void;
   isMaster?: boolean;
   userId?: string;
+  onPortfolioCreated?: () => void | Promise<void>;
 }
 
 export function CarteiraGrid({ portfolios, allAssets, onSelect, isMaster, userId }: Props) {
