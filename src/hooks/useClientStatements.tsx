@@ -35,6 +35,12 @@ export interface ExtractSnapshot {
   pdf_filename: string | null;
   pdf_url: string | null;
   notes: string | null;
+  return_month_value: number;
+  return_month_pct: number;
+  return_year_value: number;
+  return_year_pct: number;
+  technical_summary: string;
+  consultant_comments: string;
   created_at: string;
 }
 
