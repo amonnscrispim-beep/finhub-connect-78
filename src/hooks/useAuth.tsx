@@ -37,9 +37,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    // Clear local state FIRST to avoid white-screen flicker from ProtectedRoute
     setUser(null);
     setSession(null);
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('[useAuth] signOut error:', err);
+    }
   };
 
   return (
