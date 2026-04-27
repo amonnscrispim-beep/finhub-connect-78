@@ -1,0 +1,1 @@
+UPDATE public.portfolio_assets SET allocation_pct = -1 WHERE allocation_pct = 0 OR allocation_pct IS NULL;
