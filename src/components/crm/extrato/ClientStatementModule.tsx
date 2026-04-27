@@ -46,6 +46,7 @@ const ALL_CLASSES: AssetClass[] = [
 ];
 
 const CONSOLIDATED = '__CONSOLIDATED__';
+const CONCENTRATION = '__CONCENTRATION__';
 
 interface Props {
   clientId?: string;
@@ -82,6 +83,7 @@ export function ClientStatementModule({ clientId, clientName }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [filterClass, setFilterClass] = useState<AssetClass | 'all'>('all');
   const [activeBroker, setActiveBroker] = useState<string>(CONSOLIDATED);
+  const [concSortDesc, setConcSortDesc] = useState(true);
 
   // Estado do Resumo Técnico
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -198,7 +200,27 @@ export function ClientStatementModule({ clientId, clientName }: Props) {
       .sort((a, b) => b.pct - a.pct);
   }, [visibleAssets, total]);
 
-  // Vencimentos próximos
+  // Concentração por emissor — SEMPRE consolidado (todas corretoras)
+  const issuerConcentration = useMemo(() => {
+    const totalAll = allAssets.reduce((s, a) => s + (a.gross_value || 0), 0);
+    const map: Record<string, { issuer: string; value: number; assets: string[]; allExempt: boolean; anyExempt: boolean }> = {};
+    allAssets.forEach((a) => {
+      const issuer = (a.issuer || a.asset_name || 'Sem emissor').trim() || 'Sem emissor';
+      if (!map[issuer]) {
+        map[issuer] = { issuer, value: 0, assets: [], allExempt: true, anyExempt: false };
+      }
+      map[issuer].value += a.gross_value || 0;
+      map[issuer].assets.push(a.asset_name);
+      if (a.is_tax_exempt) map[issuer].anyExempt = true;
+      else map[issuer].allExempt = false;
+    });
+    const list = Object.values(map).map((x) => ({
+      ...x,
+      pct: totalAll > 0 ? (x.value / totalAll) * 100 : 0,
+    }));
+    list.sort((a, b) => (concSortDesc ? b.pct - a.pct : a.pct - b.pct));
+    return { list, totalAll };
+  }, [allAssets, concSortDesc]);
   const upcomingMaturities = useMemo(() => {
     const today = new Date();
     return visibleAssets.filter((a) => {
@@ -454,6 +476,7 @@ export function ClientStatementModule({ clientId, clientName }: Props) {
                   {brokerTabs.map((b) => (
                     <TabsTrigger key={b} value={b}>{b}</TabsTrigger>
                   ))}
+                  <TabsTrigger value={CONCENTRATION}>Concentração</TabsTrigger>
                 </TabsList>
               </Tabs>
             )}
@@ -469,7 +492,7 @@ export function ClientStatementModule({ clientId, clientName }: Props) {
         </Card>
       )}
 
-      {snapshots.length > 0 && (
+      {snapshots.length > 0 && activeBroker !== CONCENTRATION && (
         <>
           {/* RETORNOS — campos editáveis para o snapshot ativo */}
           {activeSnapshot && (
@@ -718,7 +741,97 @@ export function ClientStatementModule({ clientId, clientName }: Props) {
         </>
       )}
 
-      {/* MODAL: Resumo Técnico */}
+      {/* ABA CONCENTRAÇÃO POR EMISSOR (consolidado) */}
+      {snapshots.length > 0 && activeBroker === CONCENTRATION && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Concentração por Emissor — Consolidado</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Soma todos os ativos do mesmo emissor em todas as corretoras. Patrimônio total considerado:{' '}
+              <strong>{fmtCurrency(issuerConcentration.totalAll)}</strong>.
+            </p>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[180px]">Emissor</TableHead>
+                  <TableHead>Ativos</TableHead>
+                  <TableHead className="text-right">Valor (R$)</TableHead>
+                  <TableHead
+                    className="text-right cursor-pointer select-none hover:bg-muted/50"
+                    onClick={() => setConcSortDesc((v) => !v)}
+                    title="Clique para alternar a ordenação"
+                  >
+                    % Carteira {concSortDesc ? '▼' : '▲'}
+                  </TableHead>
+                  <TableHead className="w-[160px]">Distribuição</TableHead>
+                  <TableHead className="text-center w-[120px]">Alerta</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {issuerConcentration.list.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-6">
+                      Sem ativos para análise.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {issuerConcentration.list.map((row) => {
+                  const high = row.pct > 30;
+                  const mid = row.pct > 20 && row.pct <= 30;
+                  const rowClass = high
+                    ? 'bg-red-50 hover:bg-red-100'
+                    : mid
+                    ? 'bg-amber-50 hover:bg-amber-100'
+                    : '';
+                  const barColor = high ? 'bg-red-500' : mid ? 'bg-amber-500' : 'bg-primary';
+                  return (
+                    <TableRow key={row.issuer} className={rowClass}>
+                      <TableCell className="font-semibold">{row.issuer}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        <div className="line-clamp-2" title={row.assets.join(', ')}>
+                          {row.assets.join(', ')}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-semibold">{fmtCurrency(row.value)}</TableCell>
+                      <TableCell className="text-right font-bold">{fmtPct(row.pct)}</TableCell>
+                      <TableCell>
+                        <div className="h-2 w-full bg-muted rounded overflow-hidden">
+                          <div
+                            className={`h-full ${barColor}`}
+                            style={{ width: `${Math.min(100, row.pct)}%` }}
+                          />
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1 flex-wrap">
+                          {high && (
+                            <Badge className="text-[10px] bg-red-100 text-red-800 border-red-300 hover:bg-red-100">
+                              <AlertTriangle className="w-3 h-3 mr-1" /> &gt;30%
+                            </Badge>
+                          )}
+                          {mid && (
+                            <Badge className="text-[10px] bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-100">
+                              <AlertTriangle className="w-3 h-3 mr-1" /> &gt;20%
+                            </Badge>
+                          )}
+                          {row.allExempt && (
+                            <Badge className="text-[10px] bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-100">
+                              <ShieldCheck className="w-3 h-3 mr-1" /> Isento
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
       <Dialog open={summaryOpen} onOpenChange={setSummaryOpen}>
         <DialogContent
           className="max-w-3xl max-h-[90vh] overflow-y-auto"
