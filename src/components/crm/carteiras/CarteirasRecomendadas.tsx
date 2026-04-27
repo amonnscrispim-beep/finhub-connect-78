@@ -213,7 +213,7 @@ export function CarteirasRecomendadas() {
       .or(`user_id.eq.${user.id},shared.eq.true`)
       .order('display_order');
 
-    const assetList = (assets || []) as unknown as PortfolioAsset[];
+    const assetList = dedupeSharedAssets((assets || []) as unknown as PortfolioAsset[], user.id);
     setAllAssets(assetList);
     carteirasCache = {
       userId: user.id,
