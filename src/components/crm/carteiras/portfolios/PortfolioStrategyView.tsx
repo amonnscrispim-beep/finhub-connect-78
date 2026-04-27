@@ -299,6 +299,14 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     const classAssets = assets.filter(a => a.asset_class === cls.key);
     const classPct = localPcts[cls.pctField];
     const calcs = classAssets.map(a => computeAsset(a, classPct, classAssets.length, investAmount, recommendedAssets, cls.key));
+    // Recalculate Aloc. Classe % dynamically from the real (rounded) values
+    const classRealTotal = calcs.reduce((s, c) => s + c.assetValue, 0);
+    if (classRealTotal > 0) {
+      calcs.forEach(c => {
+        c.allocClassPct = (c.assetValue / classRealTotal) * 100;
+        c.totalPct = classPct * (c.allocClassPct / 100);
+      });
+    }
     const classDvMonth = calcs.reduce((s, c) => s + c.dvMonth, 0);
     const classDvYear = calcs.reduce((s, c) => s + c.dvYear, 0);
     const classValue = calcs.reduce((s, c) => s + c.assetValue, 0);
