@@ -95,7 +95,7 @@ export function PortfolioAssetModal({ open, onOpenChange, portfolioId, assetClas
           rf_type: rfType,
           indexador: rfIndexador.trim(),
           vencimento: rfVencimento || null,
-          allocation_pct: 0,
+          allocation_pct: -1,
           display_order: nextOrder,
         } as any);
       } else if (mode === 'manual') {
@@ -121,7 +121,7 @@ export function PortfolioAssetModal({ open, onOpenChange, portfolioId, assetClas
           asset_class: assetClass,
           ticker,
           name: manualName.trim() || ticker,
-          allocation_pct: 0,
+          allocation_pct: -1,
           source_asset_id: null,
           ceiling_price: ceilingPrice,
           current_price: currentPrice,
@@ -137,7 +137,7 @@ export function PortfolioAssetModal({ open, onOpenChange, portfolioId, assetClas
           asset_class: assetClass,
           ticker: source.ticker,
           name: source.company_name,
-          allocation_pct: 0,
+          allocation_pct: -1,
           source_asset_id: source.id,
           ceiling_price: Number(source.ceiling_price),
           current_price: source.current_price != null ? Number(source.current_price) : null,
@@ -154,7 +154,7 @@ export function PortfolioAssetModal({ open, onOpenChange, portfolioId, assetClas
 
       if (classAssets && classAssets.length > 0) {
         for (const a of classAssets) {
-          await supabase.from('portfolio_assets').update({ allocation_pct: 0 }).eq('id', a.id);
+          await supabase.from('portfolio_assets').update({ allocation_pct: -1 }).eq('id', a.id);
         }
       }
 
