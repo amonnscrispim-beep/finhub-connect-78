@@ -787,9 +787,31 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                               </TableCell>
                             )}
                             <TableCell className="text-right">
-                              <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-muted/40 text-foreground">
-                                {c.allocClassPct.toFixed(2)}%
-                              </span>
+                              {readOnly ? (
+                                <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${c.isManualAlloc ? 'bg-primary/10 text-primary' : 'bg-muted/40 text-foreground'}`}>
+                                  {c.allocClassPct.toFixed(2)}%
+                                </span>
+                              ) : (
+                                <div className="flex items-center justify-end gap-1">
+                                  <LocalNumberInput
+                                    value={c.allocClassPct}
+                                    min={0}
+                                    max={100}
+                                    className={`no-spinner h-7 w-20 text-sm text-right inline-block ${c.isManualAlloc ? 'border-primary/50' : ''}`}
+                                    onSave={(v) => handleUpdateAssetField(c.asset.id, 'allocation_pct', v)}
+                                  />
+                                  {c.isManualAlloc && (
+                                    <button
+                                      type="button"
+                                      title="Restaurar cálculo automático"
+                                      className="text-[10px] text-muted-foreground hover:text-primary px-1"
+                                      onClick={() => handleUpdateAssetField(c.asset.id, 'allocation_pct', 0)}
+                                    >
+                                      ↺
+                                    </button>
+                                  )}
+                                </div>
+                              )}
                             </TableCell>
                             <TableCell className="text-right">
                               <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground">
