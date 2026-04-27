@@ -66,6 +66,8 @@ interface AssetCalc {
 }
 
 // Local-state numeric input — avoids reset-while-typing bug; persists onBlur.
+// Critical: while the input is focused, NEVER sync from the `value` prop, otherwise
+// re-renders triggered by sibling inputs reset the user's typing.
 function LocalNumberInput({
   value,
   onSave,
@@ -82,19 +84,30 @@ function LocalNumberInput({
   max?: number;
 }) {
   const [local, setLocal] = useState<string>(value.toFixed(2));
-  useEffect(() => { setLocal(value.toFixed(2)); }, [value]);
+  const focusedRef = useRef(false);
+
+  useEffect(() => {
+    if (focusedRef.current) return; // don't fight the user
+    setLocal(value.toFixed(2));
+  }, [value]);
+
   return (
     <Input
-      type="number"
-      step={step}
-      min={min}
-      max={max}
+      type="text"
+      inputMode="decimal"
       value={local}
       onChange={e => setLocal(e.target.value)}
-      onFocus={e => e.target.select()}
+      onFocus={e => {
+        focusedRef.current = true;
+        e.target.select();
+      }}
       onBlur={e => {
-        const v = parseFloat(e.target.value);
+        focusedRef.current = false;
+        const raw = e.target.value.replace(',', '.');
+        const v = parseFloat(raw);
         const safe = Number.isFinite(v) ? v : 0;
+        if (min != null && safe < min) return setLocal(value.toFixed(2));
+        if (max != null && safe > max) return setLocal(value.toFixed(2));
         if (Math.abs(safe - value) > 0.001) onSave(safe);
         else setLocal(value.toFixed(2));
       }}
