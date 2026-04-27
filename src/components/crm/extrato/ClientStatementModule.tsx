@@ -83,6 +83,7 @@ export function ClientStatementModule({ clientId, clientName }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [filterClass, setFilterClass] = useState<AssetClass | 'all'>('all');
   const [activeBroker, setActiveBroker] = useState<string>(CONSOLIDATED);
+  const [concSortDesc, setConcSortDesc] = useState(true);
 
   // Estado do Resumo Técnico
   const [summaryOpen, setSummaryOpen] = useState(false);
