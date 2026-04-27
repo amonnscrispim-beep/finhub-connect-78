@@ -492,7 +492,7 @@ export function ClientStatementModule({ clientId, clientName }: Props) {
         </Card>
       )}
 
-      {snapshots.length > 0 && (
+      {snapshots.length > 0 && activeBroker !== CONCENTRATION && (
         <>
           {/* RETORNOS — campos editáveis para o snapshot ativo */}
           {activeSnapshot && (
