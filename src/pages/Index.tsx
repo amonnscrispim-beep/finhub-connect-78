@@ -140,6 +140,7 @@ function CRMDashboard() {
   const handleSignOut = async () => {
     await signOut();
     toast.success('Sessão encerrada');
+    window.location.href = '/auth';
   };
 
   const handleExportCSV = () => {
