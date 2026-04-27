@@ -62,6 +62,45 @@ interface AssetCalc {
   source: PortfolioAsset | null;
   isFii: boolean;
   isRf: boolean;
+  isManualAlloc: boolean; // true when user manually overrode allocation_pct
+}
+
+// Local-state numeric input — avoids reset-while-typing bug; persists onBlur.
+function LocalNumberInput({
+  value,
+  onSave,
+  className,
+  step = '0.01',
+  min,
+  max,
+}: {
+  value: number;
+  onSave: (v: number) => void;
+  className?: string;
+  step?: string;
+  min?: number;
+  max?: number;
+}) {
+  const [local, setLocal] = useState<string>(value.toFixed(2));
+  useEffect(() => { setLocal(value.toFixed(2)); }, [value]);
+  return (
+    <Input
+      type="number"
+      step={step}
+      min={min}
+      max={max}
+      value={local}
+      onChange={e => setLocal(e.target.value)}
+      onFocus={e => e.target.select()}
+      onBlur={e => {
+        const v = parseFloat(e.target.value);
+        const safe = Number.isFinite(v) ? v : 0;
+        if (Math.abs(safe - value) > 0.001) onSave(safe);
+        else setLocal(value.toFixed(2));
+      }}
+      className={className}
+    />
+  );
 }
 
 function computeAsset(
@@ -112,7 +151,7 @@ function computeAsset(
     dvMonth = dvYear / 12;
   }
 
-  return { asset, allocClassPct, totalPct, assetValue: realValue, cotas, dyInput, dvMonth, dvYear, source, isFii, isRf };
+  return { asset, allocClassPct, totalPct, assetValue: realValue, cotas, dyInput, dvMonth, dvYear, source, isFii, isRf, isManualAlloc: storedClassPct > 0 };
 }
 
 function formatBRL(v: number): string {
@@ -298,15 +337,28 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
   ASSET_CLASSES.forEach(cls => {
     const classAssets = assets.filter(a => a.asset_class === cls.key);
     const classPct = localPcts[cls.pctField];
-    const calcs = classAssets.map(a => computeAsset(a, classPct, classAssets.length, investAmount, recommendedAssets, cls.key));
-    // Recalculate Aloc. Classe % dynamically from the real (rounded) values
-    const classRealTotal = calcs.reduce((s, c) => s + c.assetValue, 0);
-    if (classRealTotal > 0) {
-      calcs.forEach(c => {
-        c.allocClassPct = (c.assetValue / classRealTotal) * 100;
-        c.totalPct = classPct * (c.allocClassPct / 100);
-      });
-    }
+
+    // Step 1: distribute Aloc. Classe % respecting manual overrides.
+    // - Manual (allocation_pct > 0): keep stored value.
+    // - Auto: split the REMAINING % equally among auto assets.
+    const manualSum = classAssets.reduce((s, a) => s + (Number(a.allocation_pct) > 0 ? Number(a.allocation_pct) : 0), 0);
+    const autoCount = classAssets.filter(a => !(Number(a.allocation_pct) > 0)).length;
+    const remaining = Math.max(0, 100 - manualSum);
+    const autoShare = autoCount > 0 ? remaining / autoCount : 0;
+
+    // Build effective allocations per asset, then run computeAsset with synthetic classCount
+    // so the internal auto fallback matches our distribution.
+    const calcs = classAssets.map(a => {
+      const isManual = Number(a.allocation_pct) > 0;
+      const effectivePct = isManual ? Number(a.allocation_pct) : autoShare;
+      // Inject synthetic asset with allocation_pct set so computeAsset uses it as stored.
+      const synthetic = { ...a, allocation_pct: effectivePct } as PortfolioAssetItem;
+      const c = computeAsset(synthetic, classPct, classAssets.length, investAmount, recommendedAssets, cls.key);
+      // Preserve the original manual flag (computeAsset will mark synthetic as manual since pct>0)
+      c.isManualAlloc = isManual;
+      return c;
+    });
+
     const classDvMonth = calcs.reduce((s, c) => s + c.dvMonth, 0);
     const classDvYear = calcs.reduce((s, c) => s + c.dvYear, 0);
     const classValue = calcs.reduce((s, c) => s + c.assetValue, 0);
@@ -735,9 +787,31 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                               </TableCell>
                             )}
                             <TableCell className="text-right">
-                              <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-muted/40 text-foreground">
-                                {c.allocClassPct.toFixed(2)}%
-                              </span>
+                              {readOnly ? (
+                                <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${c.isManualAlloc ? 'bg-primary/10 text-primary' : 'bg-muted/40 text-foreground'}`}>
+                                  {c.allocClassPct.toFixed(2)}%
+                                </span>
+                              ) : (
+                                <div className="flex items-center justify-end gap-1">
+                                  <LocalNumberInput
+                                    value={c.allocClassPct}
+                                    min={0}
+                                    max={100}
+                                    className={`no-spinner h-7 w-20 text-sm text-right inline-block ${c.isManualAlloc ? 'border-primary/50' : ''}`}
+                                    onSave={(v) => handleUpdateAssetField(c.asset.id, 'allocation_pct', v)}
+                                  />
+                                  {c.isManualAlloc && (
+                                    <button
+                                      type="button"
+                                      title="Restaurar cálculo automático"
+                                      className="text-[10px] text-muted-foreground hover:text-primary px-1"
+                                      onClick={() => handleUpdateAssetField(c.asset.id, 'allocation_pct', 0)}
+                                    >
+                                      ↺
+                                    </button>
+                                  )}
+                                </div>
+                              )}
                             </TableCell>
                             <TableCell className="text-right">
                               <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground">
