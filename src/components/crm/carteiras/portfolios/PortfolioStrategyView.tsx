@@ -322,18 +322,32 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
 
   
 
-  // Copy helpers — format: TICKER: X cotas (R$ Y)
+  // Copy helpers
+  // Ações brasileiras: "TICKER[F]: X ações (R$ Y)" + total no topo. Sufixo "F" se qtd < 100.
+  // FIIs e Internacional: "TICKER: X cotas (R$ Y)"
+  // RF: "NOME: R$ Y"
   const buildClassLines = (classKey: string): string => {
     const data = classDataMap[classKey];
     if (!data || data.calcs.length === 0) return '';
-    return data.calcs.map(c => {
-      const name = c.asset.ticker || c.asset.name;
+    const isAcoesBR = classKey === 'acoes_brasileiras';
+    const lines = data.calcs.map(c => {
+      const baseTicker = c.asset.ticker || c.asset.name;
       const valuePart = `R$ ${formatBRL(c.assetValue)}`;
       if (c.isRf) {
-        return `${name}: ${valuePart}`;
+        return `${baseTicker}: ${valuePart}`;
       }
-      return `${name}: ${c.cotas ?? 0} cotas (${valuePart})`;
+      const qtd = c.cotas ?? 0;
+      if (isAcoesBR) {
+        const ticker = qtd < 100 ? `${baseTicker}F` : baseTicker;
+        return `${ticker}: ${qtd} ações (${valuePart})`;
+      }
+      return `${baseTicker}: ${qtd} cotas (${valuePart})`;
     }).join('\n');
+    if (isAcoesBR) {
+      const total = data.calcs.reduce((s, c) => s + c.assetValue, 0);
+      return `Total em ações: ~R$ ${formatBRL(total)}\n\n${lines}`;
+    }
+    return lines;
   };
 
   const handleCopyClass = (classKey: string) => {
