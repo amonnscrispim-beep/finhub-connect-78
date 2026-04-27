@@ -476,6 +476,7 @@ export function ClientStatementModule({ clientId, clientName }: Props) {
                   {brokerTabs.map((b) => (
                     <TabsTrigger key={b} value={b}>{b}</TabsTrigger>
                   ))}
+                  <TabsTrigger value={CONCENTRATION}>Concentração</TabsTrigger>
                 </TabsList>
               </Tabs>
             )}
