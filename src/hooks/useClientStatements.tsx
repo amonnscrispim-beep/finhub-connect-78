@@ -215,6 +215,22 @@ export function useClientStatements(clientId: string | undefined) {
     [activeSnapshotId, loadSnapshots]
   );
 
+  const updateSnapshot = useCallback(
+    async (snapshotId: string, patch: Partial<ExtractSnapshot>) => {
+      const { error } = await supabase
+        .from('client_extract_snapshots')
+        .update(patch)
+        .eq('id', snapshotId);
+      if (error) {
+        toast.error('Erro ao salvar');
+        return false;
+      }
+      setSnapshots((prev) => prev.map((s) => (s.id === snapshotId ? { ...s, ...patch } as ExtractSnapshot : s)));
+      return true;
+    },
+    []
+  );
+
   return {
     snapshots,
     activeSnapshotId,
@@ -222,6 +238,13 @@ export function useClientStatements(clientId: string | undefined) {
     assets,
     isLoading,
     isExtracting,
+    extractAndSave,
+    deleteSnapshot,
+    updateSnapshot,
+    reload: loadSnapshots,
+  };
+}
+
     extractAndSave,
     deleteSnapshot,
     reload: loadSnapshots,
