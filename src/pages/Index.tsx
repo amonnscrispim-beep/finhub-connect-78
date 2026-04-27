@@ -138,9 +138,12 @@ function CRMDashboard() {
   };
 
   const handleSignOut = async () => {
-    await signOut();
-    toast.success('Sessão encerrada');
-    window.location.href = '/auth';
+    try {
+      await signOut();
+      toast.success('Sessão encerrada');
+    } finally {
+      window.location.replace('/auth');
+    }
   };
 
   const handleExportCSV = () => {
