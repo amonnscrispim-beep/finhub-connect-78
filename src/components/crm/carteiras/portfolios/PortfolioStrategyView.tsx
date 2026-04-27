@@ -62,6 +62,45 @@ interface AssetCalc {
   source: PortfolioAsset | null;
   isFii: boolean;
   isRf: boolean;
+  isManualAlloc: boolean; // true when user manually overrode allocation_pct
+}
+
+// Local-state numeric input — avoids reset-while-typing bug; persists onBlur.
+function LocalNumberInput({
+  value,
+  onSave,
+  className,
+  step = '0.01',
+  min,
+  max,
+}: {
+  value: number;
+  onSave: (v: number) => void;
+  className?: string;
+  step?: string;
+  min?: number;
+  max?: number;
+}) {
+  const [local, setLocal] = useState<string>(value.toFixed(2));
+  useEffect(() => { setLocal(value.toFixed(2)); }, [value]);
+  return (
+    <Input
+      type="number"
+      step={step}
+      min={min}
+      max={max}
+      value={local}
+      onChange={e => setLocal(e.target.value)}
+      onFocus={e => e.target.select()}
+      onBlur={e => {
+        const v = parseFloat(e.target.value);
+        const safe = Number.isFinite(v) ? v : 0;
+        if (Math.abs(safe - value) > 0.001) onSave(safe);
+        else setLocal(value.toFixed(2));
+      }}
+      className={className}
+    />
+  );
 }
 
 function computeAsset(
