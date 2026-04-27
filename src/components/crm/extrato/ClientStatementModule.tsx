@@ -200,7 +200,27 @@ export function ClientStatementModule({ clientId, clientName }: Props) {
       .sort((a, b) => b.pct - a.pct);
   }, [visibleAssets, total]);
 
-  // Vencimentos próximos
+  // Concentração por emissor — SEMPRE consolidado (todas corretoras)
+  const issuerConcentration = useMemo(() => {
+    const totalAll = allAssets.reduce((s, a) => s + (a.gross_value || 0), 0);
+    const map: Record<string, { issuer: string; value: number; assets: string[]; allExempt: boolean; anyExempt: boolean }> = {};
+    allAssets.forEach((a) => {
+      const issuer = (a.issuer || a.asset_name || 'Sem emissor').trim() || 'Sem emissor';
+      if (!map[issuer]) {
+        map[issuer] = { issuer, value: 0, assets: [], allExempt: true, anyExempt: false };
+      }
+      map[issuer].value += a.gross_value || 0;
+      map[issuer].assets.push(a.asset_name);
+      if (a.is_tax_exempt) map[issuer].anyExempt = true;
+      else map[issuer].allExempt = false;
+    });
+    const list = Object.values(map).map((x) => ({
+      ...x,
+      pct: totalAll > 0 ? (x.value / totalAll) * 100 : 0,
+    }));
+    list.sort((a, b) => (concSortDesc ? b.pct - a.pct : a.pct - b.pct));
+    return { list, totalAll };
+  }, [allAssets, concSortDesc]);
   const upcomingMaturities = useMemo(() => {
     const today = new Date();
     return visibleAssets.filter((a) => {
