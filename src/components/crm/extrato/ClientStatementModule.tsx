@@ -46,6 +46,7 @@ const ALL_CLASSES: AssetClass[] = [
 ];
 
 const CONSOLIDATED = '__CONSOLIDATED__';
+const CONCENTRATION = '__CONCENTRATION__';
 
 interface Props {
   clientId?: string;
