@@ -824,7 +824,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                                       type="button"
                                       title="Restaurar cálculo automático"
                                       className="text-[10px] text-muted-foreground hover:text-primary px-1"
-                                      onClick={() => handleUpdateAssetField(c.asset.id, 'allocation_pct', 0)}
+                                      onClick={() => handleUpdateAssetField(c.asset.id, 'allocation_pct', -1)}
                                     >
                                       ↺
                                     </button>
