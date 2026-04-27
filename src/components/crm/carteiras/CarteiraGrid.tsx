@@ -22,7 +22,44 @@ interface Props {
   onPortfolioCreated?: () => void | Promise<void>;
 }
 
-export function CarteiraGrid({ portfolios, allAssets, onSelect, isMaster, userId }: Props) {
+export function CarteiraGrid({ portfolios, allAssets, onSelect, isMaster, userId, onPortfolioCreated }: Props) {
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+  const [creating, setCreating] = useState(false);
+
+  const slugify = (s: string) =>
+    s.toLowerCase().trim()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || `carteira-${Date.now()}`;
+
+  const handleCreate = async () => {
+    const name = newName.trim();
+    if (!name) { toast.error('Informe o nome da carteira'); return; }
+    if (!userId) { toast.error('Sessão inválida'); return; }
+    setCreating(true);
+    const slug = slugify(name);
+    const nextOrder = portfolios.reduce((max, p) => Math.max(max, p.display_order ?? 0), -1) + 1;
+    const { error } = await supabase.from('recommended_portfolios').insert({
+      name,
+      slug,
+      description: newDescription.trim(),
+      display_order: nextOrder,
+      user_id: userId,
+    } as any);
+    setCreating(false);
+    if (error) {
+      toast.error('Erro ao criar carteira');
+      console.error(error);
+      return;
+    }
+    toast.success('Carteira criada!');
+    setNewName('');
+    setNewDescription('');
+    setCreateOpen(false);
+    await onPortfolioCreated?.();
+  };
 
   const toggleShare = async (e: React.MouseEvent, portfolio: RecommendedPortfolio) => {
     e.stopPropagation();
