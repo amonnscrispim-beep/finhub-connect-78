@@ -85,7 +85,17 @@ function computeAsset(
   const currentPrice = source?.current_price ? Number(source.current_price) : null;
   const isRf = classKey === 'renda_fixa';
   const isFii = classKey === 'fiis';
-  const cotas = !isRf && currentPrice && currentPrice > 0 ? Math.floor(assetValue / currentPrice) : null;
+  // Quantidade de cotas/ações:
+  // - Ações brasileiras e Internacionais (não FII, não RF): número INTEIRO (Math.floor)
+  //   e o valor investido real é recalculado como Qtd × Preço Atual.
+  // - FIIs: aceitam frações (mantém Math.floor mas valor real = qtd × preço também).
+  // - RF: sem cotas.
+  let cotas: number | null = null;
+  let realValue = assetValue;
+  if (!isRf && currentPrice && currentPrice > 0) {
+    cotas = Math.floor(assetValue / currentPrice);
+    realValue = cotas * currentPrice;
+  }
 
   const dyInput = Number(asset.dy_pct) || 0;
   let dvMonth: number;
@@ -95,14 +105,14 @@ function computeAsset(
     dvMonth = dyInput * (cotas || 0);
     dvYear = dvMonth * 12;
   } else if (isRf) {
-    dvYear = assetValue * (dyInput / 100);
+    dvYear = realValue * (dyInput / 100);
     dvMonth = dvYear / 12;
   } else {
     dvYear = dyInput * (cotas || 0);
     dvMonth = dvYear / 12;
   }
 
-  return { asset, allocClassPct, totalPct, assetValue, cotas, dyInput, dvMonth, dvYear, source, isFii, isRf };
+  return { asset, allocClassPct, totalPct, assetValue: realValue, cotas, dyInput, dvMonth, dvYear, source, isFii, isRf };
 }
 
 function formatBRL(v: number): string {
