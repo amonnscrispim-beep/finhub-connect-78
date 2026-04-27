@@ -248,6 +248,8 @@ export function CarteirasRecomendadas() {
 
   if (selectedPortfolio) {
     const isOwnPortfolio = selectedPortfolio.user_id === user?.id;
+    // Masters can edit ANY portfolio (including shared ones from other masters).
+    const canEdit = isMaster || isOwnPortfolio;
     return (
       <CarteiraDetail
         portfolio={selectedPortfolio}
@@ -256,7 +258,7 @@ export function CarteirasRecomendadas() {
         onBack={() => setSelectedPortfolio(null)}
         onRefresh={refreshAssets}
         isMaster={isMaster}
-        readOnly={!isOwnPortfolio}
+        readOnly={!canEdit}
       />
     );
   }
