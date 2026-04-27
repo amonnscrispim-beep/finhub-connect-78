@@ -721,17 +721,9 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                               </TableCell>
                             )}
                             <TableCell className="text-right">
-                              <Input type="number" step="0.01" className="no-spinner h-7 w-20 text-sm text-right inline-block"
-                                defaultValue={c.allocClassPct.toFixed(2)}
-                                key={`cls-${c.asset.id}-${data.calcs.length}-${data.classPct}`}
-                                {...((cls.key === 'fiis' || cls.key === 'acoes_brasileiras') && {
-                                  onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select(),
-                                })}
-                                onBlur={e => {
-                                  const val = parseFloat(e.target.value) || 0;
-                                  if (Math.abs(val - c.allocClassPct) > 0.001) handleUpdateAssetField(c.asset.id, 'allocation_pct', val);
-                                }}
-                              />
+                              <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-muted/40 text-foreground">
+                                {c.allocClassPct.toFixed(2)}%
+                              </span>
                             </TableCell>
                             <TableCell className="text-right">
                               <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground">
