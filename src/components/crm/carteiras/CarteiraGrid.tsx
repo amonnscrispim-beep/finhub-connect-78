@@ -164,6 +164,42 @@ export function CarteiraGrid({ portfolios, allAssets, onSelect, isMaster, userId
           );
         })}
       </div>
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova Carteira Recomendada</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="new-portfolio-name">Nome da Carteira *</Label>
+              <Input
+                id="new-portfolio-name"
+                placeholder="Ex: Internacional, Dividendos, Renda Fixa"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-portfolio-desc">Subtítulo / Descrição (opcional)</Label>
+              <Input
+                id="new-portfolio-desc"
+                placeholder="Ex: Small Caps + Valor"
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>Cancelar</Button>
+            <Button onClick={handleCreate} disabled={creating || !newName.trim()}>
+              {creating ? 'Criando...' : 'Criar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
