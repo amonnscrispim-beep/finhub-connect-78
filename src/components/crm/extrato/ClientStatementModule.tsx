@@ -74,6 +74,24 @@ function assetIrRate(a: ExtractAsset): number {
   return irRateForDays(days);
 }
 
+function LocalNumberInput({ value, onSave }: { value: number; onSave: (v: number) => void }) {
+  const [local, setLocal] = useState<string>(String(value ?? 0));
+  useEffect(() => { setLocal(String(value ?? 0)); }, [value]);
+  return (
+    <input
+      type="number"
+      step="0.01"
+      className="w-full h-9 px-3 rounded-md border bg-background text-sm"
+      value={local}
+      onChange={(e) => setLocal(e.target.value)}
+      onBlur={(e) => {
+        const n = Number(e.target.value);
+        if (!Number.isNaN(n) && n !== value) onSave(n);
+      }}
+    />
+  );
+}
+
 export function ClientStatementModule({ clientId, clientName }: Props) {
   const { user } = useAuth();
   const {
