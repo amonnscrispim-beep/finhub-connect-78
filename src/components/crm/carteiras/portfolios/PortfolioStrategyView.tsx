@@ -124,10 +124,12 @@ function computeAsset(
   recommendedAssets: PortfolioAsset[],
   classKey: string,
 ): AssetCalc {
-  // allocation_pct stores the weight within the class (e.g. 10% of the class)
+  // allocation_pct stores the weight within the class (e.g. 10% of the class).
+  // Sentinel: < 0 (e.g. -1) means "auto-distribute"; >= 0 (including 0) means manual override.
   const storedClassPct = Number(asset.allocation_pct);
+  const isManual = Number.isFinite(storedClassPct) && storedClassPct >= 0;
   const autoClassPct = classCount > 0 ? 100 / classCount : 0;
-  const allocClassPct = storedClassPct > 0 ? storedClassPct : autoClassPct;
+  const allocClassPct = isManual ? storedClassPct : autoClassPct;
   
   // Total portfolio % = class% × classWeight/100
   const totalPct = classPct * (allocClassPct / 100);
