@@ -245,8 +245,3 @@ export function useClientStatements(clientId: string | undefined) {
   };
 }
 
-    extractAndSave,
-    deleteSnapshot,
-    reload: loadSnapshots,
-  };
-}
