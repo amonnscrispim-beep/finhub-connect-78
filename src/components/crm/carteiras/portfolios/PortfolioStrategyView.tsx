@@ -166,7 +166,7 @@ function computeAsset(
     dvMonth = dvYear / 12;
   }
 
-  return { asset, allocClassPct, totalPct, assetValue: realValue, cotas, dyInput, dvMonth, dvYear, source, isFii, isRf, isManualAlloc: storedClassPct > 0 };
+  return { asset, allocClassPct, totalPct, assetValue: realValue, cotas, dyInput, dvMonth, dvYear, source, isFii, isRf, isManualAlloc: isManual };
 }
 
 function formatBRL(v: number): string {
