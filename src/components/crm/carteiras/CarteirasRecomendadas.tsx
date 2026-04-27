@@ -46,6 +46,44 @@ const DEFAULT_PORTFOLIOS = [
   { name: 'Internacional', slug: 'internacional', display_order: 3, description: 'Ativos internacionais' },
 ];
 
+// "Most recent wins" rule for shared content across multiple master accounts.
+// Keep the user's own row when present; among shared duplicates, keep the latest updated_at.
+function dedupeSharedPortfolios(rows: RecommendedPortfolio[], currentUserId: string | undefined): RecommendedPortfolio[] {
+  const byKey = new Map<string, RecommendedPortfolio>();
+  for (const row of rows) {
+    const key = row.slug;
+    const existing = byKey.get(key);
+    if (!existing) { byKey.set(key, row); continue; }
+    // Prefer own row over shared
+    const existingIsOwn = existing.user_id === currentUserId;
+    const rowIsOwn = row.user_id === currentUserId;
+    if (existingIsOwn && !rowIsOwn) continue;
+    if (rowIsOwn && !existingIsOwn) { byKey.set(key, row); continue; }
+    // Both shared (or both own — shouldn't happen): keep most recent updated_at
+    const a = new Date(existing.updated_at).getTime();
+    const b = new Date(row.updated_at).getTime();
+    if (b > a) byKey.set(key, row);
+  }
+  return Array.from(byKey.values());
+}
+
+function dedupeSharedAssets(rows: PortfolioAsset[], currentUserId: string | undefined): PortfolioAsset[] {
+  const byKey = new Map<string, PortfolioAsset>();
+  for (const row of rows) {
+    const key = `${row.portfolio_id}::${row.ticker}`;
+    const existing = byKey.get(key);
+    if (!existing) { byKey.set(key, row); continue; }
+    const existingIsOwn = existing.user_id === currentUserId;
+    const rowIsOwn = row.user_id === currentUserId;
+    if (existingIsOwn && !rowIsOwn) continue;
+    if (rowIsOwn && !existingIsOwn) { byKey.set(key, row); continue; }
+    const a = new Date(existing.updated_at).getTime();
+    const b = new Date(row.updated_at).getTime();
+    if (b > a) byKey.set(key, row);
+  }
+  return Array.from(byKey.values());
+}
+
 // Module-level cache to survive tab unmount/remount
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 type CarteirasCache = {
@@ -103,7 +141,7 @@ export function CarteirasRecomendadas() {
       .or(`user_id.eq.${user.id},shared.eq.true`)
       .order('display_order');
 
-    let portfolioList = (existingPortfolios || []) as unknown as RecommendedPortfolio[];
+    let portfolioList = dedupeSharedPortfolios((existingPortfolios || []) as unknown as RecommendedPortfolio[], user.id);
 
     // Migrate old structure: merge Small Caps + Valor into Crescimento
     const slugs = portfolioList.map(p => p.slug);
@@ -175,7 +213,7 @@ export function CarteirasRecomendadas() {
       .or(`user_id.eq.${user.id},shared.eq.true`)
       .order('display_order');
 
-    const assetList = (assets || []) as unknown as PortfolioAsset[];
+    const assetList = dedupeSharedAssets((assets || []) as unknown as PortfolioAsset[], user.id);
     setAllAssets(assetList);
     carteirasCache = {
       userId: user.id,
@@ -193,7 +231,7 @@ export function CarteirasRecomendadas() {
       .select('*')
       .or(`user_id.eq.${user.id},shared.eq.true`)
       .order('display_order');
-    const assetList = (data || []) as unknown as PortfolioAsset[];
+    const assetList = dedupeSharedAssets((data || []) as unknown as PortfolioAsset[], user.id);
     setAllAssets(assetList);
     if (carteirasCache && carteirasCache.userId === user.id) {
       carteirasCache = { ...carteirasCache, assets: assetList, fetchedAt: Date.now() };
