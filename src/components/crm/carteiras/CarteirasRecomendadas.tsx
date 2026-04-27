@@ -46,6 +46,44 @@ const DEFAULT_PORTFOLIOS = [
   { name: 'Internacional', slug: 'internacional', display_order: 3, description: 'Ativos internacionais' },
 ];
 
+// "Most recent wins" rule for shared content across multiple master accounts.
+// Keep the user's own row when present; among shared duplicates, keep the latest updated_at.
+function dedupeSharedPortfolios(rows: RecommendedPortfolio[], currentUserId: string | undefined): RecommendedPortfolio[] {
+  const byKey = new Map<string, RecommendedPortfolio>();
+  for (const row of rows) {
+    const key = row.slug;
+    const existing = byKey.get(key);
+    if (!existing) { byKey.set(key, row); continue; }
+    // Prefer own row over shared
+    const existingIsOwn = existing.user_id === currentUserId;
+    const rowIsOwn = row.user_id === currentUserId;
+    if (existingIsOwn && !rowIsOwn) continue;
+    if (rowIsOwn && !existingIsOwn) { byKey.set(key, row); continue; }
+    // Both shared (or both own — shouldn't happen): keep most recent updated_at
+    const a = new Date(existing.updated_at).getTime();
+    const b = new Date(row.updated_at).getTime();
+    if (b > a) byKey.set(key, row);
+  }
+  return Array.from(byKey.values());
+}
+
+function dedupeSharedAssets(rows: PortfolioAsset[], currentUserId: string | undefined): PortfolioAsset[] {
+  const byKey = new Map<string, PortfolioAsset>();
+  for (const row of rows) {
+    const key = `${row.portfolio_id}::${row.ticker}`;
+    const existing = byKey.get(key);
+    if (!existing) { byKey.set(key, row); continue; }
+    const existingIsOwn = existing.user_id === currentUserId;
+    const rowIsOwn = row.user_id === currentUserId;
+    if (existingIsOwn && !rowIsOwn) continue;
+    if (rowIsOwn && !existingIsOwn) { byKey.set(key, row); continue; }
+    const a = new Date(existing.updated_at).getTime();
+    const b = new Date(row.updated_at).getTime();
+    if (b > a) byKey.set(key, row);
+  }
+  return Array.from(byKey.values());
+}
+
 // Module-level cache to survive tab unmount/remount
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 type CarteirasCache = {
