@@ -141,7 +141,7 @@ export function CarteirasRecomendadas() {
       .or(`user_id.eq.${user.id},shared.eq.true`)
       .order('display_order');
 
-    let portfolioList = (existingPortfolios || []) as unknown as RecommendedPortfolio[];
+    let portfolioList = dedupeSharedPortfolios((existingPortfolios || []) as unknown as RecommendedPortfolio[], user.id);
 
     // Migrate old structure: merge Small Caps + Valor into Crescimento
     const slugs = portfolioList.map(p => p.slug);
