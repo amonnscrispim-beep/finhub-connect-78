@@ -231,7 +231,7 @@ export function CarteirasRecomendadas() {
       .select('*')
       .or(`user_id.eq.${user.id},shared.eq.true`)
       .order('display_order');
-    const assetList = (data || []) as unknown as PortfolioAsset[];
+    const assetList = dedupeSharedAssets((data || []) as unknown as PortfolioAsset[], user.id);
     setAllAssets(assetList);
     if (carteirasCache && carteirasCache.userId === user.id) {
       carteirasCache = { ...carteirasCache, assets: assetList, fetchedAt: Date.now() };
