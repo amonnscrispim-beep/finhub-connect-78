@@ -139,10 +139,15 @@ function CRMDashboard() {
 
   const handleSignOut = async () => {
     try {
+      // Clear local storage BEFORE signOut to avoid stale-state flicker
+      try { localStorage.clear(); } catch {}
+      try { sessionStorage.clear(); } catch {}
       await signOut();
-      toast.success('Sessão encerrada');
+    } catch (error) {
+      console.error('Erro no logout:', error);
     } finally {
-      window.location.replace('/auth');
+      // Hard navigation guarantees a clean tree (no white screen / no router race)
+      window.location.href = '/auth';
     }
   };
 
