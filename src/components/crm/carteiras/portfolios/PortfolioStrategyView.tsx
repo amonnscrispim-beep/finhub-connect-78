@@ -124,10 +124,12 @@ function computeAsset(
   recommendedAssets: PortfolioAsset[],
   classKey: string,
 ): AssetCalc {
-  // allocation_pct stores the weight within the class (e.g. 10% of the class)
+  // allocation_pct stores the weight within the class (e.g. 10% of the class).
+  // Sentinel: < 0 (e.g. -1) means "auto-distribute"; >= 0 (including 0) means manual override.
   const storedClassPct = Number(asset.allocation_pct);
+  const isManual = Number.isFinite(storedClassPct) && storedClassPct >= 0;
   const autoClassPct = classCount > 0 ? 100 / classCount : 0;
-  const allocClassPct = storedClassPct > 0 ? storedClassPct : autoClassPct;
+  const allocClassPct = isManual ? storedClassPct : autoClassPct;
   
   // Total portfolio % = class% × classWeight/100
   const totalPct = classPct * (allocClassPct / 100);
@@ -164,7 +166,7 @@ function computeAsset(
     dvMonth = dvYear / 12;
   }
 
-  return { asset, allocClassPct, totalPct, assetValue: realValue, cotas, dyInput, dvMonth, dvYear, source, isFii, isRf, isManualAlloc: storedClassPct > 0 };
+  return { asset, allocClassPct, totalPct, assetValue: realValue, cotas, dyInput, dvMonth, dvYear, source, isFii, isRf, isManualAlloc: isManual };
 }
 
 function formatBRL(v: number): string {
@@ -260,7 +262,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     if (deletedAsset) {
       const remaining = assets.filter(a => a.id !== id && a.asset_class === deletedAsset.asset_class);
       for (const a of remaining) {
-        await supabase.from('portfolio_assets').update({ allocation_pct: 0 }).eq('id', a.id);
+        await supabase.from('portfolio_assets').update({ allocation_pct: -1 }).eq('id', a.id);
       }
     }
     toast.success('Ativo removido');
@@ -352,22 +354,26 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
     const classPct = localPcts[cls.pctField];
 
     // Step 1: distribute Aloc. Classe % respecting manual overrides.
-    // - Manual (allocation_pct > 0): keep stored value.
-    // - Auto: split the REMAINING % equally among auto assets.
-    const manualSum = classAssets.reduce((s, a) => s + (Number(a.allocation_pct) > 0 ? Number(a.allocation_pct) : 0), 0);
-    const autoCount = classAssets.filter(a => !(Number(a.allocation_pct) > 0)).length;
+    // - Manual (allocation_pct >= 0, including 0): keep stored value.
+    // - Auto (allocation_pct < 0, sentinel -1): split the REMAINING % equally among auto assets.
+    const isManualA = (a: PortfolioAssetItem) => {
+      const v = Number(a.allocation_pct);
+      return Number.isFinite(v) && v >= 0;
+    };
+    const manualSum = classAssets.reduce((s, a) => s + (isManualA(a) ? Number(a.allocation_pct) : 0), 0);
+    const autoCount = classAssets.filter(a => !isManualA(a)).length;
     const remaining = Math.max(0, 100 - manualSum);
     const autoShare = autoCount > 0 ? remaining / autoCount : 0;
 
     // Build effective allocations per asset, then run computeAsset with synthetic classCount
     // so the internal auto fallback matches our distribution.
     const calcs = classAssets.map(a => {
-      const isManual = Number(a.allocation_pct) > 0;
+      const isManual = isManualA(a);
       const effectivePct = isManual ? Number(a.allocation_pct) : autoShare;
       // Inject synthetic asset with allocation_pct set so computeAsset uses it as stored.
       const synthetic = { ...a, allocation_pct: effectivePct } as PortfolioAssetItem;
       const c = computeAsset(synthetic, classPct, classAssets.length, investAmount, recommendedAssets, cls.key);
-      // Preserve the original manual flag (computeAsset will mark synthetic as manual since pct>0)
+      // Preserve the original manual flag (computeAsset will mark synthetic as manual since pct>=0)
       c.isManualAlloc = isManual;
       return c;
     });
@@ -818,7 +824,7 @@ export function PortfolioStrategyView({ portfolio, assets, recommendedAssets, po
                                       type="button"
                                       title="Restaurar cálculo automático"
                                       className="text-[10px] text-muted-foreground hover:text-primary px-1"
-                                      onClick={() => handleUpdateAssetField(c.asset.id, 'allocation_pct', 0)}
+                                      onClick={() => handleUpdateAssetField(c.asset.id, 'allocation_pct', -1)}
                                     >
                                       ↺
                                     </button>
