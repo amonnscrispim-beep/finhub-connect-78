@@ -55,12 +55,20 @@ export function useClientStatements(clientId: string | undefined) {
   const loadSnapshots = useCallback(async () => {
     if (!clientId || !user) return;
     setIsLoading(true);
-    try {
-      const { data, error } = await supabase
+    // Pequeno retry para falhas transitórias de rede ("Failed to fetch")
+    const attempt = async (): Promise<{ data: any[] | null; error: any }> => {
+      return await supabase
         .from('client_extract_snapshots')
         .select('*')
         .eq('client_id', clientId)
         .order('snapshot_date', { ascending: false });
+    };
+    try {
+      let { data, error } = await attempt();
+      if (error && /Failed to fetch|NetworkError/i.test(String(error?.message))) {
+        await new Promise((r) => setTimeout(r, 600));
+        ({ data, error } = await attempt());
+      }
       if (error) throw error;
       const list = (data || []) as ExtractSnapshot[];
       setSnapshots(list);
@@ -71,8 +79,12 @@ export function useClientStatements(clientId: string | undefined) {
         setAssets([]);
       }
     } catch (e: any) {
-      console.error(e);
-      toast.error('Erro ao carregar snapshots');
+      console.error('[useClientStatements] loadSnapshots failed', e);
+      // Silencia falhas transitórias de rede para não poluir a UI
+      const msg = String(e?.message || e);
+      if (!/Failed to fetch|NetworkError/i.test(msg)) {
+        toast.error('Erro ao carregar snapshots');
+      }
     } finally {
       setIsLoading(false);
     }
