@@ -284,11 +284,11 @@ export function SimuladorImovelCarteira({ clienteId, clienteNome, onAttach }: Pr
       {/* TOGGLE */}
       <div className="flex gap-2 items-center">
         <span className="text-sm text-gray-600">Visualizar:</span>
-        <button onClick={() => setModo("renda")}
+        <button type="button" onClick={() => setModo("renda")}
           className={`px-3 py-1 text-sm rounded ${modo === "renda" ? "bg-blue-100 text-blue-700 border border-blue-300" : "bg-gray-100"}`}>
           Renda mensal
         </button>
-        <button onClick={() => setModo("patrimonio")}
+        <button type="button" onClick={() => setModo("patrimonio")}
           className={`px-3 py-1 text-sm rounded ${modo === "patrimonio" ? "bg-blue-100 text-blue-700 border border-blue-300" : "bg-gray-100"}`}>
           Patrimônio em {inputs.horizonte} anos
         </button>
@@ -347,7 +347,7 @@ export function SimuladorImovelCarteira({ clienteId, clienteNome, onAttach }: Pr
 
       {/* BOTÃO GERAR */}
       <div className="flex justify-end pt-4 border-t">
-        <button onClick={gerarDocumento} disabled={gerando}
+        <button type="button" onClick={gerarDocumento} disabled={gerando}
           className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium">
           {gerando ? "Gerando..." : "Gerar relatório em Word + anexar ao cliente"}
         </button>
