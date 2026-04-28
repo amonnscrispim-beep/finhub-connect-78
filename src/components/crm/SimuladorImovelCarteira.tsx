@@ -51,12 +51,13 @@ interface CalculoResultado {
 interface Props {
   clienteId: string;
   clienteNome: string;
+  onAttach?: (file: ClientFile) => void;
 }
 
 // =====================================================================
 // COMPONENTE
 // =====================================================================
-export function SimuladorImovelCarteira({ clienteId, clienteNome }: Props) {
+export function SimuladorImovelCarteira({ clienteId, clienteNome, onAttach }: Props) {
   const [inputs, setInputs] = useState<InputsState>({
     valorImovel: 480000,
     custoOriginal: 480000,
