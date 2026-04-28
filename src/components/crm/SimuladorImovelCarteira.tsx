@@ -1,8 +1,11 @@
 import { useState, useMemo } from "react";
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType,
-  HeadingLevel, BorderStyle, WidthType, ShadingType, LevelFormat, PageBreak, PageOrientation } from "docx";
+  HeadingLevel, BorderStyle, WidthType, ShadingType, LevelFormat, PageBreak } from "docx";
 import { saveAs } from "file-saver";
-import { supabase } from "@/integrations/supabase/client"; // ajuste o path conforme seu projeto
+import type { ClientFile } from "@/types/client";
+import { toast } from "sonner";
+
+type AlignType = (typeof AlignmentType)[keyof typeof AlignmentType];
 
 // =====================================================================
 // TIPOS
