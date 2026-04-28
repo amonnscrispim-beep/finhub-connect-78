@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType,
   HeadingLevel, BorderStyle, WidthType, ShadingType, LevelFormat, PageBreak } from "docx";
-import { saveAs } from "file-saver";
+
 import type { ClientFile } from "@/types/client";
 import { toast } from "sonner";
 
