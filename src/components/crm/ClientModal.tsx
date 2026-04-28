@@ -1437,6 +1437,21 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               </div>
             </div>
 
+            {/* SECTION: Simulador */}
+            <div hidden={activeTab !== 'simulator'} className="space-y-4">
+              {client?.id ? (
+                <SimuladorImovelCarteira
+                  clienteId={client.id}
+                  clienteNome={formData.name}
+                  onAttach={(file) => setFormData(prev => ({ ...prev, files: [...prev.files, file] }))}
+                />
+              ) : (
+                <div className="text-sm text-muted-foreground p-6 text-center border border-dashed rounded-md">
+                  Salve o cliente primeiro para usar o simulador.
+                </div>
+              )}
+            </div>
+
             </div>
           </div>
           </div>
