@@ -152,40 +152,48 @@ export function SimuladorImovelCarteira({ clienteId, clienteNome, onAttach }: Pr
   };
 
   // ============== GERAR WORD + SALVAR ==============
+  const blobToDataUrl = (blob: Blob): Promise<string> => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+
   const gerarDocumento = async () => {
     setGerando(true);
     try {
       const blob = await gerarWordBlob(inputs, resultados, clienteNome);
       const fileName = `analise_patrimonial_${slug(clienteNome)}_${dataHoje()}.docx`;
 
-      // 1. Download local
-      saveAs(blob, fileName);
+      // 1. Download local (anchor + Blob, padrão do projeto)
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
 
-      // 2. Upload para Supabase Storage + registrar em arquivos_cliente
-      const path = `clientes/${clienteId}/${fileName}`;
-      const { error: upErr } = await supabase.storage
-        .from("arquivos-clientes")
-        .upload(path, blob, {
-          contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          upsert: true,
+      // 2. Anexar como ClientFile (clients.files jsonb), pasta "documentos"
+      if (onAttach) {
+        const dataUrl = await blobToDataUrl(blob);
+        onAttach({
+          id: Math.random().toString(36).substring(2, 15),
+          name: fileName,
+          type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          size: blob.size,
+          folder: "documentos",
+          uploadedAt: new Date(),
+          dataUrl,
         });
-      if (upErr) throw upErr;
-
-      const { data: pub } = supabase.storage.from("arquivos-clientes").getPublicUrl(path);
-
-      const { error: dbErr } = await supabase.from("arquivos_cliente").insert({
-        cliente_id: clienteId,
-        nome: fileName,
-        url: pub.publicUrl,
-        tipo: "analise_patrimonial",
-        criado_em: new Date().toISOString(),
-      });
-      if (dbErr) throw dbErr;
-
-      alert("Documento gerado, baixado e anexado ao histórico do cliente.");
+        toast.success("Documento gerado, baixado e anexado em Arquivos do Cliente.");
+      } else {
+        toast.success("Documento gerado e baixado.");
+      }
     } catch (e: any) {
       console.error(e);
-      alert("Erro ao gerar documento: " + e.message);
+      toast.error("Erro ao gerar documento: " + e.message);
     } finally {
       setGerando(false);
     }
@@ -450,7 +458,7 @@ async function gerarWordBlob(
     children: [new TextRun({ text, font: "Calibri", size: 22, bold: true, color: ACCENT })],
   });
 
-  const headerCell = (text: string, width: number, align = AlignmentType.CENTER) => new TableCell({
+  const headerCell = (text: string, width: number, align: AlignType = AlignmentType.CENTER) => new TableCell({
     borders: cellBorders,
     width: { size: width, type: WidthType.DXA },
     shading: { fill: NAVY, type: ShadingType.CLEAR, color: "auto" },
