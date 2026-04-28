@@ -50,6 +50,7 @@ import { CalendarIcon, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useClients } from '@/contexts/ClientContext';
 import { ClientFiles } from './ClientFiles';
+import { SimuladorImovelCarteira } from './SimuladorImovelCarteira';
 import { RaioXConsolidado } from './RaioXConsolidado';
 import { Progress } from '@/components/ui/progress';
 import { CollapsibleSection } from './CollapsibleSection';
@@ -1417,6 +1418,18 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   }))}
                 />
               </div>
+
+              {/* Simulador: Imóvel vs. Carteira */}
+              {client?.id && (
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-foreground flex items-center gap-2"><BarChart3 className="w-4 h-4 text-primary" />Simulador: Imóvel vs. Carteira</h4>
+                  <SimuladorImovelCarteira
+                    clienteId={client.id}
+                    clienteNome={formData.name}
+                    onAttach={(file) => setFormData(prev => ({ ...prev, files: [...prev.files, file] }))}
+                  />
+                </div>
+              )}
 
               {/* Arquivos do Cliente */}
               <div className="space-y-4">
