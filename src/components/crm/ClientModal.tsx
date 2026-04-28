@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   Heart, Users, PieChart, Landmark, Target, Calendar, Cake, CreditCard, 
   TrendingUp, Award, CheckCircle, User, DollarSign, FileText, Briefcase, ClipboardList, Wallet,
-  BarChart3, Shield, Search
+  BarChart3, Shield, Search, Calculator
 } from 'lucide-react';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -718,6 +718,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     { id: 'performance', label: 'Relatório de Performance', icon: BarChart3 },
     { id: 'extrato', label: 'Extrato do Cliente', icon: Wallet },
     { id: 'reports', label: 'Arquivos e Resumos', icon: FileText },
+    { id: 'simulator', label: 'Simulador', icon: Calculator },
   ] as const;
 
   // Simple completion progress: count tabs that have at least one signal field filled
@@ -1419,17 +1420,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 />
               </div>
 
-              {/* Simulador: Imóvel vs. Carteira */}
-              {client?.id && (
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-foreground flex items-center gap-2"><BarChart3 className="w-4 h-4 text-primary" />Simulador: Imóvel vs. Carteira</h4>
-                  <SimuladorImovelCarteira
-                    clienteId={client.id}
-                    clienteNome={formData.name}
-                    onAttach={(file) => setFormData(prev => ({ ...prev, files: [...prev.files, file] }))}
-                  />
-                </div>
-              )}
+
 
               {/* Arquivos do Cliente */}
               <div className="space-y-4">
@@ -1444,6 +1435,21 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   placeholder="Comentários sobre documentos, pendências, envios…"
                 />
               </div>
+            </div>
+
+            {/* SECTION: Simulador */}
+            <div hidden={activeTab !== 'simulator'} className="space-y-4">
+              {client?.id ? (
+                <SimuladorImovelCarteira
+                  clienteId={client.id}
+                  clienteNome={formData.name}
+                  onAttach={(file) => setFormData(prev => ({ ...prev, files: [...prev.files, file] }))}
+                />
+              ) : (
+                <div className="text-sm text-muted-foreground p-6 text-center border border-dashed rounded-md">
+                  Salve o cliente primeiro para usar o simulador.
+                </div>
+              )}
             </div>
 
             </div>
