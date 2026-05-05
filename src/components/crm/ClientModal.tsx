@@ -85,7 +85,7 @@ import { ClientStatementModule } from './extrato/ClientStatementModule';
 
 import { ArquiteturaCarteira, defaultArquiteturaCarteira, ArquiteturaCarteiraData } from './ArquiteturaCarteira';
 import { ConhecerClienteModule } from './conhecer/ConhecerClienteModule';
-import { defaultConhecerCliente, migrateFromLegacy, ConhecerClienteData } from './conhecer/types';
+import { defaultConhecerCliente, migrateFromLegacy, ConhecerClienteData, calculateProgress } from './conhecer/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useActivityLog } from '@/hooks/useActivityLog';
