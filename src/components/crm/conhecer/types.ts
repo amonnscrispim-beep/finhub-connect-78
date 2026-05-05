@@ -638,7 +638,15 @@ export function calculateProgress(data: ConhecerClienteData): number {
     // Bloco 8
     data.strategicPriority, data.portfolioObjective,
   ];
-  const filled = fields.filter(f => f && f.trim() !== '').length;
+  const isFilled = (f: any): boolean => {
+    if (f === null || f === undefined || f === false) return false;
+    if (typeof f === 'string') return f.trim() !== '';
+    if (typeof f === 'number') return f !== 0;
+    if (typeof f === 'boolean') return f;
+    if (Array.isArray(f)) return f.length > 0;
+    return Boolean(f);
+  };
+  const filled = fields.filter(isFilled).length;
   return Math.round((filled / fields.length) * 100);
 }
 
