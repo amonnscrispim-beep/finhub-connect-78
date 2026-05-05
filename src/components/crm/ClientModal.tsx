@@ -721,23 +721,11 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     { id: 'simulator', label: 'Simulador', icon: Calculator },
   ] as const;
 
-  // Simple completion progress: count tabs that have at least one signal field filled
-  const completionSignals: Record<string, boolean> = {
-    personal: !!formData.name && !!formData.email,
-    meetings: !!conhecerData.fullName || Object.keys(formData.meetingNotes || {}).length > 0,
-    financial: !!formData.financialAssets || !!formData.monthlyRevenue,
-    debts: formData.debts.length > 0,
-    pension: !!formData.privatePensionStatus || !!formData.retirementAge,
-    goals: !!client || draftGoals.length > 0,
-    
-    contracts: !!formData.contractedMeetings || !!formData.workDone,
-    tasks: !!formData.funnelStage,
-    performance: !!client,
-    extrato: !!client,
-    reports: (formData.files?.length || 0) > 0 || !!formData.consultingInitialPatrimony,
-  };
-  const completedCount = Object.values(completionSignals).filter(Boolean).length;
-  const completionPct = Math.round((completedCount / TABS.length) * 100);
+  // Unified progress: single source of truth = calculateProgress(conhecerData)
+  // Same value shown in the header AND in the "Conhecer o Cliente" card,
+  // so both indicators always agree. (Removes the old "fake count" that gave
+  // a point per tab just because funnelStage existed.)
+  const completionPct = calculateProgress(conhecerData);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
