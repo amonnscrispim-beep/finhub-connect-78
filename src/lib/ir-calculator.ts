@@ -87,7 +87,8 @@ export interface IRSimulationResult {
 }
 
 function buildDetail(inputs: IRInputs, pgblTotal: number): IRResultDetail {
-  const educacaoTotalPessoas = 1 + Math.max(0, inputs.numDependentes); // titular + dependentes
+  const renda = Math.max(0, inputs.rendaBrutaAnual);
+  const educacaoTotalPessoas = 1 + Math.max(0, inputs.numDependentes);
   const educacaoLimite = educacaoTotalPessoas * LIMITS.EDUCATION_PER_PERSON;
   const educacaoAplicada = Math.min(inputs.despesaEducacao, educacaoLimite);
   const educacaoExcedente = Math.max(0, inputs.despesaEducacao - educacaoLimite);
@@ -101,11 +102,11 @@ function buildDetail(inputs: IRInputs, pgblTotal: number): IRResultDetail {
     inputs.outrasDeducoes +
     pgblTotal;
 
-  const baseCalculo = Math.max(0, inputs.rendaBruta - totalDeducoes);
+  const baseCalculo = Math.max(0, renda - totalDeducoes);
   const { imposto, aliquotaEfetiva, aliquotaMarginal } = calcImposto(baseCalculo);
 
   return {
-    rendaBruta: inputs.rendaBruta,
+    rendaBruta: renda,
     inss: inputs.inssAnual,
     saude: inputs.despesaSaude,
     educacaoAplicada,
@@ -119,7 +120,7 @@ function buildDetail(inputs: IRInputs, pgblTotal: number): IRResultDetail {
     imposto,
     aliquotaEfetiva,
     aliquotaMarginal,
-  } as IRResultDetail;
+  };
 }
 
 export function simulateIR(inputs: IRInputs): IRSimulationResult {
@@ -128,14 +129,8 @@ export function simulateIR(inputs: IRInputs): IRSimulationResult {
   const pgblAtual = Math.min(inputs.pgblExistente, pgblTeto);
   const aporteSugerido = Math.max(0, pgblTeto - pgblAtual);
 
-  // Adapter — buildDetail recebe um shape com rendaBruta (já renomeada)
-  const detailInput = {
-    ...inputs,
-    rendaBruta: renda,
-  } as unknown as IRInputs & { rendaBruta: number };
-
-  const semAporte = buildDetail(detailInput as any, pgblAtual);
-  const comAporte = buildDetail(detailInput as any, pgblTeto);
+  const semAporte = buildDetail(inputs, pgblAtual);
+  const comAporte = buildDetail(inputs, pgblTeto);
 
   // Declaração simplificada (substitui TODAS deduções legais por 20% capado)
   const desconto = Math.min(renda * LIMITS.SIMPLIFICADA_PCT, LIMITS.SIMPLIFICADA_CAP);
