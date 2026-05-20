@@ -33,6 +33,7 @@ import { PatrimonioIdade } from '@/components/ferramentas/PatrimonioIdade';
 import { AlugarOuFinanciar } from '@/components/ferramentas/AlugarOuFinanciar';
 import { VistaOuParcelada } from '@/components/ferramentas/VistaOuParcelada';
 import { IOFCaixinha } from '@/components/ferramentas/IOFCaixinha';
+import { SimuladorIR } from '@/components/ferramentas/SimuladorIR';
 import { SimuladorCDB } from '@/components/ferramentas/SimuladorCDB';
 import { SimuladorLCILCA } from '@/components/ferramentas/SimuladorLCILCA';
 import { SimuladorTesouroPre } from '@/components/ferramentas/SimuladorTesouroPre';
@@ -382,6 +383,7 @@ function CRMDashboard() {
               {ferramentaAtiva === 'alugar-financiar' && <AlugarOuFinanciar />}
               {ferramentaAtiva === 'vista-parcelada' && <VistaOuParcelada />}
               {ferramentaAtiva === 'iof-caixinha' && <IOFCaixinha />}
+              {ferramentaAtiva === 'simulador-ir' && <SimuladorIR />}
               {ferramentaAtiva === 'cdb' && <SimuladorCDB />}
               {ferramentaAtiva === 'lci-lca' && <SimuladorLCILCA />}
               {ferramentaAtiva === 'tesouro-pre' && <SimuladorTesouroPre />}

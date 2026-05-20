@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Wrench, ChevronDown, Calculator, TrendingUp, DollarSign, Home, ShoppingCart, Percent, Target, Landmark, LineChart, Wallet, PiggyBank } from 'lucide-react';
+import { Wrench, ChevronDown, Calculator, TrendingUp, DollarSign, Home, ShoppingCart, Percent, Target, Landmark, LineChart, Wallet, PiggyBank, Receipt } from 'lucide-react';
 
 export type FerramentaId =
   | 'juros-compostos'
@@ -8,6 +8,7 @@ export type FerramentaId =
   | 'alugar-financiar'
   | 'vista-parcelada'
   | 'iof-caixinha'
+  | 'simulador-ir'
   | 'cdb'
   | 'lci-lca'
   | 'tesouro-pre'
@@ -26,6 +27,7 @@ const calculadoras = [
   { id: 'alugar-financiar' as FerramentaId, label: 'Calculadora Alugar ou Financiar', icon: Home },
   { id: 'vista-parcelada' as FerramentaId, label: 'Compra à Vista ou Parcelada', icon: ShoppingCart },
   { id: 'iof-caixinha' as FerramentaId, label: 'Calculadora de IOF da Caixinha', icon: Percent },
+  { id: 'simulador-ir' as FerramentaId, label: 'Simulador de Imposto de Renda', icon: Receipt },
 ];
 
 const simuladores = [
