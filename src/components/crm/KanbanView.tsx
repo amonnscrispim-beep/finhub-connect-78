@@ -265,11 +265,6 @@ const KanbanCardComponent = memo(function KanbanCard({
         return null;
       })()}
 
-      {client.objective && (
-        <div className="mb-3 p-2 rounded-lg bg-muted/50">
-          <p className="text-sm text-muted-foreground"><span className="font-medium text-foreground">Objetivo:</span> {client.objective}</p>
-        </div>
-      )}
 
       {pendingTasks.length > 0 && (
         <div className="mb-3">
