@@ -253,6 +253,13 @@ function CRMDashboard() {
               Operacional
             </TabsTrigger>
             <TabsTrigger 
+              value="agenda"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <CalendarDays className="w-4 h-4 mr-2" />
+              Agenda
+            </TabsTrigger>
+            <TabsTrigger 
               value="executivo"
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
