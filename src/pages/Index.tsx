@@ -368,6 +368,13 @@ function CRMDashboard() {
             </Tabs>
           </TabsContent>
 
+          {/* AGENDA */}
+          <TabsContent value="agenda" className="animate-fade-in">
+            <ErrorBoundary label="Agenda">
+              <Agenda onEditClient={handleEditClient} />
+            </ErrorBoundary>
+          </TabsContent>
+
           {/* DASHBOARD EXECUTIVO - New strategic dashboard */}
           <TabsContent value="executivo" className="animate-fade-in">
             <ErrorBoundary label="Dashboard Executivo">
