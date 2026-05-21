@@ -1,0 +1,283 @@
+import { useMemo, useState } from 'react';
+import { format, isToday, isTomorrow, isThisWeek, isPast, startOfDay, isSameDay } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Calendar as CalendarIcon, Plus, Clock, ExternalLink, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Calendar } from '@/components/ui/calendar';
+import { useClients } from '@/contexts/ClientContext';
+import { Client } from '@/types/client';
+import { ScheduleMeetingModal } from './ScheduleMeetingModal';
+
+type Status = 'confirmada' | 'pendente' | 'atrasada';
+type Filter = 'todas' | 'pendentes' | 'confirmadas' | 'atrasadas';
+
+interface AgendaItem {
+  client: Client;
+  date: Date;
+  time?: string;
+  status: Status;
+}
+
+interface AgendaProps {
+  onEditClient: (client: Client) => void;
+}
+
+const statusConfig: Record<Status, { label: string; className: string }> = {
+  confirmada: { label: 'CONFIRMADA', className: 'bg-success/15 text-success border-success/30' },
+  pendente: { label: 'PENDENTE', className: 'bg-yellow-500/15 text-yellow-600 border-yellow-500/30' },
+  atrasada: { label: 'ATRASADA', className: 'bg-destructive/15 text-destructive border-destructive/30' },
+};
+
+function classify(date: Date, client: Client): Status {
+  const now = new Date();
+  if (isPast(date) && !isToday(date)) return 'atrasada';
+  // Confirmadas: tem horário definido e cliente não é "pendingSchedule"
+  if (client.pendingSchedule) return 'pendente';
+  return 'confirmada';
+}
+
+function groupLabel(date: Date): string {
+  if (isToday(date)) return `HOJE — ${format(date, "EEEE, d 'de' MMMM", { locale: ptBR })}`;
+  if (isTomorrow(date)) return `AMANHÃ — ${format(date, "EEEE, d 'de' MMMM", { locale: ptBR })}`;
+  if (isThisWeek(date, { weekStartsOn: 1 })) return `ESTA SEMANA — ${format(date, "EEEE, d 'de' MMMM", { locale: ptBR })}`;
+  if (isPast(date)) return `ATRASADAS — ${format(date, "EEEE, d 'de' MMMM", { locale: ptBR })}`;
+  return format(date, "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR }).toUpperCase();
+}
+
+export function Agenda({ onEditClient }: AgendaProps) {
+  const { clients } = useClients();
+  const [filter, setFilter] = useState<Filter>('todas');
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [calendarDate, setCalendarDate] = useState<Date | undefined>();
+
+  const items = useMemo<AgendaItem[]>(() => {
+    const out: AgendaItem[] = [];
+    clients.forEach((c) => {
+      if (!c.scheduledMeeting?.date) return;
+      const date = new Date(c.scheduledMeeting.date);
+      if (isNaN(date.getTime())) return;
+      out.push({
+        client: c,
+        date,
+        time: c.scheduledMeeting.time,
+        status: classify(date, c),
+      });
+    });
+    return out.sort((a, b) => a.date.getTime() - b.date.getTime());
+  }, [clients]);
+
+  // Cards de resumo
+  const weekItems = items.filter((i) => isThisWeek(i.date, { weekStartsOn: 1 }));
+  const pendentes = items.filter((i) => i.status === 'pendente');
+  const atrasadas = items.filter((i) => i.status === 'atrasada');
+  const proxima = items.find((i) => !isPast(i.date) || isToday(i.date));
+
+  // Aplica filtros
+  const filtered = items.filter((i) => {
+    if (calendarDate && !isSameDay(i.date, calendarDate)) return false;
+    if (filter === 'todas') return true;
+    if (filter === 'pendentes') return i.status === 'pendente';
+    if (filter === 'confirmadas') return i.status === 'confirmada';
+    if (filter === 'atrasadas') return i.status === 'atrasada';
+    return true;
+  });
+
+  // Agrupa por dia
+  const groups = useMemo(() => {
+    const map = new Map<string, AgendaItem[]>();
+    filtered.forEach((i) => {
+      const key = startOfDay(i.date).toISOString();
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(i);
+    });
+    return Array.from(map.entries()).map(([key, list]) => ({
+      date: new Date(key),
+      items: list,
+    }));
+  }, [filtered]);
+
+  // Dias com reunião (para marcar no mini calendário)
+  const daysWithMeetings = useMemo(
+    () => items.map((i) => startOfDay(i.date)),
+    [items]
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Agenda</h1>
+          <p className="text-sm text-muted-foreground">Gerencie todas as reuniões com seus clientes</p>
+        </div>
+        <Button onClick={() => setScheduleOpen(true)} className="gap-2">
+          <Plus className="w-4 h-4" />
+          Nova Reunião
+        </Button>
+      </div>
+
+      {/* Filtros */}
+      <div className="flex flex-wrap items-center gap-2">
+        {(['todas', 'pendentes', 'confirmadas', 'atrasadas'] as Filter[]).map((f) => (
+          <Button
+            key={f}
+            variant={filter === f ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilter(f)}
+            className="capitalize"
+          >
+            {f}
+          </Button>
+        ))}
+        {calendarDate && (
+          <Button variant="ghost" size="sm" onClick={() => setCalendarDate(undefined)}>
+            Limpar data ({format(calendarDate, 'dd/MM')})
+          </Button>
+        )}
+      </div>
+
+      {/* Cards de resumo */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="crm-card p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-xl bg-primary/10 text-primary">
+              <CalendarIcon className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{weekItems.length}</p>
+              <p className="text-sm text-muted-foreground">Reuniões esta semana</p>
+            </div>
+          </div>
+        </div>
+        <div className="crm-card p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-xl bg-yellow-500/10 text-yellow-600">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{pendentes.length}</p>
+              <p className="text-sm text-muted-foreground">Pendentes de confirmação</p>
+            </div>
+          </div>
+        </div>
+        <div className="crm-card p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-xl bg-destructive/10 text-destructive">
+              <AlertCircle className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{atrasadas.length}</p>
+              <p className="text-sm text-muted-foreground">Reuniões em atraso</p>
+            </div>
+          </div>
+        </div>
+        <div className="crm-card p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-xl bg-success/10 text-success">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold truncate">
+                {proxima ? proxima.client.name : '—'}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {proxima
+                  ? `${format(proxima.date, "dd/MM", { locale: ptBR })}${proxima.time ? ` às ${proxima.time}` : ''}`
+                  : 'Sem próxima reunião'}
+              </p>
+              <p className="text-xs text-muted-foreground">Próxima reunião</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Conteúdo principal */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Lista */}
+        <div className="lg:col-span-2 space-y-6">
+          {groups.length === 0 ? (
+            <div className="crm-card p-8 text-center">
+              <CalendarIcon className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+              <p className="text-sm text-muted-foreground">
+                Nenhuma reunião encontrada com os filtros atuais.
+              </p>
+            </div>
+          ) : (
+            groups.map((g) => (
+              <div key={g.date.toISOString()} className="space-y-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {groupLabel(g.date)}
+                </h3>
+                <div className="crm-card divide-y divide-border">
+                  {g.items.map((item) => {
+                    const cfg = statusConfig[item.status];
+                    return (
+                      <div
+                        key={item.client.id + item.date.toISOString()}
+                        className="flex items-center justify-between gap-3 p-3 hover:bg-muted/40 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <button
+                            onClick={() => onEditClient(item.client)}
+                            className="font-medium text-sm text-foreground hover:text-primary truncate text-left"
+                          >
+                            {item.client.name}
+                          </button>
+                          {item.time && (
+                            <span className="text-sm text-muted-foreground whitespace-nowrap">
+                              {item.time}
+                            </span>
+                          )}
+                          <Badge variant="outline" className={`text-[10px] ${cfg.className}`}>
+                            {cfg.label}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => onEditClient(item.client)}
+                            className="h-8"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Mini calendário */}
+        <div className="lg:col-span-1">
+          <div className="crm-card p-4">
+            <h3 className="text-sm font-semibold mb-3">Calendário</h3>
+            <Calendar
+              mode="single"
+              selected={calendarDate}
+              onSelect={setCalendarDate}
+              locale={ptBR}
+              modifiers={{ hasMeeting: daysWithMeetings }}
+              modifiersClassNames={{
+                hasMeeting: 'relative after:content-[""] after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-primary',
+              }}
+              className="pointer-events-auto"
+            />
+            <p className="text-xs text-muted-foreground mt-3">
+              Clique em um dia para filtrar a lista.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <ScheduleMeetingModal
+        open={scheduleOpen}
+        onOpenChange={setScheduleOpen}
+      />
+    </div>
+  );
+}

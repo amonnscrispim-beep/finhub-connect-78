@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { Users, RefreshCw, DollarSign, Bell, Clock, CalendarClock } from 'lucide-react';
+import { Users, RefreshCw, DollarSign, Bell, Clock } from 'lucide-react';
 import { useClients } from '@/contexts/ClientContext';
 import { differenceInDays } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { WeeklyAlertsDrawer, type WeeklyTask } from './DailyAlertsDrawer';
 
 interface StatsCardsProps {
@@ -41,13 +43,6 @@ export function StatsCards({ onTotalClientsClick, onRenewalsClick, onFinancialAs
     return differenceInDays(today, lastActivity) >= 30;
   }).length;
 
-  const overdueMeetingsCount = activeClients.filter(client => {
-    const period = (client as any).meetingPeriodicityDays ?? 30;
-    const lastMeeting = client.lastActivityAt ? new Date(client.lastActivityAt) : null;
-    if (!lastMeeting || !period) return false;
-    return differenceInDays(today, lastMeeting) > period;
-  }).length;
-
   const stats = [
     {
       label: 'Total de Clientes',
@@ -55,14 +50,6 @@ export function StatsCards({ onTotalClientsClick, onRenewalsClick, onFinancialAs
       icon: Users,
       color: 'bg-primary/10 text-primary',
       onClick: onTotalClientsClick,
-    },
-    {
-      label: 'Reuniões Pendentes',
-      value: overdueMeetingsCount,
-      icon: CalendarClock,
-      color: overdueMeetingsCount > 0 ? 'bg-destructive/10 text-destructive' : 'bg-muted/10 text-muted-foreground',
-      highlight: overdueMeetingsCount > 0,
-      onClick: () => setDrawerOpen(true),
     },
     {
       label: 'Renovações',
@@ -83,20 +70,36 @@ export function StatsCards({ onTotalClientsClick, onRenewalsClick, onFinancialAs
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Trigger Alertas da Semana */}
+      <div className="flex items-center justify-between gap-3">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setDrawerOpen(true)}
+          className="gap-2"
+        >
+          <Bell className="w-4 h-4" />
+          Alertas da Semana
+          {pendingCount > 0 && (
+            <Badge variant="destructive" className="ml-1">{pendingCount}</Badge>
+          )}
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {stats.map((stat) => (
           <div
             key={stat.label}
             onClick={stat.onClick}
             className={`crm-card p-4 flex items-center gap-4 animate-scale-in transition-all ${
               stat.onClick ? 'cursor-pointer hover:scale-[1.02] hover:shadow-md' : ''
-            } ${stat.highlight ? 'ring-2 ring-destructive/30 bg-destructive/5' : ''}`}
+            }`}
           >
             <div className={`p-3 rounded-xl ${stat.color}`}>
               <stat.icon className="w-5 h-5" />
             </div>
             <div>
-              <p className={`text-2xl font-bold ${stat.highlight ? 'text-destructive' : 'text-foreground'}`}>
+              <p className="text-2xl font-bold text-foreground">
                 {stat.value}
               </p>
               <p className="text-sm text-muted-foreground">{stat.label}</p>

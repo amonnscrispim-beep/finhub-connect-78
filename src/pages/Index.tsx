@@ -1,5 +1,5 @@
 import { useState, useMemo, Component, ReactNode, ErrorInfo } from 'react';
-import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2, CalendarPlus, GraduationCap, Users, History, Briefcase, FileText } from 'lucide-react';
+import { LayoutGrid, Table as TableIcon, BarChart3, TrendingUp, LogOut, Loader2, CalendarPlus, GraduationCap, Users, History, Briefcase, FileText, CalendarDays } from 'lucide-react';
 import { ClientProvider, useClients } from '@/contexts/ClientContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useUrgentPendencies } from '@/hooks/useUrgentPendencies';
@@ -18,6 +18,7 @@ import { InactivityAlerts } from '@/components/crm/InactivityAlerts';
 import { BirthdayAlerts } from '@/components/crm/BirthdayAlerts';
 import { FinancialAssetsModal } from '@/components/crm/FinancialAssetsModal';
 import { DashboardExecutive } from '@/components/crm/DashboardExecutive';
+import { Agenda } from '@/components/crm/Agenda';
 import { GoogleCalendarConnect } from '@/components/crm/GoogleCalendarConnect';
 import { ScheduleMeetingModal } from '@/components/crm/ScheduleMeetingModal';
 import { StudiesArea } from '@/components/studies/StudiesArea';
@@ -102,7 +103,7 @@ function CRMDashboard() {
   const { user, signOut } = useAuth();
   const { pendencies, isLoading: pendenciesLoading, addPendency, completePendency, removePendency, clientIdsWithPendencies } = useUrgentPendencies();
   const [view, setView] = useState<'table' | 'kanban'>('table');
-  const [dashboardTab, setDashboardTab] = useState<'operacional' | 'executivo' | 'estudos' | 'ferramentas' | 'carteiras' | 'gerador'>('operacional');
+  const [dashboardTab, setDashboardTab] = useState<'operacional' | 'agenda' | 'executivo' | 'estudos' | 'ferramentas' | 'carteiras' | 'gerador'>('operacional');
   const [ferramentaAtiva, setFerramentaAtiva] = useState<FerramentaId>('juros-compostos');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>();
@@ -252,6 +253,13 @@ function CRMDashboard() {
               Operacional
             </TabsTrigger>
             <TabsTrigger 
+              value="agenda"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <CalendarDays className="w-4 h-4 mr-2" />
+              Agenda
+            </TabsTrigger>
+            <TabsTrigger 
               value="executivo"
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
@@ -358,6 +366,13 @@ function CRMDashboard() {
                 </ErrorBoundary>
               </TabsContent>
             </Tabs>
+          </TabsContent>
+
+          {/* AGENDA */}
+          <TabsContent value="agenda" className="animate-fade-in">
+            <ErrorBoundary label="Agenda">
+              <Agenda onEditClient={handleEditClient} />
+            </ErrorBoundary>
           </TabsContent>
 
           {/* DASHBOARD EXECUTIVO - New strategic dashboard */}
