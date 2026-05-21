@@ -18,6 +18,7 @@ import { InactivityAlerts } from '@/components/crm/InactivityAlerts';
 import { BirthdayAlerts } from '@/components/crm/BirthdayAlerts';
 import { FinancialAssetsModal } from '@/components/crm/FinancialAssetsModal';
 import { DashboardExecutive } from '@/components/crm/DashboardExecutive';
+import { Agenda } from '@/components/crm/Agenda';
 import { GoogleCalendarConnect } from '@/components/crm/GoogleCalendarConnect';
 import { ScheduleMeetingModal } from '@/components/crm/ScheduleMeetingModal';
 import { StudiesArea } from '@/components/studies/StudiesArea';
