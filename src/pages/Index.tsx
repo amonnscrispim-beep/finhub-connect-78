@@ -129,6 +129,11 @@ function CRMDashboard() {
     );
   }, [clients, searchQuery]);
 
+  const currentEditingClient = useMemo(() => {
+    if (!editingClient) return undefined;
+    return clients.find(client => client.id === editingClient.id) ?? editingClient;
+  }, [clients, editingClient]);
+
   const handleNewClient = () => {
     setEditingClient(undefined);
     setModalOpen(true);
@@ -424,7 +429,7 @@ function CRMDashboard() {
       </main>
 
       {/* Modals */}
-      <ClientModal open={modalOpen} onOpenChange={setModalOpen} client={editingClient} />
+      <ClientModal open={modalOpen} onOpenChange={setModalOpen} client={currentEditingClient} />
       <PendingScheduleModal open={pendingScheduleModalOpen} onOpenChange={setPendingScheduleModalOpen} onEditClient={handleEditClient} />
       <TotalClientsModal open={totalClientsModalOpen} onOpenChange={setTotalClientsModalOpen} />
       <RenewalsModal open={renewalsModalOpen} onOpenChange={setRenewalsModalOpen} onEditClient={handleEditClient} />
