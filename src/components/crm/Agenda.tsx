@@ -320,6 +320,7 @@ export function Agenda({ onEditClient }: AgendaProps) {
       <ScheduleMeetingModal
         open={scheduleOpen}
         onOpenChange={setScheduleOpen}
+        onSuccess={() => refetch()}
       />
     </div>
   );
