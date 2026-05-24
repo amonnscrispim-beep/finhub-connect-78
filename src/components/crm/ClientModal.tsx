@@ -699,6 +699,9 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         }
       }
       
+      if (draftKey) {
+        localStorage.removeItem(draftKey);
+      }
       setIsSaving(false);
       onOpenChange(false);
     } catch (error) {
