@@ -98,13 +98,6 @@ Deno.serve(async (req) => {
     const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-      return new Response(
-        JSON.stringify({ error: 'Google OAuth not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     // Authenticate user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -142,6 +135,41 @@ Deno.serve(async (req) => {
     }
 
     const timezone = body.timezone || 'America/Sao_Paulo';
+
+    // Save meeting to database first. Google Calendar is optional and must not block persistence.
+    const { data: meetingData, error: meetingError } = await supabase
+      .from('crm_meetings')
+      .insert({
+        user_id: userId,
+        client_id: body.clientId || null,
+        client_name: body.clientName,
+        client_email: body.clientEmail || null,
+        title: body.title,
+        description: body.description || null,
+        start_at: body.startAt,
+        end_at: body.endAt,
+        timezone
+      })
+      .select()
+      .single();
+
+    if (meetingError) {
+      console.error('Error saving meeting:', meetingError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to save meeting' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Meeting saved to database:', meetingData.id);
+
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+      console.warn('Google OAuth not configured; meeting saved without Google event');
+      return new Response(
+        JSON.stringify({ meeting: meetingData, googleEventCreated: false }),
+        { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Use service role to read the OAuth tokens (bypass RLS for read)
     const adminSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
