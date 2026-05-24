@@ -23,7 +23,7 @@ interface MeetingData {
 
 interface CreateMeetingResult {
   success: boolean;
-  meeting?: any;
+  meeting?: unknown;
   googleEventCreated?: boolean;
   error?: string;
   needsConnection?: boolean;
@@ -187,6 +187,10 @@ export function useGoogleCalendar() {
 
   // Create a meeting with Google Calendar integration
   const createMeeting = useCallback(async (meeting: MeetingData): Promise<CreateMeetingResult> => {
+    if (!status.isConnected) {
+      return saveMeetingInCrm(meeting);
+    }
+
     if (!session?.access_token) {
       return saveMeetingInCrm(meeting);
     }
@@ -242,7 +246,7 @@ export function useGoogleCalendar() {
       console.error('Error creating meeting:', error);
       return saveMeetingInCrm(meeting);
     }
-  }, [session, queryClient, saveMeetingInCrm]);
+  }, [session, queryClient, saveMeetingInCrm, status.isConnected]);
 
   return {
     ...status,
