@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Heart, Users, PieChart, Landmark, Target, Calendar, Cake, CreditCard, 
   TrendingUp, Award, CheckCircle, User, DollarSign, FileText, Briefcase, ClipboardList, Wallet,
@@ -278,6 +278,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   const { addClient, updateClient } = useClients();
   const { user } = useAuth();
   const { logActivity } = useActivityLog();
+  const draftToastShownRef = useRef(false);
   const [formData, setFormData] = useState(defaultFormData);
   const [draftGoals, setDraftGoals] = useState<DraftGoal[]>([]);
   const [isSaving, setIsSaving] = useState(false);
