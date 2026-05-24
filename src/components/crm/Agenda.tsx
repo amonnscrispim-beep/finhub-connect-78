@@ -212,7 +212,7 @@ export function Agenda({ onEditClient }: AgendaProps) {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold truncate">
-                {proxima ? proxima.client.name : '—'}
+                {proxima ? proxima.clientName : '—'}
               </p>
               <p className="text-xs text-muted-foreground">
                 {proxima
@@ -229,7 +229,12 @@ export function Agenda({ onEditClient }: AgendaProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Lista */}
         <div className="lg:col-span-2 space-y-6">
-          {groups.length === 0 ? (
+          {isLoadingMeetings ? (
+            <div className="crm-card p-8 text-center">
+              <Loader2 className="w-10 h-10 mx-auto text-primary mb-3 animate-spin" />
+              <p className="text-sm text-muted-foreground">Carregando reuniões salvas...</p>
+            </div>
+          ) : groups.length === 0 ? (
             <div className="crm-card p-8 text-center">
               <CalendarIcon className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
               <p className="text-sm text-muted-foreground">
@@ -247,16 +252,20 @@ export function Agenda({ onEditClient }: AgendaProps) {
                     const cfg = statusConfig[item.status];
                     return (
                       <div
-                        key={item.client.id + item.date.toISOString()}
+                        key={item.id}
                         className="flex items-center justify-between gap-3 p-3 hover:bg-muted/40 transition-colors"
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <button
-                            onClick={() => onEditClient(item.client)}
-                            className="font-medium text-sm text-foreground hover:text-primary truncate text-left"
-                          >
-                            {item.client.name}
-                          </button>
+                          {item.client ? (
+                            <button
+                              onClick={() => onEditClient(item.client!)}
+                              className="font-medium text-sm text-foreground hover:text-primary truncate text-left"
+                            >
+                              {item.clientName}
+                            </button>
+                          ) : (
+                            <span className="font-medium text-sm text-foreground truncate">{item.clientName}</span>
+                          )}
                           {item.time && (
                             <span className="text-sm text-muted-foreground whitespace-nowrap">
                               {item.time}
@@ -270,7 +279,8 @@ export function Agenda({ onEditClient }: AgendaProps) {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => onEditClient(item.client)}
+                            onClick={() => item.client && onEditClient(item.client)}
+                            disabled={!item.client}
                             className="h-8"
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
