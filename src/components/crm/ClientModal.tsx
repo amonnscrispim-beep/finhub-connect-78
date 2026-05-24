@@ -959,7 +959,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
             <div hidden={activeTab !== 'meetings'} className="space-y-4">
               <ConhecerClienteModule
                 data={conhecerData}
-                onChange={setConhecerData}
+                onChange={handleConhecerChange}
                 hasChildrenFromBloco1={conhecerData.hasChildren === 'Sim'}
                 clientAge={parseInt(formData.age) || 0}
                 clientName={formData.name}
