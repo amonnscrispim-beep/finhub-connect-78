@@ -319,6 +319,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
 
   useEffect(() => {
     if (!open) return;
+    setDraftHydrated(false);
 
     if (client) {
       draftToastShownRef.current = false;
@@ -432,6 +433,62 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       setConhecerData(defaultConhecerCliente);
     }
   }, [open, client?.id]);
+
+  useEffect(() => {
+    if (!open || !draftKey) {
+      setDraftHydrated(false);
+      return;
+    }
+
+    try {
+      const rawDraft = localStorage.getItem(draftKey);
+      if (!rawDraft) {
+        setDraftHydrated(true);
+        return;
+      }
+
+      const draft = JSON.parse(rawDraft) as {
+        version?: number;
+        savedAt?: string;
+        formData?: Partial<FormData>;
+        conhecerData?: Partial<ConhecerClienteData>;
+      };
+
+      if (draft.version !== CLIENT_DRAFT_VERSION) {
+        localStorage.removeItem(draftKey);
+        setDraftHydrated(true);
+        return;
+      }
+
+      const draftSavedAt = draft.savedAt ? new Date(draft.savedAt).getTime() : 0;
+      const serverUpdatedAt = client?.updatedAt ? new Date(client.updatedAt).getTime() : 0;
+      if (!client || draftSavedAt > serverUpdatedAt) {
+        setFormData(restoreFormDraft(draft.formData || {}));
+        setConhecerData({ ...defaultConhecerCliente, ...(draft.conhecerData || {}) });
+        toast.info('Rascunho local recuperado. Revise e clique em Salvar Alterações para gravar no CRM.');
+      }
+    } catch (error) {
+      console.error('Erro ao recuperar rascunho do cliente:', error);
+      localStorage.removeItem(draftKey);
+    } finally {
+      setDraftHydrated(true);
+    }
+  }, [open, draftKey, client?.updatedAt]);
+
+  useEffect(() => {
+    if (!open || !draftKey || !draftHydrated || isSaving) return;
+
+    const timeoutId = window.setTimeout(() => {
+      localStorage.setItem(draftKey, JSON.stringify({
+        version: CLIENT_DRAFT_VERSION,
+        savedAt: new Date().toISOString(),
+        formData,
+        conhecerData,
+      }));
+    }, 400);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [open, draftKey, draftHydrated, isSaving, formData, conhecerData]);
 
   useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent) => {
