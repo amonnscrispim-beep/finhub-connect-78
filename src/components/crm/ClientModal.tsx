@@ -301,6 +301,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   }, [open, client?.id]);
 
   useEffect(() => {
+    if (!open) return;
+
     if (client) {
       draftToastShownRef.current = false;
       setFormData({
@@ -412,7 +414,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       setDraftGoals([]);
       setConhecerData(defaultConhecerCliente);
     }
-  }, [client, open]);
+  }, [open, client?.id]);
 
   useEffect(() => {
     const beforeUnload = (event: BeforeUnloadEvent) => {
