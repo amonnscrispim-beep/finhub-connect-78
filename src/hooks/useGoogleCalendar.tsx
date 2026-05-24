@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
@@ -30,6 +31,7 @@ interface CreateMeetingResult {
 
 export function useGoogleCalendar() {
   const { user, session } = useAuth();
+  const queryClient = useQueryClient();
   const [status, setStatus] = useState<GoogleOAuthStatus>({
     isConnected: false,
     googleEmail: null,
@@ -182,15 +184,17 @@ export function useGoogleCalendar() {
       }
 
       if (data?.code === 'GOOGLE_NOT_CONNECTED') {
-        return { 
-          success: false, 
-          error: data.message,
-          needsConnection: true 
+        queryClient.invalidateQueries({ queryKey: ['crm_meetings'] });
+        return {
+          success: true,
+          meeting: data.meeting,
+          googleEventCreated: false
         };
       }
 
       if (data?.code === 'GOOGLE_TOKEN_INVALID') {
         toast.warning('Reunião salva, mas não foi possível criar evento no Google Agenda. Reconecte sua conta.');
+        queryClient.invalidateQueries({ queryKey: ['crm_meetings'] });
         return { 
           success: true, 
           meeting: data.meeting,
@@ -198,6 +202,7 @@ export function useGoogleCalendar() {
         };
       }
 
+      queryClient.invalidateQueries({ queryKey: ['crm_meetings'] });
       return { 
         success: true, 
         meeting: data.meeting,
@@ -207,7 +212,7 @@ export function useGoogleCalendar() {
       console.error('Error creating meeting:', error);
       return { success: false, error: 'Erro ao criar reunião' };
     }
-  }, [session]);
+  }, [session, queryClient]);
 
   return {
     ...status,

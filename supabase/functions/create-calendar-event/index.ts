@@ -98,13 +98,6 @@ Deno.serve(async (req) => {
     const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-      return new Response(
-        JSON.stringify({ error: 'Google OAuth not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     // Authenticate user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -143,29 +136,7 @@ Deno.serve(async (req) => {
 
     const timezone = body.timezone || 'America/Sao_Paulo';
 
-    // Use service role to read the OAuth tokens (bypass RLS for read)
-    const adminSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    // Check if user has connected Google Calendar
-    const { data: oauthData, error: oauthError } = await adminSupabase
-      .from('user_google_oauth')
-      .select('refresh_token, google_email')
-      .eq('user_id', userId)
-      .single();
-
-    if (oauthError || !oauthData) {
-      console.log('User has not connected Google Calendar');
-      return new Response(
-        JSON.stringify({ 
-          error: 'Google Calendar not connected',
-          code: 'GOOGLE_NOT_CONNECTED',
-          message: 'Você precisa conectar sua conta do Google Agenda antes de agendar reuniões.'
-        }),
-        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Save meeting to database first
+    // Save meeting to database first. Google Calendar is optional and must not block persistence.
     const { data: meetingData, error: meetingError } = await supabase
       .from('crm_meetings')
       .insert({
@@ -191,6 +162,38 @@ Deno.serve(async (req) => {
     }
 
     console.log('Meeting saved to database:', meetingData.id);
+
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+      console.warn('Google OAuth not configured; meeting saved without Google event');
+      return new Response(
+        JSON.stringify({ meeting: meetingData, googleEventCreated: false }),
+        { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Use service role to read the OAuth tokens (bypass RLS for read)
+    const adminSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Check if user has connected Google Calendar
+    const { data: oauthData, error: oauthError } = await adminSupabase
+      .from('user_google_oauth')
+      .select('refresh_token, google_email')
+      .eq('user_id', userId)
+      .single();
+
+    if (oauthError || !oauthData) {
+      console.log('User has not connected Google Calendar');
+      return new Response(
+        JSON.stringify({ 
+          meeting: meetingData,
+          googleEventCreated: false,
+          error: 'Google Calendar not connected',
+          code: 'GOOGLE_NOT_CONNECTED',
+          message: 'Reunião salva no CRM. Conecte o Google Agenda apenas se quiser sincronizar fora do CRM.'
+        }),
+        { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Get fresh access token
     const accessToken = await getAccessToken(oauthData.refresh_token, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET);

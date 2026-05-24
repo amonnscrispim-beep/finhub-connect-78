@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
 import { format, isToday, isTomorrow, isThisWeek, isPast, startOfDay, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Plus, Clock, ExternalLink, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, Clock, ExternalLink, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { useClients } from '@/contexts/ClientContext';
+import { useCrmMeetings } from '@/hooks/useCrmMeetings';
 import { Client } from '@/types/client';
 import { ScheduleMeetingModal } from './ScheduleMeetingModal';
 
@@ -13,7 +14,11 @@ type Status = 'confirmada' | 'pendente' | 'atrasada';
 type Filter = 'todas' | 'pendentes' | 'confirmadas' | 'atrasadas';
 
 interface AgendaItem {
-  client: Client;
+  id: string;
+  client?: Client;
+  clientName: string;
+  title?: string;
+  description?: string | null;
   date: Date;
   time?: string;
   status: Status;
@@ -29,11 +34,10 @@ const statusConfig: Record<Status, { label: string; className: string }> = {
   atrasada: { label: 'ATRASADA', className: 'bg-destructive/15 text-destructive border-destructive/30' },
 };
 
-function classify(date: Date, client: Client): Status {
-  const now = new Date();
+function classify(date: Date, client?: Client): Status {
   if (isPast(date) && !isToday(date)) return 'atrasada';
   // Confirmadas: tem horário definido e cliente não é "pendingSchedule"
-  if (client.pendingSchedule) return 'pendente';
+  if (client?.pendingSchedule) return 'pendente';
   return 'confirmada';
 }
 
@@ -47,25 +51,54 @@ function groupLabel(date: Date): string {
 
 export function Agenda({ onEditClient }: AgendaProps) {
   const { clients } = useClients();
+  const { meetings, isLoading: isLoadingMeetings, refetch } = useCrmMeetings();
   const [filter, setFilter] = useState<Filter>('todas');
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [calendarDate, setCalendarDate] = useState<Date | undefined>();
 
   const items = useMemo<AgendaItem[]>(() => {
     const out: AgendaItem[] = [];
+    const clientById = new Map(clients.map((client) => [client.id, client]));
+    const persistedKeys = new Set<string>();
+
+    meetings.forEach((meeting) => {
+      const date = new Date(meeting.start_at);
+      if (isNaN(date.getTime())) return;
+
+      const client = meeting.client_id ? clientById.get(meeting.client_id) : undefined;
+      const key = `${meeting.client_id ?? meeting.client_name}-${startOfDay(date).toISOString()}`;
+      persistedKeys.add(key);
+
+      out.push({
+        id: meeting.id,
+        client,
+        clientName: client?.name ?? meeting.client_name,
+        title: meeting.title,
+        description: meeting.description,
+        date,
+        time: format(date, 'HH:mm'),
+        status: classify(date, client),
+      });
+    });
+
     clients.forEach((c) => {
       if (!c.scheduledMeeting?.date) return;
       const date = new Date(c.scheduledMeeting.date);
       if (isNaN(date.getTime())) return;
+      const key = `${c.id}-${startOfDay(date).toISOString()}`;
+      if (persistedKeys.has(key)) return;
       out.push({
+        id: `client-${c.id}-${date.toISOString()}`,
         client: c,
+        clientName: c.name,
+        title: 'Reunião com cliente',
         date,
         time: c.scheduledMeeting.time,
         status: classify(date, c),
       });
     });
     return out.sort((a, b) => a.date.getTime() - b.date.getTime());
-  }, [clients]);
+  }, [clients, meetings]);
 
   // Cards de resumo
   const weekItems = items.filter((i) => isThisWeek(i.date, { weekStartsOn: 1 }));
@@ -179,7 +212,7 @@ export function Agenda({ onEditClient }: AgendaProps) {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold truncate">
-                {proxima ? proxima.client.name : '—'}
+                {proxima ? proxima.clientName : '—'}
               </p>
               <p className="text-xs text-muted-foreground">
                 {proxima
@@ -196,7 +229,12 @@ export function Agenda({ onEditClient }: AgendaProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Lista */}
         <div className="lg:col-span-2 space-y-6">
-          {groups.length === 0 ? (
+          {isLoadingMeetings ? (
+            <div className="crm-card p-8 text-center">
+              <Loader2 className="w-10 h-10 mx-auto text-primary mb-3 animate-spin" />
+              <p className="text-sm text-muted-foreground">Carregando reuniões salvas...</p>
+            </div>
+          ) : groups.length === 0 ? (
             <div className="crm-card p-8 text-center">
               <CalendarIcon className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
               <p className="text-sm text-muted-foreground">
@@ -214,16 +252,20 @@ export function Agenda({ onEditClient }: AgendaProps) {
                     const cfg = statusConfig[item.status];
                     return (
                       <div
-                        key={item.client.id + item.date.toISOString()}
+                        key={item.id}
                         className="flex items-center justify-between gap-3 p-3 hover:bg-muted/40 transition-colors"
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <button
-                            onClick={() => onEditClient(item.client)}
-                            className="font-medium text-sm text-foreground hover:text-primary truncate text-left"
-                          >
-                            {item.client.name}
-                          </button>
+                          {item.client ? (
+                            <button
+                              onClick={() => onEditClient(item.client!)}
+                              className="font-medium text-sm text-foreground hover:text-primary truncate text-left"
+                            >
+                              {item.clientName}
+                            </button>
+                          ) : (
+                            <span className="font-medium text-sm text-foreground truncate">{item.clientName}</span>
+                          )}
                           {item.time && (
                             <span className="text-sm text-muted-foreground whitespace-nowrap">
                               {item.time}
@@ -237,7 +279,8 @@ export function Agenda({ onEditClient }: AgendaProps) {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => onEditClient(item.client)}
+                            onClick={() => item.client && onEditClient(item.client)}
+                            disabled={!item.client}
                             className="h-8"
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
@@ -277,6 +320,7 @@ export function Agenda({ onEditClient }: AgendaProps) {
       <ScheduleMeetingModal
         open={scheduleOpen}
         onOpenChange={setScheduleOpen}
+        onSuccess={() => refetch()}
       />
     </div>
   );
