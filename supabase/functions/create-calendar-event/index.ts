@@ -185,40 +185,15 @@ Deno.serve(async (req) => {
       console.log('User has not connected Google Calendar');
       return new Response(
         JSON.stringify({ 
+          meeting: meetingData,
+          googleEventCreated: false,
           error: 'Google Calendar not connected',
           code: 'GOOGLE_NOT_CONNECTED',
-          message: 'Você precisa conectar sua conta do Google Agenda antes de agendar reuniões.'
+          message: 'Reunião salva no CRM. Conecte o Google Agenda apenas se quiser sincronizar fora do CRM.'
         }),
-        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    // Save meeting to database first
-    const { data: meetingData, error: meetingError } = await supabase
-      .from('crm_meetings')
-      .insert({
-        user_id: userId,
-        client_id: body.clientId || null,
-        client_name: body.clientName,
-        client_email: body.clientEmail || null,
-        title: body.title,
-        description: body.description || null,
-        start_at: body.startAt,
-        end_at: body.endAt,
-        timezone
-      })
-      .select()
-      .single();
-
-    if (meetingError) {
-      console.error('Error saving meeting:', meetingError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to save meeting' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log('Meeting saved to database:', meetingData.id);
 
     // Get fresh access token
     const accessToken = await getAccessToken(oauthData.refresh_token, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET);
