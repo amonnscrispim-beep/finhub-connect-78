@@ -62,6 +62,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
       return result;
     } catch (error) {
       console.error('Error adding client:', error);
+      throw error;
     }
   }, [addClientToDb]);
 
@@ -71,6 +72,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
       return result;
     } catch (error) {
       console.error('Error updating client:', error);
+      throw error;
     }
   }, [updateClientInDb]);
 
