@@ -636,6 +636,14 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleConhecerChange = (nextData: ConhecerClienteData) => {
+    setConhecerData(nextData);
+    if (!draftToastShownRef.current) {
+      draftToastShownRef.current = true;
+      toast.info('Rascunho atualizado. Clique em Salvar Alterações para gravar no CRM.');
+    }
+  };
+
   const handleFilesChange = (files: ClientFile[]) => {
     setFormData(prev => ({ ...prev, files }));
   };
