@@ -194,6 +194,7 @@ export function useGoogleCalendar() {
 
       if (data?.code === 'GOOGLE_TOKEN_INVALID') {
         toast.warning('Reunião salva, mas não foi possível criar evento no Google Agenda. Reconecte sua conta.');
+        queryClient.invalidateQueries({ queryKey: ['crm_meetings'] });
         return { 
           success: true, 
           meeting: data.meeting,
@@ -201,6 +202,7 @@ export function useGoogleCalendar() {
         };
       }
 
+      queryClient.invalidateQueries({ queryKey: ['crm_meetings'] });
       return { 
         success: true, 
         meeting: data.meeting,
