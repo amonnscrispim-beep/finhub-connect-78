@@ -23,7 +23,7 @@ interface MeetingData {
 
 interface CreateMeetingResult {
   success: boolean;
-  meeting?: any;
+  meeting?: unknown;
   googleEventCreated?: boolean;
   error?: string;
   needsConnection?: boolean;
@@ -68,6 +68,36 @@ export function useGoogleCalendar() {
       setStatus({ isConnected: false, googleEmail: null, isLoading: false });
     }
   }, [user]);
+
+  const saveMeetingInCrm = useCallback(async (meeting: MeetingData): Promise<CreateMeetingResult> => {
+    if (!user) {
+      return { success: false, error: 'Não autenticado' };
+    }
+
+    const { data, error } = await supabase
+      .from('crm_meetings')
+      .insert({
+        user_id: user.id,
+        client_id: meeting.clientId || null,
+        client_name: meeting.clientName,
+        client_email: meeting.clientEmail || null,
+        title: meeting.title,
+        description: meeting.description || null,
+        start_at: meeting.startAt.toISOString(),
+        end_at: meeting.endAt.toISOString(),
+        timezone: meeting.timezone || 'America/Sao_Paulo',
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error saving CRM meeting directly:', error);
+      return { success: false, error: 'Erro ao salvar reunião no CRM' };
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['crm_meetings'] });
+    return { success: true, meeting: data, googleEventCreated: false };
+  }, [user, queryClient]);
 
   useEffect(() => {
     checkConnection();
@@ -157,8 +187,12 @@ export function useGoogleCalendar() {
 
   // Create a meeting with Google Calendar integration
   const createMeeting = useCallback(async (meeting: MeetingData): Promise<CreateMeetingResult> => {
+    if (!status.isConnected) {
+      return saveMeetingInCrm(meeting);
+    }
+
     if (!session?.access_token) {
-      return { success: false, error: 'Não autenticado' };
+      return saveMeetingInCrm(meeting);
     }
 
     try {
@@ -180,7 +214,7 @@ export function useGoogleCalendar() {
 
       if (error) {
         console.error('Error creating meeting:', error);
-        return { success: false, error: 'Erro ao criar reunião' };
+        return saveMeetingInCrm(meeting);
       }
 
       if (data?.code === 'GOOGLE_NOT_CONNECTED') {
@@ -210,9 +244,9 @@ export function useGoogleCalendar() {
       };
     } catch (error) {
       console.error('Error creating meeting:', error);
-      return { success: false, error: 'Erro ao criar reunião' };
+      return saveMeetingInCrm(meeting);
     }
-  }, [session, queryClient]);
+  }, [session, queryClient, saveMeetingInCrm, status.isConnected]);
 
   return {
     ...status,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Heart, Users, PieChart, Landmark, Target, Calendar, Cake, CreditCard, 
   TrendingUp, Award, CheckCircle, User, DollarSign, FileText, Briefcase, ClipboardList, Wallet,
@@ -274,18 +274,36 @@ const defaultFormData: FormData = {
   arquiteturaCarteira: defaultArquiteturaCarteira,
 };
 
+const CLIENT_DRAFT_VERSION = 1;
+
+function restoreFormDraft(draftFormData: Partial<FormData>): FormData {
+  return {
+    ...defaultFormData,
+    ...draftFormData,
+    birthDate: draftFormData.birthDate ? new Date(draftFormData.birthDate as Date | string) : null,
+    renewalDate: draftFormData.renewalDate ? new Date(draftFormData.renewalDate as Date | string) : null,
+    files: (draftFormData.files || []).map((file) => ({
+      ...file,
+      uploadedAt: file.uploadedAt ? new Date(file.uploadedAt as Date | string) : new Date(),
+    })),
+  };
+}
+
 export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   const { addClient, updateClient } = useClients();
   const { user } = useAuth();
   const { logActivity } = useActivityLog();
+  const draftToastShownRef = useRef(false);
   const [formData, setFormData] = useState(defaultFormData);
   const [draftGoals, setDraftGoals] = useState<DraftGoal[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [conhecerData, setConhecerData] = useState<ConhecerClienteData>(defaultConhecerCliente);
+  const [draftHydrated, setDraftHydrated] = useState(false);
   const [autoReportObservation, setAutoReportObservation] = useState('');
   const [reportConsultantObs, setReportConsultantObs] = useState('');
   const portfolio = useClientPortfolio(client?.id);
   const [activeTab, setActiveTab] = useState<string>('personal');
+  const draftKey = user ? `crm-client-draft:${user.id}:${client?.id ?? 'new'}` : null;
 
   // Reset to first tab whenever the modal opens
   useEffect(() => {
@@ -300,7 +318,11 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   }, [open, client?.id]);
 
   useEffect(() => {
+    if (!open) return;
+    setDraftHydrated(false);
+
     if (client) {
+      draftToastShownRef.current = false;
       setFormData({
         contractStart: client.contractStart.toISOString().split('T')[0],
         contractEnd: client.contractEnd.toISOString().split('T')[0],
@@ -405,11 +427,79 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       const rawDiag = (client as any).strategicDiagnostic || {};
       setConhecerData(migrateFromLegacy(rawDiag));
     } else {
+      draftToastShownRef.current = false;
       setFormData(defaultFormData);
       setDraftGoals([]);
       setConhecerData(defaultConhecerCliente);
     }
-  }, [client, open]);
+  }, [open, client?.id]);
+
+  useEffect(() => {
+    if (!open || !draftKey) {
+      setDraftHydrated(false);
+      return;
+    }
+
+    try {
+      const rawDraft = localStorage.getItem(draftKey);
+      if (!rawDraft) {
+        setDraftHydrated(true);
+        return;
+      }
+
+      const draft = JSON.parse(rawDraft) as {
+        version?: number;
+        savedAt?: string;
+        formData?: Partial<FormData>;
+        conhecerData?: Partial<ConhecerClienteData>;
+      };
+
+      if (draft.version !== CLIENT_DRAFT_VERSION) {
+        localStorage.removeItem(draftKey);
+        setDraftHydrated(true);
+        return;
+      }
+
+      const draftSavedAt = draft.savedAt ? new Date(draft.savedAt).getTime() : 0;
+      const serverUpdatedAt = client?.updatedAt ? new Date(client.updatedAt).getTime() : 0;
+      if (!client || draftSavedAt > serverUpdatedAt) {
+        setFormData(restoreFormDraft(draft.formData || {}));
+        setConhecerData({ ...defaultConhecerCliente, ...(draft.conhecerData || {}) });
+        toast.info('Rascunho local recuperado. Revise e clique em Salvar Alterações para gravar no CRM.');
+      }
+    } catch (error) {
+      console.error('Erro ao recuperar rascunho do cliente:', error);
+      localStorage.removeItem(draftKey);
+    } finally {
+      setDraftHydrated(true);
+    }
+  }, [open, draftKey, client?.updatedAt]);
+
+  useEffect(() => {
+    if (!open || !draftKey || !draftHydrated || isSaving) return;
+
+    const timeoutId = window.setTimeout(() => {
+      localStorage.setItem(draftKey, JSON.stringify({
+        version: CLIENT_DRAFT_VERSION,
+        savedAt: new Date().toISOString(),
+        formData,
+        conhecerData,
+      }));
+    }, 400);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [open, draftKey, draftHydrated, isSaving, formData, conhecerData]);
+
+  useEffect(() => {
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      if (!open || isSaving) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', beforeUnload);
+    return () => window.removeEventListener('beforeunload', beforeUnload);
+  }, [open, isSaving]);
 
   // Handle status automation rules
   const handleConsultingFinishedChange = (value: boolean) => {
@@ -609,6 +699,9 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         }
       }
       
+      if (draftKey) {
+        localStorage.removeItem(draftKey);
+      }
       setIsSaving(false);
       onOpenChange(false);
     } catch (error) {
@@ -620,6 +713,14 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
 
   const handleChange = (field: string, value: string | boolean | Date | null | ContractedMeetings | ArquiteturaEstrategicaData) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleConhecerChange = (nextData: ConhecerClienteData) => {
+    setConhecerData(nextData);
+    if (!draftToastShownRef.current) {
+      draftToastShownRef.current = true;
+      toast.info('Rascunho atualizado. Clique em Salvar Alterações para gravar no CRM.');
+    }
   };
 
   const handleFilesChange = (files: ClientFile[]) => {
@@ -937,7 +1038,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
             <div hidden={activeTab !== 'meetings'} className="space-y-4">
               <ConhecerClienteModule
                 data={conhecerData}
-                onChange={setConhecerData}
+                onChange={handleConhecerChange}
                 hasChildrenFromBloco1={conhecerData.hasChildren === 'Sim'}
                 clientAge={parseInt(formData.age) || 0}
                 clientName={formData.name}
