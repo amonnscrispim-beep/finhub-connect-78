@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
 import { format, isToday, isTomorrow, isThisWeek, isPast, startOfDay, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Plus, Clock, ExternalLink, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, Clock, ExternalLink, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { useClients } from '@/contexts/ClientContext';
+import { useCrmMeetings } from '@/hooks/useCrmMeetings';
 import { Client } from '@/types/client';
 import { ScheduleMeetingModal } from './ScheduleMeetingModal';
 
@@ -13,7 +14,11 @@ type Status = 'confirmada' | 'pendente' | 'atrasada';
 type Filter = 'todas' | 'pendentes' | 'confirmadas' | 'atrasadas';
 
 interface AgendaItem {
-  client: Client;
+  id: string;
+  client?: Client;
+  clientName: string;
+  title?: string;
+  description?: string | null;
   date: Date;
   time?: string;
   status: Status;
@@ -29,11 +34,10 @@ const statusConfig: Record<Status, { label: string; className: string }> = {
   atrasada: { label: 'ATRASADA', className: 'bg-destructive/15 text-destructive border-destructive/30' },
 };
 
-function classify(date: Date, client: Client): Status {
-  const now = new Date();
+function classify(date: Date, client?: Client): Status {
   if (isPast(date) && !isToday(date)) return 'atrasada';
   // Confirmadas: tem horário definido e cliente não é "pendingSchedule"
-  if (client.pendingSchedule) return 'pendente';
+  if (client?.pendingSchedule) return 'pendente';
   return 'confirmada';
 }
 
@@ -47,25 +51,54 @@ function groupLabel(date: Date): string {
 
 export function Agenda({ onEditClient }: AgendaProps) {
   const { clients } = useClients();
+  const { meetings, isLoading: isLoadingMeetings, refetch } = useCrmMeetings();
   const [filter, setFilter] = useState<Filter>('todas');
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [calendarDate, setCalendarDate] = useState<Date | undefined>();
 
   const items = useMemo<AgendaItem[]>(() => {
     const out: AgendaItem[] = [];
+    const clientById = new Map(clients.map((client) => [client.id, client]));
+    const persistedKeys = new Set<string>();
+
+    meetings.forEach((meeting) => {
+      const date = new Date(meeting.start_at);
+      if (isNaN(date.getTime())) return;
+
+      const client = meeting.client_id ? clientById.get(meeting.client_id) : undefined;
+      const key = `${meeting.client_id ?? meeting.client_name}-${startOfDay(date).toISOString()}`;
+      persistedKeys.add(key);
+
+      out.push({
+        id: meeting.id,
+        client,
+        clientName: client?.name ?? meeting.client_name,
+        title: meeting.title,
+        description: meeting.description,
+        date,
+        time: format(date, 'HH:mm'),
+        status: classify(date, client),
+      });
+    });
+
     clients.forEach((c) => {
       if (!c.scheduledMeeting?.date) return;
       const date = new Date(c.scheduledMeeting.date);
       if (isNaN(date.getTime())) return;
+      const key = `${c.id}-${startOfDay(date).toISOString()}`;
+      if (persistedKeys.has(key)) return;
       out.push({
+        id: `client-${c.id}-${date.toISOString()}`,
         client: c,
+        clientName: c.name,
+        title: 'Reunião com cliente',
         date,
         time: c.scheduledMeeting.time,
         status: classify(date, c),
       });
     });
     return out.sort((a, b) => a.date.getTime() - b.date.getTime());
-  }, [clients]);
+  }, [clients, meetings]);
 
   // Cards de resumo
   const weekItems = items.filter((i) => isThisWeek(i.date, { weekStartsOn: 1 }));
