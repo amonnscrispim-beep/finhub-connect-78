@@ -274,6 +274,21 @@ const defaultFormData: FormData = {
   arquiteturaCarteira: defaultArquiteturaCarteira,
 };
 
+const CLIENT_DRAFT_VERSION = 1;
+
+function restoreFormDraft(draftFormData: Partial<FormData>): FormData {
+  return {
+    ...defaultFormData,
+    ...draftFormData,
+    birthDate: draftFormData.birthDate ? new Date(draftFormData.birthDate as Date | string) : null,
+    renewalDate: draftFormData.renewalDate ? new Date(draftFormData.renewalDate as Date | string) : null,
+    files: (draftFormData.files || []).map((file) => ({
+      ...file,
+      uploadedAt: file.uploadedAt ? new Date(file.uploadedAt as Date | string) : new Date(),
+    })),
+  };
+}
+
 export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   const { addClient, updateClient } = useClients();
   const { user } = useAuth();
@@ -283,10 +298,12 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   const [draftGoals, setDraftGoals] = useState<DraftGoal[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [conhecerData, setConhecerData] = useState<ConhecerClienteData>(defaultConhecerCliente);
+  const [draftHydrated, setDraftHydrated] = useState(false);
   const [autoReportObservation, setAutoReportObservation] = useState('');
   const [reportConsultantObs, setReportConsultantObs] = useState('');
   const portfolio = useClientPortfolio(client?.id);
   const [activeTab, setActiveTab] = useState<string>('personal');
+  const draftKey = user ? `crm-client-draft:${user.id}:${client?.id ?? 'new'}` : null;
 
   // Reset to first tab whenever the modal opens
   useEffect(() => {
