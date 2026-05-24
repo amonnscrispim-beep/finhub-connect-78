@@ -302,6 +302,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
 
   useEffect(() => {
     if (client) {
+      draftToastShownRef.current = false;
       setFormData({
         contractStart: client.contractStart.toISOString().split('T')[0],
         contractEnd: client.contractEnd.toISOString().split('T')[0],
@@ -406,11 +407,23 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       const rawDiag = (client as any).strategicDiagnostic || {};
       setConhecerData(migrateFromLegacy(rawDiag));
     } else {
+      draftToastShownRef.current = false;
       setFormData(defaultFormData);
       setDraftGoals([]);
       setConhecerData(defaultConhecerCliente);
     }
   }, [client, open]);
+
+  useEffect(() => {
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      if (!open || isSaving) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', beforeUnload);
+    return () => window.removeEventListener('beforeunload', beforeUnload);
+  }, [open, isSaving]);
 
   // Handle status automation rules
   const handleConsultingFinishedChange = (value: boolean) => {
