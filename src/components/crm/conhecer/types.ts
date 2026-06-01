@@ -98,6 +98,12 @@ export interface ConhecerClienteData {
   pjRenewTimeline: string;
   pjRenewValue: string;
   pjRenewDescription: string;
+  // Mini-DRE empresarial (PJ / Autônomo / Empresário)
+  pjMonthlyRevenue: string; // Faturamento Bruto Mensal R$
+  pjMonthlyOpCost: string; // Custo Operacional Mensal R$
+  pjProLabore: string; // Pró-labore mensal R$
+  pjProfitDistribution: string; // Distribuição de Lucros mensal R$
+  pjTaxRegime: string; // Simples | Presumido | Real | Não sei
   // Autônomo fields
   autonomoIncome: string;
   autonomoArea: string;
@@ -352,6 +358,7 @@ export const defaultConhecerCliente: ConhecerClienteData = {
   pjIncomeType: '', pjMonthlyWithdrawal: '', pjSector: '',
   hasPjPartners: '', pjMajorityPartner: '', pjEmployeeCount: '', pjCompanyValue: '',
   pjConcerns: '', pjRenewEquipment: '', pjRenewTimeline: '', pjRenewValue: '', pjRenewDescription: '',
+  pjMonthlyRevenue: '', pjMonthlyOpCost: '', pjProLabore: '', pjProfitDistribution: '', pjTaxRegime: '',
   autonomoIncome: '', autonomoArea: '', autonomoStability: '',
   aposentadoIncome: '', aposentadoExtraIncome: '',
   hasOtherIncomeB2: '', otherIncomeDescriptionB2: '', otherIncomeValueB2: '', otherIncomeTypeB2: '',

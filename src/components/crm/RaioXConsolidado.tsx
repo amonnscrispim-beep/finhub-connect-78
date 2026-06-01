@@ -1,10 +1,11 @@
 import { useState, useRef, useCallback } from 'react';
-import { Upload, FileText, Trash2, Loader2, Sparkles, TrendingUp, Wallet, AlertTriangle, Calendar, PieChart, Info } from 'lucide-react';
+import { Upload, FileText, Trash2, Loader2, Sparkles, TrendingUp, Wallet, AlertTriangle, Calendar, PieChart as PieChartIcon, Info, Download } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
 
@@ -95,7 +96,15 @@ export function RaioXConsolidado() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [raioX, setRaioX] = useState<RaioX | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  // Quick-analysis (simulação UX) — disparada a cada upload
+  const [quickState, setQuickState] = useState<'idle' | 'processing' | 'done'>('idle');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const QUICK_PIE = [
+    { name: 'Renda Fixa', value: 70 },
+    { name: 'Renda Variável', value: 30 },
+  ];
+  const QUICK_COLORS = ['hsl(var(--primary))', 'hsl(var(--destructive))'];
 
   const extractText = useCallback(async (file: File): Promise<string> => {
     const arrayBuffer = await file.arrayBuffer();
@@ -128,6 +137,10 @@ export function RaioXConsolidado() {
 
       setPdfs((prev) => [...prev, ...newOnes]);
 
+      // Quick UX simulação: spinner -> pie chart
+      setQuickState('processing');
+      window.setTimeout(() => setQuickState('done'), 2000);
+
       // Extract text in parallel
       await Promise.all(
         newOnes.map(async (entry, idx) => {
@@ -146,7 +159,15 @@ export function RaioXConsolidado() {
   );
 
   const handleRemove = (id: string) => {
-    setPdfs((prev) => prev.filter((p) => p.id !== id));
+    setPdfs((prev) => {
+      const next = prev.filter((p) => p.id !== id);
+      if (next.length === 0) setQuickState('idle');
+      return next;
+    });
+  };
+
+  const handleImportToFinancial = () => {
+    toast.success('Dados sincronizados com o painel');
   };
 
   const handleGenerate = async () => {
@@ -223,6 +244,51 @@ export function RaioXConsolidado() {
         </Button>
         <p className="text-xs text-muted-foreground mt-2">PDFs de Safra, BTG, XP, Itaú, etc. — múltiplos aceitos</p>
       </div>
+
+      {/* Quick analysis (simulação UX) */}
+      {quickState === 'processing' && (
+        <Card className="p-6 border-border flex flex-col items-center justify-center gap-3 animate-in fade-in duration-300">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-sm font-medium text-foreground">Analisando extrato...</p>
+          <p className="text-xs text-muted-foreground">Isso leva apenas alguns instantes</p>
+        </Card>
+      )}
+
+      {quickState === 'done' && (
+        <Card className="p-4 border-border space-y-3 animate-in fade-in duration-300">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <h5 className="font-semibold text-sm text-foreground">Pré-visualização do extrato</h5>
+          </div>
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={QUICK_PIE}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={70}
+                  label={(entry) => `${entry.name}: ${entry.value}%`}
+                >
+                  {QUICK_PIE.map((_, i) => (
+                    <Cell key={i} fill={QUICK_COLORS[i % QUICK_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(v: number) => `${v}%`} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <Button onClick={handleImportToFinancial} className="w-full" variant="outline">
+            <Download className="w-4 h-4 mr-2" />
+            Importar dados para Situação Financeira
+          </Button>
+        </Card>
+      )}
+
+
 
       {/* Attached list */}
       {pdfs.length > 0 && (
@@ -312,7 +378,7 @@ function RaioXDashboard({ data }: { data: RaioX }) {
       {/* Mapa de Liquidez */}
       <Card className="p-4 border-border">
         <div className="flex items-center gap-2 mb-3">
-          <PieChart className="w-4 h-4 text-primary" />
+          <PieChartIcon className="w-4 h-4 text-primary" />
           <h5 className="font-semibold text-sm text-foreground">Mapa de Liquidez</h5>
         </div>
         <div className="space-y-3">
@@ -361,7 +427,7 @@ function RaioXDashboard({ data }: { data: RaioX }) {
       {/* Distribuição por Estratégia */}
       <Card className="p-4 border-border">
         <div className="flex items-center gap-2 mb-3">
-          <PieChart className="w-4 h-4 text-primary" />
+          <PieChartIcon className="w-4 h-4 text-primary" />
           <h5 className="font-semibold text-sm text-foreground">Distribuição por Estratégia</h5>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

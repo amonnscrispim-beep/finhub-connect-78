@@ -6,6 +6,10 @@ import {
 } from 'lucide-react';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+
+// Taxa de referência (Selic líquida estimada) para arbitragem vs. CET da dívida
+const TAXA_SELIC_LIQUIDA = 8.5;
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CurrencyInput } from '@/components/ui/currency-input';
@@ -1142,6 +1146,20 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                             placeholder="Ex: 12.5" 
                             className="crm-input" 
                           />
+                          {debt.cetPercentage !== null && debt.cetPercentage !== undefined && (
+                            debt.cetPercentage < TAXA_SELIC_LIQUIDA ? (
+                              <Badge className="bg-green-500 hover:bg-green-500 text-white border-transparent">
+                                Vantajoso manter dívida
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-red-500 hover:bg-red-500 text-white border-transparent">
+                                Sugerir Amortização
+                              </Badge>
+                            )
+                          )}
+                          <p className="text-[10px] text-muted-foreground">
+                            Referência Selic líquida: {TAXA_SELIC_LIQUIDA}% a.a.
+                          </p>
                         </div>
                         <div className="space-y-2">
                           <Label>Prazo</Label>
