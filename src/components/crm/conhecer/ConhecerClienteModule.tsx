@@ -523,6 +523,7 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
                         <div className="col-span-2 space-y-1"><Label className="text-xs">Descrição</Label><Textarea value={data.pjRenewDescription} onChange={(e) => update({ pjRenewDescription: e.target.value })} className="crm-input min-h-[40px]" /></div>
                       </div>
                     )}
+                    <MiniDRE data={data} update={update} />
                   </div>
                 )}
 
