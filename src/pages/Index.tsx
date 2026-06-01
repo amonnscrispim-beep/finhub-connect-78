@@ -27,6 +27,8 @@ import { GeradorResumos } from '@/components/crm/relatorios/GeradorResumos';
 
 import { EmAtendimentoDrawer } from '@/components/crm/EmAtendimentoDrawer';
 import { RecentActivityDropdown } from '@/components/crm/RecentActivityDropdown';
+import { FloatingScratchpad } from '@/components/crm/FloatingScratchpad';
+import { FinancialToolsDropdown } from '@/components/crm/FinancialToolsDropdown';
 import { FerramentasDropdown, type FerramentaId } from '@/components/ferramentas/FerramentasDropdown';
 import { JurosCompostos } from '@/components/ferramentas/JurosCompostos';
 import { CalculadoraMilhao } from '@/components/ferramentas/CalculadoraMilhao';
@@ -228,6 +230,7 @@ function CRMDashboard() {
           </span>
           <div className="flex items-center gap-3">
             <GoogleCalendarConnect compact />
+            <FinancialToolsDropdown />
             <Button 
               variant="outline" 
               size="sm" 
@@ -440,6 +443,9 @@ function CRMDashboard() {
         onClose={() => setEmAtendimentoDrawerOpen(false)}
         onOpenClient={handleEditClient}
       />
+
+      {/* Floating quick-notes scratchpad — persists across tab navigation */}
+      <FloatingScratchpad />
     </div>
   );
 }
