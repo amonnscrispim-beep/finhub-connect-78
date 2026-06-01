@@ -245,6 +245,51 @@ export function RaioXConsolidado() {
         <p className="text-xs text-muted-foreground mt-2">PDFs de Safra, BTG, XP, Itaú, etc. — múltiplos aceitos</p>
       </div>
 
+      {/* Quick analysis (simulação UX) */}
+      {quickState === 'processing' && (
+        <Card className="p-6 border-border flex flex-col items-center justify-center gap-3 animate-in fade-in duration-300">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-sm font-medium text-foreground">Analisando extrato...</p>
+          <p className="text-xs text-muted-foreground">Isso leva apenas alguns instantes</p>
+        </Card>
+      )}
+
+      {quickState === 'done' && (
+        <Card className="p-4 border-border space-y-3 animate-in fade-in duration-300">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <h5 className="font-semibold text-sm text-foreground">Pré-visualização do extrato</h5>
+          </div>
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={QUICK_PIE}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={70}
+                  label={(entry) => `${entry.name}: ${entry.value}%`}
+                >
+                  {QUICK_PIE.map((_, i) => (
+                    <Cell key={i} fill={QUICK_COLORS[i % QUICK_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(v: number) => `${v}%`} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <Button onClick={handleImportToFinancial} className="w-full" variant="outline">
+            <Download className="w-4 h-4 mr-2" />
+            Importar dados para Situação Financeira
+          </Button>
+        </Card>
+      )}
+
+
+
       {/* Attached list */}
       {pdfs.length > 0 && (
         <div className="space-y-2">
