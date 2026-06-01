@@ -313,7 +313,7 @@ function RaioXDashboard({ data }: { data: RaioX }) {
       {/* Mapa de Liquidez */}
       <Card className="p-4 border-border">
         <div className="flex items-center gap-2 mb-3">
-          <PieChart className="w-4 h-4 text-primary" />
+          <PieChartIcon className="w-4 h-4 text-primary" />
           <h5 className="font-semibold text-sm text-foreground">Mapa de Liquidez</h5>
         </div>
         <div className="space-y-3">
@@ -362,7 +362,7 @@ function RaioXDashboard({ data }: { data: RaioX }) {
       {/* Distribuição por Estratégia */}
       <Card className="p-4 border-border">
         <div className="flex items-center gap-2 mb-3">
-          <PieChart className="w-4 h-4 text-primary" />
+          <PieChartIcon className="w-4 h-4 text-primary" />
           <h5 className="font-semibold text-sm text-foreground">Distribuição por Estratégia</h5>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
