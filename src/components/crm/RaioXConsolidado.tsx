@@ -96,7 +96,15 @@ export function RaioXConsolidado() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [raioX, setRaioX] = useState<RaioX | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  // Quick-analysis (simulação UX) — disparada a cada upload
+  const [quickState, setQuickState] = useState<'idle' | 'processing' | 'done'>('idle');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const QUICK_PIE = [
+    { name: 'Renda Fixa', value: 70 },
+    { name: 'Renda Variável', value: 30 },
+  ];
+  const QUICK_COLORS = ['hsl(var(--primary))', 'hsl(var(--destructive))'];
 
   const extractText = useCallback(async (file: File): Promise<string> => {
     const arrayBuffer = await file.arrayBuffer();
@@ -129,6 +137,10 @@ export function RaioXConsolidado() {
 
       setPdfs((prev) => [...prev, ...newOnes]);
 
+      // Quick UX simulação: spinner -> pie chart
+      setQuickState('processing');
+      window.setTimeout(() => setQuickState('done'), 2000);
+
       // Extract text in parallel
       await Promise.all(
         newOnes.map(async (entry, idx) => {
@@ -147,7 +159,15 @@ export function RaioXConsolidado() {
   );
 
   const handleRemove = (id: string) => {
-    setPdfs((prev) => prev.filter((p) => p.id !== id));
+    setPdfs((prev) => {
+      const next = prev.filter((p) => p.id !== id);
+      if (next.length === 0) setQuickState('idle');
+      return next;
+    });
+  };
+
+  const handleImportToFinancial = () => {
+    toast.success('Dados sincronizados com o painel');
   };
 
   const handleGenerate = async () => {
