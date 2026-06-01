@@ -1,10 +1,11 @@
 import { useState, useRef, useCallback } from 'react';
-import { Upload, FileText, Trash2, Loader2, Sparkles, TrendingUp, Wallet, AlertTriangle, Calendar, PieChart, Info } from 'lucide-react';
+import { Upload, FileText, Trash2, Loader2, Sparkles, TrendingUp, Wallet, AlertTriangle, Calendar, PieChart as PieChartIcon, Info, Download } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { toast } from 'sonner';
 import * as pdfjsLib from 'pdfjs-dist';
 
