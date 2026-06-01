@@ -1156,3 +1156,56 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
     </div>
   );
 }
+
+// Mini-DRE empresarial — reusable bloco for PJ / Autônomo / Empresário
+function MiniDRE({ data, update }: { data: ConhecerClienteData; update: (p: Partial<ConhecerClienteData>) => void }) {
+  const fmt = (v: string) => {
+    const n = parseFloat(v) || 0;
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(n);
+  };
+  const lucro =
+    (parseFloat(data.pjMonthlyRevenue) || 0) -
+    (parseFloat(data.pjMonthlyOpCost) || 0) -
+    (parseFloat(data.pjProLabore) || 0) -
+    (parseFloat(data.pjProfitDistribution) || 0);
+
+  return (
+    <div className="rounded-md border border-border bg-muted/30 p-3 space-y-3 animate-in fade-in duration-300">
+      <p className="text-xs font-semibold text-foreground">Mini-DRE Empresarial (opcional)</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-1">
+          <Label className="text-xs">Faturamento Bruto Mensal</Label>
+          <CurrencyInput value={data.pjMonthlyRevenue} onChange={(v) => update({ pjMonthlyRevenue: v })} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Custo Operacional Mensal</Label>
+          <CurrencyInput value={data.pjMonthlyOpCost} onChange={(v) => update({ pjMonthlyOpCost: v })} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Pró-labore</Label>
+          <CurrencyInput value={data.pjProLabore} onChange={(v) => update({ pjProLabore: v })} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Distribuição de Lucros</Label>
+          <CurrencyInput value={data.pjProfitDistribution} onChange={(v) => update({ pjProfitDistribution: v })} />
+        </div>
+        <div className="space-y-1 sm:col-span-2">
+          <Label className="text-xs">Regime Tributário</Label>
+          <Select value={data.pjTaxRegime} onValueChange={(v) => update({ pjTaxRegime: v })}>
+            <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Simples Nacional">Simples Nacional</SelectItem>
+              <SelectItem value="Lucro Presumido">Lucro Presumido</SelectItem>
+              <SelectItem value="Lucro Real">Lucro Real</SelectItem>
+              <SelectItem value="Não sei informar">Não sei informar</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div className="flex items-center justify-between text-xs pt-1 border-t border-border">
+        <span className="text-muted-foreground">Resultado mensal estimado</span>
+        <span className={`font-semibold ${lucro >= 0 ? 'text-green-600' : 'text-red-600'}`}>{fmt(lucro.toString())}</span>
+      </div>
+    </div>
+  );
+}
