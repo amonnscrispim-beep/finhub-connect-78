@@ -534,6 +534,7 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
                       <div className="space-y-1"><Label className="text-xs">Área de atuação</Label><Input value={data.autonomoArea} onChange={(e) => update({ autonomoArea: e.target.value })} className="crm-input" placeholder="Ex: Advocacia, Consultoria..." /></div>
                     </div>
                     <div className="space-y-1"><Label className="text-xs">A renda é estável ou variável mês a mês?</Label><Textarea value={data.autonomoStability} onChange={(e) => update({ autonomoStability: e.target.value })} className="crm-input min-h-[50px]" placeholder="Descreva a estabilidade da renda..." /></div>
+                    <MiniDRE data={data} update={update} />
                   </div>
                 )}
 
