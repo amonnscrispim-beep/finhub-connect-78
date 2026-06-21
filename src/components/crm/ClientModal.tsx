@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { 
   Heart, Users, PieChart, Landmark, Target, Calendar, Cake, CreditCard, 
   TrendingUp, Award, CheckCircle, User, DollarSign, FileText, Briefcase, ClipboardList, Wallet,
-  BarChart3, Shield, Search, Calculator
+  BarChart3, Shield, Search, Calculator, Sparkles
 } from 'lucide-react';
+import { DiagnosticoInteligente } from './DiagnosticoInteligente';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
