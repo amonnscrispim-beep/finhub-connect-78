@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { 
   Heart, Users, PieChart, Landmark, Target, Calendar, Cake, CreditCard, 
   TrendingUp, Award, CheckCircle, User, DollarSign, FileText, Briefcase, ClipboardList, Wallet,
-  BarChart3, Shield, Search, Calculator
+  BarChart3, Shield, Search, Calculator, Sparkles
 } from 'lucide-react';
+import { DiagnosticoInteligente } from './DiagnosticoInteligente';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -824,6 +825,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     { id: 'extrato', label: 'Extrato do Cliente', icon: Wallet },
     { id: 'reports', label: 'Arquivos e Resumos', icon: FileText },
     { id: 'simulator', label: 'Simulador', icon: Calculator },
+    { id: 'diagnostico-ia', label: 'Diagnóstico Inteligente', icon: Sparkles },
   ] as const;
 
   // Unified progress: single source of truth = calculateProgress(conhecerData)
@@ -1557,6 +1559,16 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   Salve o cliente primeiro para usar o simulador.
                 </div>
               )}
+            </div>
+
+            {/* SECTION: Diagnóstico Inteligente (IA) */}
+            <div hidden={activeTab !== 'diagnostico-ia'} className="space-y-4">
+              <DiagnosticoInteligente
+                formData={formData}
+                setFormData={setFormData}
+                conhecerData={conhecerData}
+                setConhecerData={setConhecerData}
+              />
             </div>
 
             </div>
