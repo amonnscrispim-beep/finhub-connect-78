@@ -825,6 +825,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     { id: 'extrato', label: 'Extrato do Cliente', icon: Wallet },
     { id: 'reports', label: 'Arquivos e Resumos', icon: FileText },
     { id: 'simulator', label: 'Simulador', icon: Calculator },
+    { id: 'diagnostico-ia', label: 'Diagnóstico Inteligente', icon: Sparkles },
   ] as const;
 
   // Unified progress: single source of truth = calculateProgress(conhecerData)
