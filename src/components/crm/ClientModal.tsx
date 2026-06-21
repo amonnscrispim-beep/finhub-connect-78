@@ -1561,6 +1561,16 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               )}
             </div>
 
+            {/* SECTION: Diagnóstico Inteligente (IA) */}
+            <div hidden={activeTab !== 'diagnostico-ia'} className="space-y-4">
+              <DiagnosticoInteligente
+                formData={formData}
+                setFormData={setFormData}
+                conhecerData={conhecerData}
+                setConhecerData={setConhecerData}
+              />
+            </div>
+
             </div>
           </div>
           </div>
