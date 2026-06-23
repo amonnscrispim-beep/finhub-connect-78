@@ -52,6 +52,56 @@ export type Database = {
           },
         ]
       }
+      client_contributions: {
+        Row: {
+          client_id: string
+          contribution_date: string | null
+          created_at: string
+          id: string
+          month: number
+          notes: string | null
+          planned_amount: number
+          realized_amount: number
+          updated_at: string
+          user_id: string
+          year: number
+        }
+        Insert: {
+          client_id: string
+          contribution_date?: string | null
+          created_at?: string
+          id?: string
+          month: number
+          notes?: string | null
+          planned_amount?: number
+          realized_amount?: number
+          updated_at?: string
+          user_id: string
+          year: number
+        }
+        Update: {
+          client_id?: string
+          contribution_date?: string | null
+          created_at?: string
+          id?: string
+          month?: number
+          notes?: string | null
+          planned_amount?: number
+          realized_amount?: number
+          updated_at?: string
+          user_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_contributions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_extract_assets: {
         Row: {
           asset_class: string
@@ -590,6 +640,9 @@ export type Database = {
           contract_end: string
           contract_start: string
           contracted_meetings: number | null
+          contribution_notes: string | null
+          contribution_periodicity: string | null
+          contribution_start_date: string | null
           country: string
           created_at: string
           current_wealth_notes: string | null
@@ -636,6 +689,7 @@ export type Database = {
           patrimonio_financeiro_liquido: number | null
           pending_schedule: boolean | null
           phone: string | null
+          planned_monthly_contribution: number | null
           portfolio_distribution: Json | null
           previous_funnel_stage: string | null
           private_pension_status: string | null
@@ -671,6 +725,9 @@ export type Database = {
           contract_end?: string
           contract_start?: string
           contracted_meetings?: number | null
+          contribution_notes?: string | null
+          contribution_periodicity?: string | null
+          contribution_start_date?: string | null
           country?: string
           created_at?: string
           current_wealth_notes?: string | null
@@ -717,6 +774,7 @@ export type Database = {
           patrimonio_financeiro_liquido?: number | null
           pending_schedule?: boolean | null
           phone?: string | null
+          planned_monthly_contribution?: number | null
           portfolio_distribution?: Json | null
           previous_funnel_stage?: string | null
           private_pension_status?: string | null
@@ -752,6 +810,9 @@ export type Database = {
           contract_end?: string
           contract_start?: string
           contracted_meetings?: number | null
+          contribution_notes?: string | null
+          contribution_periodicity?: string | null
+          contribution_start_date?: string | null
           country?: string
           created_at?: string
           current_wealth_notes?: string | null
@@ -798,6 +859,7 @@ export type Database = {
           patrimonio_financeiro_liquido?: number | null
           pending_schedule?: boolean | null
           phone?: string | null
+          planned_monthly_contribution?: number | null
           portfolio_distribution?: Json | null
           previous_funnel_stage?: string | null
           private_pension_status?: string | null
