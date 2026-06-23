@@ -5,6 +5,7 @@ import {
   BarChart3, Shield, Search, Calculator, Sparkles
 } from 'lucide-react';
 import { DiagnosticoInteligente } from './DiagnosticoInteligente';
+import { ClientAportesTab } from './ClientAportesTab';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -825,6 +826,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     { id: 'extrato', label: 'Extrato do Cliente', icon: Wallet },
     { id: 'reports', label: 'Arquivos e Resumos', icon: FileText },
     { id: 'simulator', label: 'Simulador', icon: Calculator },
+    { id: 'aportes', label: 'Histórico de Aportes', icon: Wallet },
     { id: 'diagnostico-ia', label: 'Diagnóstico Inteligente', icon: Sparkles },
   ] as const;
 
@@ -1557,6 +1559,21 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               ) : (
                 <div className="text-sm text-muted-foreground p-6 text-center border border-dashed rounded-md">
                   Salve o cliente primeiro para usar o simulador.
+                </div>
+              )}
+            </div>
+
+            {/* SECTION: Histórico de Aportes */}
+            <div hidden={activeTab !== 'aportes'} className="space-y-4">
+              {client?.id ? (
+                <ClientAportesTab
+                  clientId={client.id}
+                  clientName={formData.name}
+                  defaultPlanned={Number(formData.monthlyContribution) || 0}
+                />
+              ) : (
+                <div className="text-sm text-muted-foreground p-6 text-center border border-dashed rounded-md">
+                  Salve o cliente primeiro para acompanhar aportes.
                 </div>
               )}
             </div>
