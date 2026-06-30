@@ -211,7 +211,7 @@ export function useSupabaseTasks(clientId?: string) {
           queryClient.invalidateQueries({ queryKey: ['clients'] });
         });
       
-      return dbToTask(data);
+      return dbToTask(data as TaskRow);
     },
     // Optimistic update
     onMutate: async ({ taskId, clientId, completed }) => {
@@ -341,9 +341,11 @@ export function useSupabaseTasks(clientId?: string) {
     isLoading,
     error,
     refetch,
-    addTask: (clientId: string, description: string) => addTaskMutation.mutateAsync({ clientId, description }),
+    addTask: (clientId: string, description: string, input?: TaskInput) => addTaskMutation.mutateAsync({ clientId, description, input }),
+    updateTask: (taskId: string, clientId: string, updates: Partial<TaskInput>) => updateTaskMutation.mutateAsync({ taskId, clientId, updates }),
     toggleTask: (taskId: string, clientId: string, completed: boolean) => toggleTaskMutation.mutateAsync({ taskId, clientId, completed }),
     deleteTask: (taskId: string, clientId: string) => deleteTaskMutation.mutateAsync({ taskId, clientId }),
+
     isAdding: addTaskMutation.isPending,
     isToggling: toggleTaskMutation.isPending,
     isDeleting: deleteTaskMutation.isPending,
