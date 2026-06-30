@@ -102,13 +102,33 @@ export interface ClientFile {
   dataUrl: string; // Base64 for localStorage persistence
 }
 
+export type TaskPriority = 'Baixa' | 'Média' | 'Alta' | 'Urgente';
+
 export interface Task {
   id: string;
   description: string;
   completed: boolean;
   createdAt: Date;
   completedAt: Date | null;
+  // Optional rich fields (used by Central de Tarefas)
+  title?: string | null;
+  dueDate?: Date | null;
+  priority?: TaskPriority | null;
+  category?: string | null;
+  assignee?: string | null;
+  notes?: string | null;
 }
+
+export interface TaskInput {
+  description: string;
+  title?: string | null;
+  dueDate?: Date | null;
+  priority?: TaskPriority | null;
+  category?: string | null;
+  assignee?: string | null;
+  notes?: string | null;
+}
+
 
 export interface PartnerInfo {
   name: string;
