@@ -406,6 +406,9 @@ function CRMDashboard() {
             <ErrorBoundary label="Central de Tarefas">
               <TarefasCentral onEditClient={handleEditClient} />
             </ErrorBoundary>
+          </TabsContent>
+
+
 
 
           {/* CONTROLE DE APORTES */}
