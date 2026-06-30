@@ -1836,32 +1836,50 @@ export type Database = {
       }
       tasks: {
         Row: {
+          assignee: string | null
+          category: string | null
           client_id: string
           completed: boolean | null
           completed_at: string | null
           created_at: string
           description: string
+          due_date: string | null
           id: string
+          notes: string | null
+          priority: string | null
+          title: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          assignee?: string | null
+          category?: string | null
           client_id: string
           completed?: boolean | null
           completed_at?: string | null
           created_at?: string
           description: string
+          due_date?: string | null
           id?: string
+          notes?: string | null
+          priority?: string | null
+          title?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          assignee?: string | null
+          category?: string | null
           client_id?: string
           completed?: boolean | null
           completed_at?: string | null
           created_at?: string
           description?: string
+          due_date?: string | null
           id?: string
+          notes?: string | null
+          priority?: string | null
+          title?: string | null
           updated_at?: string
           user_id?: string
         }
