@@ -401,6 +401,13 @@ function CRMDashboard() {
             </ErrorBoundary>
           </TabsContent>
 
+          {/* TAREFAS */}
+          <TabsContent value="tarefas" className="animate-fade-in">
+            <ErrorBoundary label="Central de Tarefas">
+              <TarefasCentral onEditClient={handleEditClient} />
+            </ErrorBoundary>
+
+
           {/* CONTROLE DE APORTES */}
           <TabsContent value="aportes" className="animate-fade-in">
             <ErrorBoundary label="Controle de Aportes">
