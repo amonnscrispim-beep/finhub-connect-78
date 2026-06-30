@@ -1,5 +1,5 @@
 import React, { createContext, useContext, ReactNode, useMemo, useCallback } from 'react';
-import { Client, Task, FunnelStage, ClientFile, ScheduledMeeting } from '@/types/client';
+import { Client, Task, TaskInput, FunnelStage, ClientFile, ScheduledMeeting } from '@/types/client';
 import { useSupabaseClients } from '@/hooks/useSupabaseClients';
 import { useSupabaseTasks } from '@/hooks/useSupabaseTasks';
 
@@ -14,9 +14,11 @@ interface ClientContextType {
   swapClientOrder: (clientAId: string, clientBId: string) => Promise<boolean>;
   normalizeStageOrder: (stage: string) => Promise<boolean>;
   setReorderingFlag: (value: boolean) => void;
-  addTask: (clientId: string, description: string) => Promise<void>;
+  addTask: (clientId: string, description: string, input?: TaskInput) => Promise<void>;
+  updateTask: (clientId: string, taskId: string, updates: Partial<TaskInput>) => Promise<void>;
   toggleTask: (clientId: string, taskId: string) => Promise<void>;
   deleteTask: (clientId: string, taskId: string) => Promise<void>;
+
   updateClientFiles: (clientId: string, files: ClientFile[]) => Promise<void>;
   scheduleClientMeeting: (clientId: string, meeting: ScheduledMeeting) => Promise<void>;
   refetch: () => void;
@@ -42,9 +44,11 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     tasksByClient,
     isLoading: isLoadingTasks,
     addTask: addTaskToDb,
+    updateTask: updateTaskInDb,
     toggleTask: toggleTaskInDb,
     deleteTask: deleteTaskFromDb,
   } = useSupabaseTasks();
+
 
   // Merge tasks from database into clients
   const clients = useMemo(() => {
@@ -118,13 +122,22 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     return await normalizeColumn(stage);
   }, [normalizeColumn]);
 
-  const addTask = useCallback(async (clientId: string, description: string) => {
+  const addTask = useCallback(async (clientId: string, description: string, input?: TaskInput) => {
     try {
-      await addTaskToDb(clientId, description);
+      await addTaskToDb(clientId, description, input);
     } catch (error) {
       console.error('Error adding task:', error);
     }
   }, [addTaskToDb]);
+
+  const updateTask = useCallback(async (clientId: string, taskId: string, updates: Partial<TaskInput>) => {
+    try {
+      await updateTaskInDb(taskId, clientId, updates);
+    } catch (error) {
+      console.error('Error updating task:', error);
+    }
+  }, [updateTaskInDb]);
+
 
   const toggleTask = useCallback(async (clientId: string, taskId: string) => {
     try {
@@ -189,8 +202,10 @@ export function ClientProvider({ children }: { children: ReactNode }) {
         normalizeStageOrder,
         setReorderingFlag,
         addTask,
+        updateTask,
         toggleTask,
         deleteTask,
+
         updateClientFiles,
         scheduleClientMeeting,
         refetch,
