@@ -271,6 +271,14 @@ function CRMDashboard() {
               Agenda
             </TabsTrigger>
             <TabsTrigger 
+              value="tarefas"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <ListChecks className="w-4 h-4 mr-2" />
+              Tarefas
+            </TabsTrigger>
+
+            <TabsTrigger 
               value="aportes"
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
