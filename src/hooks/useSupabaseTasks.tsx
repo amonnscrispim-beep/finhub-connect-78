@@ -2,21 +2,36 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
-import type { Task } from '@/types/client';
+import type { Task, TaskInput, TaskPriority } from '@/types/client';
 import type { Tables } from '@/integrations/supabase/types';
 
-type TaskRow = Tables<'tasks'>;
+type TaskRow = Tables<'tasks'> & {
+  completed_at?: string | null;
+  title?: string | null;
+  due_date?: string | null;
+  priority?: string | null;
+  category?: string | null;
+  assignee?: string | null;
+  notes?: string | null;
+};
 
 // Convert database row to Task type
-function dbToTask(row: TaskRow & { completed_at?: string | null }): Task {
+function dbToTask(row: TaskRow): Task {
   return {
     id: row.id,
     description: row.description,
     completed: row.completed ?? false,
     createdAt: new Date(row.created_at),
     completedAt: row.completed_at ? new Date(row.completed_at) : null,
+    title: row.title ?? null,
+    dueDate: row.due_date ? new Date(row.due_date) : null,
+    priority: (row.priority as TaskPriority | null) ?? null,
+    category: row.category ?? null,
+    assignee: row.assignee ?? null,
+    notes: row.notes ?? null,
   };
 }
+
 
 export function useSupabaseTasks(clientId?: string) {
   const { user } = useAuth();
