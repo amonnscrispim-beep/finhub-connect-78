@@ -98,7 +98,7 @@ export function ClientTaskDrawer({ clientId, open, onOpenChange, onCreateTask, o
             </div>
             <div className="rounded-md border border-border bg-muted/30 p-3">
               <div className="text-muted-foreground text-xs">Responsável</div>
-              <div className="font-semibold truncate">{client.assignee || pending[0]?.assignee || '—'}</div>
+              <div className="font-semibold truncate">{pending[0]?.assignee || '—'}</div>
             </div>
             <div className="rounded-md border border-border bg-muted/30 p-3">
               <div className="text-muted-foreground text-xs">Último contato</div>
