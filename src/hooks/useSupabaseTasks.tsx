@@ -100,30 +100,40 @@ export function useSupabaseTasks(clientId?: string) {
 
   // Add task mutation
   const addTaskMutation = useMutation({
-    mutationFn: async ({ clientId, description }: { clientId: string; description: string }) => {
+    mutationFn: async ({ clientId, description, input }: { clientId: string; description: string; input?: TaskInput }) => {
       if (!user) throw new Error('User not authenticated');
-      
+
+      const insertPayload: Record<string, unknown> = {
+        user_id: user.id,
+        client_id: clientId,
+        description,
+        completed: false,
+      };
+      if (input) {
+        if (input.title !== undefined) insertPayload.title = input.title;
+        if (input.dueDate !== undefined) insertPayload.due_date = input.dueDate ? input.dueDate.toISOString() : null;
+        if (input.priority !== undefined) insertPayload.priority = input.priority;
+        if (input.category !== undefined) insertPayload.category = input.category;
+        if (input.assignee !== undefined) insertPayload.assignee = input.assignee;
+        if (input.notes !== undefined) insertPayload.notes = input.notes;
+      }
+
       const { data, error } = await supabase
         .from('tasks')
-        .insert({
-          user_id: user.id,
-          client_id: clientId,
-          description,
-          completed: false,
-        })
+        .insert(insertPayload as never)
         .select()
         .single();
-      
+
       if (error) throw error;
-      
+
       // Also update client's last_activity_at
       await supabase
         .from('clients')
         .update({ last_activity_at: new Date().toISOString() })
         .eq('id', clientId)
         .eq('user_id', user.id);
-      
-      return dbToTask(data);
+
+      return dbToTask(data as TaskRow);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
@@ -135,6 +145,40 @@ export function useSupabaseTasks(clientId?: string) {
       toast.error('Erro ao adicionar tarefa');
     },
   });
+
+  // Update task mutation (rich fields)
+  const updateTaskMutation = useMutation({
+    mutationFn: async ({ taskId, clientId, updates }: { taskId: string; clientId: string; updates: Partial<TaskInput> }) => {
+      if (!user) throw new Error('User not authenticated');
+      const payload: Record<string, unknown> = {};
+      if (updates.description !== undefined) payload.description = updates.description;
+      if (updates.title !== undefined) payload.title = updates.title;
+      if (updates.dueDate !== undefined) payload.due_date = updates.dueDate ? updates.dueDate.toISOString() : null;
+      if (updates.priority !== undefined) payload.priority = updates.priority;
+      if (updates.category !== undefined) payload.category = updates.category;
+      if (updates.assignee !== undefined) payload.assignee = updates.assignee;
+      if (updates.notes !== undefined) payload.notes = updates.notes;
+
+      const { data, error } = await supabase
+        .from('tasks')
+        .update(payload as never)
+        .eq('id', taskId)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return dbToTask(data as TaskRow);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks-by-client'] });
+    },
+    onError: (error) => {
+      console.error('Error updating task:', error);
+      toast.error('Erro ao atualizar tarefa');
+    },
+  });
+
 
   // Toggle task mutation with optimistic updates
   const toggleTaskMutation = useMutation({
