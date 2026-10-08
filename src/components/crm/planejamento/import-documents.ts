@@ -1,5 +1,85 @@
-import * as pdfjs from 'pdfjs-dist';
-import worker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-export async function resizeImage(src:string,signal:AbortSignal){const img=new Image();img.src=src;await img.decode();signal.throwIfAborted();const ratio=Math.min(1,2000/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.round(img.width*ratio);canvas.height=Math.round(img.height*ratio);const ctx=canvas.getContext('2d');if(!ctx)throw Error('Não foi possível ler a imagem.');ctx.drawImage(img,0,0,canvas.width,canvas.height);return canvas.toDataURL('image/jpeg',0.85);}
-function dataUrl(f:File){return new Promise<string>((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result));r.onerror=()=>reject(Error('Falha ao ler arquivo.'));r.readAsDataURL(f);});}
-export async function prepareDocuments(files:File[],signal:AbortSignal){let text='';const images:string[]=[];for(const f of files){signal.throwIfAborted();if(f.size>15*1024*1024)throw Error(`O arquivo ${f.name} excede 15 MB.`);let content='';if(/\.pdf$/i.test(f.name)){pdfjs.GlobalWorkerOptions.workerSrc=worker;const doc=await pdfjs.getDocument({data:await f.arrayBuffer()}).promise;try{for(let i=1;i<=Math.min(15,doc.numPages);i++){signal.throwIfAborted();const page=await doc.getPage(i),t=await page.getTextContent();content+=t.items.map(item=>'str'in item?item.str:'').join(' ')+'\n';if(content.length>=14000)break;}if(content.trim().length<100){for(let i=1;i<=Math.min(3,doc.numPages);i++){const page=await doc.getPage(i),vp=page.getViewport({scale:1.7}),canvas=document.createElement('canvas');canvas.width=vp.width;canvas.height=vp.height;const ctx=canvas.getContext('2d');if(ctx){await page.render({canvasContext:ctx,viewport:vp}).promise;images.push(await resizeImage(canvas.toDataURL('image/jpeg',0.85),signal));}}}content=content.slice(0,14000);}finally{await doc.destroy();}}else if(/\.(xlsx|xls|csv)$/i.test(f.name)){const x=await import('xlsx'),wb=x.read(await f.arrayBuffer());content=wb.SheetNames.map(n=>`--- aba: ${n} ---\n${x.utils.sheet_to_csv(wb.Sheets[n])}`).join('\n').slice(0,20000);}else if(/\.(jpg|jpeg|png|webp)$/i.test(f.name))images.push(await resizeImage(await dataUrl(f),signal));else throw Error('Formato não suportado.');text+=`\n--- arquivo: ${f.name} ---\n${content}`;if(images.length>12)throw Error('Selecione menos arquivos: máximo de 12 imagens por análise.');}return {text:text.slice(0,46000),images};}
+import * as pdfjs from "pdfjs-dist";
+import worker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+export async function resizeImage(src: string, signal: AbortSignal) {
+  const img = new Image();
+  img.src = src;
+  await img.decode();
+  signal.throwIfAborted();
+  const ratio = Math.min(1, 2000 / Math.max(img.width, img.height)),
+    canvas = document.createElement("canvas");
+  canvas.width = Math.round(img.width * ratio);
+  canvas.height = Math.round(img.height * ratio);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw Error("Não foi possível ler a imagem.");
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/jpeg", 0.85);
+}
+function dataUrl(f: File) {
+  return new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(Error("Falha ao ler arquivo."));
+    r.readAsDataURL(f);
+  });
+}
+export async function prepareDocuments(files: File[], signal: AbortSignal) {
+  let text = "";
+  const images: string[] = [];
+  for (const f of files) {
+    signal.throwIfAborted();
+    if (f.size > 15 * 1024 * 1024)
+      throw Error(`O arquivo ${f.name} excede 15 MB.`);
+    let content = "";
+    if (/\.pdf$/i.test(f.name)) {
+      pdfjs.GlobalWorkerOptions.workerSrc = worker;
+      const doc = await pdfjs.getDocument({ data: await f.arrayBuffer() })
+        .promise;
+      try {
+        for (let i = 1; i <= Math.min(15, doc.numPages); i++) {
+          signal.throwIfAborted();
+          const page = await doc.getPage(i),
+            t = await page.getTextContent();
+          content +=
+            t.items.map((item) => ("str" in item ? item.str : "")).join(" ") +
+            "\n";
+          if (content.length >= 14000) break;
+        }
+        if (content.trim().length < 100) {
+          for (let i = 1; i <= Math.min(3, doc.numPages); i++) {
+            const page = await doc.getPage(i),
+              vp = page.getViewport({ scale: 1.7 }),
+              canvas = document.createElement("canvas");
+            canvas.width = vp.width;
+            canvas.height = vp.height;
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              await page.render({ canvasContext: ctx, viewport: vp }).promise;
+              images.push(
+                await resizeImage(canvas.toDataURL("image/jpeg", 0.85), signal),
+              );
+            }
+          }
+        }
+        content = content.slice(0, 14000);
+      } finally {
+        await doc.destroy();
+      }
+    } else if (/\.(xlsx|xls|csv)$/i.test(f.name)) {
+      const x = await import("xlsx"),
+        wb = x.read(await f.arrayBuffer());
+      content = wb.SheetNames.map(
+        (n) => `--- aba: ${n} ---\n${x.utils.sheet_to_csv(wb.Sheets[n])}`,
+      )
+        .join("\n")
+        .slice(0, 20000);
+    } else if (/\.(jpg|jpeg|png|webp)$/i.test(f.name))
+      images.push(await resizeImage(await dataUrl(f), signal));
+    else throw Error("Formato não suportado.");
+    text += `\n--- arquivo: ${f.name} ---\n${content}`;
+    if (images.length > 12)
+      throw Error(
+        "Selecione menos arquivos: máximo de 12 imagens por análise.",
+      );
+  }
+  return { text: text.slice(0, 46000), images };
+}
