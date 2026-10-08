@@ -99,7 +99,8 @@ export interface ClientFile {
   size: number;
   folder: FileFolder;
   uploadedAt: Date;
-  dataUrl: string; // Base64 for localStorage persistence
+  dataUrl?: string; // Legacy: base64 stored inline (old files only)
+  storagePath?: string; // Path in the private 'client-files' storage bucket
 }
 
 export type TaskPriority = 'Baixa' | 'Média' | 'Alta' | 'Urgente';

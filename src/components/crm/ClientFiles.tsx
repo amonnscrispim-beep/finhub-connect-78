@@ -1,4 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 import { Folder, Upload, Download, Trash2, File, FileText, Image, Edit2, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,7 +41,18 @@ const formatFileSize = (bytes: number) => {
 
 const ACCEPTED_TYPES = '.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx';
 
-export function ClientFiles({ files, onFilesChange }: ClientFilesProps) {
+const sanitizeName = (name: string) => {
+  const dot = name.lastIndexOf('.');
+  const base = (dot > 0 ? name.slice(0, dot) : name).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'arquivo';
+  const ext = dot > 0 ? name.slice(dot + 1).replace(/[^a-zA-Z0-9]/g, '').toLowerCase() : '';
+  return ext ? `${base}.${ext}` : base;
+};
+
+export function ClientFiles({ files, onFilesChange, clientId }: ClientFilesProps) {
+  const { user } = useAuth();
+  const filesRef = useRef(files);
+  useEffect(() => { filesRef.current = files; }, [files]);
+  const [uploading, setUploading] = useState(0);
   const [activeFolder, setActiveFolder] = useState<FileFolder>('documentos');
   const [dragOver, setDragOver] = useState(false);
   const [renamingFile, setRenamingFile] = useState<string | null>(null);
@@ -50,26 +64,30 @@ export function ClientFiles({ files, onFilesChange }: ClientFilesProps) {
     return files.filter(f => f.folder === folder);
   };
 
-  const handleFileUpload = useCallback((uploadedFiles: FileList | null, folder: FileFolder) => {
-    if (!uploadedFiles) return;
-
-    Array.from(uploadedFiles).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = () => {
+  const handleFileUpload = useCallback(async (uploadedFiles: FileList | null, folder: FileFolder) => {
+    if (!uploadedFiles || !uploadedFiles.length) return;
+    if (!user) { toast.error('Faça login para enviar arquivos.'); return; }
+    const list = Array.from(uploadedFiles);
+    setUploading(n => n + list.length);
+    for (const file of list) {
+      try {
+        const path = `${user.id}/${clientId || 'sem-cliente'}/${Date.now()}_${sanitizeName(file.name)}`;
+        const { error } = await supabase.storage.from('client-files').upload(path, file, { contentType: file.type || undefined });
+        if (error) throw error;
         const newFile: ClientFile = {
-          id: generateId(),
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          folder,
-          uploadedAt: new Date(),
-          dataUrl: reader.result as string,
+          id: generateId(), name: file.name, type: file.type, size: file.size,
+          folder, uploadedAt: new Date(), storagePath: path,
         };
-        onFilesChange([...files, newFile]);
-      };
-      reader.readAsDataURL(file);
-    });
-  }, [files, onFilesChange]);
+        filesRef.current = [...filesRef.current, newFile];
+        onFilesChange(filesRef.current);
+      } catch (err) {
+        console.error('Upload error:', err);
+        toast.error(`Erro ao enviar "${file.name}".`);
+      } finally {
+        setUploading(n => n - 1);
+      }
+    }
+  }, [user, clientId, onFilesChange]);
 
   const handleDrop = useCallback((e: React.DragEvent, folder: FileFolder) => {
     e.preventDefault();
@@ -77,11 +95,23 @@ export function ClientFiles({ files, onFilesChange }: ClientFilesProps) {
     handleFileUpload(e.dataTransfer.files, folder);
   }, [handleFileUpload]);
 
-  const handleDownload = (file: ClientFile) => {
+  const handleDownload = async (file: ClientFile) => {
+    let href = file.dataUrl || '';
+    let revoke = false;
+    if (file.storagePath) {
+      const { data, error } = await supabase.storage.from('client-files').download(file.storagePath);
+      if (error || !data) { toast.error('Erro ao baixar arquivo.'); return; }
+      href = URL.createObjectURL(data);
+      revoke = true;
+    }
+    if (!href) return;
     const link = document.createElement('a');
-    link.href = file.dataUrl;
+    link.href = href;
     link.download = file.name;
+    document.body.appendChild(link);
     link.click();
+    link.remove();
+    if (revoke) setTimeout(() => URL.revokeObjectURL(href), 1000);
   };
 
   const handleDelete = (file: ClientFile) => {
@@ -92,6 +122,11 @@ export function ClientFiles({ files, onFilesChange }: ClientFilesProps) {
   const confirmDelete = () => {
     if (fileToDelete) {
       onFilesChange(files.filter(f => f.id !== fileToDelete.id));
+      if (fileToDelete.storagePath) {
+        supabase.storage.from('client-files').remove([fileToDelete.storagePath]).then(({ error }) => {
+          if (error) console.error('Storage delete error:', error);
+        });
+      }
     }
     setDeleteDialogOpen(false);
     setFileToDelete(null);
