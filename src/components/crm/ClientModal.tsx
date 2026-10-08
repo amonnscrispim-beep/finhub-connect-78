@@ -57,6 +57,7 @@ import { cn } from '@/lib/utils';
 import { useClients } from '@/contexts/ClientContext';
 import { ClientFiles } from './ClientFiles';
 import { SimuladorImovelCarteira } from './SimuladorImovelCarteira';
+import { SimuladorPlanejamentoPatrimonial } from './planejamento/SimuladorPlanejamentoPatrimonial';
 import { RaioXConsolidado } from './RaioXConsolidado';
 import { Progress } from '@/components/ui/progress';
 import { CollapsibleSection } from './CollapsibleSection';
@@ -822,6 +823,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     
     { id: 'contracts', label: 'Contratos e Entregas', icon: ClipboardList },
     { id: 'tasks', label: 'Tarefas e Status', icon: CheckCircle },
+    { id: 'patrimonial-planning', label: 'Simulador Planejamento Patrimonial', icon: TrendingUp },
     { id: 'performance', label: 'Relatório de Performance', icon: BarChart3 },
     { id: 'extrato', label: 'Extrato do Cliente', icon: Wallet },
     { id: 'reports', label: 'Arquivos e Resumos', icon: FileText },
@@ -1559,6 +1561,17 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               ) : (
                 <div className="text-sm text-muted-foreground p-6 text-center border border-dashed rounded-md">
                   Salve o cliente primeiro para usar o simulador.
+                </div>
+              )}
+            </div>
+
+            {/* SECTION: Planejamento Patrimonial — módulo próprio do cliente */}
+            <div hidden={activeTab !== 'patrimonial-planning'}>
+              {client?.id ? (
+                <SimuladorPlanejamentoPatrimonial key={client.id} client={client} clientName={formData.name} />
+              ) : (
+                <div className="text-sm text-muted-foreground p-6 text-center border border-dashed rounded-md">
+                  Salve o cliente primeiro para usar o planejamento patrimonial.
                 </div>
               )}
             </div>
