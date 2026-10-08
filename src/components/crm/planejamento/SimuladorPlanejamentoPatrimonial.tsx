@@ -1,0 +1,843 @@
+import { useState, useEffect, useRef, useMemo, type ChangeEvent } from "react";
+import { toast } from "sonner";
+import {
+  UploadCloud,
+  Sparkles,
+  FileText,
+  X,
+  Loader2,
+  ArrowRight,
+  Download,
+  RotateCcw,
+  ShieldCheck,
+  WalletCards,
+  CheckCircle2,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { type Client } from "@/types/client";
+import {
+  defaults,
+  project,
+  validate,
+  STATE_TAXES,
+  brl,
+  type PlanningData,
+} from "./calculations";
+import { Step, Field, Choice, Events } from "./PlanningFields";
+import { PlanningReport } from "./PlanningReport";
+import { loadPlanning, savePlanning, hydrate } from "./persistence";
+import { prepareDocuments } from "./import-documents";
+import { exportPlanningPdf } from "./export-pdf";
+import "./planning.css";
+function initial(client: Client, name: string) {
+  const d = defaults();
+  d.nome = name || client.name;
+  const b = client.birthDate ? new Date(client.birthDate) : null;
+  if (b) {
+    const now = new Date();
+    d.idadeAtual =
+      now.getFullYear() -
+      b.getFullYear() -
+      (now.getMonth() < b.getMonth() ||
+      (now.getMonth() === b.getMonth() && now.getDate() < b.getDate())
+        ? 1
+        : 0);
+  } else d.idadeAtual = Number(client.age) || 0;
+  d.ativosFinanceiros = client.patrimonioFinanceiroLiquido ?? 0;
+  return d;
+}
+export function SimuladorPlanejamentoPatrimonial({
+  client,
+  clientName,
+}: {
+  client: Client;
+  clientName: string;
+}) {
+  const { user } = useAuth();
+  const [data, setData] = useState<PlanningData>(() =>
+      initial(client, clientName),
+    ),
+    [ready, setReady] = useState(false),
+    [status, setStatus] = useState("Carregando…"),
+    [files, setFiles] = useState<File[]>([]),
+    [busy, setBusy] = useState(false),
+    [progress, setProgress] = useState(""),
+    [summary, setSummary] = useState<string[]>([]),
+    [exporting, setExporting] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null),
+    report = useRef<HTMLDivElement>(null),
+    abort = useRef<AbortController | null>(null),
+    queue = useRef(Promise.resolve()),
+    latest = useRef(data),
+    saved = useRef(""),
+    version = useRef(0),
+    dirty = useRef(false);
+  const key = `patrimonial-planning:${user?.id}:${client.id}`;
+  const put = (next: PlanningData) => {
+    latest.current = next;
+    version.current++;
+    dirty.current = true;
+    setData(next);
+    try {
+      localStorage.setItem(
+        key,
+        JSON.stringify({ data: next, timestamp: Date.now() }),
+      );
+    } catch {
+      toast.error("Não foi possível guardar o rascunho neste navegador.");
+    }
+  };
+  const change = <K extends keyof PlanningData>(k: K, v: PlanningData[K]) =>
+    put({
+      ...latest.current,
+      [k]: v,
+      aiFields: latest.current.aiFields.filter((f) => f !== k),
+    });
+  useEffect(() => {
+    if (!user) return;
+    let stopped = false;
+    loadPlanning(client.id, user.id).then(({ data: row, error }) => {
+      if (stopped) return;
+      let base = initial(client, clientName);
+      if (error) {
+        setStatus("Falha ao carregar · rascunho local");
+        toast.error("Não foi possível carregar a simulação salva.");
+      } else if (row) base = hydrate(row.data, base);
+      saved.current = JSON.stringify(base);
+      try {
+        const draft = JSON.parse(localStorage.getItem(key) || "null");
+        if (
+          draft?.data &&
+          draft.timestamp > (row ? new Date(row.updated_at).getTime() : 0)
+        ) {
+          base = hydrate(draft.data, base);
+          dirty.current = true;
+          setStatus("Rascunho recuperado");
+        } else setStatus(error ? "Falha ao carregar" : "Tudo salvo");
+      } catch {
+        setStatus("Tudo salvo");
+      }
+      latest.current = base;
+      setData(base);
+      setReady(true);
+    });
+    return () => {
+      stopped = true;
+      abort.current?.abort();
+    };
+  }, [client.id, user?.id]);
+  useEffect(() => {
+    if (
+      !ready ||
+      !user ||
+      !dirty.current ||
+      saved.current === JSON.stringify(data)
+    )
+      return;
+    setStatus("Salvando…");
+    const timer = setTimeout(() => {
+      const snapshot = data,
+        v = version.current,
+        uid = user.id;
+      queue.current = queue.current
+        .catch(() => {})
+        .then(async () => {
+          await savePlanning(client.id, uid, snapshot);
+          saved.current = JSON.stringify(snapshot);
+          if (version.current === v) {
+            dirty.current = false;
+            localStorage.removeItem(key);
+            setStatus("Tudo salvo");
+          }
+        })
+        .catch(() => {
+          setStatus("Falha ao salvar · rascunho local");
+          toast.error(
+            "A simulação está no rascunho local; tente salvar novamente.",
+          );
+        });
+    }, 650);
+    return () => clearTimeout(timer);
+  }, [data, ready, user?.id]);
+  const persistNow = async () => {
+    if (!user) return;
+    const snapshot = latest.current,
+      v = version.current;
+    setStatus("Salvando…");
+    queue.current = queue.current
+      .catch(() => {})
+      .then(() => savePlanning(client.id, user.id, snapshot));
+    await queue.current;
+    saved.current = JSON.stringify(snapshot);
+    if (version.current === v) {
+      dirty.current = false;
+      localStorage.removeItem(key);
+      setStatus("Tudo salvo");
+    }
+  };
+  const [debounced, setDebounced] = useState(data);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(data), 150);
+    return () => clearTimeout(timer);
+  }, [data]);
+  const projection = useMemo(
+    () =>
+      debounced.generated && !validate(debounced) ? project(debounced) : null,
+    [debounced],
+  );
+  function addFiles(list: FileList | null) {
+    if (!list) return;
+    const next = Array.from(list);
+    if (next.some((f) => f.size > 15 * 1024 * 1024)) {
+      toast.error("Cada arquivo deve ter no máximo 15 MB.");
+      return;
+    }
+    setFiles((prev) =>
+      [...prev, ...next]
+        .filter(
+          (f, i, a) =>
+            a.findIndex((v) => v.name === f.name && v.size === f.size) === i,
+        )
+        .slice(0, 8),
+    );
+  }
+  async function analyze() {
+    if (!files.length && !data.extras.trim()) {
+      toast.error("Selecione documentos ou descreva o cliente.");
+      return;
+    }
+    setBusy(true);
+    setSummary([]);
+    const controller = new AbortController();
+    abort.current = controller;
+    try {
+      setProgress("Lendo os documentos…");
+      const body = await prepareDocuments(files, controller.signal);
+      setProgress("Extraindo as informações…");
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session)
+        throw Error("Faça login novamente para analisar os documentos.");
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/patrimonial-prefill`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ ...body, extras: data.extras }),
+          signal: controller.signal,
+        },
+      );
+      if (!res.ok) {
+        const e = await res
+          .json()
+          .catch(() => ({ error: "Falha na análise." }));
+        throw Error(e.error || "Falha na análise.");
+      }
+      const reader = res.body?.getReader();
+      if (!reader) throw Error("Resposta vazia da análise.");
+      const decoder = new TextDecoder();
+      let text = "";
+      for (;;) {
+        const r = await reader.read();
+        if (r.done) break;
+        text += decoder.decode(r.value, { stream: true });
+        setProgress("Organizando os dados para revisão…");
+      }
+      text += decoder.decode();
+      const parsed = JSON.parse(text);
+      const next = { ...latest.current, generated: false },
+        fields: string[] = [];
+      for (const k of [
+        "nome",
+        "idadeAtual",
+        "idadeAposentadoria",
+        "idadeLimite",
+        "ativosFinanceiros",
+        "imoveisOutrosBens",
+        "aporteMensal",
+        "rendaMensal",
+        "rentabilidadeAcumulacao",
+        "rentabilidadeAposentadoria",
+        "inflacao",
+      ]) {
+        const v = parsed[k];
+        if (
+          (typeof v === "number" && Number.isFinite(v) && v >= 0) ||
+          (k === "nome" && typeof v === "string" && v.trim())
+        ) {
+          Object.assign(next, { [k]: v });
+          fields.push(k);
+        }
+      }
+      for (const k of ["entradas", "saidas"] as const) {
+        if (Array.isArray(parsed[k])) {
+          const valid = parsed[k]
+            .filter(
+              (e: any) =>
+                typeof e.idade === "number" &&
+                typeof e.valor === "number" &&
+                e.valor >= 0,
+            )
+            .map((e: any) => ({ ...e, id: crypto.randomUUID() }));
+          if (valid.length) {
+            next[k] = valid;
+            fields.push(k);
+          }
+        }
+      }
+      next.aiFields = fields;
+      put(next);
+      setSummary(
+        Array.isArray(parsed.resumo)
+          ? parsed.resumo
+              .filter((s: unknown) => typeof s === "string")
+              .slice(0, 5)
+          : [],
+      );
+      toast.success("Dados extraídos. Revise os campos azuis antes de gerar.");
+    } catch (e) {
+      if (controller.signal.aborted) toast.info("Análise cancelada.");
+      else
+        toast.error(
+          e instanceof Error
+            ? e.message
+            : "Não foi possível analisar os documentos.",
+        );
+    } finally {
+      setBusy(false);
+      setProgress("");
+      abort.current = null;
+    }
+  }
+  async function generate() {
+    const error = validate(data);
+    if (error) {
+      toast.error(error);
+      return;
+    }
+    const bad = [...data.entradas, ...data.saidas].find(
+      (e) =>
+        e.valor > 0 &&
+        (e.idade < data.idadeAtual ||
+          e.idade >= data.idadeLimite ||
+          (e.idadeFim !== null && e.idadeFim <= e.idade) ||
+          (e.recorrencia === "novo_aporte" &&
+            e.idade >= data.idadeAposentadoria)),
+    );
+    if (bad) {
+      toast.error(
+        "Revise as idades dos eventos: devem estar dentro do horizonte e o término após o início.",
+      );
+      return;
+    }
+    put({ ...latest.current, generated: true });
+    try {
+      await persistNow();
+    } catch {
+      setStatus("Falha ao salvar · rascunho local");
+      toast.error(
+        "Projeção gerada, mas o salvamento falhou; o rascunho local foi mantido.",
+      );
+    }
+    requestAnimationFrame(() =>
+      report.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+    );
+  }
+  const numeric = (
+    key: keyof PlanningData,
+    label: string,
+    kind: "money" | "age" | "percent" = "money",
+    suffix?: string,
+  ) => (
+    <Field
+      key={key}
+      label={label}
+      kind={kind}
+      suffix={suffix}
+      value={data[key] as number}
+      ai={data.aiFields.includes(key)}
+      onChange={(v) => change(key, (v ?? 0) as never)}
+    />
+  );
+  if (!ready)
+    return (
+      <div className="p-12 flex items-center justify-center gap-2 text-muted-foreground">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        Carregando simulação…
+      </div>
+    );
+  return (
+    <div className="patrimonial-planning">
+      <div className="planning-inner">
+        <header className="flex flex-wrap items-start justify-between gap-3 mb-6">
+          <div>
+            <p className="planning-eyebrow">GOFFERJÉ INVESTIMENTOS</p>
+            <h1 className="text-3xl font-bold">
+              Simulador Planejamento Patrimonial
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Do patrimônio de hoje à renda de amanhã.
+            </p>
+          </div>
+          <div className="flex gap-2 items-center flex-wrap">
+            <span role="status" className="text-xs text-muted-foreground">
+              {status}
+            </span>
+            {status.startsWith("Falha") && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  persistNow().catch(() =>
+                    toast.error("Não foi possível salvar."),
+                  )
+                }
+              >
+                Tentar salvar
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (
+                  !window.confirm(
+                    "Limpar esta simulação? O cadastro e os demais módulos do cliente não serão alterados.",
+                  )
+                )
+                  return;
+                abort.current?.abort();
+                put(defaults());
+                setFiles([]);
+                setSummary([]);
+              }}
+            >
+              {" "}
+              <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+              Nova simulação
+            </Button>
+          </div>
+        </header>
+        <Step
+          number={1}
+          title="Importar documentos"
+          hint="Opcional · a IA preenche os dados que encontrar. Você revisa antes de simular."
+        >
+          <input
+            ref={fileInput}
+            type="file"
+            multiple
+            accept=".pdf,.xlsx,.xls,.csv,.png,.jpg,.jpeg,.webp"
+            className="hidden"
+            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+              addFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => fileInput.current?.click()}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (!busy) addFiles(e.dataTransfer.files);
+            }}
+            className="w-full border border-dashed border-input rounded-md bg-card hover:bg-secondary/40 transition-colors px-6 py-8 flex flex-col items-center gap-2"
+          >
+            <UploadCloud className="w-7 h-7 text-accent" />
+            <span className="font-semibold">
+              Arraste os arquivos ou clique para selecionar
+            </span>
+            <span className="text-xs text-muted-foreground">
+              PDF, planilhas ou imagens · até 8 arquivos de 15 MB
+            </span>
+          </button>
+          {files.length > 0 && (
+            <ul className="space-y-2 mt-4">
+              {files.map((f, i) => (
+                <li
+                  key={`${f.name}-${i}`}
+                  className="flex items-center gap-2 bg-secondary/50 px-3 py-2 rounded text-sm"
+                >
+                  <FileText className="w-4 h-4 text-accent" />
+                  <span className="flex-1 truncate">{f.name}</span>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7"
+                    disabled={busy}
+                    aria-label={`Remover ${f.name}`}
+                    onClick={() => setFiles((v) => v.filter((_, j) => j !== i))}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <label
+            htmlFor="planning-extras"
+            className="block text-xs text-muted-foreground mt-5 mb-2"
+          >
+            Informações adicionais do cliente
+          </label>
+          <Textarea
+            id="planning-extras"
+            value={data.extras}
+            maxLength={5000}
+            disabled={busy}
+            onChange={(e) => change("extras", e.target.value)}
+            placeholder="Cole informações do cliente, observações ou explique o que os documentos representam."
+            className="min-h-[95px] bg-card"
+          />
+          <div className="flex gap-3 items-center mt-4">
+            <Button type="button" disabled={busy} onClick={analyze}>
+              {busy ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4 mr-2" />
+              )}
+              {busy ? progress : "Analisar e preencher"}
+            </Button>
+            {busy && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => abort.current?.abort()}
+              >
+                Cancelar
+              </Button>
+            )}
+          </div>
+          {summary.length > 0 && (
+            <div className="planning-alert mt-4">
+              <CheckCircle2 className="w-5 h-5 text-accent" />
+              <div>
+                <strong>
+                  Informações extraídas · revise os campos destacados
+                </strong>
+                <ul className="list-disc pl-4 mt-2">
+                  {summary.map((s, i) => (
+                    <li key={i}>{s}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+        </Step>
+        <Step number={2} title="Cliente">
+          <div className="planning-fields">
+            <Field
+              label="Nome do cliente"
+              kind="text"
+              value={data.nome}
+              ai={data.aiFields.includes("nome")}
+              onChange={(v) => change("nome", v)}
+            />
+            <Field
+              label="Data-base"
+              kind="date"
+              value={data.data}
+              onChange={(v) => change("data", v)}
+            />
+          </div>
+        </Step>
+        <Step
+          number={3}
+          title="Idades"
+          hint="Defina quando a acumulação termina e a renda começa."
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {numeric("idadeAtual", "Idade atual", "age", "anos")}
+            {numeric("idadeAposentadoria", "Aposentar aos", "age", "anos")}
+            {numeric("idadeLimite", "Planejar até", "age", "anos")}
+          </div>
+        </Step>
+        <Step
+          number={4}
+          title="Patrimônio hoje"
+          hint="Só os ativos financeiros rendem. Os bens entram no cálculo quando houver uma venda planejada."
+        >
+          <div className="planning-fields">
+            {numeric("ativosFinanceiros", "Ativos financeiros")}
+            {numeric("imoveisOutrosBens", "Imóveis e outros bens")}
+          </div>
+        </Step>
+        <Step
+          number={5}
+          title="Aportes planejados"
+          hint="Seu aporte mensal de hoje é reajustado anualmente pela inflação."
+        >
+          {numeric("aporteMensal", "Aporte mensal base", "money", "/mês")}
+          <Events
+            events={data.entradas}
+            onChange={(v) => change("entradas", v)}
+          />
+        </Step>
+        <Step
+          number={6}
+          title="Saídas planejadas"
+          hint="Renda desejada na aposentadoria, em poder de compra de hoje."
+        >
+          {numeric(
+            "rendaMensal",
+            "Renda mensal na aposentadoria",
+            "money",
+            "/mês",
+          )}
+          <Events
+            events={data.saidas}
+            onChange={(v) => change("saidas", v)}
+            output
+          />
+        </Step>
+        <Step
+          number={7}
+          title="Premissas"
+          hint="Rentabilidades nominais anuais. O motor desconta a inflação mês a mês."
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {numeric(
+              "rentabilidadeAcumulacao",
+              "Acumulação",
+              "percent",
+              "% a.a.",
+            )}
+            {numeric(
+              "rentabilidadeAposentadoria",
+              "Aposentadoria",
+              "percent",
+              "% a.a.",
+            )}
+            {numeric("inflacao", "Inflação", "percent", "% a.a.")}
+          </div>
+        </Step>
+        <Step
+          number={8}
+          title="Sucessão e proteção"
+          hint="Opcional · estime o custo do inventário e a liquidez dos herdeiros."
+        >
+          <div className="space-y-3 mb-5">
+            {(
+              [
+                {
+                  k: "seguroAtivo",
+                  label: "Possui seguro de vida",
+                  Icon: ShieldCheck,
+                },
+                {
+                  k: "previdenciaAtiva",
+                  label: "Possui previdência privada",
+                  Icon: WalletCards,
+                },
+              ] as const
+            ).map(({ k, label, Icon }) => (
+              <div
+                key={k}
+                className="flex items-center justify-between rounded-md border border-border px-4 py-3"
+              >
+                <label
+                  htmlFor={`planning-${k}`}
+                  className="flex items-center gap-2 text-sm font-medium"
+                >
+                  <Icon className="w-4 h-4 text-accent" />
+                  {label}
+                </label>
+                <Switch
+                  id={`planning-${k}`}
+                  checked={data[k]}
+                  onCheckedChange={(v) => change(k, v)}
+                />
+              </div>
+            ))}
+          </div>
+          {(data.seguroAtivo || data.previdenciaAtiva) && (
+            <>
+              <div className="flex flex-wrap gap-2 mb-5">
+                {[
+                  { id: "heranca", label: "Herança / Inventário" },
+                  ...(data.seguroAtivo
+                    ? [{ id: "seguro", label: "Seguro de Vida" }]
+                    : []),
+                  ...(data.previdenciaAtiva
+                    ? [{ id: "previdencia", label: "Previdência" }]
+                    : []),
+                ].map((t) => (
+                  <Button
+                    type="button"
+                    key={t.id}
+                    variant={
+                      data.protectionTab === t.id ? "default" : "outline"
+                    }
+                    size="sm"
+                    onClick={() => change("protectionTab", t.id)}
+                  >
+                    {t.label}
+                  </Button>
+                ))}
+              </div>
+              {data.protectionTab === "heranca" && (
+                <div className="planning-fields">
+                  <Choice
+                    label="Estado (ITCMD estimado)"
+                    value={data.uf}
+                    onChange={(v) =>
+                      put({
+                        ...latest.current,
+                        uf: v,
+                        itcmd: STATE_TAXES[v] ?? data.itcmd,
+                      })
+                    }
+                    options={Object.keys(STATE_TAXES)
+                      .sort()
+                      .map((v) => ({ value: v, label: v }))}
+                  />
+                  {numeric("itcmd", "ITCMD", "percent", "%")}
+                  <Choice
+                    label="Fração inventariada"
+                    value={String(data.fracao)}
+                    onChange={(v) => change("fracao", Number(v))}
+                    options={[
+                      { value: "1", label: "100% · sem meação" },
+                      { value: "0.5", label: "50% · com meação" },
+                    ]}
+                  />
+                  {numeric(
+                    "honorarios",
+                    "Honorários advocatícios",
+                    "percent",
+                    "%",
+                  )}
+                  {numeric("custas", "Custas e emolumentos", "percent", "%")}
+                </div>
+              )}
+              {data.protectionTab === "seguro" && data.seguroAtivo && (
+                <>
+                  <div className="planning-fields">
+                    {numeric("capitalSeguro", "Capital segurado")}
+                    {numeric("premioSeguro", "Prêmio mensal", "money", "/mês")}
+                    <Field
+                      label="Cobertura até a idade"
+                      kind="age"
+                      suffix="anos"
+                      value={data.coberturaAte}
+                      onChange={(v) => change("coberturaAte", v)}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Deixe vazio se a cobertura não tiver prazo informado.
+                  </p>
+                  <label className="flex items-center gap-2 text-sm mt-4">
+                    <Checkbox
+                      checked={data.descontarSeguro}
+                      onCheckedChange={(v) =>
+                        change("descontarSeguro", v === true)
+                      }
+                    />
+                    Descontar o prêmio como saída mensal
+                  </label>
+                </>
+              )}
+              {data.protectionTab === "previdencia" &&
+                data.previdenciaAtiva && (
+                  <>
+                    <div className="planning-fields">
+                      {numeric("saldoPrevidencia", "Saldo em previdência")}
+                      {numeric(
+                        "aportePrevidencia",
+                        "Aporte mensal em previdência",
+                        "money",
+                        "/mês",
+                      )}
+                      <Choice
+                        label="Tipo de previdência"
+                        value={data.tipoPrevidencia}
+                        onChange={(v) =>
+                          change("tipoPrevidencia", v as "VGBL" | "PGBL")
+                        }
+                        options={[
+                          { value: "VGBL", label: "VGBL" },
+                          { value: "PGBL", label: "PGBL" },
+                        ]}
+                      />
+                    </div>
+                    <label className="flex items-center gap-2 text-sm mt-4">
+                      <Checkbox
+                        checked={data.somarPrevidencia}
+                        onCheckedChange={(v) =>
+                          change("somarPrevidencia", v === true)
+                        }
+                      />
+                      Somar saldo e aporte da previdência à projeção financeira
+                    </label>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Marque somente se a previdência não estiver incluída nos
+                      ativos e aportes já informados.
+                    </p>
+                  </>
+                )}
+              <p className="planning-note">
+                As alíquotas são estimativas editáveis; confirme a legislação
+                aplicável e os custos locais.
+              </p>
+            </>
+          )}
+        </Step>
+        <Button
+          type="button"
+          className="w-full h-14 text-lg"
+          disabled={busy}
+          onClick={generate}
+        >
+          {data.generated ? "Atualizar projeção" : "Gerar projeção"}{" "}
+          <ArrowRight className="w-5 h-5 ml-2" />
+        </Button>
+        {projection && (
+          <>
+            <PlanningReport
+              ref={report}
+              data={debounced}
+              projection={projection}
+            />
+            <Button
+              type="button"
+              className="w-full mt-6 h-12"
+              disabled={exporting}
+              onClick={async () => {
+                if (!report.current) return;
+                setExporting(true);
+                try {
+                  await exportPlanningPdf(report.current, data.nome);
+                } catch {
+                  toast.error("Não foi possível gerar o PDF. Tente novamente.");
+                } finally {
+                  setExporting(false);
+                }
+              }}
+            >
+              {exporting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4 mr-2" />
+              )}
+              {exporting ? "Gerando PDF…" : "Baixar relatório em PDF"}
+            </Button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
