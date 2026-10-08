@@ -23,6 +23,7 @@ import {
 interface ClientFilesProps {
   files: ClientFile[];
   onFilesChange: (files: ClientFile[]) => void;
+  clientId?: string;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
@@ -152,6 +153,7 @@ export function ClientFiles({ files, onFilesChange, clientId }: ClientFilesProps
       <h3 className="font-semibold text-foreground flex items-center gap-2">
         <Folder className="w-5 h-5" />
         Arquivos do Cliente
+        {uploading > 0 && <span className="text-xs font-normal text-muted-foreground">Enviando {uploading}...</span>}
       </h3>
 
       <Tabs value={activeFolder} onValueChange={(v) => setActiveFolder(v as FileFolder)}>
