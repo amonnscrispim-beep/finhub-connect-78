@@ -85,7 +85,6 @@ export function DiagnosticoInteligente({ formData, setFormData, conhecerData, se
       monthlyLivingCost: typeof fin.custo_vida_mensal === 'number' ? fin.custo_vida_mensal : prev.monthlyLivingCost,
       objective: extraction.resumo_executivo || prev.objective,
       observations: [
-        prev.observations || '',
         extraction.resumo_executivo ? `📋 Resumo: ${extraction.resumo_executivo}` : '',
         extraction.principais_dores?.length ? `⚠️ Dores: ${extraction.principais_dores.join('; ')}` : '',
         extraction.principais_oportunidades?.length ? `💡 Oportunidades: ${extraction.principais_oportunidades.join('; ')}` : '',
@@ -129,7 +128,6 @@ export function DiagnosticoInteligente({ formData, setFormData, conhecerData, se
     // Ativos -> patrimonioTableItems
     if (Array.isArray(extraction.ativos) && extraction.ativos.length) {
       next.patrimonioTableItems = [
-        ...(next.patrimonioTableItems || []),
         ...extraction.ativos.map((a: any) => ({
           id: genId(),
           description: a.descricao || '',
@@ -144,7 +142,6 @@ export function DiagnosticoInteligente({ formData, setFormData, conhecerData, se
     if (Array.isArray(extraction.dividas) && extraction.dividas.length) {
       next.hasDebtsB3 = 'Sim';
       next.debtsListB3 = [
-        ...(next.debtsListB3 || []),
         ...extraction.dividas.map((d: any) => ({
           id: genId(),
           description: [d.tipo, d.descricao].filter(Boolean).join(' — '),

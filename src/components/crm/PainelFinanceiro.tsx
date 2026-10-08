@@ -63,9 +63,10 @@ export function PainelFinanceiro({
 
   // === DATA RESOLUTION: Manual override > ConhecerCliente sync > fallback ===
   const resolveWithSource = (conhecerVal: string | undefined, overrideVal: string): { value: number; source: 'conhecer' | 'manual' | 'none' } => {
-    const o = parseFloat(overrideVal) || 0;
+    const raw = overrideVal == null ? '' : String(overrideVal).trim();
     const c = parseFloat(conhecerVal || '') || 0;
-    if (o > 0) return { value: o, source: 'manual' };
+    // Typed override wins, including an intentional zero; '' or bare '0' = not set
+    if (raw !== '' && raw !== '0') return { value: parseFloat(raw) || 0, source: 'manual' };
     if (c > 0) return { value: c, source: 'conhecer' };
     return { value: 0, source: 'none' };
   };
