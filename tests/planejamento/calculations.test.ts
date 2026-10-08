@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { defaults, project, validate } from "./calculations";
+import { defaults, project, validate } from "../../src/components/crm/planejamento/calculations";
 const sample = () => ({
   ...defaults(),
   idadeAtual: 35,
