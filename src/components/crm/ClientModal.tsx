@@ -58,7 +58,6 @@ import { useClients } from '@/contexts/ClientContext';
 import { ClientFiles } from './ClientFiles';
 import { SimuladorImovelCarteira } from './SimuladorImovelCarteira';
 import { SimuladorPlanejamentoPatrimonial } from './planejamento/SimuladorPlanejamentoPatrimonial';
-import { RaioXConsolidado } from './RaioXConsolidado';
 import { Progress } from '@/components/ui/progress';
 import { CollapsibleSection } from './CollapsibleSection';
 import { FinancialGoalsSection } from './FinancialGoalsSection';
@@ -577,9 +576,11 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     // Resolve patrimony values: Manual override (primary) > ConhecerCliente (fallback)
     // When user manually edits a value in the financial panel, it takes priority
     const resolveNum = (conhecer: string | undefined, override: string): number => {
-      const fromOverride = parseFloat(override) || 0;
-      const fromConhecer = parseFloat(conhecer || '') || 0;
-      return fromOverride > 0 ? fromOverride : fromConhecer;
+      // Override typed by the user wins, even an intentional zero ('0,00'/'0.00').
+      // Empty or bare '0' means "not set" (legacy default) and falls back to Conhecer.
+      const raw = override == null ? '' : String(override).trim();
+      if (raw !== '' && raw !== '0') return parseFloat(raw) || 0;
+      return parseFloat(conhecer || '') || 0;
     };
     const resolvedFinancialAssets = resolveNum(conhecerData.totalPatrimony, formData.financialAssets);
     const resolvedMaterialAssets = resolveNum(undefined, formData.materialAssets);
@@ -661,7 +662,17 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       businessAssets: resolvedBusinessAssets,
       passiveIncome: parseFloat(formData.passiveIncome) || 0,
       successionPlanning: formData.successionPlanning || '',
-      strategicDiagnostic: conhecerData as any,
+      strategicDiagnostic: {
+        ...(conhecerData as any),
+        estruturaPatrimonial: formData.estruturaPatrimonial,
+        fluxoCaixa: formData.fluxoCaixa,
+        objetivosMetas: formData.objetivosMetas,
+        perfilRisco: formData.perfilRisco,
+        protecaoSucessao: formData.protecaoSucessao,
+        historicoMercado: formData.historicoMercado,
+        direcionamentoEstrategico: formData.direcionamentoEstrategico,
+        arquiteturaCarteira: formData.arquiteturaCarteira,
+      } as any,
       patrimonioFinanceiroLiquido: patrimonioFinanceiroLiquido,
       isTop10: client?.isTop10 ?? false,
       top10Order: client?.top10Order ?? null,
@@ -714,7 +725,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     } catch (error) {
       console.error('Error saving client:', error);
       setIsSaving(false);
-      // Don't close modal on error - keep draft data
+      toast.error('Erro ao salvar cliente. Seus dados foram mantidos como rascunho.');
     }
   };
 
@@ -1286,7 +1297,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
 
               {/* PGBL Tax Benefit Calculator */}
               {formData.privatePensionStatus === 'Sim' && formData.privatePensionType === 'PGBL' && (
-                <PGBLCalculator />
+                <PGBLCalculator monthlyRevenue={parseFloat(String(formData.monthlyRevenue)) || 0} />
               )}
 
               <div className="grid grid-cols-2 gap-4">
@@ -1484,11 +1495,6 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
             {/* SECTION: Relatório de Performance (aba dedicada) */}
             <div hidden={activeTab !== 'performance'} className="space-y-4">
               <RelatorioPerformance clientId={client?.id} clientName={formData.name || client?.name || ''} investorProfile={formData.investorProfile} />
-
-              {/* Raio-X Consolidado (IA) */}
-              <div className="border-t border-border pt-4">
-                <RaioXConsolidado />
-              </div>
             </div>
 
             {/* SECTION: Extrato do Cliente */}
@@ -1538,7 +1544,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               {/* Arquivos do Cliente */}
               <div className="space-y-4">
                 <h4 className="font-semibold text-foreground flex items-center gap-2"><FileText className="w-4 h-4 text-primary" />Arquivos do Cliente</h4>
-                <ClientFiles files={formData.files} onFilesChange={handleFilesChange} />
+                <ClientFiles files={formData.files} onFilesChange={handleFilesChange} clientId={client?.id} />
                 <CollapsibleComments
                   value={formData.moduleNotes.files || ''}
                   onChange={(value) => setFormData(prev => ({

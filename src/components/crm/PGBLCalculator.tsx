@@ -15,8 +15,9 @@ const IR_RATES = [
   { value: '27.5', label: '27,5%' },
 ];
 
-export function PGBLCalculator() {
-  const [taxableIncome, setTaxableIncome] = useState('');
+export function PGBLCalculator({ monthlyRevenue = 0 }: { monthlyRevenue?: number } = {}) {
+  // Pre-fill annual taxable income from the client's monthly revenue (x12)
+  const [taxableIncome, setTaxableIncome] = useState(monthlyRevenue > 0 ? String(monthlyRevenue * 12) : '');
   const [marginalRate, setMarginalRate] = useState('');
   const [annualContribution, setAnnualContribution] = useState('');
   const [declarationType, setDeclarationType] = useState<TaxDeclaration>('');

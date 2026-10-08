@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Target, Plus, Trash2, TrendingUp, Calculator, DollarSign, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -118,6 +118,27 @@ export function FinancialGoalsSection({ clientId }: FinancialGoalsSectionProps) 
     }
   };
 
+  const debounceTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  useEffect(() => {
+    const timers = debounceTimers.current;
+    return () => timers.forEach(t => clearTimeout(t));
+  }, []);
+
+  const handleUpdateGoalDebounced = (goalId: string, field: keyof FinancialGoal, value: any) => {
+    setGoals(prev => prev.map(g => g.id === goalId ? { ...g, [field]: value } : g));
+    const key = `${goalId}-${String(field)}`;
+    const existing = debounceTimers.current.get(key);
+    if (existing) clearTimeout(existing);
+    debounceTimers.current.set(key, setTimeout(async () => {
+      debounceTimers.current.delete(key);
+      const { error } = await supabase.from('financial_goals').update({ [field]: value }).eq('id', goalId);
+      if (error) {
+        console.error('Error updating goal:', error);
+        toast.error('Erro ao salvar meta');
+      }
+    }, 500));
+  };
+
   const handleUpdateGoal = async (goalId: string, field: keyof FinancialGoal, value: any) => {
     const goalToUpdate = goals.find(g => g.id === goalId);
     if (!goalToUpdate) return;
@@ -205,7 +226,7 @@ export function FinancialGoalsSection({ clientId }: FinancialGoalsSectionProps) 
                     <Label>Nome da Meta</Label>
                     <Input
                       value={goal.name}
-                      onChange={(e) => handleUpdateGoal(goal.id, 'name', e.target.value)}
+                      onChange={(e) => handleUpdateGoalDebounced(goal.id, 'name', e.target.value)}
                       placeholder="Ex: Reserva de emergência..."
                       className="crm-input"
                     />
@@ -249,21 +270,21 @@ export function FinancialGoalsSection({ clientId }: FinancialGoalsSectionProps) 
                   <Label>Saldo Inicial</Label>
                   <CurrencyInput
                     value={goal.current_amount}
-                    onChange={(value) => handleUpdateGoal(goal.id, 'current_amount', parseFloat(value) || 0)}
+                    onChange={(value) => handleUpdateGoalDebounced(goal.id, 'current_amount', parseFloat(value) || 0)}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Valor Total</Label>
                   <CurrencyInput
                     value={goal.target_amount}
-                    onChange={(value) => handleUpdateGoal(goal.id, 'target_amount', parseFloat(value) || 0)}
+                    onChange={(value) => handleUpdateGoalDebounced(goal.id, 'target_amount', parseFloat(value) || 0)}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Aporte Mensal</Label>
                   <CurrencyInput
                     value={goal.monthly_contribution}
-                    onChange={(value) => handleUpdateGoal(goal.id, 'monthly_contribution', parseFloat(value) || 0)}
+                    onChange={(value) => handleUpdateGoalDebounced(goal.id, 'monthly_contribution', parseFloat(value) || 0)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -271,7 +292,7 @@ export function FinancialGoalsSection({ clientId }: FinancialGoalsSectionProps) 
                   <Input
                     type="number"
                     value={goal.deadline_months || ''}
-                    onChange={(e) => handleUpdateGoal(goal.id, 'deadline_months', parseInt(e.target.value) || 0)}
+                    onChange={(e) => handleUpdateGoalDebounced(goal.id, 'deadline_months', parseInt(e.target.value) || 0)}
                     placeholder="12"
                     className="crm-input"
                   />
@@ -286,7 +307,7 @@ export function FinancialGoalsSection({ clientId }: FinancialGoalsSectionProps) 
                     type="number"
                     step="0.1"
                     value={goal.annual_interest_rate || ''}
-                    onChange={(e) => handleUpdateGoal(goal.id, 'annual_interest_rate', parseFloat(e.target.value) || 0)}
+                    onChange={(e) => handleUpdateGoalDebounced(goal.id, 'annual_interest_rate', parseFloat(e.target.value) || 0)}
                     placeholder="10.0"
                     className="crm-input"
                   />
