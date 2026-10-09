@@ -237,6 +237,7 @@ export type Database = {
           created_at: string
           expires_at: string | null
           id: string
+          merged_at: string | null
           responses: Json | null
           status: string
           token: string
@@ -250,6 +251,7 @@ export type Database = {
           created_at?: string
           expires_at?: string | null
           id?: string
+          merged_at?: string | null
           responses?: Json | null
           status?: string
           token?: string
@@ -263,6 +265,7 @@ export type Database = {
           created_at?: string
           expires_at?: string | null
           id?: string
+          merged_at?: string | null
           responses?: Json | null
           status?: string
           token?: string

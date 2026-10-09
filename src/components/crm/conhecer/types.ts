@@ -4,6 +4,9 @@ export interface ConhecerChildInfo {
   id: string;
   name: string;
   age: string;
+  educationPhase?: string;
+  educationMonthlyCost?: string;
+  livesWithClient?: string;
 }
 
 export interface OtherIncomeItem {
@@ -311,6 +314,61 @@ export interface ConhecerClienteData {
   recommendedStructure: string;
   planningPdfUrl: string;
   bloco8Comment: string;
+
+  // ===== V2 (9 blocos) =====
+  _schemaVersion?: number;
+  _legacyData?: Record<string, any>;
+  // Bloco 1
+  spouseWorks: string; spouseProfession: string; spouseIncome: string;
+  widowSinceYears: string; paysSupportAlimony: string; alimonyValue: string;
+  incomeProvider: string; incomeSharePct: string;
+  // Bloco 2
+  jobTitle: string;
+  cltCompany: string; cltNetSalary: string; cltBenefits: string;
+  pjCompanyName: string; pjCnpj: string;
+  aposentadoType: string; aposentadoExtraIncomeDesc: string; aposentadoExtraIncomeValue: string;
+  servidorOrgao: string; servidorCargo: string; servidorNetSalary: string; servidorEstabilidadeDesde: string;
+  annualFamilyIncome: string; monthlyInvestmentCapacity: string; annualInvestmentCapacity: string;
+  hasDebts: string; debtsList: DebtItemV2[];
+  hasPrivatePension: string; pensionType: string; pensionInstitution: string;
+  pensionAccumulated: string; pensionMonthlyContrib: string; pensionYield: string;
+  bloco9Comment: string;
+  // Bloco 3
+  pjPartnersCount: string; pjClientShare: string; pjHasKeyEmployee: string; pjKeyEmployeeName: string;
+  // Bloco 4
+  totalFinancialPL: string; totalPatrimonyEstimate: string;
+  mainBank: string; otherBanks: string; mainCreditCard: string; otherCreditCard: string; fgtsValue: string;
+  hasOffshore: string; offshoreInstitution: string; offshoreCountry: string; offshoreValueUSD: string;
+  hasInternationalAccount: string; internationalAccountBank: string; internationalAccountValueUSD: string;
+  investmentPotential: string; concentrationAsset: string; concentrationPct: string;
+  // Bloco 5
+  lifeInsuranceType: string; lifeInsuranceInterest: string;
+  healthPlanType: string; healthPlanProvider: string;
+  hasEmergencyReserve: string; emergencyReserveValue: string; emergencyReserveCoverage: string; emergencyReserveLocation: string;
+  familyHealthHistory: string; familyHealthDetails: string;
+  continuousMedication: string; continuousMedicationDetails: string;
+  visionIssues: string; extremeSports: string; extremeSportsDetails: string;
+  privateAircraft: string; smoker: string;
+  familyKnowsAssets: string; familyKnowsAssetsDetails: string;
+  hadFinancialCheckup: string; hadFinancialCheckupDetails: string;
+  // Bloco 6
+  successionInterest: string;
+  // Bloco 7
+  lostSleepDetails: string; investorProfile: string; financeInterestTopics: string;
+  // Bloco 9
+  hobbiesAndInterests: string[];
+  sportsActivities: string; soccerTeam: string; pets: string; favoriteDrink: string; idealGift: string;
+  socialClub: string; linkedinUrl: string; politicalPosition: string; religion: string;
+  remunerationModel: string; meetingPeriodicity: string; preferredContactChannel: string; generalNotes: string;
+}
+
+export interface DebtItemV2 {
+  id: string;
+  type: string;
+  totalValue: string;
+  monthlyPayment: string;
+  interestRate: string;
+  remainingMonths: string;
 }
 
 export const PATRIMONIO_CATEGORIES = {
@@ -428,6 +486,31 @@ export const defaultConhecerCliente: ConhecerClienteData = {
   rendaVariavelPct: '', rendaPassivaPct: '',
   internacionalPct: '', alternativosPct: '', caixaPct: '', strategicPillars: [], taxEfficiency: '',
   taxEfficiencyNotes: '', rebalancingRule: '', recommendedStructure: '', planningPdfUrl: '', bloco8Comment: '',
+  // V2
+  spouseWorks: '', spouseProfession: '', spouseIncome: '', widowSinceYears: '', paysSupportAlimony: '', alimonyValue: '',
+  incomeProvider: '', incomeSharePct: '',
+  jobTitle: '', cltCompany: '', cltNetSalary: '', cltBenefits: '', pjCompanyName: '', pjCnpj: '',
+  aposentadoType: '', aposentadoExtraIncomeDesc: '', aposentadoExtraIncomeValue: '',
+  servidorOrgao: '', servidorCargo: '', servidorNetSalary: '', servidorEstabilidadeDesde: '',
+  annualFamilyIncome: '', monthlyInvestmentCapacity: '', annualInvestmentCapacity: '',
+  hasDebts: '', debtsList: [],
+  hasPrivatePension: '', pensionType: '', pensionInstitution: '', pensionAccumulated: '', pensionMonthlyContrib: '', pensionYield: '',
+  bloco9Comment: '',
+  pjPartnersCount: '', pjClientShare: '', pjHasKeyEmployee: '', pjKeyEmployeeName: '',
+  totalFinancialPL: '', totalPatrimonyEstimate: '', mainBank: '', otherBanks: '', mainCreditCard: '', otherCreditCard: '', fgtsValue: '',
+  hasOffshore: '', offshoreInstitution: '', offshoreCountry: '', offshoreValueUSD: '',
+  hasInternationalAccount: '', internationalAccountBank: '', internationalAccountValueUSD: '',
+  investmentPotential: '', concentrationAsset: '', concentrationPct: '',
+  lifeInsuranceType: '', lifeInsuranceInterest: '', healthPlanType: '', healthPlanProvider: '',
+  hasEmergencyReserve: '', emergencyReserveValue: '', emergencyReserveCoverage: '', emergencyReserveLocation: '',
+  familyHealthHistory: '', familyHealthDetails: '', continuousMedication: '', continuousMedicationDetails: '',
+  visionIssues: '', extremeSports: '', extremeSportsDetails: '', privateAircraft: '', smoker: '',
+  familyKnowsAssets: '', familyKnowsAssetsDetails: '', hadFinancialCheckup: '', hadFinancialCheckupDetails: '',
+  successionInterest: '', lostSleepDetails: '', investorProfile: '', financeInterestTopics: '',
+  hobbiesAndInterests: [], sportsActivities: '', soccerTeam: '', pets: '', favoriteDrink: '', idealGift: '',
+  socialClub: '', linkedinUrl: '', politicalPosition: '', religion: '',
+  remunerationModel: '', meetingPeriodicity: '', preferredContactChannel: '', generalNotes: '',
+  _schemaVersion: 2,
 };
 
 const genId = () => Math.random().toString(36).substring(2, 10);
@@ -436,6 +519,10 @@ const genId = () => Math.random().toString(36).substring(2, 10);
  * Migrate data from old strategic_diagnostic structure to new ConhecerClienteData.
  */
 export function migrateFromLegacy(raw: Record<string, any>): ConhecerClienteData {
+  return migrateToV2(migrateBase(raw || {}), raw || {});
+}
+
+function migrateBase(raw: Record<string, any>): ConhecerClienteData {
   const d = { ...defaultConhecerCliente };
 
   // If already has new fields, use them
@@ -452,6 +539,8 @@ export function migrateFromLegacy(raw: Record<string, any>): ConhecerClienteData
       realEstateCards: raw.realEstateCards || [],
       patrimonioTableItems: raw.patrimonioTableItems || [],
       debtsListB3: raw.debtsListB3 || [],
+      debtsList: raw.debtsList || [],
+      hobbiesAndInterests: raw.hobbiesAndInterests || [],
       investedAmount: raw.investedAmount || '',
       liquidAmount: raw.liquidAmount || '',
       emergencyReserveAmount: raw.emergencyReserveAmount || '',
@@ -622,39 +711,173 @@ export function migrateFromLegacy(raw: Record<string, any>): ConhecerClienteData
   return d;
 }
 
+const isEmpty = (v: any) => v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0);
+
+/**
+ * Migra dados antigos para a estrutura V2 (9 blocos). Nunca apaga campos:
+ * apenas preenche os novos que estiverem vazios e guarda uma cópia em `_legacyData`.
+ */
+export function migrateToV2(base: ConhecerClienteData, raw: Record<string, any>): ConhecerClienteData {
+  if (raw._schemaVersion === 2) return { ...base, _schemaVersion: 2 };
+  const m: any = { ...base };
+  const old: any = raw;
+  const fill = (key: string, ...values: any[]) => {
+    if (!isEmpty(m[key])) return;
+    const v = values.find((x) => !isEmpty(x));
+    if (v !== undefined) m[key] = v;
+  };
+
+  // Bloco 1
+  if (!m.civilStatus || ['solteiro', 'divorciado', 'viúvo', 'separado'].includes(String(m.civilStatus).toLowerCase())) {
+    const map: Record<string, string> = { solteiro: 'Solteiro(a)', divorciado: 'Divorciado(a)', 'viúvo': 'Viúvo(a)', separado: 'Separado(a)' };
+    const lower = String(m.civilStatus || '').toLowerCase();
+    m.civilStatus = map[lower] || (m.isMarried === 'Sim' ? 'Casado(a)' : m.civilStatus || '');
+  }
+  if (m.civilStatus === 'União estável') m.civilStatus = 'União Estável';
+  if (isEmpty(m.hasChildren) && m.numChildren) m.hasChildren = m.numChildren === 'Nenhum' ? 'Não' : 'Sim';
+  if (m.numChildren === 'Nenhum') m.numChildren = '';
+  if (m.numChildren === '4+') m.numChildren = String(Math.max(4, m.children?.length || 4));
+  m.children = (m.children || []).map((c: any) => ({ educationPhase: '', educationMonthlyCost: '', livesWithClient: '', ...c }));
+  if (isEmpty(m.incomeProvider) && old.financialDecisionMakers) {
+    const t = String(old.financialDecisionMakers);
+    m.incomeProvider = t.includes('Eu') && !t.includes('cônjuge') ? 'Provedor único' : 'Renda dividida';
+  }
+
+  // Bloco 2
+  if (m.employmentType === 'Autônomo' || m.employmentType === 'Autonomo') m.employmentType = 'Autônomo';
+  fill('autonomoIncome', old.autonomoMonthlyIncome);
+  fill('aposentadoIncome', old.aposentadoMonthlyIncome);
+  fill('pjProLabore', old.pjMonthlyWithdrawal);
+  fill('monthlyCostOfLiving', old.livingCost);
+  fill('monthlyInvestmentCapacity', old.monthlyInvestmentB2, old.monthlyInvestment);
+  if (isEmpty(m.hasDebts) && (old.hasDebtsB3 === 'Sim' || old.hasDebtsB3 === true)) m.hasDebts = 'Sim';
+  else fill('hasDebts', old.hasDebtsB3 === 'Não' ? 'Não' : '');
+  if (isEmpty(m.debtsList) && Array.isArray(old.debtsListB3) && old.debtsListB3.length) {
+    m.debtsList = old.debtsListB3.map((d: any) => ({
+      id: d.id || genId(), type: d.description || 'Outro', totalValue: d.balance || '',
+      monthlyPayment: '', interestRate: '', remainingMonths: d.remainingInstallments || '',
+    }));
+  }
+
+  // Bloco 3
+  fill('pjCompanyValue', old.businessValue);
+  fill('pjEmployeeCount', old.businessEmployees);
+  fill('pjConcerns', old.businessConcerns);
+  fill('pjClientShare', old.businessPercentage);
+
+  // Bloco 4
+  fill('hasConcentration', old.hasConcentrationB2);
+  fill('totalFinancialPL', old.patrimonioFinanceiro, old.investedAmount);
+  fill('totalPatrimonyEstimate', old.totalPatrimony);
+  if (isEmpty(m.hasOffshore) && old.hasInternationalAssets === 'Sim') {
+    m.hasOffshore = 'Sim';
+    fill('offshoreInstitution', old.internationalDetails);
+    fill('offshoreValueUSD', old.internationalValue);
+  }
+
+  // Bloco 5
+  fill('hasLifeInsurance', old.hasLifeInsuranceB3, old.hasLifeInsuranceB6);
+  fill('hasEmergencyReserve', old.hasEmergencyReserveB3);
+  fill('emergencyReserveValue', old.emergencyReserveValueB3, old.emergencyReserveAmount);
+  fill('emergencyReserveCoverage', old.emergencyReserveCoverageB3, old.emergencyMonths, old.emergencyMonthsB2);
+  fill('emergencyReserveLocation', old.emergencyReserveLocationB3);
+  fill('familyKnowsAssets', old.familyKnowsB3);
+  fill('familyKnowsAssetsDetails', old.familyKnowsDetailsB3);
+  fill('hadFinancialCheckup', old.hadFinancialCheckupB3);
+  fill('hadFinancialCheckupDetails', old.financialCheckupDetailsB3);
+
+  // Bloco 6
+  fill('abroadDetails', old.abroadCountry);
+  fill('successionInterest', old.successionThoughtB4, old.successionThought);
+  if (isEmpty(m.successionDetails)) m.successionDetails = old.successionDetailsB4 || old.successionDetails || '';
+
+  // Bloco 7
+  if (m.lostSleepOverMoney && !['Sim', 'Não'].includes(m.lostSleepOverMoney)) {
+    fill('lostSleepDetails', m.lostSleepOverMoney);
+    m.lostSleepOverMoney = 'Sim';
+  }
+  fill('dropReactionB5', old.dropReaction && ['Não me afetou', 'Fiquei preocupado', 'Vendi parte', 'Vendi tudo'].includes(old.dropReaction) ? old.dropReaction : '');
+  const dropMap: Record<string, string> = { 'Vendo tudo': 'Vendi tudo', 'Aguardo': 'Fiquei preocupado', 'Compro mais': 'Não me afetou' };
+  if (dropMap[m.dropReactionB5]) m.dropReactionB5 = dropMap[m.dropReactionB5];
+  if (isEmpty(m.investmentExperience) || !['Nenhuma', 'Básica (poupança/CDB)', 'Intermediária (fundos/ações)', 'Avançada (derivativos/offshore)'].includes(m.investmentExperience)) {
+    if (m.investmentExperience && isEmpty(m.investmentExperienceDesc)) m.investmentExperienceDesc = m.investmentExperience;
+    m.investmentExperience = '';
+  }
+  if (old.hasWorkedWithAdvisorB5) m.hasWorkedWithAdvisor = old.hasWorkedWithAdvisorB5;
+  if (old.advisorExperienceB5) m.advisorExperience = old.advisorExperienceB5;
+  if (old.managementPreferenceB5) m.managementPreference = old.managementPreferenceB5;
+  if (old.followUpFrequencyB5) m.followUpFrequency = old.followUpFrequencyB5;
+  if (old.successCriteriaB5) m.successCriteria = old.successCriteriaB5;
+
+  // Bloco 9
+  if (isEmpty(m.hobbiesAndInterests) && typeof old.hobbies === 'string' && old.hobbies.trim()) {
+    m.hobbiesAndInterests = old.hobbies.split(',').map((h: string) => h.trim()).filter(Boolean);
+  }
+
+  const legacy = { ...old };
+  delete legacy._schemaVersion;
+  delete legacy._legacyData;
+  m._legacyData = old._legacyData || legacy;
+  m._schemaVersion = 2;
+  return m as ConhecerClienteData;
+}
+
+/** Mantém campos antigos que outras telas ainda leem em sincronia com os novos. */
+export function syncLegacyFields(d: ConhecerClienteData): ConhecerClienteData {
+  const married = d.civilStatus === 'Casado(a)' || d.civilStatus === 'União Estável';
+  return {
+    ...d,
+    isMarried: d.civilStatus ? (married ? 'Sim' : 'Não') : d.isMarried,
+    hasEmergencyReserveB3: d.hasEmergencyReserve || d.hasEmergencyReserveB3,
+    emergencyReserveValueB3: d.emergencyReserveValue || d.emergencyReserveValueB3,
+    hasDebtsB3: d.hasDebts || d.hasDebtsB3,
+    monthlyInvestmentB2: d.monthlyInvestmentCapacity || d.monthlyInvestmentB2,
+    successionThoughtB4: d.successionInterest || d.successionThoughtB4,
+    hasWorkedWithAdvisorB5: d.hasWorkedWithAdvisor || d.hasWorkedWithAdvisorB5,
+    advisorExperienceB5: d.advisorExperience || d.advisorExperienceB5,
+    managementPreferenceB5: d.managementPreference || d.managementPreferenceB5,
+    followUpFrequencyB5: d.followUpFrequency || d.followUpFrequencyB5,
+    successCriteriaB5: d.successCriteria || d.successCriteriaB5,
+    hobbies: (d.hobbiesAndInterests || []).join(', ') || d.hobbies,
+  };
+}
+
+/** Renda mensal do cliente conforme o regime de trabalho. */
+export function getConhecerMonthlyIncome(d: Partial<ConhecerClienteData> & Record<string, any>): number {
+  const n = (v: any) => parseFloat(String(v ?? '')) || 0;
+  switch (d.employmentType) {
+    case 'CLT': return n(d.cltNetSalary) || n(d.cltSalary);
+    case 'PJ':
+    case 'Empresário/Sócio': return (n(d.pjProLabore) + n(d.pjProfitDistribution)) || n(d.pjMonthlyWithdrawal) || n(d.pjMonthlyRevenue);
+    case 'Autônomo': return n(d.autonomoIncome) || n(d.autonomoMonthlyIncome);
+    case 'Aposentado': return n(d.aposentadoIncome) + n(d.aposentadoExtraIncomeValue);
+    case 'Servidor Público': return n(d.servidorNetSalary);
+    default: return n(d.monthlyIncome);
+  }
+}
+
+/** Mapeia perfil de risco para o perfil do investidor da ficha. */
+export function getConhecerInvestorProfile(d: ConhecerClienteData): string | undefined {
+  if (['Conservador', 'Moderado', 'Arrojado', 'Agressivo'].includes(d.investorProfile)) return d.investorProfile;
+  const map: Record<string, string> = { 'Prefiro segurança': 'Conservador', 'Equilíbrio': 'Moderado', 'Aceito mais risco': 'Arrojado' };
+  return map[d.riskPreferenceB5 || ''];
+}
+
 /**
  * Calculate profile completeness percentage.
  */
 export function calculateProgress(data: ConhecerClienteData): number {
-  const fields = [
-    // Bloco 1
-    data.isMarried, data.numChildren || data.hasChildren,
-    // Bloco 2
-    data.patrimonioFinanceiro || data.totalPatrimony || (data.patrimonioTableItems?.length > 0 ? 'yes' : ''),
-    data.employmentType || data.hasBusinessParticipation,
-    data.monthlyCostOfLiving || data.livingCost,
-    data.monthlyInvestmentB2 || data.monthlyInvestment,
-    // Bloco 3
-    data.hasLifeInsurance, data.hasDebtsB3, data.hasEmergencyReserveB3,
-    // Bloco 4
-    data.financialGoals, data.successNumber || data.wantsRetirement,
-    // Bloco 5
-    data.dropReactionB5 || data.hasExperiencedDrops,
-    data.managementPreferenceB5 || data.managementPreference,
-    data.hasInvestmentHistoryB5 || data.hasInvestmentHistory,
-    // Bloco 8
-    data.strategicPriority, data.portfolioObjective,
+  const isPj = data.employmentType === 'PJ' || data.employmentType === 'Empresário/Sócio';
+  const checks = [
+    !!data.fullName, !!data.birthDate, !!data.civilStatus, !!data.hasChildren,
+    !!data.employmentType, !!data.profession, !!data.monthlyCostOfLiving,
+    isPj ? !!data.pjCompanyValue : true,
+    !!data.totalFinancialPL || (data.patrimonioTableItems?.length ?? 0) > 0, !!data.mainBank,
+    !!data.hasLifeInsurance, !!data.hasEmergencyReserve,
+    !!data.financialGoals, !!data.wantsRetirement,
+    !!data.riskPreferenceB5 || !!data.investorProfile, !!data.hasWorkedWithAdvisor,
   ];
-  const isFilled = (f: any): boolean => {
-    if (f === null || f === undefined || f === false) return false;
-    if (typeof f === 'string') return f.trim() !== '';
-    if (typeof f === 'number') return f !== 0;
-    if (typeof f === 'boolean') return f;
-    if (Array.isArray(f)) return f.length > 0;
-    return Boolean(f);
-  };
-  const filled = fields.filter(isFilled).length;
-  return Math.round((filled / fields.length) * 100);
+  return Math.round((checks.filter(Boolean).length / checks.length) * 100);
 }
 
 export function getProgressColor(pct: number): string {
