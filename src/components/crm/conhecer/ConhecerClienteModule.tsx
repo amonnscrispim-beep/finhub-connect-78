@@ -17,6 +17,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { BirthDatePicker } from '@/components/ui/birth-date-picker';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { BudgetPanel } from './BudgetPanel';
 import type { ConhecerClienteData, ConhecerChildInfo, RealEstateCard, PatrimonioTableItem, DebtItem, DebtItemV2 } from './types';
 import { syncLegacyFields } from './types';
 import { PATRIMONIO_CATEGORIES, getCategoryGroup } from './types';
@@ -501,11 +502,14 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <F label="Renda anual familiar"><CurrencyInput value={data.annualFamilyIncome} onChange={(v) => update({ annualFamilyIncome: v })} /></F>
-              <F label="Custo mensal da família"><CurrencyInput value={data.monthlyCostOfLiving} onChange={(v) => update({ monthlyCostOfLiving: v })} /></F>
+              <F label="Custo mensal da família">{(data.budgetItems?.length ?? 0) > 0
+                ? <Input readOnly value={(Number(data.monthlyCostOfLiving) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} className="crm-input bg-muted/40" />
+                : <CurrencyInput value={data.monthlyCostOfLiving} onChange={(v) => update({ monthlyCostOfLiving: v })} />}</F>
               <F label="Capacidade de aporte mensal"><CurrencyInput value={data.monthlyInvestmentCapacity} onChange={(v) => update({ monthlyInvestmentCapacity: v })} /></F>
               <F label="Capacidade de aporte anual"><CurrencyInput value={data.annualInvestmentCapacity} onChange={(v) => update({ annualInvestmentCapacity: v })} /></F>
               <F label="Tem dívidas?"><YN value={data.hasDebts} onChange={(v) => update({ hasDebts: v })} /></F>
             </div>
+            <BudgetPanel data={data} update={update} />
             {data.hasDebts === 'Sim' && (
               <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                 {debtsList.map((d) => (
