@@ -303,9 +303,9 @@ export function Agenda({ onEditClient }: AgendaProps) {
             </div>
           ) : (
             groups.map((g) => (
-              <div key={g.date.toISOString()} className="space-y-2">
+              <div key={g.key} className="space-y-2">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {groupLabel(g.date)}
+                  {g.isProjectedGroup ? 'REUNIÕES ATRASADAS (PROJETADAS)' : groupLabel(g.date)}
                 </h3>
                 <div className="crm-card divide-y divide-border overflow-hidden">
                   {g.items.map((item) => {
@@ -337,11 +337,27 @@ export function Agenda({ onEditClient }: AgendaProps) {
                           {item.isProjected && (
                             <span className="text-xs text-muted-foreground whitespace-nowrap">(Sugerida)</span>
                           )}
+                          {item.isProjected && item.status === 'atrasada' && (
+                            <span className="text-xs text-destructive font-medium whitespace-nowrap">
+                              {Math.floor((Date.now() - item.date.getTime()) / 86400000)}d de atraso
+                            </span>
+                          )}
                           <Badge variant="outline" className={`text-[10px] ${cfg.className}`}>
                             {cfg.label}
                           </Badge>
                         </div>
                         <div className="flex items-center gap-1">
+                          {item.isProjected && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => { e.stopPropagation(); openSchedule(item.client); }}
+                              className="h-7 text-xs gap-1"
+                            >
+                              <Plus className="w-3 h-3" />
+                              Agendar
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="ghost"
