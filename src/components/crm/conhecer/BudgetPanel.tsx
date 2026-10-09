@@ -20,7 +20,7 @@ const genId = () => Math.random().toString(36).substring(2, 10);
 
 export function monthlyIncomeOf(d: ConhecerClienteData): number {
   const v = incomeByType(d);
-  return v > 0 ? v : n(d.annualFamilyIncome) / 12;
+  return v > 0 ? v : n(d.annualFamilyIncome);
 }
 
 function incomeByType(d: ConhecerClienteData): number {
