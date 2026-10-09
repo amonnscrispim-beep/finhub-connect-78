@@ -121,6 +121,6 @@ export function BudgetPanel({ data, update }: Props) {
 function Card({ label, value, sub, cls }: { label: string; value: string; sub?: string; cls: string }) {
   return <div className="p-3 bg-card rounded-lg border"><p className="text-[11px] text-muted-foreground uppercase tracking-wider">{label}</p><p className={`text-lg font-bold ${cls}`}>{value}</p>{sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}</div>;
 }
-function Alert({ cls, children }: { cls: string; children: string }) {
+function Alert({ cls, children }: { cls: string; children: React.ReactNode }) {
   return <div className={`border rounded-lg p-3 flex items-center gap-2 text-sm ${cls}`}><AlertTriangle className="w-4 h-4 shrink-0" />{children}</div>;
 }
