@@ -701,6 +701,7 @@ export type Database = {
           is_top10: boolean
           kanban_order: number | null
           last_activity_at: string | null
+          last_meeting_date: string | null
           long_term_goals: string | null
           married: boolean | null
           material_assets: number | null
@@ -786,6 +787,7 @@ export type Database = {
           is_top10?: boolean
           kanban_order?: number | null
           last_activity_at?: string | null
+          last_meeting_date?: string | null
           long_term_goals?: string | null
           married?: boolean | null
           material_assets?: number | null
@@ -871,6 +873,7 @@ export type Database = {
           is_top10?: boolean
           kanban_order?: number | null
           last_activity_at?: string | null
+          last_meeting_date?: string | null
           long_term_goals?: string | null
           married?: boolean | null
           material_assets?: number | null
