@@ -612,7 +612,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     const conhecerRisk = riskMap[cd.riskPreferenceB5 || ''];
     const finalInvestorProfile = (client?.investorProfile || !conhecerRisk) ? formData.investorProfile : (conhecerRisk as any);
     const finalEmergencyStatus = formData.emergencyReserveStatus
-      || (cd.hasEmergencyReserveB3 === 'Sim' ? 'Possui' : cd.hasEmergencyReserveB3 === 'Não' ? 'Não possui' : '');
+      || (cd.hasEmergencyReserveB3 === 'Sim' ? 'HAS' : cd.hasEmergencyReserveB3 === 'Não' ? 'NONE' : '');
 
     const clientData = {
       contractStart: new Date(formData.contractStart),
