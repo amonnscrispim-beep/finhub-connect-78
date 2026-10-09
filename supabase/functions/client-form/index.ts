@@ -48,8 +48,10 @@ Deno.serve(async (req) => {
         });
       }
 
+      const { data: prof } = await supabase.from("profiles").select("full_name").eq("user_id", formToken.user_id).maybeSingle();
       return new Response(
         JSON.stringify({
+          consultorName: prof?.full_name || "",
           clientName: formToken.client_name,
           status: formToken.status,
           responses: formToken.responses || {},
@@ -92,6 +94,20 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Uso único: depois de enviado, não aceita alterações
+      if (["completed", "updated"].includes(formToken.status)) {
+        return new Response(JSON.stringify({ error: "Formulário já enviado" }), {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (typeof responses !== "object" || responses === null || JSON.stringify(responses).length > 200000) {
+        return new Response(JSON.stringify({ error: "Respostas inválidas" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const newStatus = submit ? "completed" : "in_progress";
       const updateData: Record<string, unknown> = {
         responses,
@@ -114,71 +130,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      // If submitting, sync to client's strategic_diagnostic
-      if (submit) {
-        const clientId = formToken.client_id;
-
-        // Build strategic_diagnostic update from responses
-        const { data: client } = await supabase
-          .from("clients")
-          .select("strategic_diagnostic")
-          .eq("id", clientId)
-          .single();
-
-        const existing = (client?.strategic_diagnostic as Record<string, unknown>) || {};
-
-        // Map form responses to strategic_diagnostic structure
-        const formResponses = responses as Record<string, unknown>;
-
-        const strategicDiagnostic: Record<string, unknown> = {
-          ...existing,
-          wealthBuilding: formResponses.wealthBuilding || existing.wealthBuilding || "",
-          lifePhaseAnswer: formResponses.lifePhaseAnswer || existing.lifePhaseAnswer || "",
-          biggestDecision: formResponses.biggestDecision || existing.biggestDecision || "",
-          biggestMistake: formResponses.biggestMistake || existing.biggestMistake || "",
-          futureVision: formResponses.futureVision || existing.futureVision || "",
-          targetPatrimony: formResponses.targetPatrimony || existing.targetPatrimony || "",
-          targetMonthlyIncome: formResponses.targetMonthlyIncome || existing.targetMonthlyIncome || "",
-          family: {
-            ...(existing.family as Record<string, unknown> || {}),
-            ...(formResponses.family as Record<string, unknown> || {}),
-          },
-          estruturaPatrimonial: {
-            ...(existing.estruturaPatrimonial as Record<string, unknown> || {}),
-            ...(formResponses.estruturaPatrimonial as Record<string, unknown> || {}),
-          },
-          fluxoCaixa: {
-            ...(existing.fluxoCaixa as Record<string, unknown> || {}),
-            ...(formResponses.fluxoCaixa as Record<string, unknown> || {}),
-          },
-          objetivosMetas: {
-            ...(existing.objetivosMetas as Record<string, unknown> || {}),
-            ...(formResponses.objetivosMetas as Record<string, unknown> || {}),
-          },
-          perfilRisco: {
-            ...(existing.perfilRisco as Record<string, unknown> || {}),
-            ...(formResponses.perfilRisco as Record<string, unknown> || {}),
-          },
-          protecaoSucessao: {
-            ...(existing.protecaoSucessao as Record<string, unknown> || {}),
-            ...(formResponses.protecaoSucessao as Record<string, unknown> || {}),
-          },
-        };
-
-        // Also store the extra open-ended question
-        if (formResponses.additionalNotes) {
-          strategicDiagnostic.clientAdditionalNotes = formResponses.additionalNotes;
-        }
-
-        await supabase
-          .from("clients")
-          .update({
-            strategic_diagnostic: strategicDiagnostic,
-            updated_at: new Date().toISOString(),
-            last_activity_at: new Date().toISOString(),
-          })
-          .eq("id", clientId);
-      }
+      // Os dados ficam no token até o consultor revisar e mesclar no CRM.
 
       return new Response(
         JSON.stringify({ success: true, status: newStatus }),
