@@ -123,6 +123,7 @@ export interface ConhecerClienteData {
   investmentInstitutions: string; // textarea
   investmentExperienceDesc: string; // textarea
   monthlyCostOfLiving: string; // R$
+  budgetItems?: BudgetItem[];
   nonRecurrentCostB2: string; // textarea - inflating cost
   travelDetailsB2: string; // textarea
   travelAnnualCostB2: string; // R$
@@ -360,6 +361,13 @@ export interface ConhecerClienteData {
   sportsActivities: string; soccerTeam: string; pets: string; favoriteDrink: string; idealGift: string;
   socialClub: string; linkedinUrl: string; politicalPosition: string; religion: string;
   remunerationModel: string; meetingPeriodicity: string; preferredContactChannel: string; generalNotes: string;
+}
+
+export interface BudgetItem {
+  id: string;
+  category: string;
+  description: string;
+  value: string;
 }
 
 export interface DebtItemV2 {
