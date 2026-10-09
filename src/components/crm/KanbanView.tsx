@@ -243,8 +243,8 @@ const KanbanCardComponent = memo(function KanbanCard({
 
       {/* Meeting recurrence badge */}
       {(() => {
-        const period = (client as any).meetingPeriodicityDays ?? 30;
-        const lastMeeting = client.lastActivityAt ? new Date(client.lastActivityAt) : null;
+        const period = client.meetingPeriodicityDays ?? 30;
+        const lastMeeting = client.lastMeetingDate ? new Date(client.lastMeetingDate) : (client.lastActivityAt ? new Date(client.lastActivityAt) : null);
         if (!lastMeeting || !period) return null;
         const daysSince = Math.floor((Date.now() - lastMeeting.getTime()) / (1000 * 60 * 60 * 24));
         const daysLeft = period - daysSince;

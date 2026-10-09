@@ -161,6 +161,7 @@ function clientToDbInsert(client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>
     meeting_periodicity_days: client.meetingPeriodicityDays ?? 30,
     meeting_notes: client.meetingNotes as any,
     last_activity_at: client.lastActivityAt?.toISOString() ?? new Date().toISOString(),
+    last_meeting_date: client.lastMeetingDate ? client.lastMeetingDate.toISOString() : null,
     scheduled_meeting: client.scheduledMeeting as any,
     files: client.files as any,
     organized_finances: client.organizedFinances,
@@ -244,6 +245,7 @@ function clientToDbUpdate(updates: Partial<Client>): TablesUpdate<'clients'> {
   if ((updates as any).meetingPeriodicityDays !== undefined) (dbUpdates as any).meeting_periodicity_days = (updates as any).meetingPeriodicityDays;
   if (updates.meetingNotes !== undefined) dbUpdates.meeting_notes = updates.meetingNotes as any;
   if (updates.lastActivityAt !== undefined) dbUpdates.last_activity_at = updates.lastActivityAt.toISOString();
+  if (updates.lastMeetingDate !== undefined) (dbUpdates as any).last_meeting_date = updates.lastMeetingDate ? updates.lastMeetingDate.toISOString() : null;
   if (updates.scheduledMeeting !== undefined) dbUpdates.scheduled_meeting = updates.scheduledMeeting as any;
   if (updates.files !== undefined) dbUpdates.files = updates.files as any;
   if (updates.organizedFinances !== undefined) dbUpdates.organized_finances = updates.organizedFinances;
