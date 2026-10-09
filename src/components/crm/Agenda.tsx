@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { format, isToday, isTomorrow, isThisWeek, isPast, startOfDay, isSameDay } from 'date-fns';
+import { format, isToday, isTomorrow, isThisWeek, isPast, startOfDay, isSameDay, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Plus, Clock, ExternalLink, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, Clock, ExternalLink, CheckCircle2, AlertCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
@@ -11,7 +11,7 @@ import { Client } from '@/types/client';
 import { ScheduleMeetingModal } from './ScheduleMeetingModal';
 
 type Status = 'confirmada' | 'pendente' | 'atrasada';
-type Filter = 'todas' | 'pendentes' | 'confirmadas' | 'atrasadas';
+type Filter = 'todas' | 'pendentes' | 'confirmadas' | 'atrasadas' | 'projetadas';
 
 interface AgendaItem {
   id: string;
@@ -22,6 +22,7 @@ interface AgendaItem {
   date: Date;
   time?: string;
   status: Status;
+  isProjected?: boolean;
 }
 
 interface AgendaProps {
@@ -55,6 +56,7 @@ export function Agenda({ onEditClient }: AgendaProps) {
   const [filter, setFilter] = useState<Filter>('todas');
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [calendarDate, setCalendarDate] = useState<Date | undefined>();
+  const [scheduleClient, setScheduleClient] = useState<Client | undefined>();
 
   const items = useMemo<AgendaItem[]>(() => {
     const out: AgendaItem[] = [];
@@ -97,6 +99,32 @@ export function Agenda({ onEditClient }: AgendaProps) {
         status: classify(date, c),
       });
     });
+    // Reuniões projetadas pela periodicidade de cada cliente
+    const today = startOfDay(new Date());
+    const hasUpcomingReal = new Set(
+      out.filter((i) => i.client && i.date >= today).map((i) => i.client!.id)
+    );
+    clients.forEach((client) => {
+      const period = client.meetingPeriodicityDays ?? 30;
+      const lastMeeting = client.lastMeetingDate
+        ? new Date(client.lastMeetingDate)
+        : (client.lastActivityAt ? new Date(client.lastActivityAt) : null);
+      if (!lastMeeting || isNaN(lastMeeting.getTime())) return;
+      if (hasUpcomingReal.has(client.id)) return;
+      const next = addDays(lastMeeting, period);
+      const key = `${client.id}-${startOfDay(next).toISOString()}`;
+      if (persistedKeys.has(key)) return;
+      out.push({
+        id: `projected_${client.id}`,
+        client,
+        clientName: client.name,
+        title: `Reunião periódica (a cada ${period} dias)`,
+        description: `Última reunião: ${format(lastMeeting, 'dd/MM/yyyy', { locale: ptBR })}`,
+        date: next,
+        status: isPast(next) && !isToday(next) ? 'atrasada' : 'pendente',
+        isProjected: true,
+      });
+    });
     return out.sort((a, b) => a.date.getTime() - b.date.getTime());
   }, [clients, meetings]);
 
@@ -113,6 +141,7 @@ export function Agenda({ onEditClient }: AgendaProps) {
     if (filter === 'pendentes') return i.status === 'pendente';
     if (filter === 'confirmadas') return i.status === 'confirmada';
     if (filter === 'atrasadas') return i.status === 'atrasada';
+    if (filter === 'projetadas') return !!i.isProjected;
     return true;
   });
 
@@ -132,9 +161,22 @@ export function Agenda({ onEditClient }: AgendaProps) {
 
   // Dias com reunião (para marcar no mini calendário)
   const daysWithMeetings = useMemo(
-    () => items.map((i) => startOfDay(i.date)),
+    () => items.filter((i) => !i.isProjected && i.status !== 'atrasada').map((i) => startOfDay(i.date)),
     [items]
   );
+  const daysProjected = useMemo(
+    () => items.filter((i) => i.isProjected && i.status !== 'atrasada').map((i) => startOfDay(i.date)),
+    [items]
+  );
+  const daysLate = useMemo(
+    () => items.filter((i) => i.status === 'atrasada').map((i) => startOfDay(i.date)),
+    [items]
+  );
+  const lateClients = new Set(atrasadas.map((i) => i.client?.id ?? i.clientName)).size;
+  const openSchedule = (client?: Client) => {
+    setScheduleClient(client);
+    setScheduleOpen(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -144,7 +186,7 @@ export function Agenda({ onEditClient }: AgendaProps) {
           <h1 className="text-2xl font-bold text-foreground">Agenda</h1>
           <p className="text-sm text-muted-foreground">Gerencie todas as reuniões com seus clientes</p>
         </div>
-        <Button onClick={() => setScheduleOpen(true)} className="gap-2">
+        <Button onClick={() => openSchedule()} className="gap-2">
           <Plus className="w-4 h-4" />
           Nova Reunião
         </Button>
@@ -152,7 +194,7 @@ export function Agenda({ onEditClient }: AgendaProps) {
 
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-2">
-        {(['todas', 'pendentes', 'confirmadas', 'atrasadas'] as Filter[]).map((f) => (
+        {(['todas', 'pendentes', 'confirmadas', 'atrasadas', 'projetadas'] as Filter[]).map((f) => (
           <Button
             key={f}
             variant={filter === f ? 'default' : 'outline'}
@@ -169,6 +211,18 @@ export function Agenda({ onEditClient }: AgendaProps) {
           </Button>
         )}
       </div>
+
+      {lateClients > 0 && (
+        <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+          <div className="flex items-center gap-2 text-destructive font-medium">
+            <AlertTriangle className="w-4 h-4" />
+            {lateClients} cliente{lateClients > 1 ? 's' : ''} com reunião atrasada
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Baseado na periodicidade configurada de cada cliente
+          </p>
+        </div>
+      )}
 
       {/* Cards de resumo */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -247,18 +301,21 @@ export function Agenda({ onEditClient }: AgendaProps) {
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {groupLabel(g.date)}
                 </h3>
-                <div className="crm-card divide-y divide-border">
+                <div className="crm-card divide-y divide-border overflow-hidden">
                   {g.items.map((item) => {
                     const cfg = statusConfig[item.status];
                     return (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between gap-3 p-3 hover:bg-muted/40 transition-colors"
+                        className={`flex items-center justify-between gap-3 p-3 hover:bg-muted/40 transition-colors ${item.isProjected ? 'border-l-2 border-dashed border-l-yellow-500 cursor-pointer' : ''}`}
+                        onClick={item.isProjected ? () => openSchedule(item.client) : undefined}
+                        title={item.isProjected ? `${item.title ?? ''} — ${item.description ?? ''}. Clique para agendar.` : undefined}
                       >
                         <div className="flex items-center gap-3 min-w-0">
+                          {item.isProjected && <Clock className="w-3.5 h-3.5 text-yellow-600 flex-shrink-0" />}
                           {item.client ? (
                             <button
-                              onClick={() => onEditClient(item.client!)}
+                              onClick={(e) => { e.stopPropagation(); onEditClient(item.client!); }}
                               className="font-medium text-sm text-foreground hover:text-primary truncate text-left"
                             >
                               {item.clientName}
@@ -271,6 +328,9 @@ export function Agenda({ onEditClient }: AgendaProps) {
                               {item.time}
                             </span>
                           )}
+                          {item.isProjected && (
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">(Sugerida)</span>
+                          )}
                           <Badge variant="outline" className={`text-[10px] ${cfg.className}`}>
                             {cfg.label}
                           </Badge>
@@ -279,7 +339,7 @@ export function Agenda({ onEditClient }: AgendaProps) {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => item.client && onEditClient(item.client)}
+                            onClick={(e) => { e.stopPropagation(); if (item.client) onEditClient(item.client); }}
                             disabled={!item.client}
                             className="h-8"
                           >
@@ -304,20 +364,24 @@ export function Agenda({ onEditClient }: AgendaProps) {
               selected={calendarDate}
               onSelect={setCalendarDate}
               locale={ptBR}
-              modifiers={{ hasMeeting: daysWithMeetings }}
+              modifiers={{ hasMeeting: daysWithMeetings, projected: daysProjected, late: daysLate }}
               modifiersClassNames={{
                 hasMeeting: 'relative after:content-[""] after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-primary',
+                projected: 'relative before:content-[""] before:absolute before:bottom-1 before:left-[35%] before:w-1 before:h-1 before:rounded-full before:bg-yellow-500',
+                late: 'relative before:content-[""] before:absolute before:bottom-1 before:right-[35%] before:w-1 before:h-1 before:rounded-full before:bg-destructive',
               }}
               className="pointer-events-auto"
             />
             <p className="text-xs text-muted-foreground mt-3">
-              Clique em um dia para filtrar a lista.
+              Clique em um dia para filtrar a lista. Azul: agendada · Amarelo: sugerida · Vermelho: atrasada.
             </p>
           </div>
         </div>
       </div>
 
       <ScheduleMeetingModal
+        key={scheduleClient?.id ?? 'new'}
+        client={scheduleClient}
         open={scheduleOpen}
         onOpenChange={setScheduleOpen}
         onSuccess={() => refetch()}

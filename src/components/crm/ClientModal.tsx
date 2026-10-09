@@ -591,6 +591,29 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     const liquidFromConhecer = parseFloat(conhecerData.totalPatrimony || '') || 0;
     const patrimonioFinanceiroLiquido = liquidFromLegacy > 0 ? liquidFromLegacy : (liquidFromConhecer > 0 ? liquidFromConhecer : null);
 
+    // === Propagação: Conhecer o Cliente -> campos do cliente (só quando o destino está vazio) ===
+    const cd: any = conhecerData;
+    const num = (v: any) => parseFloat(String(v ?? '').replace(',', '.')) || 0;
+    const conhecerMonthlyIncome = (() => {
+      const emp = String(cd.employmentType || '');
+      if (emp === 'CLT') return num(cd.cltSalary);
+      if (emp === 'PJ') return num(cd.pjMonthlyWithdrawal) || num(cd.pjMonthlyRevenue);
+      if (emp.startsWith('Aut')) return num(cd.autonomoMonthlyIncome);
+      if (emp === 'Aposentado') return num(cd.aposentadoMonthlyIncome);
+      return num(cd.monthlyIncome);
+    })();
+    const manualRevenue = parseFloat(formData.monthlyRevenue) || 0;
+    const finalMonthlyRevenue = manualRevenue > 0 ? manualRevenue : conhecerMonthlyIncome;
+    const finalProfession = (formData.profession || '').trim() ? formData.profession : (cd.profession || '');
+    const riskMap: Record<string, string> = {
+      'Prefiro segurança': 'Conservador', 'Equilíbrio': 'Moderado', 'Aceito mais risco': 'Arrojado',
+      Conservador: 'Conservador', Moderado: 'Moderado', Arrojado: 'Arrojado', Agressivo: 'Arrojado',
+    };
+    const conhecerRisk = riskMap[cd.riskPreferenceB5 || ''];
+    const finalInvestorProfile = (client?.investorProfile || !conhecerRisk) ? formData.investorProfile : (conhecerRisk as any);
+    const finalEmergencyStatus = formData.emergencyReserveStatus
+      || (cd.hasEmergencyReserveB3 === 'Sim' ? 'HAS' : cd.hasEmergencyReserveB3 === 'Não' ? 'NONE' : '');
+
     const clientData = {
       contractStart: new Date(formData.contractStart),
       contractEnd: new Date(formData.contractEnd),
@@ -599,14 +622,14 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       birthDate: formData.birthDate,
       email: formData.email,
       phone: formData.phone,
-      profession: formData.profession,
+      profession: finalProfession,
       objective: formData.objective,
       investmentTerm: formData.investmentTerm,
       financialAssets: resolvedFinancialAssets,
       materialAssets: resolvedMaterialAssets,
       emergencyReserve: parseFloat(formData.emergencyReserve) || 0,
-      investorProfile: formData.investorProfile,
-      monthlyRevenue: parseFloat(formData.monthlyRevenue) || 0,
+      investorProfile: finalInvestorProfile,
+      monthlyRevenue: finalMonthlyRevenue,
       monthlyContribution: parseFloat(formData.monthlyContribution) || 0,
       workDone: formData.workDone,
       tasks: client?.tasks || [],
@@ -652,7 +675,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       monthlyLivingCost: formData.monthlyLivingCost ? parseFloat(formData.monthlyLivingCost) : null,
       emergencyCoverageMonths: formData.emergencyCoverageMonths ? parseInt(formData.emergencyCoverageMonths) : 6,
       emergencyContributionsCount: formData.emergencyContributionsCount ? parseInt(formData.emergencyContributionsCount) : 12,
-      emergencyReserveStatus: (formData.emergencyReserveStatus as any) || '',
+      emergencyReserveStatus: (finalEmergencyStatus as any) || '',
       emergencyReserveNote: formData.emergencyReserveNote || null,
       alreadyInvests: formData.alreadyInvests,
       investingOrigin: formData.investingOrigin || null,

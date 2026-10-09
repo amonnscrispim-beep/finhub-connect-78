@@ -9,6 +9,8 @@ import { Client } from '@/types/client';
 interface InactivityAlert {
   client: Client;
   daysSinceActivity: number;
+  periodicityDays: number;
+  daysOverdue: number;
 }
 
 interface InactivityAlertsProps {
@@ -26,7 +28,10 @@ export function InactivityAlerts({ onEditClient }: InactivityAlertsProps) {
     const newAlerts: InactivityAlert[] = [];
 
     clients.forEach((client) => {
-      let latestDate = client.lastActivityAt ? new Date(client.lastActivityAt) : client.updatedAt;
+      const period = client.meetingPeriodicityDays ?? 30;
+      let latestDate = client.lastMeetingDate
+        ? new Date(client.lastMeetingDate)
+        : (client.lastActivityAt ? new Date(client.lastActivityAt) : client.updatedAt);
 
       const completedTasks = client.tasks?.filter(t => t.completed && t.completedAt) || [];
       completedTasks.forEach(t => {
@@ -36,8 +41,8 @@ export function InactivityAlerts({ onEditClient }: InactivityAlertsProps) {
 
       const daysSince = differenceInDays(today, latestDate);
 
-      if (daysSince >= 20) {
-        newAlerts.push({ client, daysSinceActivity: daysSince });
+      if (daysSince >= period) {
+        newAlerts.push({ client, daysSinceActivity: daysSince, periodicityDays: period, daysOverdue: daysSince - period });
       }
     });
 
@@ -53,7 +58,7 @@ export function InactivityAlerts({ onEditClient }: InactivityAlertsProps) {
 
   const handleCheckFollowUp = async (client: Client) => {
     const now = new Date();
-    await updateClient(client.id, { lastActivityAt: now, updatedAt: now });
+    await updateClient(client.id, { lastActivityAt: now, lastMeetingDate: now, updatedAt: now });
     await logActivity('follow_up', `Acompanhamento registrado para ${client.name}`, client.id, client.name);
     setDismissedAlerts(prev => new Set([...prev, client.id]));
   };
@@ -71,7 +76,12 @@ export function InactivityAlerts({ onEditClient }: InactivityAlertsProps) {
           <span className="text-xs text-amber-900 dark:text-amber-100 whitespace-nowrap">
             <span className="font-semibold">{alert.client.name}</span>
             <span className="mx-1.5 opacity-60">·</span>
-            <span className="opacity-80">{alert.daysSinceActivity}d sem acompanhamento</span>
+            {alert.daysOverdue > 7 ? (
+              <span className="font-semibold text-destructive">{alert.daysOverdue}d de atraso</span>
+            ) : (
+              <span className="font-semibold text-amber-700 dark:text-amber-300">Reunião próxima</span>
+            )}
+            <span className="ml-1 opacity-70">(ciclo de {alert.periodicityDays}d)</span>
           </span>
           <div className="flex items-center gap-0.5 ml-1">
             <Button

@@ -1,0 +1,2 @@
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS last_meeting_date TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+UPDATE public.clients SET last_meeting_date = last_activity_at WHERE last_activity_at IS NOT NULL AND last_meeting_date IS NULL;
