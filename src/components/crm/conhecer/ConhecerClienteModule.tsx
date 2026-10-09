@@ -501,7 +501,7 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
               </Sub>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <F label="Renda anual familiar"><CurrencyInput value={data.annualFamilyIncome} onChange={(v) => update({ annualFamilyIncome: v })} /></F>
+              <F label="Renda mensal familiar"><CurrencyInput value={data.annualFamilyIncome} onChange={(v) => update({ annualFamilyIncome: v })} /></F>
               <F label="Custo mensal da família">{(data.budgetItems?.length ?? 0) > 0
                 ? <Input readOnly value={(Number(data.monthlyCostOfLiving) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} className="crm-input bg-muted/40" />
                 : <CurrencyInput value={data.monthlyCostOfLiving} onChange={(v) => update({ monthlyCostOfLiving: v })} />}</F>
