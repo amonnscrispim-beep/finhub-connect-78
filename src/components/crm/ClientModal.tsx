@@ -311,6 +311,65 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   const [activeTab, setActiveTab] = useState<string>('personal');
   const draftKey = user ? `crm-client-draft:${user.id}:${client?.id ?? 'new'}` : null;
 
+  // Propagação em tempo real: Conhecer o Cliente (aba Reuniões) -> demais abas
+  useEffect(() => {
+    if (!draftHydrated) return;
+    const cd = conhecerData;
+    setFormData((prev) => {
+      const next = { ...prev };
+      if (cd.fullName?.trim()) next.name = cd.fullName.trim();
+      if (cd.birthDate && !prev.birthDate) {
+        const parsed = new Date(`${cd.birthDate}T12:00:00`);
+        if (!isNaN(parsed.getTime())) {
+          next.birthDate = parsed;
+          const today = new Date();
+          let a = today.getFullYear() - parsed.getFullYear();
+          const m = today.getMonth() - parsed.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < parsed.getDate())) a--;
+          next.age = String(a);
+        }
+      }
+      if (cd.profession?.trim() && !prev.profession?.trim()) next.profession = cd.profession.trim();
+      if (cd.isMarried === 'Sim') next.married = true;
+      else if (cd.isMarried === 'Não') next.married = false;
+      if (cd.spouseName?.trim() && !prev.partnerName?.trim()) next.partnerName = cd.spouseName.trim();
+      if (cd.hasChildren === 'Sim' || (cd.children?.length ?? 0) > 0) {
+        next.hasChildren = true;
+        if (cd.children?.length && prev.children.length === 0) {
+          next.children = cd.children.map((ch) => ({
+            id: ch.id || Math.random().toString(36).substring(2, 15),
+            name: ch.name || '',
+            age: parseInt(ch.age) || 0,
+          })) as any;
+        }
+      } else if (cd.hasChildren === 'Não') {
+        next.hasChildren = false;
+      }
+      if (!prev.monthlyRevenue || prev.monthlyRevenue === '0') {
+        const c = cd as any;
+        const emp = String(c.employmentType || '');
+        let income = 0;
+        if (emp === 'CLT') income = parseFloat(c.cltNetSalary || c.cltSalary || '0') || 0;
+        else if (emp === 'PJ') income = parseFloat(c.pjMonthlyWithdrawal || c.pjMonthlyRevenue || '0') || 0;
+        else if (emp.startsWith('Aut')) income = parseFloat(c.autonomoMonthlyIncome || '0') || 0;
+        else if (emp === 'Aposentado') income = parseFloat(c.aposentadoMonthlyIncome || '0') || 0;
+        else income = parseFloat(c.monthlyIncome || '0') || 0;
+        if (income > 0) next.monthlyRevenue = String(income);
+      }
+      const riskMap: Record<string, string> = {
+        'Prefiro segurança': 'Conservador', 'Equilíbrio': 'Moderado', 'Aceito mais risco': 'Arrojado',
+        Conservador: 'Conservador', Moderado: 'Moderado', Arrojado: 'Arrojado', Agressivo: 'Arrojado',
+      };
+      const risk = riskMap[cd.riskPreferenceB5 || ''];
+      if (risk && (!prev.investorProfile || prev.investorProfile === 'Moderado')) next.investorProfile = risk as any;
+      if (cd.hasEmergencyReserveB3 && !prev.emergencyReserveStatus) {
+        if (cd.hasEmergencyReserveB3 === 'Sim') next.emergencyReserveStatus = 'HAS';
+        else if (cd.hasEmergencyReserveB3 === 'Não') next.emergencyReserveStatus = 'NONE';
+      }
+      return next;
+    });
+  }, [conhecerData, draftHydrated]);
+
   // Reset to first tab whenever the modal opens
   useEffect(() => {
     if (open) setActiveTab('personal');
@@ -617,9 +676,25 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     const clientData = {
       contractStart: new Date(formData.contractStart),
       contractEnd: new Date(formData.contractEnd),
-      name: formData.name,
-      age: parseInt(formData.age) || 0,
-      birthDate: formData.birthDate,
+      name: cd.fullName?.trim() ? cd.fullName.trim() : formData.name,
+      age: (() => {
+        const parsed = cd.birthDate ? new Date(`${cd.birthDate}T12:00:00`) : formData.birthDate;
+        if (parsed && !isNaN(parsed.getTime())) {
+          const today = new Date();
+          let a = today.getFullYear() - parsed.getFullYear();
+          const m = today.getMonth() - parsed.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < parsed.getDate())) a--;
+          return a;
+        }
+        return parseInt(formData.age) || 0;
+      })(),
+      birthDate: (() => {
+        if (cd.birthDate) {
+          const parsed = new Date(`${cd.birthDate}T12:00:00`);
+          if (!isNaN(parsed.getTime())) return parsed;
+        }
+        return formData.birthDate;
+      })(),
       email: formData.email,
       phone: formData.phone,
       profession: finalProfession,
