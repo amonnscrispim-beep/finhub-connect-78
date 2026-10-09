@@ -509,7 +509,6 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
               <F label="Capacidade de aporte anual"><CurrencyInput value={data.annualInvestmentCapacity} onChange={(v) => update({ annualInvestmentCapacity: v })} /></F>
               <F label="Tem dívidas?"><YN value={data.hasDebts} onChange={(v) => update({ hasDebts: v })} /></F>
             </div>
-            <BudgetPanel data={data} update={update} />
             {data.hasDebts === 'Sim' && (
               <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                 {debtsList.map((d) => (
@@ -537,6 +536,7 @@ export function ConhecerClienteModule({ data, onChange, hasChildrenFromBloco1, c
                 <F label="Rendimento (% a.a.)"><Input value={data.pensionYield} onChange={(e) => update({ pensionYield: e.target.value })} className="crm-input" /></F>
               </Sub>
             )}
+            <BudgetPanel data={data} update={update} />
             <CommentButton value={data.bloco2Comment} onChange={(v) => update({ bloco2Comment: v })} />
           </>)}
 
