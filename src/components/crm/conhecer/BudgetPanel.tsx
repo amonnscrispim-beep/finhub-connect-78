@@ -1,4 +1,4 @@
-import { Plus, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CurrencyInput } from '@/components/ui/currency-input';
@@ -19,6 +19,11 @@ const n = (v: unknown) => parseFloat(String(v ?? '')) || 0;
 const genId = () => Math.random().toString(36).substring(2, 10);
 
 export function monthlyIncomeOf(d: ConhecerClienteData): number {
+  const v = incomeByType(d);
+  return v > 0 ? v : n(d.annualFamilyIncome) / 12;
+}
+
+function incomeByType(d: ConhecerClienteData): number {
   switch (d.employmentType) {
     case 'CLT': return n(d.cltNetSalary);
     case 'PJ': case 'Empresário/Sócio': return n(d.pjProLabore) + n(d.pjProfitDistribution);
@@ -52,7 +57,7 @@ export function BudgetPanel({ data, update }: Props) {
 
   return (
     <div className="space-y-3 rounded-lg border border-border p-3">
-      <p className="text-sm font-semibold text-foreground">Orçamento mensal por categoria</p>
+      <p className="text-sm font-semibold text-foreground flex items-center gap-2"><Receipt className="w-4 h-4" />Tabela de Orçamento</p>
       <div className="overflow-x-auto">
         <table className="w-full text-sm min-w-[560px]">
           <thead><tr className="text-left text-xs text-muted-foreground">
