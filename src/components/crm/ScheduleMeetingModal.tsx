@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { Client } from '@/types/client';
 import { toast } from 'sonner';
+import { useClients } from '@/contexts/ClientContext';
 
 interface ScheduleMeetingModalProps {
   open: boolean;
@@ -29,6 +30,7 @@ export function ScheduleMeetingModal({
   onSuccess 
 }: ScheduleMeetingModalProps) {
   const { isConnected, connect, createMeeting, isLoading: isCheckingConnection } = useGoogleCalendar();
+  const { updateClient } = useClients();
   
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [startTime, setStartTime] = useState('09:00');
@@ -82,6 +84,13 @@ export function ScheduleMeetingModal({
       });
 
       if (result.success) {
+        if (client?.id) {
+          try {
+            await updateClient(client.id, { lastMeetingDate: startAt, lastActivityAt: new Date() });
+          } catch (e) {
+            console.error('Falha ao atualizar última reunião:', e);
+          }
+        }
         if (result.googleEventCreated) {
           toast.success('Reunião agendada e adicionada ao Google Agenda!');
         } else {
