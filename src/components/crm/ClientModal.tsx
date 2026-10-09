@@ -91,7 +91,7 @@ import { ClientStatementModule } from './extrato/ClientStatementModule';
 
 import { ArquiteturaCarteira, defaultArquiteturaCarteira, ArquiteturaCarteiraData } from './ArquiteturaCarteira';
 import { ConhecerClienteModule } from './conhecer/ConhecerClienteModule';
-import { defaultConhecerCliente, migrateFromLegacy, ConhecerClienteData, calculateProgress } from './conhecer/types';
+import { defaultConhecerCliente, migrateFromLegacy, ConhecerClienteData, calculateProgress, getConhecerMonthlyIncome, getConhecerInvestorProfile } from './conhecer/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useActivityLog } from '@/hooks/useActivityLog';
@@ -330,7 +330,8 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         }
       }
       if (cd.profession?.trim() && !prev.profession?.trim()) next.profession = cd.profession.trim();
-      if (cd.isMarried === 'Sim') next.married = true;
+      if (cd.civilStatus) next.married = cd.civilStatus === 'Casado(a)' || cd.civilStatus === 'União Estável';
+      else if (cd.isMarried === 'Sim') next.married = true;
       else if (cd.isMarried === 'Não') next.married = false;
       if (cd.spouseName?.trim() && !prev.partnerName?.trim()) next.partnerName = cd.spouseName.trim();
       if (cd.hasChildren === 'Sim' || (cd.children?.length ?? 0) > 0) {
@@ -346,25 +347,19 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         next.hasChildren = false;
       }
       if (!prev.monthlyRevenue || prev.monthlyRevenue === '0') {
-        const c = cd as any;
-        const emp = String(c.employmentType || '');
-        let income = 0;
-        if (emp === 'CLT') income = parseFloat(c.cltNetSalary || c.cltSalary || '0') || 0;
-        else if (emp === 'PJ') income = parseFloat(c.pjMonthlyWithdrawal || c.pjMonthlyRevenue || '0') || 0;
-        else if (emp.startsWith('Aut')) income = parseFloat(c.autonomoMonthlyIncome || '0') || 0;
-        else if (emp === 'Aposentado') income = parseFloat(c.aposentadoMonthlyIncome || '0') || 0;
-        else income = parseFloat(c.monthlyIncome || '0') || 0;
+        const income = getConhecerMonthlyIncome(cd);
         if (income > 0) next.monthlyRevenue = String(income);
       }
       const riskMap: Record<string, string> = {
         'Prefiro segurança': 'Conservador', 'Equilíbrio': 'Moderado', 'Aceito mais risco': 'Arrojado',
         Conservador: 'Conservador', Moderado: 'Moderado', Arrojado: 'Arrojado', Agressivo: 'Arrojado',
       };
-      const risk = riskMap[cd.riskPreferenceB5 || ''];
+      const risk = getConhecerInvestorProfile(cd) || riskMap[cd.riskPreferenceB5 || ''];
       if (risk && (!prev.investorProfile || prev.investorProfile === 'Moderado')) next.investorProfile = risk as any;
-      if (cd.hasEmergencyReserveB3 && !prev.emergencyReserveStatus) {
-        if (cd.hasEmergencyReserveB3 === 'Sim') next.emergencyReserveStatus = 'HAS';
-        else if (cd.hasEmergencyReserveB3 === 'Não') next.emergencyReserveStatus = 'NONE';
+      const reserve = cd.hasEmergencyReserve || cd.hasEmergencyReserveB3;
+      if (reserve && !prev.emergencyReserveStatus) {
+        if (reserve === 'Sim') next.emergencyReserveStatus = 'HAS';
+        else if (reserve === 'Não') next.emergencyReserveStatus = 'NONE';
       }
       return next;
     });
@@ -529,7 +524,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       const serverUpdatedAt = client?.updatedAt ? new Date(client.updatedAt).getTime() : 0;
       if (!client || draftSavedAt > serverUpdatedAt) {
         setFormData(restoreFormDraft(draft.formData || {}));
-        setConhecerData({ ...defaultConhecerCliente, ...(draft.conhecerData || {}) });
+        setConhecerData(migrateFromLegacy({ ...defaultConhecerCliente, ...(draft.conhecerData || {}) }));
         toast.info('Rascunho local recuperado. Revise e clique em Salvar Alterações para gravar no CRM.');
       }
     } catch (error) {
@@ -653,14 +648,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     // === Propagação: Conhecer o Cliente -> campos do cliente (só quando o destino está vazio) ===
     const cd: any = conhecerData;
     const num = (v: any) => parseFloat(String(v ?? '').replace(',', '.')) || 0;
-    const conhecerMonthlyIncome = (() => {
-      const emp = String(cd.employmentType || '');
-      if (emp === 'CLT') return num(cd.cltSalary);
-      if (emp === 'PJ') return num(cd.pjMonthlyWithdrawal) || num(cd.pjMonthlyRevenue);
-      if (emp.startsWith('Aut')) return num(cd.autonomoMonthlyIncome);
-      if (emp === 'Aposentado') return num(cd.aposentadoMonthlyIncome);
-      return num(cd.monthlyIncome);
-    })();
+    const conhecerMonthlyIncome = getConhecerMonthlyIncome(cd);
     const manualRevenue = parseFloat(formData.monthlyRevenue) || 0;
     const finalMonthlyRevenue = manualRevenue > 0 ? manualRevenue : conhecerMonthlyIncome;
     const finalProfession = (formData.profession || '').trim() ? formData.profession : (cd.profession || '');
@@ -668,10 +656,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       'Prefiro segurança': 'Conservador', 'Equilíbrio': 'Moderado', 'Aceito mais risco': 'Arrojado',
       Conservador: 'Conservador', Moderado: 'Moderado', Arrojado: 'Arrojado', Agressivo: 'Arrojado',
     };
-    const conhecerRisk = riskMap[cd.riskPreferenceB5 || ''];
+    const conhecerRisk = getConhecerInvestorProfile(cd) || riskMap[cd.riskPreferenceB5 || ''];
     const finalInvestorProfile = (client?.investorProfile || !conhecerRisk) ? formData.investorProfile : (conhecerRisk as any);
     const finalEmergencyStatus = formData.emergencyReserveStatus
-      || (cd.hasEmergencyReserveB3 === 'Sim' ? 'HAS' : cd.hasEmergencyReserveB3 === 'Não' ? 'NONE' : '');
+      || ((cd.hasEmergencyReserve || cd.hasEmergencyReserveB3) === 'Sim' ? 'HAS' : (cd.hasEmergencyReserve || cd.hasEmergencyReserveB3) === 'Não' ? 'NONE' : '');
 
     const clientData = {
       contractStart: new Date(formData.contractStart),
@@ -1162,6 +1150,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 clientAge={parseInt(formData.age) || 0}
                 clientName={formData.name}
                 advisorName=""
+                clientId={client?.id}
               />
               {/* Anotações por reunião — movidas do bloco "Contrato, Reuniões e Entregas" */}
               {formData.contractedMeetings && (

@@ -1,704 +1,266 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Progress } from '@/components/ui/progress';
 import { CurrencyInput } from '@/components/ui/currency-input';
-import { CheckCircle, ChevronLeft, ChevronRight, Loader2, AlertTriangle } from 'lucide-react';
+import { CheckCircle, ChevronLeft, ChevronRight, Loader2, AlertTriangle, Plus, Trash2, Save } from 'lucide-react';
+import { toast } from 'sonner';
 
-const TOTAL_STEPS = 7;
+type R = Record<string, any>;
+const genId = () => Math.random().toString(36).substring(2, 10);
 
-const MARITAL_OPTIONS = ['Solteiro(a)', 'Casado(a)', 'União estável', 'Divorciado(a)', 'Viúvo(a)'];
-const PROPERTY_REGIME_OPTIONS = ['Comunhão parcial', 'Comunhão universal', 'Separação total', 'Participação final nos aquestos', 'Não aplicável'];
+const SECTIONS = ['Sobre você', 'Sua situação financeira', 'Seu patrimônio', 'Proteção e saúde', 'Seus objetivos', 'Seu perfil', 'Para te conhecer melhor'];
+const HOBBIES = ['Arquitetura e Design', 'Arte', 'Gastronomia', 'Viagens', 'Vinhos', 'Esportes', 'Música', 'Cinema', 'Tecnologia', 'Moda', 'Literatura', 'Outros'];
 
-interface FormResponses {
-  // Step 1 - Identity
-  wealthBuilding: string;
-  biggestDecision: string;
-  biggestMistake: string;
-  lifePhaseAnswer: string;
-  futureVision: string;
-  // Step 2 - Family
-  family: {
-    maritalStatus: string;
-    propertyRegime: string;
-    hasChildren: string;
-    childrenCount: string;
-    childrenAges: string;
-    childrenFinanciallyDependent: string;
-    hasOtherDependents: string;
-    otherDependentsDetail: string;
-    successionDiscussed: string;
-  };
-  // Step 3 - Patrimony
-  estruturaPatrimonial: {
-    totalPatrimony: string;
-    pfValue: string;
-    pjValue: string;
-    liquidFinancialAssets: string;
-    realEstate: string;
-    businessParticipations: string;
-    concentrationDetail: string;
-    hasConcentration: string;
-  };
-  // Step 4 - Cash Flow
-  fluxoCaixa: {
-    monthlyRevenue: string;
-    revenueStability: string;
-    livingCost: string;
-    monthlyInvestment: string;
-    alreadyInvesting: string;
-  };
-  // Step 5 - Goals
-  objetivosMetas: {
-    mainObjective: string;
-    goalMonthlyIncome: string;
-    goalTargetWealth: string;
-    timeframe: string;
-    restrictions: string;
-  };
-  targetPatrimony: string;
-  targetMonthlyIncome: string;
-  // Step 6 - Risk
-  perfilRisco: {
-    volatilityReaction: string;
-    oscillationLimit: string;
-    crisisPriority: string;
-  };
-  // Step 7 - Protection
-  protecaoSucessao: {
-    successionPlanning: string;
-    patrimonialOrganization: string;
-    lifeInsurance: string;
-    geoDiversification: string;
-  };
-  // Extra
-  additionalNotes: string;
+function F({ label, children }: { label: string; children: React.ReactNode }) {
+  return <div className="space-y-1.5"><Label className="text-sm">{label}</Label>{children}</div>;
 }
-
-const defaultResponses: FormResponses = {
-  wealthBuilding: '',
-  biggestDecision: '',
-  biggestMistake: '',
-  lifePhaseAnswer: '',
-  futureVision: '',
-  family: {
-    maritalStatus: '',
-    propertyRegime: '',
-    hasChildren: '',
-    childrenCount: '',
-    childrenAges: '',
-    childrenFinanciallyDependent: '',
-    hasOtherDependents: '',
-    otherDependentsDetail: '',
-    successionDiscussed: '',
-  },
-  estruturaPatrimonial: {
-    totalPatrimony: '',
-    pfValue: '',
-    pjValue: '',
-    liquidFinancialAssets: '',
-    realEstate: '',
-    businessParticipations: '',
-    concentrationDetail: '',
-    hasConcentration: '',
-  },
-  fluxoCaixa: {
-    monthlyRevenue: '',
-    revenueStability: '',
-    livingCost: '',
-    monthlyInvestment: '',
-    alreadyInvesting: '',
-  },
-  objetivosMetas: {
-    mainObjective: '',
-    goalMonthlyIncome: '',
-    goalTargetWealth: '',
-    timeframe: '',
-    restrictions: '',
-  },
-  targetPatrimony: '',
-  targetMonthlyIncome: '',
-  perfilRisco: {
-    volatilityReaction: '',
-    oscillationLimit: '',
-    crisisPriority: '',
-  },
-  protecaoSucessao: {
-    successionPlanning: '',
-    patrimonialOrganization: '',
-    lifeInsurance: '',
-    geoDiversification: '',
-  },
-  additionalNotes: '',
-};
+function Radios({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
+  return (
+    <RadioGroup value={value || ''} onValueChange={onChange} className="flex flex-wrap gap-x-5 gap-y-2 pt-1">
+      {options.map((o) => <label key={o} className="flex items-center gap-2 text-sm cursor-pointer"><RadioGroupItem value={o} />{o}</label>)}
+    </RadioGroup>
+  );
+}
+function Sel({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
+  return (
+    <Select value={value || undefined} onValueChange={onChange}>
+      <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+      <SelectContent>{options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+    </Select>
+  );
+}
+function Sub({ children }: { children: React.ReactNode }) {
+  return <div className="space-y-4 pl-3 border-l-2 border-primary/30 animate-in fade-in slide-in-from-top-2 duration-300">{children}</div>;
+}
 
 export default function ClientForm() {
   const { token } = useParams<{ token: string }>();
-  const [step, setStep] = useState(1);
-  const [responses, setResponses] = useState<FormResponses>(defaultResponses);
-  const [clientName, setClientName] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const storageKey = `client-form-${token}`;
+  const baseUrl = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/client-form`;
 
-  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-  const baseUrl = `https://${projectId}.supabase.co/functions/v1/client-form`;
+  const [state, setState] = useState<'loading' | 'form' | 'done' | 'submitted' | 'invalid'>('loading');
+  const [consultor, setConsultor] = useState('');
+  const [step, setStep] = useState(0);
+  const [r, setR] = useState<R>({});
+  const [sending, setSending] = useState(false);
 
-  // Load form data
   useEffect(() => {
-    if (!token) return;
-    fetch(`${baseUrl}?token=${token}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) {
-          setError(data.error);
-        } else {
-          setClientName(data.clientName || '');
-          if (data.status === 'completed') {
-            setSubmitted(true);
-          }
-          if (data.responses && Object.keys(data.responses).length > 0) {
-            setResponses(prev => deepMerge(prev, data.responses));
-          }
-        }
-        setLoading(false);
+    fetch(`${baseUrl}?token=${encodeURIComponent(token || '')}`)
+      .then(async (res) => {
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) return setState('invalid');
+        if (['completed', 'updated'].includes(body.status)) return setState('submitted');
+        setConsultor(body.consultorName || '');
+        let saved: R = {};
+        try { saved = JSON.parse(localStorage.getItem(storageKey) || '{}'); } catch { /* ignore */ }
+        setR({ ...(body.responses?._formVersion === 2 ? body.responses : {}), ...saved });
+        setState('form');
       })
-      .catch(() => {
-        setError('Erro ao carregar formulário');
-        setLoading(false);
-      });
+      .catch(() => setState('invalid'));
   }, [token]);
 
-  // Auto-save every 30 seconds
   useEffect(() => {
-    if (submitted || error) return;
-    const interval = setInterval(() => {
-      autoSave();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [responses, submitted, error]);
+    if (state === 'form') localStorage.setItem(storageKey, JSON.stringify(r));
+  }, [r, state]);
 
-  const autoSave = useCallback(async () => {
-    if (!token || submitted) return;
-    try {
-      await fetch(baseUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, responses, submit: false }),
-      });
-      setLastSaved(new Date());
-    } catch { /* silent */ }
-  }, [token, responses, submitted]);
+  const u = (p: R) => setR((prev) => ({ ...prev, ...p }));
+  const v = (k: string) => r[k] ?? '';
+  const progress = useMemo(() => Math.round(((step + 1) / SECTIONS.length) * 100), [step]);
 
-  const handleSubmit = async () => {
-    if (!token) return;
-    setSaving(true);
-    try {
-      const res = await fetch(baseUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, responses, submit: true }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setSubmitted(true);
-      } else {
-        setError(data.error || 'Erro ao enviar');
-      }
-    } catch {
-      setError('Erro ao enviar formulário');
-    }
-    setSaving(false);
+  const saveLater = async () => {
+    localStorage.setItem(storageKey, JSON.stringify(r));
+    await fetch(baseUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, responses: { ...r, _formVersion: 2 }, submit: false }) }).catch(() => null);
+    toast.success('Progresso salvo. Você pode continuar depois pelo mesmo link.');
   };
 
-  const progress = (step / TOTAL_STEPS) * 100;
-
-  const updateField = (key: keyof FormResponses, value: string) => {
-    setResponses(prev => ({ ...prev, [key]: value }));
+  const submit = async () => {
+    const income = r.cltNetSalary || r.pjProLabore || r.autonomoIncome || r.aposentadoIncome || r.servidorNetSalary;
+    const missing = [!r.fullName && 'nome', !r.birthDate && 'data de nascimento', !r.profession && 'profissão', !income && 'renda'].filter(Boolean);
+    if (missing.length) { toast.error(`Preencha: ${missing.join(', ')}.`); setStep(missing[0] === 'renda' ? 1 : 0); return; }
+    setSending(true);
+    const res = await fetch(baseUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, responses: { ...r, _formVersion: 2 }, submit: true }) }).catch(() => null);
+    setSending(false);
+    if (!res?.ok) { toast.error('Não foi possível enviar. Tente novamente.'); return; }
+    localStorage.removeItem(storageKey);
+    setState('done');
   };
 
-  const updateNested = <K extends keyof FormResponses>(
-    section: K,
-    field: string,
-    value: string
-  ) => {
-    setResponses(prev => ({
-      ...prev,
-      [section]: { ...(prev[section] as Record<string, string>), [field]: value },
-    }));
-  };
+  const shell = (children: React.ReactNode) => (
+    <div className="min-h-screen bg-muted/30 flex items-center justify-center p-6">
+      <div className="max-w-md w-full bg-card border border-border rounded-xl p-8 text-center space-y-3">{children}</div>
+    </div>
+  );
+  if (state === 'loading') return shell(<Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />);
+  if (state === 'invalid') return shell(<><AlertTriangle className="w-10 h-10 mx-auto text-destructive" /><p className="font-medium">Link expirado ou inválido.</p><p className="text-sm text-muted-foreground">Solicite um novo ao seu consultor.</p></>);
+  if (state === 'submitted') return shell(<><CheckCircle className="w-10 h-10 mx-auto text-primary" /><p className="font-medium">Formulário já enviado. Obrigado!</p></>);
+  if (state === 'done') return shell(<><CheckCircle className="w-10 h-10 mx-auto text-primary" /><p className="font-medium">Formulário enviado com sucesso!</p><p className="text-sm text-muted-foreground">Seu consultor já recebeu suas informações.</p></>);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-      </div>
-    );
-  }
+  const married = v('civilStatus') === 'Casado(a)' || v('civilStatus') === 'União Estável';
+  const children: R[] = r.children || [];
+  const debts: R[] = r.debtsList || [];
+  const setChild = (id: string, p: R) => u({ children: children.map((c) => (c.id === id ? { ...c, ...p } : c)) });
+  const setDebt = (id: string, p: R) => u({ debtsList: debts.map((d) => (d.id === id ? { ...d, ...p } : d)) });
+  const emp = v('employmentType');
 
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center space-y-4">
-          <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto" />
-          <h1 className="text-xl font-bold text-slate-800">{error}</h1>
-          <p className="text-slate-500 text-sm">Se acredita que isso é um erro, entre em contato com seu consultor financeiro.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (submitted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center space-y-4">
-          <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
-          <h1 className="text-2xl font-bold text-slate-800">Formulário enviado!</h1>
-          <p className="text-slate-600">Obrigado, {clientName}. Suas respostas foram registradas e seu consultor já foi notificado.</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-4">
-          <h1 className="text-lg font-bold text-slate-800">Formulário de Planejamento Financeiro</h1>
-          <p className="text-sm text-slate-500">Olá, {clientName}! Preencha com calma e salve quando quiser.</p>
-          <div className="mt-3 space-y-1">
-            <div className="flex justify-between text-xs text-slate-500">
-              <span>Etapa {step} de {TOTAL_STEPS}</span>
-              <span>{Math.round(progress)}%</span>
-            </div>
-            <Progress value={progress} className="h-2" />
+  const sections: React.ReactNode[] = [
+    <>
+      <F label="Nome completo *"><Input value={v('fullName')} onChange={(e) => u({ fullName: e.target.value })} /></F>
+      <F label="Data de nascimento *"><Input type="date" value={v('birthDate')} onChange={(e) => u({ birthDate: e.target.value })} /></F>
+      <F label="Estado civil"><Sel value={v('civilStatus')} onChange={(x) => u({ civilStatus: x })} options={['Solteiro(a)', 'Casado(a)', 'União Estável', 'Divorciado(a)', 'Viúvo(a)', 'Separado(a)']} /></F>
+      {married && <Sub>
+        <F label="Nome do cônjuge"><Input value={v('spouseName')} onChange={(e) => u({ spouseName: e.target.value })} /></F>
+        <F label="Regime matrimonial"><Sel value={v('marriageRegime')} onChange={(x) => u({ marriageRegime: x })} options={['Comunhão parcial de bens', 'Comunhão universal de bens', 'Separação total de bens', 'Participação final nos aquestos']} /></F>
+      </Sub>}
+      <F label="Tem filhos?"><Radios value={v('hasChildren')} onChange={(x) => u({ hasChildren: x })} options={['Sim', 'Não']} /></F>
+      {v('hasChildren') === 'Sim' && <Sub>
+        {children.map((c, i) => (
+          <div key={c.id} className="rounded-lg border border-border p-3 space-y-3 relative">
+            <button type="button" onClick={() => u({ children: children.filter((x) => x.id !== c.id) })} className="absolute top-2 right-2 text-destructive" aria-label="Remover filho"><Trash2 className="w-4 h-4" /></button>
+            <p className="text-xs text-muted-foreground">Filho {i + 1}</p>
+            <F label="Nome"><Input value={c.name || ''} onChange={(e) => setChild(c.id, { name: e.target.value })} /></F>
+            <F label="Idade"><Input type="number" inputMode="numeric" value={c.age || ''} onChange={(e) => setChild(c.id, { age: e.target.value })} /></F>
+            <F label="Fase escolar"><Sel value={c.educationPhase || ''} onChange={(x) => setChild(c.id, { educationPhase: x })} options={['Berçário', 'Infantil', 'Fundamental', 'Médio', 'Superior', 'Formado', 'N/A']} /></F>
           </div>
-          {lastSaved && (
-            <p className="text-xs text-slate-400 mt-1">Salvo automaticamente às {lastSaved.toLocaleTimeString('pt-BR')}</p>
-          )}
+        ))}
+        <Button type="button" variant="outline" size="sm" onClick={() => u({ children: [...children, { id: genId(), name: '', age: '', educationPhase: '' }], numChildren: String(children.length + 1) })}><Plus className="w-4 h-4 mr-1" />Adicionar filho</Button>
+      </Sub>}
+      <F label="Profissão *"><Input value={v('profession')} onChange={(e) => u({ profession: e.target.value })} /></F>
+      <F label="Cargo"><Input value={v('jobTitle')} onChange={(e) => u({ jobTitle: e.target.value })} /></F>
+      <F label="Regime de trabalho"><Sel value={emp} onChange={(x) => u({ employmentType: x })} options={['CLT', 'PJ', 'Empresário/Sócio', 'Autônomo', 'Aposentado', 'Servidor Público']} /></F>
+      {emp === 'CLT' && <Sub><F label="Empresa"><Input value={v('cltCompany')} onChange={(e) => u({ cltCompany: e.target.value })} /></F></Sub>}
+      {(emp === 'PJ' || emp === 'Empresário/Sócio') && <Sub><F label="Nome da empresa"><Input value={v('pjCompanyName')} onChange={(e) => u({ pjCompanyName: e.target.value })} /></F></Sub>}
+      {emp === 'Autônomo' && <Sub><F label="Área de atuação"><Input value={v('autonomoArea')} onChange={(e) => u({ autonomoArea: e.target.value })} /></F></Sub>}
+      {emp === 'Aposentado' && <Sub><F label="Tipo de aposentadoria"><Sel value={v('aposentadoType')} onChange={(x) => u({ aposentadoType: x })} options={['INSS', 'Previdência Privada', 'Ambas']} /></F></Sub>}
+      {emp === 'Servidor Público' && <Sub><F label="Órgão"><Input value={v('servidorOrgao')} onChange={(e) => u({ servidorOrgao: e.target.value })} /></F></Sub>}
+    </>,
+    <>
+      {(emp === 'PJ' || emp === 'Empresário/Sócio')
+        ? <F label="Pró-labore mensal *"><CurrencyInput value={v('pjProLabore')} onChange={(x) => u({ pjProLabore: x })} /></F>
+        : emp === 'Autônomo' ? <F label="Renda mensal média *"><CurrencyInput value={v('autonomoIncome')} onChange={(x) => u({ autonomoIncome: x })} /></F>
+        : emp === 'Aposentado' ? <F label="Valor mensal da aposentadoria *"><CurrencyInput value={v('aposentadoIncome')} onChange={(x) => u({ aposentadoIncome: x })} /></F>
+        : emp === 'Servidor Público' ? <F label="Salário líquido *"><CurrencyInput value={v('servidorNetSalary')} onChange={(x) => u({ servidorNetSalary: x })} /></F>
+        : <F label="Renda mensal líquida *"><CurrencyInput value={v('cltNetSalary')} onChange={(x) => u({ cltNetSalary: x })} /></F>}
+      {married && <>
+        <F label="Seu cônjuge trabalha?"><Radios value={v('spouseWorks')} onChange={(x) => u({ spouseWorks: x })} options={['Sim', 'Não']} /></F>
+        {v('spouseWorks') === 'Sim' && <F label="Renda do cônjuge"><CurrencyInput value={v('spouseIncome')} onChange={(x) => u({ spouseIncome: x })} /></F>}
+      </>}
+      <F label="Custo mensal da família (estimativa)"><CurrencyInput value={v('monthlyCostOfLiving')} onChange={(x) => u({ monthlyCostOfLiving: x })} /></F>
+      <F label="Quanto consegue investir por mês?"><CurrencyInput value={v('monthlyInvestmentCapacity')} onChange={(x) => u({ monthlyInvestmentCapacity: x })} /></F>
+      <F label="Possui dívidas?"><Radios value={v('hasDebts')} onChange={(x) => u({ hasDebts: x })} options={['Sim', 'Não']} /></F>
+      {v('hasDebts') === 'Sim' && <Sub>
+        {debts.map((d) => (
+          <div key={d.id} className="rounded-lg border border-border p-3 space-y-3 relative">
+            <button type="button" onClick={() => u({ debtsList: debts.filter((x) => x.id !== d.id) })} className="absolute top-2 right-2 text-destructive" aria-label="Remover dívida"><Trash2 className="w-4 h-4" /></button>
+            <F label="Tipo"><Sel value={d.type || ''} onChange={(x) => setDebt(d.id, { type: x })} options={['Financiamento imobiliário', 'Veículo', 'Crédito pessoal', 'Cartão de crédito', 'Cheque especial', 'Outro']} /></F>
+            <F label="Valor total"><CurrencyInput value={d.totalValue || ''} onChange={(x) => setDebt(d.id, { totalValue: x })} /></F>
+            <F label="Parcela mensal"><CurrencyInput value={d.monthlyPayment || ''} onChange={(x) => setDebt(d.id, { monthlyPayment: x })} /></F>
+          </div>
+        ))}
+        <Button type="button" variant="outline" size="sm" onClick={() => u({ debtsList: [...debts, { id: genId(), type: '', totalValue: '', monthlyPayment: '', interestRate: '', remainingMonths: '' }] })}><Plus className="w-4 h-4 mr-1" />Adicionar dívida</Button>
+      </Sub>}
+      <F label="Possui previdência privada?"><Radios value={v('hasPrivatePension')} onChange={(x) => u({ hasPrivatePension: x })} options={['Sim', 'Não']} /></F>
+      {v('hasPrivatePension') === 'Sim' && <Sub>
+        <F label="Tipo"><Sel value={v('pensionType')} onChange={(x) => u({ pensionType: x })} options={['PGBL', 'VGBL', 'Não sei']} /></F>
+        <F label="Instituição"><Input value={v('pensionInstitution')} onChange={(e) => u({ pensionInstitution: e.target.value })} /></F>
+        <F label="Valor acumulado"><CurrencyInput value={v('pensionAccumulated')} onChange={(x) => u({ pensionAccumulated: x })} /></F>
+      </Sub>}
+    </>,
+    <>
+      <F label="Banco principal"><Input value={v('mainBank')} onChange={(e) => u({ mainBank: e.target.value })} /></F>
+      <F label="Já possui investimentos? Onde?"><Textarea value={v('investmentInstitutions')} onChange={(e) => u({ investmentInstitutions: e.target.value })} placeholder="Ex: CDB no banco X, ações na corretora Y" /></F>
+      <F label="Valor aproximado total investido"><CurrencyInput value={v('totalFinancialPL')} onChange={(x) => u({ totalFinancialPL: x })} /></F>
+      <F label="Possui imóveis?"><Radios value={v('hasRealEstate')} onChange={(x) => u({ hasRealEstate: x })} options={['Sim', 'Não']} /></F>
+      {v('hasRealEstate') === 'Sim' && <Sub>
+        <F label="Quantos?"><Input type="number" inputMode="numeric" value={v('realEstateCount')} onChange={(e) => u({ realEstateCount: e.target.value })} /></F>
+        <F label="Valor estimado total"><CurrencyInput value={v('realEstateTotalValue')} onChange={(x) => u({ realEstateTotalValue: x })} /></F>
+      </Sub>}
+      <F label="Possui recursos no exterior?"><Radios value={v('hasOffshore')} onChange={(x) => u({ hasOffshore: x })} options={['Sim', 'Não']} /></F>
+      {v('hasOffshore') === 'Sim' && <Sub>
+        <F label="Instituição"><Input value={v('offshoreInstitution')} onChange={(e) => u({ offshoreInstitution: e.target.value })} /></F>
+        <F label="País"><Input value={v('offshoreCountry')} onChange={(e) => u({ offshoreCountry: e.target.value })} /></F>
+        <F label="Valor aproximado (USD)"><CurrencyInput value={v('offshoreValueUSD')} onChange={(x) => u({ offshoreValueUSD: x })} /></F>
+      </Sub>}
+      <F label="Valor do FGTS (se tiver)"><CurrencyInput value={v('fgtsValue')} onChange={(x) => u({ fgtsValue: x })} /></F>
+    </>,
+    <>
+      <F label="Possui seguro de vida?"><Radios value={v('hasLifeInsurance')} onChange={(x) => u({ hasLifeInsurance: x })} options={['Sim', 'Não']} /></F>
+      {v('hasLifeInsurance') === 'Sim' && <Sub>
+        <F label="Valor da cobertura"><CurrencyInput value={v('lifeInsuranceValue')} onChange={(x) => u({ lifeInsuranceValue: x })} /></F>
+        <F label="Seguradora"><Input value={v('lifeInsuranceCompany')} onChange={(e) => u({ lifeInsuranceCompany: e.target.value })} /></F>
+      </Sub>}
+      <F label="Plano de saúde"><Sel value={v('healthPlanType')} onChange={(x) => u({ healthPlanType: x })} options={['Corporativo', 'Individual', 'Não possui']} /></F>
+      <F label="Doenças graves na família (pais e irmãos)?"><Radios value={v('familyHealthHistory')} onChange={(x) => u({ familyHealthHistory: x })} options={['Sim', 'Não']} /></F>
+      <F label="Toma medicamento contínuo?"><Radios value={v('continuousMedication')} onChange={(x) => u({ continuousMedication: x })} options={['Sim', 'Não']} /></F>
+      <F label="Pratica esportes radicais?"><Radios value={v('extremeSports')} onChange={(x) => u({ extremeSports: x })} options={['Sim', 'Não']} /></F>
+      <F label="Fuma?"><Radios value={v('smoker')} onChange={(x) => u({ smoker: x })} options={['Sim', 'Não']} /></F>
+    </>,
+    <>
+      <F label="Quais são seus 3 principais objetivos financeiros?"><Textarea value={v('financialGoals')} onChange={(e) => u({ financialGoals: e.target.value })} rows={4} /></F>
+      <F label="Pensa em se aposentar?"><Radios value={v('wantsRetirement')} onChange={(x) => u({ wantsRetirement: x })} options={['Sim', 'Não', 'Já aposentado']} /></F>
+      {v('wantsRetirement') === 'Sim' && <Sub>
+        <F label="Com que idade?"><Input type="number" inputMode="numeric" value={v('retirementAge')} onChange={(e) => u({ retirementAge: e.target.value })} /></F>
+        <F label="Renda mensal desejada"><CurrencyInput value={v('retirementIncome')} onChange={(x) => u({ retirementIncome: x })} /></F>
+      </Sub>}
+      <F label="Interesse em planejamento sucessório?"><Radios value={v('successionInterest')} onChange={(x) => u({ successionInterest: x })} options={['Sim', 'Não', 'Já tenho']} /></F>
+      <F label="Alguma restrição para investimentos?"><Textarea value={v('restrictions')} onChange={(e) => u({ restrictions: e.target.value })} /></F>
+    </>,
+    <>
+      <F label="Como reagiria se seus investimentos caíssem 20%?"><Radios value={v('dropReactionB5')} onChange={(x) => u({ dropReactionB5: x })} options={['Não me afetou', 'Fiquei preocupado', 'Vendi parte', 'Vendi tudo']} /></F>
+      <p className="text-xs text-muted-foreground -mt-2">Não me afetaria · Ficaria preocupado mas manteria · Venderia parte · Venderia tudo</p>
+      <F label="Experiência com investimentos"><Sel value={v('investmentExperience')} onChange={(x) => u({ investmentExperience: x })} options={['Nenhuma', 'Básica (poupança/CDB)', 'Intermediária (fundos/ações)', 'Avançada (derivativos/offshore)']} /></F>
+      <F label="Prefere mais segurança ou mais rentabilidade?"><Radios value={v('riskPreferenceB5')} onChange={(x) => u({ riskPreferenceB5: x })} options={['Prefiro segurança', 'Equilíbrio', 'Aceito mais risco']} /></F>
+      <F label="Já trabalhou com assessor/consultor?"><Radios value={v('hasWorkedWithAdvisor')} onChange={(x) => u({ hasWorkedWithAdvisor: x })} options={['Sim', 'Não']} /></F>
+      {v('hasWorkedWithAdvisor') === 'Sim' && <F label="Como foi?"><Textarea value={v('advisorExperience')} onChange={(e) => u({ advisorExperience: e.target.value })} /></F>}
+    </>,
+    <>
+      <p className="text-sm text-muted-foreground">Opcional — pode pular se preferir.</p>
+      <F label="Hobbies e interesses">
+        <div className="flex flex-wrap gap-2">
+          {HOBBIES.map((h) => {
+            const list: string[] = r.hobbiesAndInterests || [];
+            const on = list.includes(h);
+            return <button key={h} type="button" onClick={() => u({ hobbiesAndInterests: on ? list.filter((x) => x !== h) : [...list, h] })}
+              className={`px-3 py-1.5 rounded-full text-xs border transition-colors ${on ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border text-muted-foreground'}`}>{h}</button>;
+          })}
         </div>
-      </div>
+      </F>
+      <F label="Time de futebol"><Input value={v('soccerTeam')} onChange={(e) => u({ soccerTeam: e.target.value })} /></F>
+      <F label="Animais de estimação"><Input value={v('pets')} onChange={(e) => u({ pets: e.target.value })} placeholder="Ex: Cachorro - Rex" /></F>
+      <F label="O que você gosta de fazer nas férias?"><Textarea value={v('vacationPreferences')} onChange={(e) => u({ vacationPreferences: e.target.value })} /></F>
+    </>,
+  ];
 
-      {/* Form Steps */}
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-6">
-          {step === 1 && (
-            <StepIdentity responses={responses} updateField={updateField} />
-          )}
-          {step === 2 && (
-            <StepFamily responses={responses} updateNested={updateNested} />
-          )}
-          {step === 3 && (
-            <StepPatrimony responses={responses} updateNested={updateNested} />
-          )}
-          {step === 4 && (
-            <StepCashFlow responses={responses} updateNested={updateNested} />
-          )}
-          {step === 5 && (
-            <StepGoals responses={responses} updateField={updateField} updateNested={updateNested} />
-          )}
-          {step === 6 && (
-            <StepRisk responses={responses} updateNested={updateNested} />
-          )}
-          {step === 7 && (
-            <StepProtection responses={responses} updateField={updateField} updateNested={updateNested} />
-          )}
+  const last = step === SECTIONS.length - 1;
+  return (
+    <div className="min-h-screen bg-muted/30">
+      <div className="max-w-xl mx-auto px-4 pb-24">
+        <div className="text-center py-8">
+          <h1 className="text-2xl font-bold text-foreground">Formulário de Planejamento Financeiro</h1>
+          <p className="text-muted-foreground mt-2 text-sm">Preencha com calma. Suas informações são confidenciais e serão usadas exclusivamente para o seu planejamento financeiro personalizado.</p>
+          {consultor && <p className="text-sm text-muted-foreground mt-1">Consultor: {consultor}</p>}
         </div>
-
-        {/* Navigation */}
-        <div className="flex justify-between mt-6">
-          <Button
-            variant="outline"
-            onClick={() => { autoSave(); setStep(s => s - 1); }}
-            disabled={step === 1}
-            className="gap-2"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Anterior
-          </Button>
-
-          {step < TOTAL_STEPS ? (
-            <Button
-              onClick={() => { autoSave(); setStep(s => s + 1); }}
-              className="gap-2"
-            >
-              Próxima
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          ) : (
-            <Button
-              onClick={handleSubmit}
-              disabled={saving}
-              className="gap-2 bg-green-600 hover:bg-green-700"
-            >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-              Enviar Formulário
-            </Button>
-          )}
+        <div className="sticky top-0 z-10 bg-muted/30 backdrop-blur py-3 space-y-1.5">
+          <div className="flex justify-between text-xs text-muted-foreground"><span>Seção {step + 1} de {SECTIONS.length}</span><span>{progress}%</span></div>
+          <Progress value={progress} className="h-2" />
         </div>
-
-        {/* Save button */}
-        <div className="text-center mt-4">
-          <Button variant="ghost" size="sm" onClick={autoSave} className="text-slate-500 text-xs">
-            Salvar e continuar depois
-          </Button>
+        <div className="bg-card border border-border rounded-xl p-5 space-y-5 mt-3">
+          <h2 className="text-lg font-semibold text-foreground">{step + 1}. {SECTIONS[step]}</h2>
+          {sections[step]}
+        </div>
+        <div className="flex items-center justify-between gap-2 mt-5">
+          <Button type="button" variant="outline" disabled={step === 0} onClick={() => { setStep(step - 1); window.scrollTo({ top: 0 }); }}><ChevronLeft className="w-4 h-4 mr-1" />Voltar</Button>
+          <Button type="button" variant="ghost" size="sm" onClick={saveLater}><Save className="w-4 h-4 mr-1" />Salvar e continuar depois</Button>
+          {last
+            ? <Button type="button" onClick={submit} disabled={sending}>{sending && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}Enviar</Button>
+            : <Button type="button" onClick={() => { setStep(step + 1); window.scrollTo({ top: 0 }); }}>Próximo<ChevronRight className="w-4 h-4 ml-1" /></Button>}
         </div>
       </div>
     </div>
   );
-}
-
-// ─── Step Components ──────────────────────────
-
-function StepIdentity({ responses, updateField }: { responses: FormResponses; updateField: (k: keyof FormResponses, v: string) => void }) {
-  return (
-    <>
-      <h2 className="text-lg font-semibold text-slate-800">Etapa 1 – Identidade e Momento de Vida</h2>
-      <p className="text-sm text-slate-500">Queremos entender sua trajetória e visão de futuro.</p>
-
-      <div className="space-y-2">
-        <Label>Como você construiu seu patrimônio até aqui?</Label>
-        <Textarea value={responses.wealthBuilding} onChange={e => updateField('wealthBuilding', e.target.value)} placeholder="Conte sua história..." className="min-h-[100px]" />
-      </div>
-      <div className="space-y-2">
-        <Label>Qual foi a decisão financeira mais importante da sua vida?</Label>
-        <Textarea value={responses.biggestDecision} onChange={e => updateField('biggestDecision', e.target.value)} placeholder="Descreva..." className="min-h-[80px]" />
-      </div>
-      <div className="space-y-2">
-        <Label>Qual foi o maior erro financeiro que você já cometeu?</Label>
-        <Textarea value={responses.biggestMistake} onChange={e => updateField('biggestMistake', e.target.value)} placeholder="Descreva..." className="min-h-[80px]" />
-      </div>
-      <div className="space-y-2">
-        <Label>Hoje você se considera em fase de expansão, consolidação ou proteção do patrimônio? Por quê?</Label>
-        <Textarea value={responses.lifePhaseAnswer} onChange={e => updateField('lifePhaseAnswer', e.target.value)} placeholder="Explique..." className="min-h-[80px]" />
-      </div>
-      <div className="space-y-2">
-        <Label>Se eu te encontrar daqui a 10 anos e você disser "deu certo", o que precisa ter acontecido?</Label>
-        <Textarea value={responses.futureVision} onChange={e => updateField('futureVision', e.target.value)} placeholder="Descreva sua visão..." className="min-h-[100px]" />
-      </div>
-    </>
-  );
-}
-
-function StepFamily({ responses, updateNested }: { responses: FormResponses; updateNested: (s: keyof FormResponses, f: string, v: string) => void }) {
-  const f = responses.family;
-  return (
-    <>
-      <h2 className="text-lg font-semibold text-slate-800">Etapa 2 – Estrutura Familiar</h2>
-      <div className="space-y-2">
-        <Label>Estado Civil</Label>
-        <Select value={f.maritalStatus} onValueChange={v => updateNested('family', 'maritalStatus', v)}>
-          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-          <SelectContent>{MARITAL_OPTIONS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-        </Select>
-      </div>
-      {(f.maritalStatus === 'Casado(a)' || f.maritalStatus === 'União estável') && (
-        <div className="space-y-2">
-          <Label>Regime de Bens</Label>
-          <Select value={f.propertyRegime} onValueChange={v => updateNested('family', 'propertyRegime', v)}>
-            <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-            <SelectContent>{PROPERTY_REGIME_OPTIONS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-          </Select>
-        </div>
-      )}
-      <div className="space-y-2">
-        <Label>Possui filhos?</Label>
-        <Select value={f.hasChildren} onValueChange={v => updateNested('family', 'hasChildren', v)}>
-          <SelectTrigger className="w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Sim">Sim</SelectItem>
-            <SelectItem value="Não">Não</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      {f.hasChildren === 'Sim' && (
-        <div className="space-y-4 p-4 bg-slate-50 rounded-lg">
-          <div className="space-y-2">
-            <Label>Quantidade de filhos</Label>
-            <Input type="number" value={f.childrenCount} onChange={e => updateNested('family', 'childrenCount', e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label>Idade dos filhos</Label>
-            <Input value={f.childrenAges} onChange={e => updateNested('family', 'childrenAges', e.target.value)} placeholder="Ex: 8 e 12 anos" />
-          </div>
-          <div className="space-y-2">
-            <Label>Dependem financeiramente?</Label>
-            <Select value={f.childrenFinanciallyDependent} onValueChange={v => updateNested('family', 'childrenFinanciallyDependent', v)}>
-              <SelectTrigger className="w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Sim">Sim</SelectItem>
-                <SelectItem value="Não">Não</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      )}
-      <div className="space-y-2">
-        <Label>Possui outros dependentes financeiros?</Label>
-        <Select value={f.hasOtherDependents} onValueChange={v => updateNested('family', 'hasOtherDependents', v)}>
-          <SelectTrigger className="w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Sim">Sim</SelectItem>
-            <SelectItem value="Não">Não</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      {f.hasOtherDependents === 'Sim' && (
-        <div className="space-y-2">
-          <Label>Quem são?</Label>
-          <Input value={f.otherDependentsDetail} onChange={e => updateNested('family', 'otherDependentsDetail', e.target.value)} placeholder="Ex: pais, irmão..." />
-        </div>
-      )}
-      <div className="space-y-2">
-        <Label>Você já discutiu planejamento sucessório com sua família?</Label>
-        <Select value={f.successionDiscussed} onValueChange={v => updateNested('family', 'successionDiscussed', v)}>
-          <SelectTrigger className="w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Sim">Sim</SelectItem>
-            <SelectItem value="Não">Não</SelectItem>
-            <SelectItem value="Parcialmente">Parcialmente</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-    </>
-  );
-}
-
-function StepPatrimony({ responses, updateNested }: { responses: FormResponses; updateNested: (s: keyof FormResponses, f: string, v: string) => void }) {
-  const p = responses.estruturaPatrimonial;
-  return (
-    <>
-      <h2 className="text-lg font-semibold text-slate-800">Etapa 3 – Estrutura Patrimonial</h2>
-      <p className="text-sm text-slate-500">Valores aproximados para ajudar na construção da estratégia.</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Patrimônio financeiro total</Label>
-          <CurrencyInput value={p.totalPatrimony} onChange={v => updateNested('estruturaPatrimonial', 'totalPatrimony', v)} />
-        </div>
-        <div className="space-y-2">
-          <Label>Ativos financeiros líquidos</Label>
-          <CurrencyInput value={p.liquidFinancialAssets} onChange={v => updateNested('estruturaPatrimonial', 'liquidFinancialAssets', v)} />
-        </div>
-        <div className="space-y-2">
-          <Label>Patrimônio PF</Label>
-          <CurrencyInput value={p.pfValue} onChange={v => updateNested('estruturaPatrimonial', 'pfValue', v)} />
-        </div>
-        <div className="space-y-2">
-          <Label>Patrimônio PJ</Label>
-          <CurrencyInput value={p.pjValue} onChange={v => updateNested('estruturaPatrimonial', 'pjValue', v)} />
-        </div>
-        <div className="space-y-2">
-          <Label>Imóveis</Label>
-          <CurrencyInput value={p.realEstate} onChange={v => updateNested('estruturaPatrimonial', 'realEstate', v)} />
-        </div>
-        <div className="space-y-2">
-          <Label>Participações empresariais</Label>
-          <CurrencyInput value={p.businessParticipations} onChange={v => updateNested('estruturaPatrimonial', 'businessParticipations', v)} />
-        </div>
-      </div>
-      <div className="space-y-2">
-        <Label>Existe concentração relevante em algum ativo?</Label>
-        <Select value={p.hasConcentration} onValueChange={v => updateNested('estruturaPatrimonial', 'hasConcentration', v)}>
-          <SelectTrigger className="w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="sim">Sim</SelectItem>
-            <SelectItem value="nao">Não</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      {p.hasConcentration === 'sim' && (
-        <div className="space-y-2">
-          <Label>Onde está a concentração?</Label>
-          <Input value={p.concentrationDetail} onChange={e => updateNested('estruturaPatrimonial', 'concentrationDetail', e.target.value)} placeholder="Descreva..." />
-        </div>
-      )}
-    </>
-  );
-}
-
-function StepCashFlow({ responses, updateNested }: { responses: FormResponses; updateNested: (s: keyof FormResponses, f: string, v: string) => void }) {
-  const fc = responses.fluxoCaixa;
-  return (
-    <>
-      <h2 className="text-lg font-semibold text-slate-800">Etapa 4 – Fluxo de Caixa</h2>
-      <div className="space-y-2">
-        <Label>Receita mensal média</Label>
-        <CurrencyInput value={fc.monthlyRevenue} onChange={v => updateNested('fluxoCaixa', 'monthlyRevenue', v)} />
-      </div>
-      <div className="space-y-2">
-        <Label>Estabilidade da renda</Label>
-        <Select value={fc.revenueStability} onValueChange={v => updateNested('fluxoCaixa', 'revenueStability', v)}>
-          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Estável">Estável (salário fixo, aposentadoria)</SelectItem>
-            <SelectItem value="Variável">Variável (comissões, negócios)</SelectItem>
-            <SelectItem value="Mista">Mista (parte fixa + variável)</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label>Custo mensal de vida</Label>
-        <CurrencyInput value={fc.livingCost} onChange={v => updateNested('fluxoCaixa', 'livingCost', v)} />
-      </div>
-      <div className="space-y-2">
-        <Label>Aporte mensal para investimentos</Label>
-        <CurrencyInput value={fc.monthlyInvestment} onChange={v => updateNested('fluxoCaixa', 'monthlyInvestment', v)} />
-      </div>
-      <div className="space-y-2">
-        <Label>Já possui renda passiva?</Label>
-        <Select value={fc.alreadyInvesting} onValueChange={v => updateNested('fluxoCaixa', 'alreadyInvesting', v)}>
-          <SelectTrigger className="w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Sim">Sim</SelectItem>
-            <SelectItem value="Não">Não</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-    </>
-  );
-}
-
-function StepGoals({ responses, updateField, updateNested }: { responses: FormResponses; updateField: (k: keyof FormResponses, v: string) => void; updateNested: (s: keyof FormResponses, f: string, v: string) => void }) {
-  const g = responses.objetivosMetas;
-  return (
-    <>
-      <h2 className="text-lg font-semibold text-slate-800">Etapa 5 – Metas</h2>
-      <div className="space-y-2">
-        <Label>Qual seu objetivo principal com o planejamento financeiro?</Label>
-        <Textarea value={g.mainObjective} onChange={e => updateNested('objetivosMetas', 'mainObjective', e.target.value)} placeholder="Descreva..." className="min-h-[80px]" />
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Renda mensal desejada</Label>
-          <CurrencyInput value={responses.targetMonthlyIncome} onChange={v => updateField('targetMonthlyIncome', v)} />
-        </div>
-        <div className="space-y-2">
-          <Label>Patrimônio alvo</Label>
-          <CurrencyInput value={responses.targetPatrimony} onChange={v => updateField('targetPatrimony', v)} />
-        </div>
-      </div>
-      <div className="space-y-2">
-        <Label>Prazo estimado</Label>
-        <Input value={g.timeframe} onChange={e => updateNested('objetivosMetas', 'timeframe', e.target.value)} placeholder="Ex: 10 anos, até 2035..." />
-      </div>
-      <div className="space-y-2">
-        <Label>Eventos futuros importantes (aposentadoria, viagem, educação dos filhos...)</Label>
-        <Textarea value={g.restrictions} onChange={e => updateNested('objetivosMetas', 'restrictions', e.target.value)} placeholder="Descreva..." className="min-h-[80px]" />
-      </div>
-    </>
-  );
-}
-
-function StepRisk({ responses, updateNested }: { responses: FormResponses; updateNested: (s: keyof FormResponses, f: string, v: string) => void }) {
-  const r = responses.perfilRisco;
-  return (
-    <>
-      <h2 className="text-lg font-semibold text-slate-800">Etapa 6 – Risco e Comportamento</h2>
-      <div className="space-y-2">
-        <Label>Como você reage quando seus investimentos caem significativamente?</Label>
-        <Textarea value={r.volatilityReaction} onChange={e => updateNested('perfilRisco', 'volatilityReaction', e.target.value)} placeholder="Descreva..." className="min-h-[80px]" />
-      </div>
-      <div className="space-y-2">
-        <Label>Qual a queda máxima (%) que você toleraria na sua carteira?</Label>
-        <Select value={r.oscillationLimit} onValueChange={v => updateNested('perfilRisco', 'oscillationLimit', v)}>
-          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="5%">Até 5%</SelectItem>
-            <SelectItem value="10%">Até 10%</SelectItem>
-            <SelectItem value="20%">Até 20%</SelectItem>
-            <SelectItem value="30%+">Mais de 30%</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label>Em uma crise, sua prioridade seria crescimento ou tranquilidade?</Label>
-        <Select value={r.crisisPriority} onValueChange={v => updateNested('perfilRisco', 'crisisPriority', v)}>
-          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Crescimento">Crescimento (aproveitar oportunidades)</SelectItem>
-            <SelectItem value="Tranquilidade">Tranquilidade (proteger o que tenho)</SelectItem>
-            <SelectItem value="Equilíbrio">Equilíbrio (um pouco de cada)</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-    </>
-  );
-}
-
-function StepProtection({ responses, updateField, updateNested }: { responses: FormResponses; updateField: (k: keyof FormResponses, v: string) => void; updateNested: (s: keyof FormResponses, f: string, v: string) => void }) {
-  const p = responses.protecaoSucessao;
-  return (
-    <>
-      <h2 className="text-lg font-semibold text-slate-800">Etapa 7 – Proteção e Estrutura</h2>
-      <div className="space-y-2">
-        <Label>Possui holding patrimonial?</Label>
-        <Select value={p.patrimonialOrganization} onValueChange={v => updateNested('protecaoSucessao', 'patrimonialOrganization', v)}>
-          <SelectTrigger className="w-[250px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Sim">Sim</SelectItem>
-            <SelectItem value="Não">Não</SelectItem>
-            <SelectItem value="Em estruturação">Em estruturação</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label>Possui planejamento sucessório?</Label>
-        <Select value={p.successionPlanning} onValueChange={v => updateNested('protecaoSucessao', 'successionPlanning', v)}>
-          <SelectTrigger className="w-[250px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Sim">Sim</SelectItem>
-            <SelectItem value="Não">Não</SelectItem>
-            <SelectItem value="Parcialmente">Parcialmente</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label>Possui seguro de vida?</Label>
-        <Select value={p.lifeInsurance} onValueChange={v => updateNested('protecaoSucessao', 'lifeInsurance', v)}>
-          <SelectTrigger className="w-[250px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Sim">Sim</SelectItem>
-            <SelectItem value="Não">Não</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label>Possui exposição internacional?</Label>
-        <Select value={p.geoDiversification} onValueChange={v => updateNested('protecaoSucessao', 'geoDiversification', v)}>
-          <SelectTrigger className="w-[250px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Sim">Sim</SelectItem>
-            <SelectItem value="Não">Não</SelectItem>
-            <SelectItem value="Interesse futuro">Interesse futuro</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <hr className="my-4" />
-      <div className="space-y-2">
-        <Label className="font-semibold">Existe algo importante que você acredita que ainda não foi perguntado?</Label>
-        <Textarea value={responses.additionalNotes} onChange={e => updateField('additionalNotes', e.target.value)} placeholder="Compartilhe qualquer informação adicional..." className="min-h-[100px]" />
-      </div>
-    </>
-  );
-}
-
-// Deep merge helper
-function deepMerge(target: any, source: any): any {
-  const result = { ...target };
-  for (const key of Object.keys(source)) {
-    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-      result[key] = deepMerge(target[key] || {}, source[key]);
-    } else {
-      result[key] = source[key];
-    }
-  }
-  return result;
 }
