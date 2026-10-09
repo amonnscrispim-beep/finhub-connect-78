@@ -76,6 +76,7 @@ function dbToClient(row: ClientRow): Client {
     meetingPeriodicityDays: ((row as any).meeting_periodicity_days as 30 | 60 | 90 | null) ?? 30,
     meetingNotes: (row.meeting_notes as unknown as MeetingNotes) ?? {},
     lastActivityAt: row.last_activity_at ? new Date(row.last_activity_at) : new Date(),
+    lastMeetingDate: (row as any).last_meeting_date ? new Date((row as any).last_meeting_date) : null,
     scheduledMeeting: row.scheduled_meeting as unknown as ScheduledMeeting | null,
     files: (row.files as unknown as ClientFile[]) ?? [],
     organizedFinances: (row.organized_finances as OrganizedFinancesStatus) ?? '',

@@ -218,6 +218,7 @@ export interface Client {
   meetingPeriodicityDays: 30 | 60 | 90 | null;
   meetingNotes: MeetingNotes;
   lastActivityAt: Date;
+  lastMeetingDate?: Date | null;
   scheduledMeeting: ScheduledMeeting | null;
   files: ClientFile[];
   // New fields
