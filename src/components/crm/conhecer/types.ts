@@ -4,6 +4,9 @@ export interface ConhecerChildInfo {
   id: string;
   name: string;
   age: string;
+  educationPhase?: string;
+  educationMonthlyCost?: string;
+  livesWithClient?: string;
 }
 
 export interface OtherIncomeItem {
@@ -311,6 +314,61 @@ export interface ConhecerClienteData {
   recommendedStructure: string;
   planningPdfUrl: string;
   bloco8Comment: string;
+
+  // ===== V2 (9 blocos) =====
+  _schemaVersion?: number;
+  _legacyData?: Record<string, any>;
+  // Bloco 1
+  spouseWorks: string; spouseProfession: string; spouseIncome: string;
+  widowSinceYears: string; paysSupportAlimony: string; alimonyValue: string;
+  incomeProvider: string; incomeSharePct: string;
+  // Bloco 2
+  jobTitle: string;
+  cltCompany: string; cltNetSalary: string; cltBenefits: string;
+  pjCompanyName: string; pjCnpj: string;
+  aposentadoType: string; aposentadoExtraIncomeDesc: string; aposentadoExtraIncomeValue: string;
+  servidorOrgao: string; servidorCargo: string; servidorNetSalary: string; servidorEstabilidadeDesde: string;
+  annualFamilyIncome: string; monthlyInvestmentCapacity: string; annualInvestmentCapacity: string;
+  hasDebts: string; debtsList: DebtItemV2[];
+  hasPrivatePension: string; pensionType: string; pensionInstitution: string;
+  pensionAccumulated: string; pensionMonthlyContrib: string; pensionYield: string;
+  bloco9Comment: string;
+  // Bloco 3
+  pjPartnersCount: string; pjClientShare: string; pjHasKeyEmployee: string; pjKeyEmployeeName: string;
+  // Bloco 4
+  totalFinancialPL: string; totalPatrimonyEstimate: string;
+  mainBank: string; otherBanks: string; mainCreditCard: string; otherCreditCard: string; fgtsValue: string;
+  hasOffshore: string; offshoreInstitution: string; offshoreCountry: string; offshoreValueUSD: string;
+  hasInternationalAccount: string; internationalAccountBank: string; internationalAccountValueUSD: string;
+  investmentPotential: string; concentrationAsset: string; concentrationPct: string;
+  // Bloco 5
+  lifeInsuranceType: string; lifeInsuranceInterest: string;
+  healthPlanType: string; healthPlanProvider: string;
+  hasEmergencyReserve: string; emergencyReserveValue: string; emergencyReserveCoverage: string; emergencyReserveLocation: string;
+  familyHealthHistory: string; familyHealthDetails: string;
+  continuousMedication: string; continuousMedicationDetails: string;
+  visionIssues: string; extremeSports: string; extremeSportsDetails: string;
+  privateAircraft: string; smoker: string;
+  familyKnowsAssets: string; familyKnowsAssetsDetails: string;
+  hadFinancialCheckup: string; hadFinancialCheckupDetails: string;
+  // Bloco 6
+  successionInterest: string;
+  // Bloco 7
+  lostSleepDetails: string; investorProfile: string; financeInterestTopics: string;
+  // Bloco 9
+  hobbiesAndInterests: string[];
+  sportsActivities: string; soccerTeam: string; pets: string; favoriteDrink: string; idealGift: string;
+  socialClub: string; linkedinUrl: string; politicalPosition: string; religion: string;
+  remunerationModel: string; meetingPeriodicity: string; preferredContactChannel: string; generalNotes: string;
+}
+
+export interface DebtItemV2 {
+  id: string;
+  type: string;
+  totalValue: string;
+  monthlyPayment: string;
+  interestRate: string;
+  remainingMonths: string;
 }
 
 export const PATRIMONIO_CATEGORIES = {
