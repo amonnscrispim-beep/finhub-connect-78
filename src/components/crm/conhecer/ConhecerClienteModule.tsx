@@ -17,7 +17,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { BirthDatePicker } from '@/components/ui/birth-date-picker';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import type { ConhecerClienteData, ConhecerChildInfo, RealEstateCard, PatrimonioTableItem, DebtItemV2 } from './types';
+import type { ConhecerClienteData, ConhecerChildInfo, RealEstateCard, PatrimonioTableItem, DebtItem, DebtItemV2 } from './types';
 import { syncLegacyFields } from './types';
 import { PATRIMONIO_CATEGORIES, getCategoryGroup } from './types';
 import { calculateProgress, getProgressColor } from './types';
