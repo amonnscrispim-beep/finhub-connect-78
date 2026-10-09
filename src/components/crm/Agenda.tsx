@@ -68,6 +68,9 @@ export function Agenda({ onEditClient }: AgendaProps) {
       if (isNaN(date.getTime())) return;
 
       const client = meeting.client_id ? clientById.get(meeting.client_id) : undefined;
+      // Reuniões reais com mais de 7 dias no passado não aparecem mais
+      const daysPast = Math.floor((Date.now() - date.getTime()) / 86400000);
+      if (daysPast > 7) return;
       const key = `${meeting.client_id ?? meeting.client_name}-${startOfDay(date).toISOString()}`;
       persistedKeys.add(key);
 
@@ -114,12 +117,13 @@ export function Agenda({ onEditClient }: AgendaProps) {
       const next = addDays(lastMeeting, period);
       const key = `${client.id}-${startOfDay(next).toISOString()}`;
       if (persistedKeys.has(key)) return;
+      const daysSince = Math.floor((Date.now() - lastMeeting.getTime()) / 86400000);
       out.push({
         id: `projected_${client.id}`,
         client,
         clientName: client.name,
-        title: `Reunião periódica (a cada ${period} dias)`,
-        description: `Última reunião: ${format(lastMeeting, 'dd/MM/yyyy', { locale: ptBR })}`,
+        title: 'Reunião periódica sugerida',
+        description: `Última reunião há ${daysSince} dias (ciclo de ${period} dias)`,
         date: next,
         status: isPast(next) && !isToday(next) ? 'atrasada' : 'pendente',
         isProjected: true,
@@ -149,13 +153,15 @@ export function Agenda({ onEditClient }: AgendaProps) {
   const groups = useMemo(() => {
     const map = new Map<string, AgendaItem[]>();
     filtered.forEach((i) => {
-      const key = startOfDay(i.date).toISOString();
+      const key = i.isProjected && i.status === 'atrasada' ? 'projected-late' : startOfDay(i.date).toISOString();
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(i);
     });
     return Array.from(map.entries()).map(([key, list]) => ({
-      date: new Date(key),
-      items: list,
+      key,
+      date: key === 'projected-late' ? new Date(0) : new Date(key),
+      items: key === 'projected-late' ? [...list].sort((a, b) => a.date.getTime() - b.date.getTime()) : list,
+      isProjectedGroup: key === 'projected-late',
     }));
   }, [filtered]);
 
