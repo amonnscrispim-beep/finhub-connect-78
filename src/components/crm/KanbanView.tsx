@@ -59,6 +59,7 @@ declare const __BUILD_MODE__: string;
 interface KanbanViewProps {
   onEditClient: (client: Client) => void;
   searchQuery?: string;
+  filters?: KanbanFilters;
   clientIdsWithPendencies?: Set<string>;
   pendencies?: UrgentPendency[];
   pendenciesLoading?: boolean;
@@ -107,6 +108,25 @@ const getPatrimonioValue = (c: Client) => {
   if (c.financialAssets > 0) return c.financialAssets;
   return 0;
 };
+
+export interface KanbanFilters { segmentation: string; meetingStatus: string; }
+export function meetingStatusOf(client: Client): 'overdue' | 'pending' | 'ok' {
+  const period = client.meetingPeriodicityDays ?? 30;
+  const last = client.lastMeetingDate ? new Date(client.lastMeetingDate) : (client.lastActivityAt ? new Date(client.lastActivityAt) : null);
+  if (!last) return 'pending';
+  const daysLeft = period - Math.floor((Date.now() - last.getTime()) / 86400000);
+  if (daysLeft < 0) return 'overdue';
+  if (daysLeft <= 7) return 'pending';
+  return 'ok';
+}
+export function passesFilters(client: Client, f?: KanbanFilters) {
+  if (!f) return true;
+  if (f.segmentation !== 'all' && (client.segmentation || 'Varejo') !== f.segmentation) return false;
+  if (f.meetingStatus !== 'all' && meetingStatusOf(client) !== f.meetingStatus) return false;
+  return true;
+}
+export const segmentationBadgeClass = (seg?: string) =>
+  seg === 'Private' ? 'bg-blue-50 text-blue-700' : seg === 'Alta Renda' ? 'bg-purple-50 text-purple-700' : 'bg-muted text-muted-foreground';
 
 const formatCurrency = (v: number) => {
   if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1).replace('.', ',')}M`;
@@ -200,6 +220,7 @@ const KanbanCardComponent = memo(function KanbanCard({
             <h4 className="font-semibold text-foreground leading-tight truncate cursor-pointer hover:text-primary transition-colors flex-1 min-w-0" onClick={handleHeaderClick}>
               {client.name}
             </h4>
+            <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded flex-shrink-0", segmentationBadgeClass(client.segmentation))}>{client.segmentation || 'Varejo'}</span>
             <div className="flex items-center gap-0 flex-shrink-0">
               <button onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }} disabled={!canMoveUp} className={cn("p-0.5 rounded hover:bg-muted transition-colors", canMoveUp ? "text-muted-foreground hover:text-foreground" : "text-muted-foreground/20 cursor-default")} title="Mover para cima">
                 <ChevronUp className="w-3.5 h-3.5" />
@@ -377,10 +398,10 @@ function DragOverlayCard({ client }: { client: Client }) {
 // Column color mapping — BTG / Wealth Management institutional palette
 // Solid header colors (used as a colored chip/bar at the top of each column header)
 const COLUMN_HEADER: Record<string, string> = {
-  'PRIVATE': 'bg-slate-900 text-amber-400 dark:bg-slate-950 dark:text-amber-300',
-  'SELECT':  'bg-blue-900 text-white dark:bg-blue-950 dark:text-blue-100',
-  'GROWTH':  'bg-slate-600 text-white dark:bg-slate-700 dark:text-slate-100',
-  'START':   'bg-gray-500 text-white dark:bg-gray-600 dark:text-gray-100',
+  'PRIVATE': 'bg-primary text-primary-foreground',
+  'SELECT':  'bg-primary text-primary-foreground',
+  'GROWTH':  'bg-primary text-primary-foreground',
+  'START':   'bg-primary text-primary-foreground',
 };
 
 // Soft column container (neutral, sober)
@@ -584,7 +605,7 @@ function PendencyAddModal({ open, onOpenChange, clients, clientId, setClientId, 
   );
 }
 
-function KanbanContent({ onEditClient, searchQuery = '', clientIdsWithPendencies = new Set(), pendencies = [], pendenciesLoading = false, onAddPendency, onCompletePendency, onRemovePendency }: KanbanViewProps) {
+function KanbanContent({ onEditClient, searchQuery = '', filters, clientIdsWithPendencies = new Set(), pendencies = [], pendenciesLoading = false, onAddPendency, onCompletePendency, onRemovePendency }: KanbanViewProps) {
   const { clients, moveClientToStage, swapClientOrder, setReorderingFlag, updateClient, refetch } = useClients();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -724,6 +745,7 @@ function KanbanContent({ onEditClient, searchQuery = '', clientIdsWithPendencies
         const matches = client.name.toLowerCase().includes(query) || client.profession.toLowerCase().includes(query) || client.objective.toLowerCase().includes(query);
         if (!matches) return;
       }
+      if (!passesFilters(client, filters)) return;
       
       // Map client to column: if funnelStage is one of the new 6, use it directly
       // If it's a legacy stage, put in START (they haven't been redistributed yet)
@@ -747,7 +769,7 @@ function KanbanContent({ onEditClient, searchQuery = '', clientIdsWithPendencies
     });
     
     return grouped;
-  }, [clients, searchQuery]);
+  }, [clients, searchQuery, filters]);
 
   const currentDrawerClient = useMemo(() => {
     if (!tasksDrawerClient) return null;
@@ -820,7 +842,7 @@ function KanbanContent({ onEditClient, searchQuery = '', clientIdsWithPendencies
             const isPatrimony = isPatrimonyColumn(stage);
             const patrimonioSum = columnPatrimonioSums[stage] || 0;
             const columnBg = COLUMN_BG[stage] || 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800';
-            const headerColor = COLUMN_HEADER[stage] || 'bg-slate-700 text-white';
+            const headerColor = COLUMN_HEADER[stage] || 'bg-primary text-primary-foreground';
 
             // Insert Pendências Urgentes column after GROWTH (index of GROWTH in the array)
             const growthIndex = KANBAN_COLUMN_STAGES.indexOf('GROWTH' as FunnelStage);
@@ -960,7 +982,7 @@ function KanbanContent({ onEditClient, searchQuery = '', clientIdsWithPendencies
   );
 }
 
-export function KanbanView({ onEditClient, searchQuery = '', clientIdsWithPendencies, pendencies, pendenciesLoading, onAddPendency, onCompletePendency, onRemovePendency }: KanbanViewProps) {
+export function KanbanView({ onEditClient, searchQuery = '', filters, clientIdsWithPendencies, pendencies, pendenciesLoading, onAddPendency, onCompletePendency, onRemovePendency }: KanbanViewProps) {
   const { clients, moveClientToStage, swapClientOrder, setReorderingFlag, updateClient } = useClients();
 
   const clientsByStage = useMemo(() => {
@@ -977,6 +999,7 @@ export function KanbanView({ onEditClient, searchQuery = '', clientIdsWithPenden
         const matches = client.name.toLowerCase().includes(query) || client.profession.toLowerCase().includes(query) || client.objective.toLowerCase().includes(query);
         if (!matches) return;
       }
+      if (!passesFilters(client, filters)) return;
       
       const stage = client.funnelStage as string;
       if (grouped[stage] !== undefined) {
@@ -996,7 +1019,7 @@ export function KanbanView({ onEditClient, searchQuery = '', clientIdsWithPenden
     });
     
     return grouped;
-  }, [clients, searchQuery]);
+  }, [clients, searchQuery, filters]);
 
   const handleReorder = useCallback((clientId: string, targetClientId: string | null, stage: string, insertBefore: boolean) => {
     if (!targetClientId) return;
@@ -1032,7 +1055,7 @@ export function KanbanView({ onEditClient, searchQuery = '', clientIdsWithPenden
       onReorder={handleReorder}
       onMoveToStage={handleMoveToStage}
     >
-      <KanbanContent onEditClient={onEditClient} searchQuery={searchQuery} clientIdsWithPendencies={clientIdsWithPendencies} pendencies={pendencies} pendenciesLoading={pendenciesLoading} onAddPendency={onAddPendency} onCompletePendency={onCompletePendency} onRemovePendency={onRemovePendency} />
+      <KanbanContent onEditClient={onEditClient} searchQuery={searchQuery} filters={filters} clientIdsWithPendencies={clientIdsWithPendencies} pendencies={pendencies} pendenciesLoading={pendenciesLoading} onAddPendency={onAddPendency} onCompletePendency={onCompletePendency} onRemovePendency={onRemovePendency} />
     </KanbanDndProvider>
   );
 }

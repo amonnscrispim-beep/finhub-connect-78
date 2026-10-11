@@ -740,6 +740,7 @@ export type Database = {
           residence: string | null
           retirement_goal: Json | null
           scheduled_meeting: Json | null
+          segmentation: string
           short_term_goals: string | null
           state: string | null
           strategic_diagnostic: Json | null
@@ -827,6 +828,7 @@ export type Database = {
           residence?: string | null
           retirement_goal?: Json | null
           scheduled_meeting?: Json | null
+          segmentation?: string
           short_term_goals?: string | null
           state?: string | null
           strategic_diagnostic?: Json | null
@@ -914,6 +916,7 @@ export type Database = {
           residence?: string | null
           retirement_goal?: Json | null
           scheduled_meeting?: Json | null
+          segmentation?: string
           short_term_goals?: string | null
           state?: string | null
           strategic_diagnostic?: Json | null
