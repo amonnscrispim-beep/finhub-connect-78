@@ -33,7 +33,19 @@ export type RenewalStatus = 'Renovação' | 'Potencial Renovação' | 'Não apli
 
 export type FileFolder = 'documentos' | 'planejamento' | 'desempenho';
 
-export type ContractedMeetings = 1 | 3 | 6;
+export type ContractedMeetings = 1 | 2 | 3 | 4 | 5 | 6 | 8 | 10 | 12;
+
+export interface MeetingTask { id: string; text: string; done: boolean; deadline?: string; }
+export type ContractMeetingStatus = 'Pendente' | 'Agendada' | 'Realizada';
+export interface ContractMeeting {
+  id: string;
+  number: number;
+  date: string;
+  status: ContractMeetingStatus;
+  workDone: string;
+  clientTasks: MeetingTask[];
+  consultantTasks: MeetingTask[];
+}
 
 export type PrivatePensionStatus = 'Sim' | 'Não' | 'Não precisa' | '';
 
@@ -215,7 +227,8 @@ export interface Client {
   privatePensionType: PrivatePensionType;
   retirementGoal: RetirementGoal | null;
   contractedMeetings: ContractedMeetings | null;
-  meetingPeriodicityDays: 30 | 60 | 90 | null;
+  meetingPeriodicityDays: number | null;
+  contractMeetings: ContractMeeting[];
   meetingNotes: MeetingNotes;
   lastActivityAt: Date;
   lastMeetingDate?: Date | null;
@@ -347,7 +360,7 @@ export const FILE_FOLDERS: { value: FileFolder; label: string }[] = [
   { value: 'desempenho', label: 'Desempenho' },
 ];
 
-export const CONTRACTED_MEETINGS_OPTIONS: ContractedMeetings[] = [1, 3, 6];
+export const CONTRACTED_MEETINGS_OPTIONS: ContractedMeetings[] = [1, 2, 3, 4, 5, 6, 8, 10, 12];
 
 export const PRIVATE_PENSION_STATUS_OPTIONS: PrivatePensionStatus[] = [
   'Sim',

@@ -73,6 +73,7 @@ import { ScoreEstrategico } from './ScoreEstrategico';
 import { AlertasConsultor } from './AlertasConsultor';
 import { ResumoFinanceiroAutomatico } from './ResumoFinanceiroAutomatico';
 import { PainelFinanceiro } from './PainelFinanceiro';
+import { ContratoAcompanhamento, buildInitialContractMeetings } from './ContratoAcompanhamento';
 import { DiagnosticoEstrategico, defaultStrategicDiagnostic, StrategicDiagnosticData, defaultFamilyData } from './DiagnosticoEstrategico';
 import { EstruturaPatrimonial, defaultEstruturaPatrimonial, EstruturaPatrimonialData } from './EstruturaPatrimonial';
 import { FluxoCaixaAccumulacao, defaultFluxoCaixa, FluxoCaixaData } from './FluxoCaixaAccumulacao';
@@ -97,7 +98,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useActivityLog } from '@/hooks/useActivityLog';
 import { toast } from 'sonner';
 
-import type { InvestorProfile, FunnelStage, Residence, RenewalStatus, ContractedMeetings, PrivatePensionStatus, PrivatePensionType, OrganizedFinancesStatus, AmortizationSystem, AmortizationStrategy } from '@/types/client';
+import type { InvestorProfile, FunnelStage, Residence, RenewalStatus, ContractedMeetings, ContractMeeting, PrivatePensionStatus, PrivatePensionType, OrganizedFinancesStatus, AmortizationSystem, AmortizationStrategy } from '@/types/client';
 
 // List of common countries for international clients
 const COMMON_COUNTRIES = [
@@ -154,7 +155,8 @@ interface FormData {
   retirementAge: string;
   retirementIncome: string;
   contractedMeetings: ContractedMeetings | null;
-  meetingPeriodicityDays: 30 | 60 | 90 | null;
+  meetingPeriodicityDays: number | null;
+  contractMeetings: ContractMeeting[];
   meetingNotes: MeetingNotes;
   files: ClientFile[];
   organizedFinances: OrganizedFinancesStatus;
@@ -436,6 +438,9 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         retirementIncome: client.retirementGoal?.desiredMonthlyIncome?.toString() || '',
         contractedMeetings: client.contractedMeetings || null,
         meetingPeriodicityDays: (client as any).meetingPeriodicityDays ?? 30,
+        contractMeetings: (client.contractMeetings && client.contractMeetings.length > 0)
+          ? client.contractMeetings
+          : buildInitialContractMeetings(client),
         meetingNotes: client.meetingNotes || {},
         files: client.files || [],
         organizedFinances: client.organizedFinances || '',
@@ -729,6 +734,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       retirementGoal: retirementGoal,
       contractedMeetings: formData.contractedMeetings,
       meetingPeriodicityDays: formData.meetingPeriodicityDays,
+      contractMeetings: formData.contractMeetings,
       meetingNotes: formData.meetingNotes,
       lastActivityAt: client?.lastActivityAt || new Date(),
       scheduledMeeting: client?.scheduledMeeting || null,
@@ -930,8 +936,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     { id: 'pension', label: 'Previdência e Aposentadoria', icon: Landmark },
     { id: 'goals', label: 'Metas Financeiras', icon: Target },
     
-    { id: 'contracts', label: 'Contratos e Entregas', icon: ClipboardList },
-    { id: 'tasks', label: 'Tarefas e Status', icon: CheckCircle },
+    { id: 'contracts', label: 'Contrato e Acompanhamento', icon: ClipboardCheck },
     { id: 'patrimonial-planning', label: 'Simulador Planejamento Patrimonial', icon: TrendingUp },
     { id: 'performance', label: 'Relatório de Performance', icon: BarChart3 },
     { id: 'extrato', label: 'Extrato do Cliente', icon: Wallet },
@@ -1455,7 +1460,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 <Label htmlFor="meetingPeriodicityDays">Periodicidade de Reuniões</Label>
                 <Select
                   value={(formData.meetingPeriodicityDays ?? 30).toString()}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, meetingPeriodicityDays: parseInt(value) as 30 | 60 | 90 }))}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, meetingPeriodicityDays: parseInt(value) }))}
                 >
                   <SelectTrigger className="crm-input w-[200px]"><SelectValue /></SelectTrigger>
                   <SelectContent>
