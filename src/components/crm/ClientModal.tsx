@@ -156,6 +156,7 @@ interface FormData {
   retirementIncome: string;
   contractedMeetings: ContractedMeetings | null;
   meetingPeriodicityDays: number | null;
+  segmentation?: string;
   contractMeetings: ContractMeeting[];
   meetingNotes: MeetingNotes;
   files: ClientFile[];
@@ -242,6 +243,7 @@ const defaultFormData: FormData = {
   retirementIncome: '',
   contractedMeetings: null,
   meetingPeriodicityDays: 30,
+  segmentation: 'Varejo',
   contractMeetings: [],
   meetingNotes: {},
   files: [],
@@ -439,6 +441,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         retirementIncome: client.retirementGoal?.desiredMonthlyIncome?.toString() || '',
         contractedMeetings: client.contractedMeetings || null,
         meetingPeriodicityDays: (client as any).meetingPeriodicityDays ?? 30,
+        segmentation: (client as any).segmentation ?? 'Varejo',
         contractMeetings: (client.contractMeetings && client.contractMeetings.length > 0)
           ? client.contractMeetings
           : buildInitialContractMeetings(client),
@@ -735,6 +738,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       retirementGoal: retirementGoal,
       contractedMeetings: formData.contractedMeetings,
       meetingPeriodicityDays: formData.meetingPeriodicityDays,
+      segmentation: formData.segmentation,
       contractMeetings: formData.contractMeetings,
       meetingNotes: formData.meetingNotes,
       lastActivityAt: client?.lastActivityAt || new Date(),

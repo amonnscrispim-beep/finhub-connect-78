@@ -228,6 +228,7 @@ export interface Client {
   retirementGoal: RetirementGoal | null;
   contractedMeetings: ContractedMeetings | null;
   meetingPeriodicityDays: number | null;
+  segmentation?: string;
   contractMeetings: ContractMeeting[];
   meetingNotes: MeetingNotes;
   lastActivityAt: Date;
