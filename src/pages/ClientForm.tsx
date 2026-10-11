@@ -10,6 +10,7 @@ const genId = () => Math.random().toString(36).substring(2, 10);
 const SECTIONS = ['Sobre você', 'Sua situação profissional e financeira', 'Seu patrimônio', 'Proteção e saúde', 'Seus objetivos', 'Seu perfil de investidor', 'Para te conhecer melhor'];
 const HOBBIES = ['Arquitetura e Design', 'Arte', 'Gastronomia', 'Viagens', 'Vinhos', 'Esportes', 'Música', 'Cinema', 'Tecnologia', 'Moda', 'Literatura', 'Outros'];
 const YN = ['Sim', 'Não'];
+const INTENTIONS = ['Morar', 'Alugar / Gerar renda', 'Pretende vender', 'Manter como investimento'];
 
 // Estilo isolado do formulário público (não altera o tema do CRM)
 const FIELD = 'w-full bg-[#0B1929] border border-[rgba(196,164,106,0.3)] rounded-lg px-4 py-3 text-[#E8E6E1] text-sm placeholder-[#4A5568] focus:border-[rgba(196,164,106,0.6)] focus:ring-1 focus:ring-[rgba(196,164,106,0.3)] focus:outline-none transition-colors';
@@ -103,6 +104,8 @@ export default function ClientForm() {
   const radio = (k: string, opts = YN) => <Radios name={k} value={v(k)} onChange={(x) => u({ [k]: x })} options={opts} />;
   const sel = (k: string, opts: string[]) => <Sel value={v(k)} onChange={(x) => u({ [k]: x })} options={opts} />;
 
+  const props: R[] = Array.isArray(r.realEstateCards) ? r.realEstateCards : [];
+  const setProp = (id: string, p: R) => u({ realEstateCards: props.map((x) => (x.id === id ? { ...x, ...p } : x)) });
   const go = (s: number) => { setStep(s); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
   const saveLater = async () => {
@@ -235,10 +238,8 @@ export default function ClientForm() {
         <F label="Salário líquido" req>{money('servidorNetSalary')}</F>
       </Grid></Sub>}
       <Grid>
-        <F label="Renda anual familiar (estimativa)">{money('annualFamilyIncome')}</F>
         <F label="Custo mensal da família (estimativa)">{money('monthlyCostOfLiving')}</F>
         <F label="Capacidade de investimento mensal">{money('monthlyInvestmentCapacity')}</F>
-        <F label="Capacidade de investimento anual">{money('annualInvestmentCapacity')}</F>
       </Grid>
       <F label="Possui dívidas?">{radio('hasDebts')}</F>
       {v('hasDebts') === 'Sim' && <Sub>
@@ -273,11 +274,29 @@ export default function ClientForm() {
         <F label="Valor do FGTS (se aplicável)">{money('fgtsValue')}</F>
       </Grid>
       <F label="Possui imóveis?">{radio('hasRealEstate')}</F>
-      {v('hasRealEstate') === 'Sim' && <Sub><Grid>
-        <F label="Quantos imóveis?">{num('realEstateCount', 0)}</F>
-        <F label="Valor estimado total dos imóveis">{money('realEstateTotalValue')}</F>
-        <F label="Finalidade principal">{sel('realEstatePurpose', ['Moradia', 'Investimento', 'Comercial', 'Veraneio'])}</F>
-      </Grid></Sub>}
+      {v('hasRealEstate') === 'Sim' && <Sub>
+        {props.map((p, i) => (
+          <ItemCard key={p.id} title={`Imóvel ${i + 1}`} onRemove={() => u({ realEstateCards: props.filter((x) => x.id !== p.id) })}>
+            <F label="Tipo / Descrição" req><input type="text" className={FIELD} value={p.description || ''} placeholder="Ex: Apartamento 3 quartos, Casa de praia, Terreno..." onChange={(e) => setProp(p.id, { description: e.target.value })} /></F>
+            <Grid>
+              <F label="Localização" req><input type="text" className={FIELD} value={p.location || ''} placeholder="Ex: São Paulo - SP" onChange={(e) => setProp(p.id, { location: e.target.value })} /></F>
+              <F label="Valor estimado" req><CurrencyInput className={MONEY} value={p.value || ''} onChange={(x) => setProp(p.id, { value: x })} placeholder="R$ 0,00" /></F>
+            </Grid>
+            <F label="Qual a intenção com este imóvel?" req><Radios name={`int-${p.id}`} value={p.purpose || ''} onChange={(x) => setProp(p.id, { purpose: x })} options={INTENTIONS} /></F>
+            {p.purpose === 'Alugar / Gerar renda' && <F label="Valor do aluguel mensal (se já alugado)"><CurrencyInput className={MONEY} value={p.rentValue || ''} onChange={(x) => setProp(p.id, { rentValue: x })} placeholder="R$ 0,00" /></F>}
+            <F label="Possui financiamento?"><Radios name={`fin-${p.id}`} value={p.hasFinancing || ''} onChange={(x) => setProp(p.id, { hasFinancing: x })} options={YN} /></F>
+            {p.hasFinancing === 'Sim' && <Grid>
+              <F label="Saldo devedor"><CurrencyInput className={MONEY} value={p.financingBalance || ''} onChange={(x) => setProp(p.id, { financingBalance: x })} placeholder="R$ 0,00" /></F>
+              <F label="Parcela mensal"><CurrencyInput className={MONEY} value={p.financingPayment || ''} onChange={(x) => setProp(p.id, { financingPayment: x })} placeholder="R$ 0,00" /></F>
+            </Grid>}
+          </ItemCard>
+        ))}
+        <AddBtn onClick={() => u({ realEstateCards: [...props, { id: genId(), description: '', location: '', value: '', purpose: '', rentValue: '', hasFinancing: '', financingBalance: '', financingPayment: '' }] })}>Adicionar imóvel</AddBtn>
+        {props.length > 0 && <div className="flex justify-between items-center p-3 bg-[#C4A46A]/10 rounded-lg">
+          <span className="text-sm text-[#8B9BB4]">Total em imóveis:</span>
+          <span className="text-sm font-semibold text-[#E8E6E1]">{props.reduce((a, p) => a + (parseFloat(String(p.value)) || 0), 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+        </div>}
+      </Sub>}
       <F label="Possui recursos no exterior (offshore)?">{radio('hasOffshore')}</F>
       {v('hasOffshore') === 'Sim' && <Sub><Grid>
         <F label="Instituição">{txt('offshoreInstitution')}</F>
