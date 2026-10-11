@@ -27,6 +27,26 @@ function idadeDe(c: Client) {
   return Number(c.age) || 35;
 }
 
+const Section = ({ title, children, open = true }: { title: string; children: React.ReactNode; open?: boolean }) => (
+  <Collapsible defaultOpen={open} className="crm-card rounded-xl border border-border bg-card">
+    <CollapsibleTrigger className="w-full flex items-center justify-between px-5 py-3 text-left group">
+      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+    </CollapsibleTrigger>
+    <CollapsibleContent className="px-5 pb-5 space-y-4" data-pdf-section>{children}</CollapsibleContent>
+  </Collapsible>
+);
+
+const KV = ({ rows }: { rows: [string, string][] }) => (
+  <table className="w-full text-sm border border-border rounded-lg overflow-hidden"><tbody>
+    {rows.map(([k, v]) => <tr key={k} className="border-t border-border first:border-t-0"><td className="px-3 py-2 text-muted-foreground">{k}</td><td className="px-3 py-2 text-right font-semibold text-foreground whitespace-nowrap">{v}</td></tr>)}
+  </tbody></table>
+);
+
+const Insight = ({ children }: { children: React.ReactNode }) => (
+  <div className="flex gap-2 rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm"><Lightbulb className="w-5 h-5 text-primary shrink-0 mt-0.5" /><div className="space-y-1">{children}</div></div>
+);
+
 interface Saved { params: ParametrosProjecao; aportes: FluxoPlanejado[]; objetivos: FluxoPlanejado[]; outros: { fgts: number; previdencia: number } }
 
 export function ProjecaoPatrimonial({ client, clientName }: { client: Client; clientName?: string }) {
@@ -135,23 +155,6 @@ export function ProjecaoPatrimonial({ client, clientName }: { client: Client; cl
     setExporting(false);
   };
 
-  const Section = ({ title, children, open = true }: { title: string; children: React.ReactNode; open?: boolean }) => (
-    <Collapsible defaultOpen={open} className="crm-card rounded-xl border border-border bg-card">
-      <CollapsibleTrigger className="w-full flex items-center justify-between px-5 py-3 text-left group">
-        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-        <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
-      </CollapsibleTrigger>
-      <CollapsibleContent className="px-5 pb-5 space-y-4" data-pdf-section>{children}</CollapsibleContent>
-    </Collapsible>
-  );
-  const KV = ({ rows }: { rows: [string, string][] }) => (
-    <table className="w-full text-sm border border-border rounded-lg overflow-hidden"><tbody>
-      {rows.map(([k, v]) => <tr key={k} className="border-t border-border first:border-t-0"><td className="px-3 py-2 text-muted-foreground">{k}</td><td className="px-3 py-2 text-right font-semibold text-foreground whitespace-nowrap">{v}</td></tr>)}
-    </tbody></table>
-  );
-  const Insight = ({ children }: { children: React.ReactNode }) => (
-    <div className="flex gap-2 rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm"><Lightbulb className="w-5 h-5 text-primary shrink-0 mt-0.5" /><div className="space-y-1">{children}</div></div>
-  );
   const FluxoTable = ({ list, label }: { list: 'aportes' | 'objetivos'; label: string }) => (
     <div className="space-y-2">
       <div className="overflow-x-auto rounded-lg border border-border">
@@ -225,8 +228,8 @@ export function ProjecaoPatrimonial({ client, clientName }: { client: Client; cl
           </div>
         ) : <p className="text-sm text-muted-foreground">Nenhum patrimônio registrado na ficha do cliente.</p>}
         <p className="text-xs text-muted-foreground">A projeção usa como capital inicial o patrimônio financeiro, o FGTS e a previdência ({fmt(inicial)}). Imóveis e empresas entram no total, mas não no fluxo da projeção.</p>
-        <div><p className="text-sm font-medium text-foreground mb-2">Aportes planejados</p><FluxoTable list="aportes" label="Nome do aporte" /></div>
-        <div><p className="text-sm font-medium text-foreground mb-2">Objetivos (retiradas planejadas)</p><FluxoTable list="objetivos" label="Objetivo" /><p className="text-xs text-muted-foreground mt-1">A renda de aposentadoria é definida nos parâmetros abaixo e não precisa ser listada aqui.</p></div>
+        <div><p className="text-sm font-medium text-foreground mb-2">Aportes planejados</p>{FluxoTable({ list: "aportes", label: "Nome do aporte" })}</div>
+        <div><p className="text-sm font-medium text-foreground mb-2">Objetivos (retiradas planejadas)</p>{FluxoTable({ list: "objetivos", label: "Objetivo" })}<p className="text-xs text-muted-foreground mt-1">A renda de aposentadoria é definida nos parâmetros abaixo e não precisa ser listada aqui.</p></div>
       </Section>
 
       <Section title="2. Parâmetros da projeção">
@@ -294,7 +297,7 @@ export function ProjecaoPatrimonial({ client, clientName }: { client: Client; cl
             <Insight><p>Para consumir todo o patrimônio até os {p.idadeLimite} anos, com aportes mensais médios de {fmt(r.base)}, a retirada mensal de <strong>{fmt(r.rCons)}</strong> entre os {p.idadeAposentadoria} e {p.idadeLimite} anos garante o uso completo dos recursos.</p></Insight>
             <KV rows={[[`Patrimônio aos ${p.idadeAposentadoria} anos`, fmt(r.pAp)], ['Para consumir todo, a renda mensal ideal é de', fmt(r.rCons)]]} />
             <p className="text-sm font-medium text-foreground">Análise de sensibilidade — consumindo</p>
-            <Sens rows={r.sensCons} tone="bg-warning/20" />
+            {Sens({ rows: r.sensCons, tone: "bg-warning/20" })}
           </div>
 
           <div className="border-l-4 pl-4 space-y-3" style={{ borderColor: C_PRES }}>
@@ -302,7 +305,7 @@ export function ProjecaoPatrimonial({ client, clientName }: { client: Client; cl
             <Insight><p>Para preservar o patrimônio até os {p.idadeLimite} anos, com aportes mensais médios de {fmt(r.base)}, a retirada mensal ideal é de <strong>{fmt(r.rPres)}</strong>, entre os {p.idadeAposentadoria} e {p.idadeLimite} anos.</p></Insight>
             <KV rows={[[`Patrimônio aos ${p.idadeAposentadoria} anos`, fmt(r.pAp)], ['Para preservar o patrimônio, a renda mensal ideal é de', fmt(r.rPres)]]} />
             <p className="text-sm font-medium text-foreground">Análise de sensibilidade — preservando</p>
-            <Sens rows={r.sensPres} tone="bg-destructive/10" />
+            {Sens({ rows: r.sensPres, tone: "bg-destructive/10" })}
           </div>
         </Section>
       </>)}
