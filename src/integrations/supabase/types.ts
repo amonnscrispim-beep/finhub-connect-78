@@ -673,6 +673,7 @@ export type Database = {
           consulting_reason: string | null
           consulting_result: Json | null
           contract_end: string
+          contract_meetings: Json
           contract_start: string
           contracted_meetings: number | null
           contribution_notes: string | null
@@ -759,6 +760,7 @@ export type Database = {
           consulting_reason?: string | null
           consulting_result?: Json | null
           contract_end?: string
+          contract_meetings?: Json
           contract_start?: string
           contracted_meetings?: number | null
           contribution_notes?: string | null
@@ -845,6 +847,7 @@ export type Database = {
           consulting_reason?: string | null
           consulting_result?: Json | null
           contract_end?: string
+          contract_meetings?: Json
           contract_start?: string
           contracted_meetings?: number | null
           contribution_notes?: string | null
