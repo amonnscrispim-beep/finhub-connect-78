@@ -5,9 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const lookupCol = (t: string) => (t.length <= 8 ? "short_code" : "token");
-const lookupVal = (t: string) => (t.length <= 8 ? t.toUpperCase() : t);
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -33,7 +30,7 @@ Deno.serve(async (req) => {
       const { data: formToken, error } = await supabase
         .from("client_form_tokens")
         .select("*")
-        .eq(lookupCol(token), lookupVal(token))
+        .eq("token", token)
         .single();
 
       if (error || !formToken) {
@@ -56,7 +53,6 @@ Deno.serve(async (req) => {
         JSON.stringify({
           consultorName: prof?.full_name || "",
           clientName: formToken.client_name,
-          formTitle: formToken.form_title || "Formulário de Planejamento Patrimonial",
           status: formToken.status,
           responses: formToken.responses || {},
         }),
@@ -80,7 +76,7 @@ Deno.serve(async (req) => {
       const { data: formToken, error: fetchError } = await supabase
         .from("client_form_tokens")
         .select("*")
-        .eq(lookupCol(token), lookupVal(token))
+        .eq("token", token)
         .single();
 
       if (fetchError || !formToken) {

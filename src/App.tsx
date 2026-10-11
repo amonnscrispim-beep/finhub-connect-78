@@ -35,7 +35,6 @@ function AppRoutes() {
       <Route path="/auth" element={<Auth />} />
       <Route path="/formulario/:token" element={<ClientForm />} />
       <Route path="/client-form/:token" element={<ClientForm />} />
-      <Route path="/f/:code" element={<ClientForm />} />
       <Route
         path="/"
         element={
