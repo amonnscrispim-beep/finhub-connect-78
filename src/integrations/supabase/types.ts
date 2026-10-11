@@ -236,9 +236,11 @@ export type Database = {
           completed_at: string | null
           created_at: string
           expires_at: string | null
+          form_title: string | null
           id: string
           merged_at: string | null
           responses: Json | null
+          short_code: string | null
           status: string
           token: string
           updated_at: string
@@ -250,9 +252,11 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           expires_at?: string | null
+          form_title?: string | null
           id?: string
           merged_at?: string | null
           responses?: Json | null
+          short_code?: string | null
           status?: string
           token?: string
           updated_at?: string
@@ -264,9 +268,11 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           expires_at?: string | null
+          form_title?: string | null
           id?: string
           merged_at?: string | null
           responses?: Json | null
+          short_code?: string | null
           status?: string
           token?: string
           updated_at?: string
@@ -656,6 +662,59 @@ export type Database = {
             foreignKeyName: "client_portfolio_simulations_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_suitability: {
+        Row: {
+          client_id: string
+          completed_at: string
+          created_at: string
+          form_data: Json
+          id: string
+          investor_profile: string
+          person_type: string
+          score: number
+          status: string
+          updated_at: string
+          user_id: string
+          valid_until: string
+        }
+        Insert: {
+          client_id: string
+          completed_at?: string
+          created_at?: string
+          form_data: Json
+          id?: string
+          investor_profile: string
+          person_type: string
+          score: number
+          status?: string
+          updated_at?: string
+          user_id: string
+          valid_until: string
+        }
+        Update: {
+          client_id?: string
+          completed_at?: string
+          created_at?: string
+          form_data?: Json
+          id?: string
+          investor_profile?: string
+          person_type?: string
+          score?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+          valid_until?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_suitability_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },

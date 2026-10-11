@@ -65,7 +65,8 @@ function AddBtn({ onClick, children }: { onClick: () => void; children: React.Re
 }
 
 export default function ClientForm() {
-  const { token } = useParams<{ token: string }>();
+  const params = useParams<{ token?: string; code?: string }>();
+  const token = params.token || params.code?.toUpperCase();
   const storageKey = `client-form-${token}`;
   const baseUrl = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/client-form`;
 
@@ -384,6 +385,7 @@ export default function ClientForm() {
     <div className="client-form-page min-h-screen bg-[#0B1929] text-[#E8E6E1]">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-12 pb-40 sm:pb-12">
         <div className="text-center mb-10">
+          <p className="text-[11px] uppercase tracking-[0.25em] text-[#8B9BB4] mb-3">Formulário de Planejamento Patrimonial · Gofferjé Investimentos</p>
           <h1 className="text-3xl sm:text-4xl font-light tracking-wide text-[#C4A46A]">Onboarding</h1>
           <p className="mt-4 text-[#E8E6E1] text-sm sm:text-base leading-relaxed">É com grande satisfação que lhe damos as boas-vindas!</p>
           <p className="mt-3 text-[#8B9BB4] text-xs sm:text-sm leading-relaxed">O primeiro passo para iniciar seu planejamento financeiro personalizado é o preenchimento do formulário abaixo.</p>

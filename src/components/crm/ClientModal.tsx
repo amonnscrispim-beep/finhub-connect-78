@@ -52,12 +52,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { BirthDatePicker } from '@/components/ui/birth-date-picker';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarIcon, Plus, Trash2, ClipboardCheck } from 'lucide-react';
+import { CalendarIcon, Plus, Trash2, ClipboardCheck, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useClients } from '@/contexts/ClientContext';
 import { ClientFiles } from './ClientFiles';
 import { SimuladorImovelCarteira } from './SimuladorImovelCarteira';
-import { SimuladorPlanejamentoPatrimonial } from './planejamento/SimuladorPlanejamentoPatrimonial';
+import { ProjecaoPatrimonial } from './planejamento/ProjecaoPatrimonial';
+import { SuitabilityModule } from './suitability/SuitabilityModule';
 import { Progress } from '@/components/ui/progress';
 import { CollapsibleSection } from './CollapsibleSection';
 import { FinancialGoalsSection } from './FinancialGoalsSection';
@@ -936,6 +937,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   const TABS = [
     { id: 'personal', label: 'Informações Pessoais', icon: User },
     { id: 'meetings', label: 'Reuniões', icon: Calendar },
+    { id: 'suitability', label: 'Suitability', icon: ShieldCheck },
     { id: 'financial', label: 'Situação Financeira Atual', icon: DollarSign },
     { id: 'debts', label: 'Dívidas e Obrigações', icon: CreditCard },
     { id: 'pension', label: 'Previdência e Aposentadoria', icon: Landmark },
@@ -1189,6 +1191,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
             </div>
 
             {/* SECTION 3: Situação Financeira Atual (Painel Automático) */}
+            <div hidden={activeTab !== 'suitability'} className="space-y-4">
+              {client ? <SuitabilityModule clientId={client.id} clientName={formData.name || client.name} clientEmail={formData.email} clientPhone={formData.phone} birthDate={client.birthDate} /> : <p className="text-sm text-muted-foreground">Salve o cliente para preencher o suitability.</p>}
+            </div>
+
             <div hidden={activeTab !== 'financial'} className="space-y-4">
               <PainelFinanceiro
                 conhecerData={conhecerData}
@@ -1543,7 +1549,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
             {/* SECTION: Planejamento Patrimonial — módulo próprio do cliente */}
             <div hidden={activeTab !== 'patrimonial-planning'}>
               {client?.id ? (
-                <SimuladorPlanejamentoPatrimonial key={client.id} client={client} clientName={formData.name} />
+                <ProjecaoPatrimonial key={client.id} client={client} clientName={formData.name} />
               ) : (
                 <div className="text-sm text-muted-foreground p-6 text-center border border-dashed rounded-md">
                   Salve o cliente primeiro para usar o planejamento patrimonial.
