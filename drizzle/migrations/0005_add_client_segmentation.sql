@@ -1,0 +1,1 @@
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS segmentation text NOT NULL DEFAULT 'Varejo';
