@@ -6,6 +6,9 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useClients } from '@/contexts/ClientContext';
 import { useCrmMeetings } from '@/hooks/useCrmMeetings';
 import { Client } from '@/types/client';
@@ -57,14 +60,39 @@ export function Agenda({ onEditClient }: AgendaProps) {
   const clients = useMemo(() => allClients.filter((c) => !c.consultingFinished), [allClients]);
   const finishedIds = useMemo(() => new Set(allClients.filter((c) => c.consultingFinished).map((c) => c.id)), [allClients]);
 
-  const handleMarkAsDone = async (client?: Client) => {
+  const [doneClient, setDoneClient] = useState<Client | undefined>();
+  const [completedDate, setCompletedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [savingDone, setSavingDone] = useState(false);
+
+  const openMarkAsDone = (client?: Client) => {
     if (!client) return;
+    setCompletedDate(format(new Date(), 'yyyy-MM-dd'));
+    setDoneClient(client);
+  };
+
+  const handleMarkAsDone = async () => {
+    const client = doneClient;
+    if (!client || !completedDate) return;
+    const [y, m, d] = completedDate.split('-').map(Number);
+    const done = new Date(y, m - 1, d, 12, 0, 0);
+    if (isNaN(done.getTime())) return;
+    setSavingDone(true);
     try {
-      const now = new Date();
-      await updateClient(client.id, { lastMeetingDate: now, lastActivityAt: now });
-      toast.success('Reunião marcada como realizada');
+      const period = client.meetingPeriodicityDays ?? 30;
+      const next = addDays(done, period);
+      const prevActivity = client.lastActivityAt ? new Date(client.lastActivityAt) : null;
+      await updateClient(client.id, {
+        lastMeetingDate: done,
+        lastActivityAt: prevActivity && prevActivity > done ? prevActivity : done,
+      });
+      toast.success(
+        `Reunião realizada em ${format(done, 'dd/MM/yyyy')}. Próxima sugerida: ${format(next, 'dd/MM/yyyy')}`
+      );
+      setDoneClient(undefined);
     } catch {
       toast.error('Erro ao atualizar reunião');
+    } finally {
+      setSavingDone(false);
     }
   };
   const { meetings, isLoading: isLoadingMeetings, refetch } = useCrmMeetings();
@@ -127,7 +155,11 @@ export function Agenda({ onEditClient }: AgendaProps) {
       const period = client.meetingPeriodicityDays ?? 30;
       const lastMeeting = client.lastMeetingDate
         ? new Date(client.lastMeetingDate)
-        : (client.lastActivityAt ? new Date(client.lastActivityAt) : null);
+        : client.lastActivityAt
+          ? new Date(client.lastActivityAt)
+          : client.createdAt
+            ? new Date(client.createdAt)
+            : null;
       if (!lastMeeting || isNaN(lastMeeting.getTime())) return;
       if (hasUpcomingReal.has(client.id)) return;
       const next = addDays(lastMeeting, period);
@@ -368,7 +400,7 @@ export function Agenda({ onEditClient }: AgendaProps) {
                               size="sm"
                               variant="ghost"
                               className="h-7 text-success hover:text-success hover:bg-success/10"
-                              onClick={(e) => { e.stopPropagation(); handleMarkAsDone(item.client); }}
+                              onClick={(e) => { e.stopPropagation(); openMarkAsDone(item.client); }}
                               title="Marcar como realizada"
                             >
                               <Check className="w-4 h-4" />
@@ -427,6 +459,37 @@ export function Agenda({ onEditClient }: AgendaProps) {
           </div>
         </div>
       </div>
+
+      <Dialog open={!!doneClient} onOpenChange={(o) => { if (!o) setDoneClient(undefined); }}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Marcar reunião como realizada</DialogTitle>
+            <DialogDescription>
+              Informe a data em que a reunião com {doneClient?.name} foi realizada.
+              A próxima reunião será calculada a partir desta data.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="meetingDoneDate">Data da reunião realizada</Label>
+            <Input
+              id="meetingDoneDate"
+              type="date"
+              value={completedDate}
+              max={format(new Date(), 'yyyy-MM-dd')}
+              onChange={(e) => setCompletedDate(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancelar</Button>
+            </DialogClose>
+            <Button onClick={handleMarkAsDone} disabled={!completedDate || savingDone} className="gap-2">
+              {savingDone ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ScheduleMeetingModal
         key={scheduleClient?.id ?? 'new'}
