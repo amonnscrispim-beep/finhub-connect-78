@@ -43,6 +43,13 @@
       "when": 1791739564391,
       "tag": "0005_add_client_segmentation",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791753152836,
+      "tag": "0006_client_suitability_tokens",
+      "breakpoints": true
     }
   ]
 }

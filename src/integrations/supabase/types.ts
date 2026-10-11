@@ -720,6 +720,53 @@ export type Database = {
           },
         ]
       }
+      client_suitability_tokens: {
+        Row: {
+          client_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          merged_at: string | null
+          short_code: string
+          status: string
+          submitted_at: string | null
+          submitted_data: Json | null
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          merged_at?: string | null
+          short_code: string
+          status?: string
+          submitted_at?: string | null
+          submitted_data?: Json | null
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          merged_at?: string | null
+          short_code?: string
+          status?: string
+          submitted_at?: string | null
+          submitted_data?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_suitability_tokens_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           age: number | null
