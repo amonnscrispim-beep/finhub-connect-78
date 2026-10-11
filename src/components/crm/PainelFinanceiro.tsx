@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { Progress } from '@/components/ui/progress';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import type { ConhecerClienteData } from './conhecer/types';
+import { getConhecerMonthlyIncome, type ConhecerClienteData } from './conhecer/types';
 
 export interface PainelFinanceiroOverrides {
   financialAssets: string;
@@ -72,11 +72,13 @@ export function PainelFinanceiro({
   };
 
   // Use patrimonioFinanceiro (new) or investedAmount (legacy) from conhecer
-  const conhecerFinanceiro = conhecerData.patrimonioFinanceiro || conhecerData.investedAmount || '';
+  const cdAny = conhecerData as any;
+  const realEstateCardsTotal = (conhecerData.realEstateCards || []).reduce((sum, c) => sum + (parseFloat(c.value) || 0), 0);
+  const conhecerFinanceiro = cdAny.totalFinancialPL || conhecerData.patrimonioFinanceiro || conhecerData.investedAmount || '';
   const financialAssetsRes = resolveWithSource(conhecerFinanceiro, overrides.financialAssets);
   const financialAssets = financialAssetsRes.value;
 
-  const materialAssetsRes = resolveWithSource(conhecerData.patrimonioImobiliario, overrides.materialAssets);
+  const materialAssetsRes = resolveWithSource(realEstateCardsTotal > 0 ? String(realEstateCardsTotal) : conhecerData.patrimonioImobiliario, overrides.materialAssets);
   const materialAssets = materialAssetsRes.value;
 
   const businessAssetsRes = resolveWithSource(conhecerData.participacoesSocietarias || conhecerData.businessValue, overrides.businessAssets);
@@ -87,17 +89,17 @@ export function PainelFinanceiro({
   const effectivePatrimony = totalPatrimony > 0 ? totalPatrimony : (financialAssets + materialAssets + businessValue);
 
   // Revenue from conhecer
-  const mainRevenue = parseFloat(conhecerData.monthlyRevenue) || 0;
+  const mainRevenue = getConhecerMonthlyIncome(conhecerData) || parseFloat(conhecerData.monthlyRevenue) || 0;
   const otherIncomesTotal = conhecerData.otherIncomes.reduce((s, i) => s + (parseFloat(i.value) || 0), 0);
   const totalRevenue = (mainRevenue + otherIncomesTotal) || resolveWithSource(undefined, overrides.monthlyRevenue).value;
   
-  const monthlyContributionRes = resolveWithSource(conhecerData.monthlyInvestment, overrides.monthlyContribution);
+  const monthlyContributionRes = resolveWithSource(cdAny.monthlyInvestmentCapacity || conhecerData.monthlyInvestmentB2 || conhecerData.monthlyInvestment, overrides.monthlyContribution);
   const monthlyContribution = monthlyContributionRes.value;
 
   // === MELHORIA 5: Custo Mensal = Receita - Aporte (auto-calculated) ===
   const autoLivingCost = totalRevenue > 0 && monthlyContribution > 0 ? totalRevenue - monthlyContribution : 0;
   const overrideLivingCost = parseFloat(overrides.monthlyLivingCost) || 0;
-  const conhecerLivingCost = parseFloat(conhecerData.livingCost) || 0;
+  const conhecerLivingCost = parseFloat(conhecerData.monthlyCostOfLiving) || parseFloat(conhecerData.livingCost) || 0;
   
   // Priority: manual override > conhecer > auto-calculated
   const livingCost = overrideLivingCost > 0 ? overrideLivingCost : conhecerLivingCost > 0 ? conhecerLivingCost : autoLivingCost;
@@ -107,7 +109,7 @@ export function PainelFinanceiro({
 
   // Liquidity from conhecer emergencyMonths
   const emergencyMonths = parseFloat(conhecerData.emergencyMonths) || 0;
-  const emergencyReserveRes = resolveWithSource(conhecerData.emergencyReserveAmount, overrides.emergencyReserve);
+  const emergencyReserveRes = resolveWithSource(cdAny.emergencyReserveValue || conhecerData.emergencyReserveAmount, overrides.emergencyReserve);
   const emergencyReserve = emergencyReserveRes.value;
   const effectiveLiquidityMonths = emergencyMonths > 0 ? emergencyMonths : (livingCost > 0 ? emergencyReserve / livingCost : 0);
 
@@ -270,27 +272,6 @@ export function PainelFinanceiro({
               </ResponsiveContainer>
             </div>
           )}
-        </div>
-      )}
-
-      {/* === LINHA 4 — Alertas automáticos === */}
-      {alerts.length > 0 && (
-        <div className="p-4 bg-card rounded-xl border border-border space-y-2">
-          <h4 className="text-sm font-medium flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-yellow-500" />
-            Pontos de Atenção ({alerts.length})
-          </h4>
-          <div className="space-y-1.5">
-            {alerts.map((a, i) => (
-              <p key={i} className="text-xs text-yellow-700 dark:text-yellow-400 bg-yellow-500/10 px-3 py-1.5 rounded-md">⚠️ {a}</p>
-            ))}
-          </div>
-          <div className="pt-2 border-t border-border space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">➡️ Próximos passos sugeridos</p>
-            {nextSteps.map((s, i) => (
-              <p key={i} className="text-xs text-foreground">→ {s}</p>
-            ))}
-          </div>
         </div>
       )}
 

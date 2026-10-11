@@ -72,8 +72,9 @@ function dbToClient(row: ClientRow): Client {
     privatePensionStatus: (row.private_pension_status as PrivatePensionStatus) ?? '',
     privatePensionType: (row.private_pension_type as PrivatePensionType) ?? '',
     retirementGoal: row.retirement_goal as unknown as RetirementGoal | null,
-    contractedMeetings: row.contracted_meetings as 1 | 3 | 6 | null,
-    meetingPeriodicityDays: ((row as any).meeting_periodicity_days as 30 | 60 | 90 | null) ?? 30,
+    contractedMeetings: row.contracted_meetings as any,
+    contractMeetings: ((row as any).contract_meetings as any[]) ?? [],
+    meetingPeriodicityDays: ((row as any).meeting_periodicity_days as number | null) ?? 30,
     meetingNotes: (row.meeting_notes as unknown as MeetingNotes) ?? {},
     lastActivityAt: row.last_activity_at ? new Date(row.last_activity_at) : new Date(),
     lastMeetingDate: (row as any).last_meeting_date ? new Date((row as any).last_meeting_date) : null,
@@ -159,6 +160,7 @@ function clientToDbInsert(client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>
     retirement_goal: client.retirementGoal as any,
     contracted_meetings: client.contractedMeetings,
     meeting_periodicity_days: client.meetingPeriodicityDays ?? 30,
+    contract_meetings: (client.contractMeetings ?? []) as any,
     meeting_notes: client.meetingNotes as any,
     last_activity_at: client.lastActivityAt?.toISOString() ?? new Date().toISOString(),
     last_meeting_date: client.lastMeetingDate ? client.lastMeetingDate.toISOString() : null,
@@ -243,6 +245,7 @@ function clientToDbUpdate(updates: Partial<Client>): TablesUpdate<'clients'> {
   if (updates.retirementGoal !== undefined) dbUpdates.retirement_goal = updates.retirementGoal as any;
   if (updates.contractedMeetings !== undefined) dbUpdates.contracted_meetings = updates.contractedMeetings;
   if ((updates as any).meetingPeriodicityDays !== undefined) (dbUpdates as any).meeting_periodicity_days = (updates as any).meetingPeriodicityDays;
+  if ((updates as any).contractMeetings !== undefined) (dbUpdates as any).contract_meetings = (updates as any).contractMeetings;
   if (updates.meetingNotes !== undefined) dbUpdates.meeting_notes = updates.meetingNotes as any;
   if (updates.lastActivityAt !== undefined) dbUpdates.last_activity_at = updates.lastActivityAt.toISOString();
   if (updates.lastMeetingDate !== undefined) (dbUpdates as any).last_meeting_date = updates.lastMeetingDate ? updates.lastMeetingDate.toISOString() : null;

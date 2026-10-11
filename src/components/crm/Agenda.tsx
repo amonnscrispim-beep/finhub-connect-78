@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { format, isToday, isTomorrow, isThisWeek, isPast, startOfDay, isSameDay, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Plus, Clock, ExternalLink, CheckCircle2, AlertCircle, Loader2, AlertTriangle } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, Clock, ExternalLink, CheckCircle2, AlertCircle, Loader2, AlertTriangle, Check } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
@@ -51,7 +52,21 @@ function groupLabel(date: Date): string {
 }
 
 export function Agenda({ onEditClient }: AgendaProps) {
-  const { clients } = useClients();
+  const { clients: allClients, updateClient } = useClients();
+  // Clientes com consultoria finalizada não aparecem na agenda
+  const clients = useMemo(() => allClients.filter((c) => !c.consultingFinished), [allClients]);
+  const finishedIds = useMemo(() => new Set(allClients.filter((c) => c.consultingFinished).map((c) => c.id)), [allClients]);
+
+  const handleMarkAsDone = async (client?: Client) => {
+    if (!client) return;
+    try {
+      const now = new Date();
+      await updateClient(client.id, { lastMeetingDate: now, lastActivityAt: now });
+      toast.success('Reunião marcada como realizada');
+    } catch {
+      toast.error('Erro ao atualizar reunião');
+    }
+  };
   const { meetings, isLoading: isLoadingMeetings, refetch } = useCrmMeetings();
   const [filter, setFilter] = useState<Filter>('todas');
   const [scheduleOpen, setScheduleOpen] = useState(false);
@@ -67,6 +82,7 @@ export function Agenda({ onEditClient }: AgendaProps) {
       const date = new Date(meeting.start_at);
       if (isNaN(date.getTime())) return;
 
+      if (meeting.client_id && finishedIds.has(meeting.client_id)) return;
       const client = meeting.client_id ? clientById.get(meeting.client_id) : undefined;
       // Reuniões reais com mais de 7 dias no passado não aparecem mais
       const daysPast = Math.floor((Date.now() - date.getTime()) / 86400000);
@@ -130,7 +146,7 @@ export function Agenda({ onEditClient }: AgendaProps) {
       });
     });
     return out.sort((a, b) => a.date.getTime() - b.date.getTime());
-  }, [clients, meetings]);
+  }, [clients, meetings, finishedIds]);
 
   // Cards de resumo
   const weekItems = items.filter((i) => isThisWeek(i.date, { weekStartsOn: 1 }));
@@ -347,6 +363,17 @@ export function Agenda({ onEditClient }: AgendaProps) {
                           </Badge>
                         </div>
                         <div className="flex items-center gap-1">
+                          {item.isProjected && item.status === 'atrasada' && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-success hover:text-success hover:bg-success/10"
+                              onClick={(e) => { e.stopPropagation(); handleMarkAsDone(item.client); }}
+                              title="Marcar como realizada"
+                            >
+                              <Check className="w-4 h-4" />
+                            </Button>
+                          )}
                           {item.isProjected && (
                             <Button
                               size="sm"

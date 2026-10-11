@@ -52,7 +52,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { BirthDatePicker } from '@/components/ui/birth-date-picker';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarIcon, Plus, Trash2 } from 'lucide-react';
+import { CalendarIcon, Plus, Trash2, ClipboardCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useClients } from '@/contexts/ClientContext';
 import { ClientFiles } from './ClientFiles';
@@ -73,6 +73,7 @@ import { ScoreEstrategico } from './ScoreEstrategico';
 import { AlertasConsultor } from './AlertasConsultor';
 import { ResumoFinanceiroAutomatico } from './ResumoFinanceiroAutomatico';
 import { PainelFinanceiro } from './PainelFinanceiro';
+import { ContratoAcompanhamento, buildInitialContractMeetings } from './ContratoAcompanhamento';
 import { DiagnosticoEstrategico, defaultStrategicDiagnostic, StrategicDiagnosticData, defaultFamilyData } from './DiagnosticoEstrategico';
 import { EstruturaPatrimonial, defaultEstruturaPatrimonial, EstruturaPatrimonialData } from './EstruturaPatrimonial';
 import { FluxoCaixaAccumulacao, defaultFluxoCaixa, FluxoCaixaData } from './FluxoCaixaAccumulacao';
@@ -97,7 +98,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useActivityLog } from '@/hooks/useActivityLog';
 import { toast } from 'sonner';
 
-import type { InvestorProfile, FunnelStage, Residence, RenewalStatus, ContractedMeetings, PrivatePensionStatus, PrivatePensionType, OrganizedFinancesStatus, AmortizationSystem, AmortizationStrategy } from '@/types/client';
+import type { InvestorProfile, FunnelStage, Residence, RenewalStatus, ContractedMeetings, ContractMeeting, PrivatePensionStatus, PrivatePensionType, OrganizedFinancesStatus, AmortizationSystem, AmortizationStrategy } from '@/types/client';
 
 // List of common countries for international clients
 const COMMON_COUNTRIES = [
@@ -154,7 +155,8 @@ interface FormData {
   retirementAge: string;
   retirementIncome: string;
   contractedMeetings: ContractedMeetings | null;
-  meetingPeriodicityDays: 30 | 60 | 90 | null;
+  meetingPeriodicityDays: number | null;
+  contractMeetings: ContractMeeting[];
   meetingNotes: MeetingNotes;
   files: ClientFile[];
   organizedFinances: OrganizedFinancesStatus;
@@ -240,6 +242,7 @@ const defaultFormData: FormData = {
   retirementIncome: '',
   contractedMeetings: null,
   meetingPeriodicityDays: 30,
+  contractMeetings: [],
   meetingNotes: {},
   files: [],
   organizedFinances: '',
@@ -350,6 +353,16 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         const income = getConhecerMonthlyIncome(cd);
         if (income > 0) next.monthlyRevenue = String(income);
       }
+      const isEmpty = (v: string) => !v || v === '0';
+      const cda: any = cd;
+      const pos = (v: any) => (parseFloat(String(v ?? '')) || 0) > 0;
+      const finPL = cda.totalFinancialPL || cd.patrimonioFinanceiro;
+      if (pos(finPL) && isEmpty(prev.financialAssets)) next.financialAssets = String(finPL);
+      const reSum = (cd.realEstateCards || []).reduce((s: number, c: any) => s + (parseFloat(c.value) || 0), 0);
+      if (reSum > 0 && isEmpty(prev.materialAssets)) next.materialAssets = String(reSum);
+      if (pos(cd.monthlyCostOfLiving) && isEmpty(prev.monthlyLivingCost)) next.monthlyLivingCost = cd.monthlyCostOfLiving;
+      if (pos(cda.monthlyInvestmentCapacity) && isEmpty(prev.monthlyContribution)) next.monthlyContribution = cda.monthlyInvestmentCapacity;
+      if (pos(cda.emergencyReserveValue) && isEmpty(prev.emergencyReserve)) next.emergencyReserve = cda.emergencyReserveValue;
       const riskMap: Record<string, string> = {
         'Prefiro segurança': 'Conservador', 'Equilíbrio': 'Moderado', 'Aceito mais risco': 'Arrojado',
         Conservador: 'Conservador', Moderado: 'Moderado', Arrojado: 'Arrojado', Agressivo: 'Arrojado',
@@ -426,6 +439,9 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         retirementIncome: client.retirementGoal?.desiredMonthlyIncome?.toString() || '',
         contractedMeetings: client.contractedMeetings || null,
         meetingPeriodicityDays: (client as any).meetingPeriodicityDays ?? 30,
+        contractMeetings: (client.contractMeetings && client.contractMeetings.length > 0)
+          ? client.contractMeetings
+          : buildInitialContractMeetings(client),
         meetingNotes: client.meetingNotes || {},
         files: client.files || [],
         organizedFinances: client.organizedFinances || '',
@@ -636,13 +652,15 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       if (raw !== '' && raw !== '0') return parseFloat(raw) || 0;
       return parseFloat(conhecer || '') || 0;
     };
-    const resolvedFinancialAssets = resolveNum(conhecerData.totalPatrimony, formData.financialAssets);
-    const resolvedMaterialAssets = resolveNum(undefined, formData.materialAssets);
+    const conhecerFinancialOnly = (conhecerData as any).totalFinancialPL || conhecerData.patrimonioFinanceiro || conhecerData.investedAmount || '';
+    const realEstateCardsSum = (conhecerData.realEstateCards || []).reduce((s, c) => s + (parseFloat(c.value) || 0), 0);
+    const resolvedFinancialAssets = resolveNum(conhecerFinancialOnly, formData.financialAssets);
+    const resolvedMaterialAssets = resolveNum(realEstateCardsSum > 0 ? String(realEstateCardsSum) : conhecerData.patrimonioImobiliario, formData.materialAssets);
     const resolvedBusinessAssets = resolveNum(conhecerData.businessValue, formData.businessAssets);
 
     // Consolidate canonical patrimonio_financeiro_liquido: manual override > conhecer
     const liquidFromLegacy = parseFloat(formData.financialAssets) || 0;
-    const liquidFromConhecer = parseFloat(conhecerData.totalPatrimony || '') || 0;
+    const liquidFromConhecer = parseFloat(conhecerFinancialOnly) || 0;
     const patrimonioFinanceiroLiquido = liquidFromLegacy > 0 ? liquidFromLegacy : (liquidFromConhecer > 0 ? liquidFromConhecer : null);
 
     // === Propagação: Conhecer o Cliente -> campos do cliente (só quando o destino está vazio) ===
@@ -717,6 +735,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       retirementGoal: retirementGoal,
       contractedMeetings: formData.contractedMeetings,
       meetingPeriodicityDays: formData.meetingPeriodicityDays,
+      contractMeetings: formData.contractMeetings,
       meetingNotes: formData.meetingNotes,
       lastActivityAt: client?.lastActivityAt || new Date(),
       scheduledMeeting: client?.scheduledMeeting || null,
@@ -918,8 +937,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     { id: 'pension', label: 'Previdência e Aposentadoria', icon: Landmark },
     { id: 'goals', label: 'Metas Financeiras', icon: Target },
     
-    { id: 'contracts', label: 'Contratos e Entregas', icon: ClipboardList },
-    { id: 'tasks', label: 'Tarefas e Status', icon: CheckCircle },
+    { id: 'contracts', label: 'Contrato e Acompanhamento', icon: ClipboardCheck },
     { id: 'patrimonial-planning', label: 'Simulador Planejamento Patrimonial', icon: TrendingUp },
     { id: 'performance', label: 'Relatório de Performance', icon: BarChart3 },
     { id: 'extrato', label: 'Extrato do Cliente', icon: Wallet },
@@ -1429,154 +1447,14 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
               />
             </div>
 
-            {/* SECTION 8: Contratos e Entregas (sub-bloco de anotações por reunião foi movido para a aba "Reuniões") */}
+            {/* Contrato e Acompanhamento (unifica Contratos e Entregas + Tarefas e Status) */}
             <div hidden={activeTab !== 'contracts'} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="contractedMeetings">Quantidade de Reuniões</Label>
-                <Select value={formData.contractedMeetings?.toString() || ''} onValueChange={(value) => handleChange('contractedMeetings', value ? parseInt(value) as ContractedMeetings : null)}>
-                  <SelectTrigger className="crm-input w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>{CONTRACTED_MEETINGS_OPTIONS.map((num) => (<SelectItem key={num} value={num.toString()}>{num} {num === 1 ? 'reunião' : 'reuniões'}</SelectItem>))}</SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="meetingPeriodicityDays">Periodicidade de Reuniões</Label>
-                <Select
-                  value={(formData.meetingPeriodicityDays ?? 30).toString()}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, meetingPeriodicityDays: parseInt(value) as 30 | 60 | 90 }))}
-                >
-                  <SelectTrigger className="crm-input w-[200px]"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="30">30 dias</SelectItem>
-                    <SelectItem value="60">60 dias</SelectItem>
-                    <SelectItem value="90">90 dias</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Define quando o card do cliente exibirá alerta de reunião em atraso ou próxima.
-                </p>
-              </div>
-
-              {/* Sub-bloco "O que foi feito em cada reunião" foi movido para a aba Reuniões */}
-
-
-              <div className="space-y-2">
-                <Label htmlFor="workDone">Trabalho Desenvolvido</Label>
-                <Textarea id="workDone" value={formData.workDone} onChange={(e) => handleChange('workDone', e.target.value)} placeholder="Descreva o trabalho desenvolvido com o cliente..." className="crm-input min-h-[100px]" />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="observations">Observações</Label>
-                <Textarea id="observations" value={formData.observations} onChange={(e) => handleChange('observations', e.target.value)} placeholder="Observações gerais..." className="crm-input min-h-[80px]" />
-              </div>
-
-              {/* Collapsible Comments */}
-              <CollapsibleComments
-                value={formData.moduleNotes.contract || ''}
-                onChange={(value) => setFormData(prev => ({
-                  ...prev,
-                  moduleNotes: { ...prev.moduleNotes, contract: value }
-                }))}
+              <ContratoAcompanhamento
+                formData={formData}
+                setFormData={setFormData as any}
+                onConsultingFinishedChange={handleConsultingFinishedChange}
+                onRenewedChange={handleRenewedChange}
               />
-            </div>
-
-            {/* SECTION 9 + Tarefas: Status do Cliente + ClientTasksSection — agrupados na aba "Tarefas e Status" */}
-            <div hidden={activeTab !== 'tasks'} className="space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {/* Etapa do funil */}
-                <div className="space-y-2">
-                  <Label htmlFor="funnelStage">Etapa do Funil</Label>
-                  <Select value={formData.funnelStage} onValueChange={(value) => handleChange('funnelStage', value)}>
-                    <SelectTrigger className="crm-input"><SelectValue /></SelectTrigger>
-                    <SelectContent>{FUNNEL_STAGE_OPTIONS.map((stage) => (<SelectItem key={stage.value} value={stage.value}>{stage.label}</SelectItem>))}</SelectContent>
-                  </Select>
-                </div>
-                
-                {/* Agendamento pendente */}
-                <div className="space-y-2">
-                  <Label htmlFor="pendingSchedule">Agendamento Pendente?</Label>
-                  <Select 
-                    value={formData.pendingSchedule ? 'sim' : 'não'} 
-                    onValueChange={(value) => handleChange('pendingSchedule', value === 'sim')}
-                    disabled={formData.consultingFinished}
-                  >
-                    <SelectTrigger className={`crm-input ${formData.pendingSchedule ? 'border-destructive bg-destructive/10' : ''}`}><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="sim">Sim</SelectItem><SelectItem value="não">Não</SelectItem></SelectContent>
-                  </Select>
-                </div>
-
-                {/* Status de renovação */}
-                <div className="space-y-2">
-                  <Label htmlFor="renewalStatus">Status de Renovação</Label>
-                  <Select value={formData.renewalStatus} onValueChange={(value) => handleChange('renewalStatus', value)}>
-                    <SelectTrigger className="crm-input"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>{RENEWAL_STATUS_OPTIONS.map((status) => (<SelectItem key={status} value={status}>{status}</SelectItem>))}</SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {/* Data de renovação */}
-                <div className="space-y-2">
-                  <Label htmlFor="renewalDate">Data de Renovação</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal crm-input", !formData.renewalDate && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {formData.renewalDate ? format(new Date(formData.renewalDate), "dd/MM/yyyy", { locale: ptBR }) : <span>Selecione</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarComponent mode="single" selected={formData.renewalDate ? new Date(formData.renewalDate) : undefined} onSelect={(date) => handleChange('renewalDate', date || null)} initialFocus className={cn("p-3 pointer-events-auto")} />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                {/* Renovado? */}
-                <div className="space-y-2">
-                  <Label htmlFor="renewed">Renovado?</Label>
-                  <Select value={formData.renewed ? 'sim' : 'não'} onValueChange={(value) => handleRenewedChange(value === 'sim')}>
-                    <SelectTrigger className="crm-input"><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="sim">Sim</SelectItem><SelectItem value="não">Não</SelectItem></SelectContent>
-                  </Select>
-                </div>
-
-                {/* Potencial de renovação */}
-                <div className="space-y-2">
-                  <Label htmlFor="renewalPotential">Potencial Renovação?</Label>
-                  <Select value={formData.renewalPotential ? 'sim' : 'não'} onValueChange={(value) => handleChange('renewalPotential', value === 'sim')}>
-                    <SelectTrigger className="crm-input"><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="sim">Sim</SelectItem><SelectItem value="não">Não</SelectItem></SelectContent>
-                  </Select>
-                </div>
-
-                {/* Consultoria finalizada */}
-                <div className="space-y-2">
-                  <Label htmlFor="consultingFinished">Consultoria Finalizada?</Label>
-                  <Select value={formData.consultingFinished ? 'sim' : 'não'} onValueChange={(value) => handleConsultingFinishedChange(value === 'sim')}>
-                    <SelectTrigger className={`crm-input ${formData.consultingFinished ? 'border-muted-foreground bg-muted/50' : ''}`}><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="sim">Sim</SelectItem><SelectItem value="não">Não</SelectItem></SelectContent>
-                  </Select>
-                  {formData.consultingFinished && <p className="text-xs text-muted-foreground">Cliente não contado no total de ativos</p>}
-                </div>
-              </div>
-
-              {/* Collapsible Comments */}
-              <CollapsibleComments
-                value={formData.moduleNotes.status || ''}
-                onChange={(value) => setFormData(prev => ({
-                  ...prev,
-                  moduleNotes: { ...prev.moduleNotes, status: value }
-                }))}
-              />
-              {/* SECTION 10: Tarefas do Cliente (somente para clientes existentes) — agora dentro da aba "Tarefas e Status" */}
-              {client && (
-                <ClientTasksSection 
-                  client={client} 
-                  moduleNotes={formData.moduleNotes}
-                  onModuleNotesChange={(notes) => setFormData(prev => ({ ...prev, moduleNotes: notes }))}
-                />
-              )}
             </div>
 
             {/* SECTION: Relatório de Performance (aba dedicada) */}
