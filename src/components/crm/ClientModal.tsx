@@ -350,6 +350,16 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
         const income = getConhecerMonthlyIncome(cd);
         if (income > 0) next.monthlyRevenue = String(income);
       }
+      const isEmpty = (v: string) => !v || v === '0';
+      const cda: any = cd;
+      const pos = (v: any) => (parseFloat(String(v ?? '')) || 0) > 0;
+      const finPL = cda.totalFinancialPL || cd.patrimonioFinanceiro;
+      if (pos(finPL) && isEmpty(prev.financialAssets)) next.financialAssets = String(finPL);
+      const reSum = (cd.realEstateCards || []).reduce((s: number, c: any) => s + (parseFloat(c.value) || 0), 0);
+      if (reSum > 0 && isEmpty(prev.materialAssets)) next.materialAssets = String(reSum);
+      if (pos(cd.monthlyCostOfLiving) && isEmpty(prev.monthlyLivingCost)) next.monthlyLivingCost = cd.monthlyCostOfLiving;
+      if (pos(cda.monthlyInvestmentCapacity) && isEmpty(prev.monthlyContribution)) next.monthlyContribution = cda.monthlyInvestmentCapacity;
+      if (pos(cda.emergencyReserveValue) && isEmpty(prev.emergencyReserve)) next.emergencyReserve = cda.emergencyReserveValue;
       const riskMap: Record<string, string> = {
         'Prefiro segurança': 'Conservador', 'Equilíbrio': 'Moderado', 'Aceito mais risco': 'Arrojado',
         Conservador: 'Conservador', Moderado: 'Moderado', Arrojado: 'Arrojado', Agressivo: 'Arrojado',
@@ -636,13 +646,15 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       if (raw !== '' && raw !== '0') return parseFloat(raw) || 0;
       return parseFloat(conhecer || '') || 0;
     };
-    const resolvedFinancialAssets = resolveNum(conhecerData.totalPatrimony, formData.financialAssets);
-    const resolvedMaterialAssets = resolveNum(undefined, formData.materialAssets);
+    const conhecerFinancialOnly = (conhecerData as any).totalFinancialPL || conhecerData.patrimonioFinanceiro || conhecerData.investedAmount || '';
+    const realEstateCardsSum = (conhecerData.realEstateCards || []).reduce((s, c) => s + (parseFloat(c.value) || 0), 0);
+    const resolvedFinancialAssets = resolveNum(conhecerFinancialOnly, formData.financialAssets);
+    const resolvedMaterialAssets = resolveNum(realEstateCardsSum > 0 ? String(realEstateCardsSum) : conhecerData.patrimonioImobiliario, formData.materialAssets);
     const resolvedBusinessAssets = resolveNum(conhecerData.businessValue, formData.businessAssets);
 
     // Consolidate canonical patrimonio_financeiro_liquido: manual override > conhecer
     const liquidFromLegacy = parseFloat(formData.financialAssets) || 0;
-    const liquidFromConhecer = parseFloat(conhecerData.totalPatrimony || '') || 0;
+    const liquidFromConhecer = parseFloat(conhecerFinancialOnly) || 0;
     const patrimonioFinanceiroLiquido = liquidFromLegacy > 0 ? liquidFromLegacy : (liquidFromConhecer > 0 ? liquidFromConhecer : null);
 
     // === Propagação: Conhecer o Cliente -> campos do cliente (só quando o destino está vazio) ===
