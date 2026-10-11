@@ -212,7 +212,7 @@ export function TableView({ onEditClient, searchQuery = '' }: TableViewProps) {
           <div className="min-w-[1400px]">
             <Table>
               <TableHeader>
-                <TableRow className="crm-table-header hover:bg-muted/50">
+                <TableRow className="crm-table-header hover:bg-primary">
                   <TableHead className="w-[50px]">Status</TableHead>
                   <TableHead 
                     className="cursor-pointer hover:text-foreground transition-colors"

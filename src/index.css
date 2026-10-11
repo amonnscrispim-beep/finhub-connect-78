@@ -7,26 +7,27 @@
 
 @layer base {
   :root {
-    --background: 220 16% 96%;
-    --foreground: 216 32% 15%;
+    --background: 220 20% 97%;
+    --foreground: 217 33% 17%;
 
     --card: 0 0% 100%;
-    --card-foreground: 216 32% 15%;
+    --card-foreground: 217 33% 17%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 216 32% 15%;
+    --popover-foreground: 217 33% 17%;
 
-    --primary: 216 32% 15%;
+    --primary: 213 56% 16%;
+    --primary-hover: 211 56% 23%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 93%;
-    --secondary-foreground: 216 32% 25%;
+    --secondary: 214 20% 92%;
+    --secondary-foreground: 217 33% 17%;
 
     --muted: 220 14% 96%;
     --muted-foreground: 220 9% 46%;
 
-    --accent: 216 32% 20%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 214 20% 92%;
+    --accent-foreground: 213 56% 16%;
 
     --destructive: 6 78% 57%;
     --destructive-foreground: 0 0% 100%;
@@ -42,27 +43,33 @@
     --color-total: 37 90% 51%;
     --color-negative: 6 78% 57%;
 
-    --border: 220 13% 90%;
-    --input: 220 13% 90%;
-    --ring: 216 32% 15%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 213 56% 16%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 216 32% 15%;
-    --sidebar-primary: 216 32% 15%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 93%;
-    --sidebar-accent-foreground: 216 32% 25%;
-    --sidebar-border: 220 13% 90%;
-    --sidebar-ring: 216 32% 15%;
+    --sidebar-background: 213 56% 16%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 210 40% 98%;
+    --sidebar-primary-foreground: 213 56% 16%;
+    --sidebar-accent: 213 50% 22%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 213 50% 22%;
+    --sidebar-ring: 217 91% 60%;
+
+    --chart-1: 213 56% 16%;
+    --chart-2: 210 51% 36%;
+    --chart-3: 160 60% 40%;
+    --chart-4: 43 96% 56%;
+    --chart-5: 0 84% 60%;
 
     --kanban-bg: 220 14% 96%;
     --kanban-column: 0 0% 100%;
     --kanban-card: 0 0% 100%;
     --kanban-card-hover: 220 14% 98%;
     
-    --status-new: 216 32% 15%;
+    --status-new: 213 56% 16%;
     --status-attending: 37 90% 51%;
     --status-meeting: 280 84% 60%;
     --status-conclusion: 168 100% 36%;
@@ -71,14 +78,14 @@
     --renewal-potential: 37 90% 51%;
     --renewal-none: 220 10% 70%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(216 32% 15%) 0%, hsl(216 32% 10%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(216 32% 20%) 0%, hsl(216 32% 15%) 100%);
-    --gradient-header: linear-gradient(135deg, hsl(216 32% 15%) 0%, hsl(216 32% 10%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(213 56% 16%) 0%, hsl(213 60% 11%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(211 56% 23%) 0%, hsl(213 56% 16%) 100%);
+    --gradient-header: linear-gradient(135deg, hsl(213 56% 16%) 0%, hsl(213 60% 11%) 100%);
     
-    --shadow-sm: 0 1px 2px 0 hsl(216 32% 15% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(216 32% 15% / 0.1), 0 2px 4px -2px hsl(216 32% 15% / 0.1);
-    --shadow-lg: 0 10px 15px -3px hsl(216 32% 15% / 0.1), 0 4px 6px -4px hsl(216 32% 15% / 0.1);
-    --shadow-card: 0 1px 3px 0 hsl(216 32% 15% / 0.1), 0 1px 2px -1px hsl(216 32% 15% / 0.1);
+    --shadow-sm: 0 1px 2px 0 hsl(213 56% 16% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(213 56% 16% / 0.1), 0 2px 4px -2px hsl(213 56% 16% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(213 56% 16% / 0.1), 0 4px 6px -4px hsl(213 56% 16% / 0.1);
+    --shadow-card: 0 1px 3px 0 hsl(213 56% 16% / 0.1), 0 1px 2px -1px hsl(213 56% 16% / 0.1);
   }
 
   .dark {
@@ -92,6 +99,7 @@
     --popover-foreground: 0 0% 100%;
 
     --primary: 162 100% 39%;
+    --primary-hover: 162 100% 33%;
     --primary-foreground: 0 0% 4%;
 
     --secondary: 0 0% 10%;
@@ -176,7 +184,7 @@
   }
 
   .crm-card:hover {
-    @apply shadow-md;
+    @apply shadow-md border-primary/20;
   }
 
   .crm-header {
@@ -186,7 +194,7 @@
 
   .crm-btn-accent {
     background: var(--gradient-accent);
-    @apply text-accent-foreground font-medium rounded-lg px-4 py-2 transition-all duration-200 hover:opacity-90 hover:scale-[1.02] active:scale-[0.98];
+    @apply text-primary-foreground font-medium rounded-lg px-4 py-2 transition-all duration-200 hover:opacity-90 hover:scale-[1.02] active:scale-[0.98];
   }
 
   .crm-input {
@@ -198,7 +206,10 @@
   }
 
   .crm-table-header {
-    @apply bg-muted/50 text-muted-foreground font-medium text-xs uppercase tracking-wider;
+    @apply bg-primary text-primary-foreground font-semibold text-xs uppercase tracking-wider;
+  }
+  .crm-table-header th {
+    @apply text-primary-foreground;
   }
 
   .kanban-column {
