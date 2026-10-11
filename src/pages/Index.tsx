@@ -7,7 +7,10 @@ import { Client } from '@/types/client';
 import { CRMHeader } from '@/components/crm/CRMHeader';
 import { StatsCards } from '@/components/crm/StatsCards';
 import { TableView } from '@/components/crm/TableView';
-import { KanbanView } from '@/components/crm/KanbanView';
+import { KanbanView, type KanbanFilters } from '@/components/crm/KanbanView';
+import { KanbanToolbar } from '@/components/crm/KanbanToolbar';
+import { VisaoGeral } from '@/components/crm/VisaoGeral';
+import { LayoutDashboard } from 'lucide-react';
 import { ClientModal } from '@/components/crm/ClientModal';
 import { PendingScheduleModal } from '@/components/crm/PendingScheduleModal';
 import { TotalClientsModal } from '@/components/crm/TotalClientsModal';
@@ -108,7 +111,9 @@ function CRMDashboard() {
   const { user, signOut } = useAuth();
   const { pendencies, isLoading: pendenciesLoading, addPendency, completePendency, removePendency, clientIdsWithPendencies } = useUrgentPendencies();
   const [view, setView] = useState<'table' | 'kanban'>('table');
-  const [dashboardTab, setDashboardTab] = useState<'operacional' | 'agenda' | 'tarefas' | 'aportes' | 'executivo' | 'estudos' | 'ferramentas' | 'carteiras' | 'gerador'>('operacional');
+  const [dashboardTab, setDashboardTab] = useState<'visao' | 'operacional' | 'agenda' | 'tarefas' | 'aportes' | 'executivo' | 'estudos' | 'ferramentas' | 'carteiras' | 'gerador'>('visao');
+  const [kanbanSearch, setKanbanSearch] = useState('');
+  const [kanbanFilters, setKanbanFilters] = useState<KanbanFilters>({ segmentation: 'all', meetingStatus: 'all' });
   const [ferramentaAtiva, setFerramentaAtiva] = useState<FerramentaId>('juros-compostos');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>();
@@ -257,6 +262,13 @@ function CRMDashboard() {
         <Tabs value={dashboardTab} onValueChange={(v) => setDashboardTab(v as typeof dashboardTab)} className="space-y-4">
           <TabsList className="bg-card border border-border shadow-sm">
             <TabsTrigger 
+              value="visao"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <LayoutDashboard className="w-4 h-4 mr-2" />
+              Visão Geral
+            </TabsTrigger>
+            <TabsTrigger 
               value="operacional" 
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
@@ -319,6 +331,10 @@ function CRMDashboard() {
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="visao" className="animate-fade-in">
+            <ErrorBoundary label="Visão Geral"><VisaoGeral onEditClient={handleEditClient} /></ErrorBoundary>
+          </TabsContent>
+
           {/* DASHBOARD OPERACIONAL - Existing functionality preserved */}
           <TabsContent value="operacional" className="space-y-6 animate-fade-in">
             {/* Alerts */}
@@ -377,10 +393,14 @@ function CRMDashboard() {
 
               <TabsContent value="kanban" className="mt-4 animate-fade-in">
                 <ErrorBoundary label="Kanban">
+                  <div className="mb-4">
+                    <KanbanToolbar search={kanbanSearch} onSearchChange={setKanbanSearch} filters={kanbanFilters} onFiltersChange={setKanbanFilters} />
+                  </div>
                   <div className="crm-card overflow-hidden">
                     <KanbanView
                       onEditClient={handleEditClient}
-                      searchQuery={searchQuery}
+                      searchQuery={kanbanSearch || searchQuery}
+                      filters={kanbanFilters}
                       clientIdsWithPendencies={clientIdsWithPendencies}
                       pendencies={pendencies}
                       pendenciesLoading={pendenciesLoading}
