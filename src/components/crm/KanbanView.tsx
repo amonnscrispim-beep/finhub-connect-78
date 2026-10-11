@@ -398,10 +398,10 @@ function DragOverlayCard({ client }: { client: Client }) {
 // Column color mapping — BTG / Wealth Management institutional palette
 // Solid header colors (used as a colored chip/bar at the top of each column header)
 const COLUMN_HEADER: Record<string, string> = {
-  'PRIVATE': 'bg-slate-900 text-amber-400 dark:bg-slate-950 dark:text-amber-300',
-  'SELECT':  'bg-blue-900 text-white dark:bg-blue-950 dark:text-blue-100',
-  'GROWTH':  'bg-slate-600 text-white dark:bg-slate-700 dark:text-slate-100',
-  'START':   'bg-gray-500 text-white dark:bg-gray-600 dark:text-gray-100',
+  'PRIVATE': 'bg-primary text-primary-foreground',
+  'SELECT':  'bg-primary text-primary-foreground',
+  'GROWTH':  'bg-primary text-primary-foreground',
+  'START':   'bg-primary text-primary-foreground',
 };
 
 // Soft column container (neutral, sober)
@@ -842,7 +842,7 @@ function KanbanContent({ onEditClient, searchQuery = '', filters, clientIdsWithP
             const isPatrimony = isPatrimonyColumn(stage);
             const patrimonioSum = columnPatrimonioSums[stage] || 0;
             const columnBg = COLUMN_BG[stage] || 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800';
-            const headerColor = COLUMN_HEADER[stage] || 'bg-slate-700 text-white';
+            const headerColor = COLUMN_HEADER[stage] || 'bg-primary text-primary-foreground';
 
             // Insert Pendências Urgentes column after GROWTH (index of GROWTH in the array)
             const growthIndex = KANBAN_COLUMN_STAGES.indexOf('GROWTH' as FunnelStage);
