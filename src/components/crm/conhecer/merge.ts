@@ -17,6 +17,18 @@ export const FORM_MERGE_FIELDS = [
   'dropReactionB5', 'riskPreferenceB5', 'investmentExperience',
   'hasWorkedWithAdvisor', 'advisorExperience',
   'soccerTeam', 'pets', 'vacationPreferences',
+  // v2
+  'widowSinceYears', 'paysSupportAlimony', 'alimonyValue', 'incomeProvider', 'incomeSharePct',
+  'cltBenefits', 'pjSector', 'autonomoStability', 'aposentadoExtraIncome',
+  'annualFamilyIncome', 'annualInvestmentCapacity', 'totalPatrimonyEstimate', 'otherBanks', 'mainCreditCard',
+  'hasInternationalAccount', 'internationalAccountBank', 'internationalAccountValueUSD',
+  'lifeInsuranceType', 'lifeInsuranceInterest', 'healthPlanProvider',
+  'hasEmergencyReserve', 'emergencyReserveValue', 'emergencyReserveCoverage', 'emergencyReserveLocation',
+  'familyHealthDetails', 'continuousMedicationDetails', 'extremeSportsDetails',
+  'successNumber', 'successTimeline', 'priority1', 'priority2', 'priority3', 'retirementLifestyle',
+  'wantsToLiveAbroad', 'abroadDetails', 'hasTestament',
+  'lostSleepOverMoney', 'lostSleepDetails', 'investorProfile', 'managementPreference', 'successCriteria',
+  'sportsActivities', 'favoriteDrink', 'howFoundUs',
 ] as const;
 
 export const FORM_FIELD_LABELS: Record<string, string> = {
@@ -39,6 +51,19 @@ export const FORM_FIELD_LABELS: Record<string, string> = {
   successionInterest: 'Interesse em sucessão', restrictions: 'Restrições de investimento',
   dropReactionB5: 'Reação a queda de 20%', riskPreferenceB5: 'Preferência de risco', investmentExperience: 'Experiência com investimentos',
   hasWorkedWithAdvisor: 'Já teve assessor', advisorExperience: 'Experiência com assessor',
+  widowSinceYears: 'Viúvo(a) há', paysSupportAlimony: 'Paga pensão', alimonyValue: 'Valor da pensão', incomeProvider: 'Provedor', incomeSharePct: '% da renda familiar',
+  cltBenefits: 'Benefícios', pjSector: 'Setor', autonomoStability: 'Estabilidade da renda', aposentadoExtraIncome: 'Outra fonte de renda',
+  annualFamilyIncome: 'Renda anual familiar', annualInvestmentCapacity: 'Capacidade de investimento anual', totalPatrimonyEstimate: 'Patrimônio total estimado',
+  otherBanks: 'Outros bancos', mainCreditCard: 'Cartão principal', hasInternationalAccount: 'Conta internacional', internationalAccountBank: 'Banco internacional',
+  internationalAccountValueUSD: 'Valor conta internacional (USD)', lifeInsuranceType: 'Tipo de seguro', lifeInsuranceInterest: 'Interesse em seguro',
+  healthPlanProvider: 'Operadora do plano', hasEmergencyReserve: 'Possui reserva', emergencyReserveValue: 'Valor da reserva',
+  emergencyReserveCoverage: 'Meses de cobertura', emergencyReserveLocation: 'Onde está a reserva', familyHealthDetails: 'Doenças na família (quais)',
+  continuousMedicationDetails: 'Medicamentos', extremeSportsDetails: 'Esportes radicais (quais)', successNumber: 'Renda para liberdade financeira',
+  successTimeline: 'Prazo', priority1: 'Prioridade 1', priority2: 'Prioridade 2', priority3: 'Prioridade 3', retirementLifestyle: 'Estilo de vida na aposentadoria',
+  wantsToLiveAbroad: 'Morar no exterior', abroadDetails: 'Detalhes exterior', hasTestament: 'Possui testamento',
+  lostSleepOverMoney: 'Perdeu o sono por dinheiro', lostSleepDetails: 'Detalhes', investorProfile: 'Perfil declarado', managementPreference: 'Participação nas decisões',
+  successCriteria: 'Critério de sucesso', sportsActivities: 'Esportes', favoriteDrink: 'Bebida preferida', howFoundUs: 'Como nos conheceu',
+  realEstatePurpose: 'Finalidade dos imóveis', aposentadoExtraIncomeValue: 'Valor da outra renda',
   hobbiesAndInterests: 'Hobbies e interesses', soccerTeam: 'Time de futebol', pets: 'Animais de estimação', vacationPreferences: 'Férias',
 };
 
@@ -52,12 +77,12 @@ export function previewMerge(current: ConhecerClienteData, submitted: Record<str
   const rows: { key: string; label: string; value: unknown; status: MergeStatus }[] = [];
   const cur = current as any;
   if (submitted.fullName?.trim()) rows.push({ key: 'fullName', label: FORM_FIELD_LABELS.fullName, value: submitted.fullName.trim(), status: 'update' });
-  for (const key of [...FORM_MERGE_FIELDS, 'children', 'debtsList', 'hobbiesAndInterests']) {
+  for (const key of [...FORM_MERGE_FIELDS, 'realEstatePurpose', 'aposentadoExtraIncomeValue', 'children', 'debtsList', 'hobbiesAndInterests']) {
     const v = submitted[key];
     if (empty(v)) continue;
     let status: MergeStatus = empty(cur[key]) ? 'add' : 'keep';
     if (key === 'hobbiesAndInterests') status = 'add';
-    if (key === 'vacationPreferences' || key === 'realEstateCount' || key === 'realEstateTotalValue') status = 'add';
+    if (['vacationPreferences', 'realEstateCount', 'realEstateTotalValue', 'realEstatePurpose', 'aposentadoExtraIncomeValue'].includes(key)) status = 'add';
     rows.push({ key, label: FORM_FIELD_LABELS[key] || key, value: v, status });
   }
   return rows;
@@ -92,12 +117,13 @@ export function mergeClientFormData(current: ConhecerClienteData, submitted: Rec
     merged.realEstateCards = [{
       id: Math.random().toString(36).substring(2, 10),
       description: `Imóveis informados pelo cliente${submitted.realEstateCount ? ` (${submitted.realEstateCount})` : ''}`,
-      purpose: '', value: String(submitted.realEstateTotalValue),
+      purpose: submitted.realEstatePurpose || '', value: String(submitted.realEstateTotalValue),
     }];
   }
   // Informações sem campo próprio vão para as observações gerais
   const extras: string[] = [];
   if (submitted.vacationPreferences) extras.push(`Férias: ${submitted.vacationPreferences}`);
+  if (submitted.aposentadoExtraIncomeValue) extras.push(`Outra renda (aposentado): R$ ${submitted.aposentadoExtraIncomeValue}`);
   if (extras.length) {
     const note = `[Formulário do cliente] ${extras.join(' | ')}`;
     if (!String(merged.generalNotes || '').includes(note)) merged.generalNotes = [merged.generalNotes, note].filter(Boolean).join('\n');
