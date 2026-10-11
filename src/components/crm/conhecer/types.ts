@@ -37,6 +37,11 @@ export interface RealEstateCard {
   description: string;
   purpose: string; // Moradia própria | Aluguel | Veraneio | Terreno
   value: string;
+  location?: string;
+  rentValue?: string;
+  hasFinancing?: string;
+  financingBalance?: string;
+  financingPayment?: string;
 }
 
 export interface PatrimonioTableItem {

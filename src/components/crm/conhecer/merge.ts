@@ -112,13 +112,17 @@ export function mergeClientFormData(current: ConhecerClienteData, submitted: Rec
   if (submitted.hobbiesAndInterests?.length > 0) {
     merged.hobbiesAndInterests = Array.from(new Set([...(merged.hobbiesAndInterests || []), ...submitted.hobbiesAndInterests]));
   }
-  // Imóveis: vira um item resumo se o CRM ainda não tem nenhum
-  if (submitted.hasRealEstate === 'Sim' && submitted.realEstateTotalValue && (!merged.realEstateCards || merged.realEstateCards.length === 0)) {
-    merged.realEstateCards = [{
-      id: Math.random().toString(36).substring(2, 10),
-      description: `Imóveis informados pelo cliente${submitted.realEstateCount ? ` (${submitted.realEstateCount})` : ''}`,
-      purpose: submitted.realEstatePurpose || '', value: String(submitted.realEstateTotalValue),
-    }];
+  // Imóveis: individuais (novo formulário) ou resumo (formulário antigo), só se o CRM ainda não tem nenhum
+  if (submitted.hasRealEstate === 'Sim' && (!merged.realEstateCards || merged.realEstateCards.length === 0)) {
+    if (Array.isArray(submitted.realEstateCards) && submitted.realEstateCards.length > 0) {
+      merged.realEstateCards = submitted.realEstateCards.map((p: any) => ({ ...p, value: String(p.value || '') }));
+    } else if (submitted.realEstateTotalValue) {
+      merged.realEstateCards = [{
+        id: Math.random().toString(36).substring(2, 10),
+        description: `Imóveis informados pelo cliente${submitted.realEstateCount ? ` (${submitted.realEstateCount})` : ''}`,
+        purpose: submitted.realEstatePurpose || '', value: String(submitted.realEstateTotalValue),
+      }];
+    }
   }
   // Informações sem campo próprio vão para as observações gerais
   const extras: string[] = [];
