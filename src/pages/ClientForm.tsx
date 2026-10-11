@@ -65,7 +65,8 @@ function AddBtn({ onClick, children }: { onClick: () => void; children: React.Re
 }
 
 export default function ClientForm() {
-  const { token } = useParams<{ token: string }>();
+  const params = useParams<{ token?: string; code?: string }>();
+  const token = params.token || params.code?.toUpperCase();
   const storageKey = `client-form-${token}`;
   const baseUrl = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/client-form`;
 

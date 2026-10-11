@@ -8,7 +8,13 @@ import { toast } from 'sonner';
 import { Copy, Mail, MessageCircle, RefreshCw, Loader2 } from 'lucide-react';
 
 interface Props { open: boolean; onOpenChange: (o: boolean) => void; clientId: string; clientName: string; }
-interface Token { id: string; token: string; status: string; expires_at: string | null; completed_at: string | null; }
+interface Token { id: string; token: string; short_code: string | null; status: string; expires_at: string | null; completed_at: string | null; }
+
+function shortCode(len = 6) {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  const arr = new Uint8Array(len); crypto.getRandomValues(arr);
+  return Array.from(arr, (b) => chars[b % chars.length]).join('');
+}
 
 export function FormLinkDialog({ open, onOpenChange, clientId, clientName }: Props) {
   const { user } = useAuth();
@@ -17,10 +23,15 @@ export function FormLinkDialog({ open, onOpenChange, clientId, clientName }: Pro
 
   const create = async () => {
     if (!user) return null;
-    const { data, error } = await supabase.from('client_form_tokens')
-      .insert({ client_id: clientId, user_id: user.id, client_name: clientName, status: 'sent',
+    let data: unknown = null; let error: unknown = null;
+    for (let i = 0; i < 5; i++) {
+      const res = await supabase.from('client_form_tokens')
+      .insert({ short_code: shortCode(), client_id: clientId, user_id: user.id, client_name: clientName, status: 'sent',
         expires_at: new Date(Date.now() + 30 * 86400000).toISOString() })
-      .select('id, token, status, expires_at, completed_at').single();
+      .select('id, token, short_code, status, expires_at, completed_at').single();
+      data = res.data; error = res.error;
+      if (!error || (error as { code?: string }).code !== '23505') break;
+    }
     if (error) { toast.error('Não foi possível gerar o link.'); return null; }
     return data as Token;
   };
@@ -30,7 +41,7 @@ export function FormLinkDialog({ open, onOpenChange, clientId, clientName }: Pro
     (async () => {
       setBusy(true);
       const { data } = await supabase.from('client_form_tokens')
-        .select('id, token, status, expires_at, completed_at')
+        .select('id, token, short_code, status, expires_at, completed_at')
         .eq('client_id', clientId).eq('user_id', user.id)
         .order('created_at', { ascending: false }).limit(1).maybeSingle();
       const valid = data && (!data.expires_at || new Date(data.expires_at) > new Date());
@@ -47,8 +58,8 @@ export function FormLinkDialog({ open, onOpenChange, clientId, clientName }: Pro
     toast.success('Novo link gerado. O anterior foi invalidado.');
   };
 
-  const url = token ? `${window.location.origin}/client-form/${token.token}` : '';
-  const msg = `Olá${clientName ? `, ${clientName.split(' ')[0]}` : ''}! Para prepararmos sua reunião, preencha este formulário: ${url}`;
+  const url = token ? (token.short_code ? `${window.location.origin}/f/${token.short_code}` : `${window.location.origin}/client-form/${token.token}`) : '';
+  const msg = `Olá${clientName ? `, ${clientName.split(' ')[0]}` : ''}! Segue o Formulário de Planejamento Patrimonial - Gofferjé Investimentos: ${url}`;
   const daysLeft = token?.expires_at ? Math.max(0, Math.ceil((new Date(token.expires_at).getTime() - Date.now()) / 86400000)) : null;
   const submitted = token && ['completed', 'updated'].includes(token.status);
 
@@ -63,6 +74,7 @@ export function FormLinkDialog({ open, onOpenChange, clientId, clientName }: Pro
           <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
         ) : (
           <div className="space-y-4">
+            {token.short_code && <div className="text-center rounded-lg border border-border p-3"><p className="text-xs text-muted-foreground">Código do formulário</p><p className="text-2xl font-mono font-semibold tracking-[0.3em] text-foreground">{token.short_code}</p></div>}
             <div className="flex gap-2">
               <Input readOnly value={url} className="crm-input text-xs" />
               <Button type="button" size="sm" onClick={() => { navigator.clipboard.writeText(url); toast.success('Link copiado!'); }} className="gap-1.5"><Copy className="w-3.5 h-3.5" />Copiar</Button>
