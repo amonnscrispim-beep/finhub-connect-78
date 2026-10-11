@@ -40,6 +40,7 @@ export function buildInitialContractMeetings(client: Client): ContractMeeting[] 
 }
 
 const RENEWAL_OPTIONS = ['Em negociação', 'Aprovada', 'Recusada'];
+export const SEGMENTATION_OPTIONS = ['Varejo', 'Alta Renda', 'Private'];
 const PERIODICITY_OPTIONS = [15, 30, 45, 60, 90];
 
 interface Props {
@@ -85,7 +86,7 @@ export function ContratoAcompanhamento({ formData, setFormData, onConsultingFini
   return (
     <div className="space-y-4">
       <CollapsibleSection title="Status do Contrato" defaultOpen>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="space-y-2">
             <Label>Etapa do Funil</Label>
             <Select value={formData.funnelStage} onValueChange={(v) => set('funnelStage', v)}>
@@ -105,6 +106,13 @@ export function ContratoAcompanhamento({ formData, setFormData, onConsultingFini
             <Select value={String(formData.meetingPeriodicityDays ?? 30)} onValueChange={(v) => set('meetingPeriodicityDays', parseInt(v))}>
               <SelectTrigger className="crm-input"><SelectValue /></SelectTrigger>
               <SelectContent>{PERIODICITY_OPTIONS.map((d) => <SelectItem key={d} value={String(d)}>{d} dias</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Segmentação</Label>
+            <Select value={formData.segmentation || 'Varejo'} onValueChange={(v) => set('segmentation', v)}>
+              <SelectTrigger className="crm-input"><SelectValue /></SelectTrigger>
+              <SelectContent>{SEGMENTATION_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
