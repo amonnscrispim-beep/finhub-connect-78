@@ -97,6 +97,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useActivityLog } from '@/hooks/useActivityLog';
 import { toast } from 'sonner';
+import { SuitabilityModule } from './SuitabilityModule';
+import { ShieldCheck as SuitabilityIcon } from 'lucide-react';
 
 import type { InvestorProfile, FunnelStage, Residence, RenewalStatus, ContractedMeetings, ContractMeeting, PrivatePensionStatus, PrivatePensionType, OrganizedFinancesStatus, AmortizationSystem, AmortizationStrategy } from '@/types/client';
 
@@ -942,6 +944,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     { id: 'goals', label: 'Metas Financeiras', icon: Target },
     
     { id: 'contracts', label: 'Contrato e Acompanhamento', icon: ClipboardCheck },
+    { id: 'suitability', label: 'Suitability', icon: SuitabilityIcon },
     { id: 'patrimonial-planning', label: 'Simulador Planejamento Patrimonial', icon: TrendingUp },
     { id: 'performance', label: 'Relatório de Performance', icon: BarChart3 },
     { id: 'extrato', label: 'Extrato do Cliente', icon: Wallet },
@@ -1537,6 +1540,16 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 <div className="text-sm text-muted-foreground p-6 text-center border border-dashed rounded-md">
                   Salve o cliente primeiro para usar o simulador.
                 </div>
+              )}
+            </div>
+
+            {/* SECTION: Suitability — preenchido pelo cliente via link externo */}
+            <div hidden={activeTab !== 'suitability'}>
+              {client?.id ? (
+                <SuitabilityModule clientId={client.id} clientName={formData.name} clientPhone={formData.phone} clientEmail={formData.email}
+                  onProfile={(p) => setFormData((prev) => ({ ...prev, investorProfile: p as InvestorProfile }))} />
+              ) : (
+                <div className="text-sm text-muted-foreground p-6 text-center border border-dashed rounded-md">Salve o cliente primeiro para enviar o Suitability.</div>
               )}
             </div>
 

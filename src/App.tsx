@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ClientForm from "./pages/ClientForm";
+import SuitabilityForm from "./pages/SuitabilityForm";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ function AppRoutes() {
       <Route path="/auth" element={<Auth />} />
       <Route path="/formulario/:token" element={<ClientForm />} />
       <Route path="/client-form/:token" element={<ClientForm />} />
+      <Route path="/s/:code" element={<SuitabilityForm />} />
       <Route
         path="/"
         element={
