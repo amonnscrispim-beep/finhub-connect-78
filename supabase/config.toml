@@ -20,3 +20,5 @@ verify_jwt = false
 
 [functions.generate-summary-report]
 verify_jwt = false
+[functions.suitability-form]
+verify_jwt = false
