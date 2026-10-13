@@ -393,9 +393,6 @@ function CRMDashboard() {
 
               <TabsContent value="kanban" className="mt-4 animate-fade-in">
                 <ErrorBoundary label="Kanban">
-                  <div className="mb-4">
-                    <KanbanToolbar search={kanbanSearch} onSearchChange={setKanbanSearch} filters={kanbanFilters} onFiltersChange={setKanbanFilters} />
-                  </div>
                   <div className="crm-card overflow-hidden">
                     <KanbanView
                       onEditClient={handleEditClient}

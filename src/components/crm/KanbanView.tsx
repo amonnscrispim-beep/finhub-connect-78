@@ -844,9 +844,8 @@ function KanbanContent({ onEditClient, searchQuery = '', filters, clientIdsWithP
             const columnBg = COLUMN_BG[stage] || 'bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800';
             const headerColor = COLUMN_HEADER[stage] || 'bg-primary text-primary-foreground';
 
-            // Insert Pendências Urgentes column after GROWTH (index of GROWTH in the array)
-            const growthIndex = KANBAN_COLUMN_STAGES.indexOf('GROWTH' as FunnelStage);
-            const renderPendenciasAfter = stageIndex === growthIndex;
+            // Pendências Urgentes is always the last column
+            const renderPendenciasAfter = stageIndex === KANBAN_COLUMN_STAGES.length - 1;
             
             return (
               <React.Fragment key={stage}>
