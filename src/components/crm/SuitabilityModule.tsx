@@ -99,7 +99,7 @@ export function SuitabilityModule({ clientId, clientName, clientPhone, clientEma
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.stopPropagation()} onInteractOutside={(e) => e.stopPropagation()}>
           <DialogHeader>
             <DialogTitle>Enviar Suitability ao Cliente</DialogTitle>
             <DialogDescription>O cliente preencherá o questionário de perfil de investidor, sem precisar de login.</DialogDescription>
