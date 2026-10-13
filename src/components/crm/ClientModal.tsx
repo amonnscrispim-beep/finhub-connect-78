@@ -1,3 +1,4 @@
+import { commitPendingMerge, getPendingMerge } from './conhecer/pendingMerge';
 import { useState, useEffect, useRef } from 'react';
 import { 
   Heart, Users, PieChart, Landmark, Target, Calendar, Cake, CreditCard, 
