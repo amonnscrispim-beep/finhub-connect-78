@@ -199,7 +199,7 @@ export function ClientFiles({ files, onFilesChange, clientId }: ClientFilesProps
                   className="hidden"
                   onChange={(e) => handleFileUpload(e.target.files, folder.value)}
                 />
-                <Button variant="outline" size="sm" className="cursor-pointer" asChild>
+                <Button type="button" variant="outline" size="sm" className="cursor-pointer" asChild>
                   <span>Escolher Arquivos</span>
                 </Button>
               </label>
@@ -232,10 +232,10 @@ export function ClientFiles({ files, onFilesChange, clientId }: ClientFilesProps
                             onKeyDown={(e) => e.key === 'Enter' && handleRename(file.id)}
                             autoFocus
                           />
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => handleRename(file.id)}>
+                          <Button type="button" size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => handleRename(file.id)}>
                             <Check className="w-3 h-3" />
                           </Button>
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setRenamingFile(null)}>
+                          <Button type="button" size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setRenamingFile(null)}>
                             <X className="w-3 h-3" />
                           </Button>
                         </div>
@@ -251,7 +251,7 @@ export function ClientFiles({ files, onFilesChange, clientId }: ClientFilesProps
 
                     {renamingFile !== file.id && (
                       <div className="flex items-center gap-1">
-                        <Button
+                        <Button type="button"
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
@@ -260,7 +260,7 @@ export function ClientFiles({ files, onFilesChange, clientId }: ClientFilesProps
                         >
                           <Download className="w-4 h-4" />
                         </Button>
-                        <Button
+                        <Button type="button"
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
@@ -269,7 +269,7 @@ export function ClientFiles({ files, onFilesChange, clientId }: ClientFilesProps
                         >
                           <Edit2 className="w-4 h-4" />
                         </Button>
-                        <Button
+                        <Button type="button"
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"

@@ -348,7 +348,7 @@ export function RelatorioAutomatizado({ client, assets, consultantObservation, o
   if (!client) return null;
 
   const CopyButton = ({ text, field }: { text: string; field: string }) => (
-    <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => handleCopy(text, field)}>
+    <Button type="button" size="sm" variant="outline" className="gap-1 text-xs" onClick={() => handleCopy(text, field)}>
       {copiedField === field ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
       {copiedField === field ? 'Copiado' : 'Copiar'}
     </Button>
@@ -361,7 +361,7 @@ export function RelatorioAutomatizado({ client, assets, consultantObservation, o
           <FileText className="w-5 h-5 text-primary" />
           Relatório Automatizado
         </h4>
-        <Button onClick={handleGeneratePdf} disabled={!hasData} className="gap-2">
+        <Button type="button" onClick={handleGeneratePdf} disabled={!hasData} className="gap-2">
           <Download className="w-4 h-4" />
           Gerar PDF
         </Button>

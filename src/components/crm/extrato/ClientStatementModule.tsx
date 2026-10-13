@@ -475,7 +475,7 @@ export function ClientStatementModule({ clientId, clientName }: Props) {
                 </span>
               )}
               {activeSnapshot && (
-                <Button
+                <Button type="button"
                   size="sm"
                   variant="ghost"
                   onClick={() => { if (confirm('Remover este snapshot?')) deleteSnapshot(activeSnapshot.id); }}
@@ -880,11 +880,11 @@ export function ClientStatementModule({ clientId, clientName }: Props) {
           </div>
 
           <DialogFooter className="flex flex-row justify-between gap-2">
-            <Button variant="outline" onClick={() => setSummaryOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setSummaryOpen(false)}>
               Fechar
             </Button>
             <div className="flex gap-2">
-              <Button
+              <Button type="button"
                 variant="outline"
                 onClick={handleSaveSummary}
                 disabled={savingSummary}
@@ -892,7 +892,7 @@ export function ClientStatementModule({ clientId, clientName }: Props) {
                 {savingSummary ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                 Salvar
               </Button>
-              <Button onClick={handleExportPdf}>
+              <Button type="button" onClick={handleExportPdf}>
                 <Download className="w-4 h-4 mr-2" /> Gerar PDF
               </Button>
             </div>

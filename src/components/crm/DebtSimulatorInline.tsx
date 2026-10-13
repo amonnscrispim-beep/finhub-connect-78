@@ -412,7 +412,7 @@ export function DebtSimulatorInline({ debt, onSimulationChange }: DebtSimulatorI
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger asChild>
-        <Button variant="ghost" size="sm" className="w-full justify-between p-2 h-auto">
+        <Button type="button" variant="ghost" size="sm" className="w-full justify-between p-2 h-auto">
           <span className="flex items-center gap-2 text-sm font-medium">
             <Calculator className="h-4 w-4" />
             Simulação ({debt.amortizationSystem})
@@ -714,7 +714,7 @@ export function DebtSimulatorInline({ debt, onSimulationChange }: DebtSimulatorI
             {/* Schedule Table Toggle */}
             <Collapsible open={showScheduleTable} onOpenChange={setShowScheduleTable}>
               <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="w-full justify-between p-2 h-auto">
+                <Button type="button" variant="ghost" size="sm" className="w-full justify-between p-2 h-auto">
                   <span className="text-xs font-medium">Cronograma de Parcelas</span>
                   {showScheduleTable ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                 </Button>
