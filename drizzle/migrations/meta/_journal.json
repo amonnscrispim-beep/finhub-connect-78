@@ -50,6 +50,13 @@
       "when": 1791753152836,
       "tag": "0006_client_suitability_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791922876879,
+      "tag": "0007_scope_slide_files_policies",
+      "breakpoints": true
     }
   ]
 }
