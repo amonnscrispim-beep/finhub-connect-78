@@ -831,6 +831,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
       if (draftKey) {
         localStorage.removeItem(draftKey);
       }
+      if (client?.id) await commitPendingMerge(client.id);
       setIsSaving(false);
       onOpenChange(false);
     } catch (error) {
@@ -961,7 +962,12 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
   const completionPct = calculateProgress(conhecerData);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => {
+      if (!o && client?.id && getPendingMerge(client.id) && !window.confirm(
+        'Você mesclou os dados do formulário do cliente, mas ainda NÃO salvou.\n\nClique em "Cancelar" para voltar e salvar, ou "OK" para fechar mesmo assim (o rascunho fica guardado neste navegador).'
+      )) return;
+      onOpenChange(o);
+    }}>
       <DialogContent
         className="max-w-7xl w-[95vw] h-[90vh] p-0 flex flex-col gap-0 overflow-hidden"
         style={{ resize: 'both' as const, minWidth: '720px', minHeight: '500px', maxWidth: '98vw', maxHeight: '95vh' }}
