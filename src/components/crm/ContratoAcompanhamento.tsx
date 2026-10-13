@@ -165,7 +165,7 @@ export function ContratoAcompanhamento({ formData, setFormData, onConsultingFini
             <Label>Data de Renovação</Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className={cn('w-full justify-start text-left font-normal crm-input', !formData.renewalDate && 'text-muted-foreground')}>
+                <Button type="button" variant="outline" className={cn('w-full justify-start text-left font-normal crm-input', !formData.renewalDate && 'text-muted-foreground')}>
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {formData.renewalDate ? format(new Date(formData.renewalDate), 'dd/MM/yyyy', { locale: ptBR }) : <span>Selecione</span>}
                 </Button>

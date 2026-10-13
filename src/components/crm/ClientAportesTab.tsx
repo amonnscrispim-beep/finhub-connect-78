@@ -104,7 +104,7 @@ export function ClientAportesTab({ clientId, clientName, defaultPlanned }: Props
           </div>
         </div>
         <div className="mt-3 flex justify-end">
-          <Button onClick={handleSavePlan} disabled={savingPlan}>{savingPlan ? 'Salvando...' : 'Salvar Planejamento'}</Button>
+          <Button type="button" onClick={handleSavePlan} disabled={savingPlan}>{savingPlan ? 'Salvando...' : 'Salvar Planejamento'}</Button>
         </div>
       </Card>
 

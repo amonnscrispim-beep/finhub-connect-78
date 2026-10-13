@@ -81,7 +81,7 @@ export function ClientTasksSection({ client, moduleNotes, onModuleNotesChange }:
               className="h-9"
               onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
             />
-            <Button size="sm" className="h-9 px-3" onClick={handleAddTask} disabled={!newTask.trim()}>
+            <Button type="button" size="sm" className="h-9 px-3" onClick={handleAddTask} disabled={!newTask.trim()}>
               <Plus className="w-4 h-4 mr-1" />
               Adicionar
             </Button>
@@ -151,7 +151,7 @@ export function ClientTasksSection({ client, moduleNotes, onModuleNotesChange }:
                       </div>
                     )}
                   </div>
-                  <Button
+                  <Button type="button"
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-muted-foreground hover:text-primary"

@@ -206,16 +206,16 @@ export function DiagnosticoInteligente({ formData, setFormData, conhecerData, se
           className="min-h-[260px] font-mono text-sm"
         />
         <div className="flex flex-wrap gap-2 mt-3">
-          <Button onClick={handleAnalyze} disabled={loading} className="crm-button-primary">
+          <Button type="button" onClick={handleAnalyze} disabled={loading} className="crm-button-primary">
             {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
             Analisar Cliente
           </Button>
-          <Button onClick={handleFillCrm} disabled={!extraction} variant="outline">
+          <Button type="button" onClick={handleFillCrm} disabled={!extraction} variant="outline">
             <Wand2 className="h-4 w-4 mr-2" />
             Preencher CRM
           </Button>
           {extraction && (
-            <Button variant="ghost" onClick={() => { setExtraction(null); setText(''); }}>
+            <Button type="button" variant="ghost" onClick={() => { setExtraction(null); setText(''); }}>
               Limpar
             </Button>
           )}

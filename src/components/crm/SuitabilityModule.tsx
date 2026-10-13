@@ -64,8 +64,8 @@ export function SuitabilityModule({ clientId, clientName, clientPhone, clientEma
           <p className="text-sm text-muted-foreground">Análise de adequação ao perfil (API/CVM)</p>
         </div>
         <div className="flex items-center gap-2">
-          {active && <Button variant="outline" size="sm" className="gap-2" onClick={() => generateSuitabilityPDF(active, clientName)}><FileText className="w-4 h-4" />Ver PDF</Button>}
-          <Button size="sm" className="gap-2" onClick={openLink}><Link2 className="w-4 h-4" />Enviar Suitability</Button>
+          {active && <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => generateSuitabilityPDF(active, clientName)}><FileText className="w-4 h-4" />Ver PDF</Button>}
+          <Button type="button" size="sm" className="gap-2" onClick={openLink}><Link2 className="w-4 h-4" />Enviar Suitability</Button>
         </div>
       </div>
 
@@ -74,7 +74,7 @@ export function SuitabilityModule({ clientId, clientName, clientPhone, clientEma
           <span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-success" />
             O cliente preencheu o Suitability em {fmt(token.submitted_at)}. Perfil identificado: <strong>{cap(token.submitted_data?.calculatedProfile || '')}</strong> (Score: {token.submitted_data?.calculatedScore})
           </span>
-          <Button size="sm" variant="outline" onClick={ack}>OK, Entendido</Button>
+          <Button type="button" size="sm" variant="outline" onClick={ack}>OK, Entendido</Button>
         </div>
       )}
 
@@ -107,11 +107,11 @@ export function SuitabilityModule({ clientId, clientName, clientPhone, clientEma
           {busy || !token ? <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin" /></div> : <>
             <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
               <span className="text-sm font-mono font-medium flex-1 truncate">{url}</span>
-              <Button size="sm" variant="ghost" aria-label="Copiar link" onClick={() => { navigator.clipboard.writeText(url); toast.success('Link copiado'); }}><Copy className="w-4 h-4" /></Button>
+              <Button type="button" size="sm" variant="ghost" aria-label="Copiar link" onClick={() => { navigator.clipboard.writeText(url); toast.success('Link copiado'); }}><Copy className="w-4 h-4" /></Button>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1 gap-2" onClick={() => window.open(`https://wa.me/${(clientPhone || '').replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank')}><MessageCircle className="w-4 h-4" />WhatsApp</Button>
-              <Button variant="outline" className="flex-1 gap-2" onClick={() => window.open(`mailto:${clientEmail || ''}?subject=${encodeURIComponent('Questionário de Perfil de Investidor')}&body=${encodeURIComponent(msg)}`)}><Mail className="w-4 h-4" />Email</Button>
+              <Button type="button" variant="outline" className="flex-1 gap-2" onClick={() => window.open(`https://wa.me/${(clientPhone || '').replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank')}><MessageCircle className="w-4 h-4" />WhatsApp</Button>
+              <Button type="button" variant="outline" className="flex-1 gap-2" onClick={() => window.open(`mailto:${clientEmail || ''}?subject=${encodeURIComponent('Questionário de Perfil de Investidor')}&body=${encodeURIComponent(msg)}`)}><Mail className="w-4 h-4" />Email</Button>
             </div>
             <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
               <span className="flex items-center gap-1"><Clock className="w-3 h-3" />Expira em {days} dias</span>
