@@ -64,6 +64,13 @@
       "when": 1792006934720,
       "tag": "0008_client_portfolio_consolidation",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792010103809,
+      "tag": "0009_consolidador_source_files",
+      "breakpoints": true
     }
   ]
 }
