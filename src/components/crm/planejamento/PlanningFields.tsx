@@ -88,8 +88,10 @@ export function Field({
                 v === "" ? null : Number(v.replace(/\D/g, "").slice(0, 3)),
               );
             else if (kind === "percent") {
-              const clean = v.replace(/[^\d.,]/g, "").replace(",", ".");
-              onChange(Number(clean) || 0);
+              const clean = v.replace(/[^\d.,]/g, "");
+              setPercentText(clean);
+              const parsed = Number(clean.replace(",", "."));
+              onChange(Number.isFinite(parsed) ? parsed : 0);
             } else onChange(v);
           }}
         />
