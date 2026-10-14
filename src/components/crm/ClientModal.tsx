@@ -58,6 +58,8 @@ import { cn } from '@/lib/utils';
 import { useClients } from '@/contexts/ClientContext';
 import { ClientFiles } from './ClientFiles';
 import { SimuladorImovelCarteira } from './SimuladorImovelCarteira';
+import { EficienciaTributariaPFPJ } from './planejamento/EficienciaTributariaPFPJ';
+import { Scale } from 'lucide-react';
 import { SimuladorPlanejamentoPatrimonial } from './planejamento/SimuladorPlanejamentoPatrimonial';
 import { Progress } from '@/components/ui/progress';
 import { CollapsibleSection } from './CollapsibleSection';
@@ -948,6 +950,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     { id: 'contracts', label: 'Contrato e Acompanhamento', icon: ClipboardCheck },
     { id: 'suitability', label: 'Suitability', icon: SuitabilityIcon },
     { id: 'patrimonial-planning', label: 'Simulador Planejamento Patrimonial', icon: TrendingUp },
+    { id: 'pf-pj', label: 'Eficiência Tributária PF x PJ', icon: Scale },
     { id: 'performance', label: 'Relatório de Performance', icon: BarChart3 },
     { id: 'extrato', label: 'Extrato do Cliente', icon: Wallet },
     { id: 'reports', label: 'Arquivos e Resumos', icon: FileText },
@@ -1569,6 +1572,10 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                   Salve o cliente primeiro para usar o planejamento patrimonial.
                 </div>
               )}
+            </div>
+
+            <div hidden={activeTab !== 'pf-pj'}>
+              <EficienciaTributariaPFPJ />
             </div>
 
             {/* SECTION: Histórico de Aportes */}
