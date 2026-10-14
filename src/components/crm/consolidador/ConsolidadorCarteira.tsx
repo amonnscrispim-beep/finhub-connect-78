@@ -23,6 +23,7 @@ const defaults = (initial: number): ConsolidationState => ({
     location: 'onshore', model: 'balanceado', returnType: 'nominal', initial, monthly: 0, benchmark: 'CDI',
     startMonth: 0, startYear: 2014, endMonth: 11, endYear: 2026, passiveRate: 0.5, manualPortfolio: null, manualBenchmark: null,
   },
+  importedFiles: [],
 });
 
 interface Props { clientId: string; initialPatrimony: number }
@@ -52,6 +53,7 @@ export function ConsolidadorCarteira({ clientId, initialPatrimony }: Props) {
         methodologyLocation: data.methodology_location as any,
         comparatives: (data.comparatives as any)?.length ? data.comparatives as any : DEFAULT_COMPARATIVES,
         backtest: { ...base.backtest, ...((data.backtest as any) ?? {}) },
+        importedFiles: (data.source_files as any) ?? [],
       } : base);
       loaded.current = true;
     })();
@@ -66,7 +68,7 @@ export function ConsolidadorCarteira({ clientId, initialPatrimony }: Props) {
       client_id: clientId, user_id: user.id,
       assets: s.assets as any, selected_model: s.selectedModel, models: s.models as any,
       methodology_name: s.methodologyName, methodology_location: s.methodologyLocation,
-      comparatives: s.comparatives as any, backtest: s.backtest as any, updated_at: new Date().toISOString(),
+      comparatives: s.comparatives as any, backtest: s.backtest as any, source_files: s.importedFiles as any, updated_at: new Date().toISOString(),
     }, { onConflict: 'client_id,user_id' });
     if (my !== seq.current) return;
     if (error) { setSaving('error'); toast.error('Erro ao salvar o consolidador'); } else setSaving('saved');
@@ -110,7 +112,12 @@ export function ConsolidadorCarteira({ clientId, initialPatrimony }: Props) {
 
       <PortfolioUpload
         clientId={clientId}
-        onImport={imported => update({ assets: imported })}
+        importedFiles={state.importedFiles}
+        onImport={(imported, fileNames) => update({
+          assets: [...state.assets, ...imported],
+          importedFiles: [...state.importedFiles, ...fileNames.filter(n => !state.importedFiles.includes(n))],
+        })}
+        onRemoveFile={name => update({ importedFiles: state.importedFiles.filter(n => n !== name) })}
         onAdd={() => update({ assets: [...state.assets, { id: crypto.randomUUID(), name: 'Novo ativo', type: 'Ações', strategy: 'Ações Brasil', value: 0, maturity: null, rate: null }] })}
       />
 
