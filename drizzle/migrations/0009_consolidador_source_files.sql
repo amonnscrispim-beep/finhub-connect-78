@@ -1,0 +1,1 @@
+alter table public.client_portfolio_consolidation add column if not exists source_files jsonb not null default '[]'::jsonb;

@@ -519,6 +519,7 @@ export type Database = {
           methodology_name: string
           models: Json | null
           selected_model: string
+          source_files: Json
           updated_at: string
           user_id: string
         }
@@ -534,6 +535,7 @@ export type Database = {
           methodology_name?: string
           models?: Json | null
           selected_model?: string
+          source_files?: Json
           updated_at?: string
           user_id: string
         }
@@ -549,6 +551,7 @@ export type Database = {
           methodology_name?: string
           models?: Json | null
           selected_model?: string
+          source_files?: Json
           updated_at?: string
           user_id?: string
         }
