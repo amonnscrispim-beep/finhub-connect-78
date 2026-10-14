@@ -1,4 +1,4 @@
-import { type ReactNode, useId } from "react";
+import { type ReactNode, useEffect, useId, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,10 +50,16 @@ export function Field({
   ai?: boolean;
 }) {
   const id = useId();
+  const [percentText, setPercentText] = useState<string | null>(null);
+  useEffect(() => {
+    if (kind === "percent") setPercentText(null);
+  }, [value, kind]);
   const display =
     kind === "money" && typeof value === "number"
       ? value.toLocaleString("pt-BR", { maximumFractionDigits: 0 })
-      : (value ?? "");
+      : kind === "percent"
+        ? (percentText ?? String(value ?? ""))
+        : (value ?? "");
   return (
     <div className="planning-field">
       <label htmlFor={id}>{label}</label>
@@ -82,8 +88,10 @@ export function Field({
                 v === "" ? null : Number(v.replace(/\D/g, "").slice(0, 3)),
               );
             else if (kind === "percent") {
-              const clean = v.replace(/[^\d.,]/g, "").replace(",", ".");
-              onChange(Number(clean) || 0);
+              const clean = v.replace(/[^\d.,]/g, "");
+              setPercentText(clean);
+              const parsed = Number(clean.replace(",", "."));
+              onChange(Number.isFinite(parsed) ? parsed : 0);
             } else onChange(v);
           }}
         />
