@@ -3,10 +3,20 @@ import type { ModelKey, Comparative } from './types';
 export const ASSET_TYPES = [
   'Ações',
   "ETF's",
+  'BDR',
   'Fundos Imobiliários',
   'Emissão Bancária (CDB, LCI/LCA)',
+  'Crédito Privado (Debêntures, CRI/CRA)',
   'Título Público',
+  'Fundo de Renda Fixa',
+  'FIDC',
+  'Fundo Multimercado',
+  'Fundo de Ações',
+  'Previdência',
+  'COE',
+  'Criptoativos',
   'Caixa/Conta Corrente',
+  'Outros',
 ] as const;
 
 export const STRATEGIES = [
@@ -49,6 +59,16 @@ export const TIPO_COLORS: Record<string, string> = {
   'Fundos Imobiliários': 'bg-sky-500/20 text-sky-700 dark:text-sky-400',
   'Título Público': 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400',
   'Caixa/Conta Corrente': 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-400',
+  'BDR': 'bg-blue-500/20 text-blue-700 dark:text-blue-400',
+  'Crédito Privado (Debêntures, CRI/CRA)': 'bg-orange-500/20 text-orange-700 dark:text-orange-400',
+  'Fundo de Renda Fixa': 'bg-amber-500/20 text-amber-700 dark:text-amber-400',
+  'FIDC': 'bg-orange-500/20 text-orange-700 dark:text-orange-400',
+  'Fundo Multimercado': 'bg-violet-500/20 text-violet-700 dark:text-violet-400',
+  'Fundo de Ações': 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400',
+  'Previdência': 'bg-teal-500/20 text-teal-700 dark:text-teal-400',
+  'COE': 'bg-rose-500/20 text-rose-700 dark:text-rose-400',
+  'Criptoativos': 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400',
+  'Outros': 'bg-muted text-muted-foreground',
 };
 
 export const MODEL_LABELS: Record<ModelKey, string> = {
