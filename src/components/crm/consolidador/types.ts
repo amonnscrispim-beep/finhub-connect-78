@@ -43,6 +43,7 @@ export interface ConsolidationState {
   methodologyLocation: 'onshore' | 'offshore';
   comparatives: Comparative[];
   backtest: BacktestParams;
+  importedFiles: string[];
 }
 
 export interface StrategyRow {

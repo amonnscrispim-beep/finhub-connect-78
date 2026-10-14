@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Upload, Loader2, Plus } from 'lucide-react';
+import { Upload, Loader2, Plus, FileText, X } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -38,78 +38,119 @@ function fromSheet(rows: Record<string, unknown>[]): ConsolidatedAsset[] {
 
 interface Props {
   clientId: string;
-  onImport: (assets: ConsolidatedAsset[]) => void;
+  importedFiles: string[];
+  onImport: (assets: ConsolidatedAsset[], fileNames: string[]) => void;
+  onRemoveFile: (name: string) => void;
   onAdd: () => void;
 }
 
-export function PortfolioUpload({ clientId, onImport, onAdd }: Props) {
+export function PortfolioUpload({ clientId, importedFiles, onImport, onRemoveFile, onAdd }: Props) {
   const ref = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
   const [drag, setDrag] = useState(false);
 
-  const handle = async (file: File) => {
-    setBusy(true);
-    try {
-      const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
-      let assets: ConsolidatedAsset[] = [];
-      if (['xlsx', 'xls', 'csv'].includes(ext)) {
-        const wb = XLSX.read(await file.arrayBuffer());
-        const sheet = wb.Sheets[wb.SheetNames[0]];
-        assets = fromSheet(XLSX.utils.sheet_to_json(sheet, { defval: '' }));
-      } else if (['pdf', 'png', 'jpg', 'jpeg'].includes(ext)) {
-        const fd = new FormData();
-        fd.append('file', file);
-        fd.append('clientId', clientId);
-        fd.append('broker', '');
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error('Não autenticado');
-        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-performance-report`, {
-          method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` }, body: fd,
-        });
-        const json = await res.json().catch(() => ({}));
-        if (!res.ok || !json?.success) throw new Error(json?.error ?? 'Falha na leitura do relatório');
-        const positions: any[] = json.extractedData?.positions ?? [];
-        assets = positions.map(p => {
-          const name = String(p.ticker && p.ticker !== '—' ? `${p.ticker}${p.name && p.name !== p.ticker ? ` — ${p.name}` : ''}` : p.name ?? '').trim();
-          const type = guessType(String(p.type ?? ''), name);
-          const rate = String(p.rate ?? '');
-          return {
-            id: uid(), name, type, value: Number(p.grossBalance) || 0,
-            strategy: guessStrategy(type, rate, String(p.indexer ?? '')),
-            maturity: p.maturityDate ?? null, rate: rate || null,
-          };
-        }).filter(a => a.name && a.value > 0);
-      } else {
-        throw new Error('Formato não suportado. Envie PDF, Excel ou CSV.');
-      }
-      if (assets.length === 0) throw new Error('Nenhum ativo encontrado no arquivo.');
-      onImport(assets);
-      toast.success(`${assets.length} ativo(s) importado(s). Revise tipos e estratégias.`);
-    } catch (e: any) {
-      toast.error(e?.message ?? 'Erro ao importar');
-    } finally {
-      setBusy(false);
-      if (ref.current) ref.current.value = '';
+  const parseFile = async (file: File): Promise<ConsolidatedAsset[]> => {
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+    if (['xlsx', 'xls', 'csv'].includes(ext)) {
+      const wb = XLSX.read(await file.arrayBuffer());
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      return fromSheet(XLSX.utils.sheet_to_json(sheet, { defval: '' }));
     }
+    if (['pdf', 'png', 'jpg', 'jpeg'].includes(ext)) {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('clientId', clientId);
+      fd.append('broker', '');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Não autenticado');
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-performance-report`, {
+        method: 'POST', headers: { Authorization: `Bearer ${session.access_token}` }, body: fd,
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json?.success) throw new Error(json?.error ?? 'Falha na leitura do relatório');
+      const positions: any[] = json.extractedData?.positions ?? [];
+      return positions.map(p => {
+        const name = String(p.ticker && p.ticker !== '—' ? `${p.ticker}${p.name && p.name !== p.ticker ? ` — ${p.name}` : ''}` : p.name ?? '').trim();
+        const type = guessType(String(p.type ?? ''), name);
+        const rate = String(p.rate ?? '');
+        return {
+          id: uid(), name, type, value: Number(p.grossBalance) || 0,
+          strategy: guessStrategy(type, rate, String(p.indexer ?? '')),
+          maturity: p.maturityDate ?? null, rate: rate || null,
+        };
+      }).filter(a => a.name && a.value > 0);
+    }
+    throw new Error('Formato não suportado. Envie PDF, Excel ou CSV.');
+  };
+
+  const handle = async (files: File[]) => {
+    const allAssets: ConsolidatedAsset[] = [];
+    const okNames: string[] = [];
+    const errors: string[] = [];
+    for (const file of files) {
+      setBusy(file.name);
+      try {
+        const assets = await parseFile(file);
+        if (assets.length === 0) throw new Error('nenhum ativo encontrado');
+        allAssets.push(...assets);
+        okNames.push(file.name);
+      } catch (e: any) {
+        errors.push(`${file.name}: ${e?.message ?? 'erro ao importar'}`);
+      }
+    }
+    setBusy(null);
+    if (ref.current) ref.current.value = '';
+    if (allAssets.length > 0) {
+      onImport(allAssets, okNames);
+      toast.success(`${allAssets.length} ativo(s) importado(s) de ${okNames.length} arquivo(s). Revise tipos e estratégias.`);
+    }
+    errors.forEach(msg => toast.error(msg));
+    if (allAssets.length === 0 && errors.length === 0) toast.error('Nenhum arquivo selecionado.');
   };
 
   return (
-    <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-      <div
-        className={`border border-dashed rounded-lg p-6 text-center transition-colors ${drag ? 'border-primary bg-primary/5' : 'border-border'}`}
-        onDragOver={e => { e.preventDefault(); setDrag(true); }}
-        onDragLeave={() => setDrag(false)}
-        onDrop={e => { e.preventDefault(); setDrag(false); const f = e.dataTransfer.files?.[0]; if (f) handle(f); }}
-      >
-        {busy ? <Loader2 className="w-8 h-8 text-primary mx-auto mb-2 animate-spin" /> : <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />}
-        <p className="text-sm font-medium">{busy ? 'Lendo relatório...' : 'Importar Relatório de Performance'}</p>
-        <p className="text-xs text-muted-foreground">Arraste o PDF/Excel ou clique para selecionar</p>
-        <input ref={ref} type="file" hidden accept=".pdf,.xlsx,.xls,.csv,.png,.jpg,.jpeg" onChange={e => { const f = e.target.files?.[0]; if (f) handle(f); }} />
-        <Button type="button" size="sm" className="mt-3" disabled={busy} onClick={() => ref.current?.click()}>Selecionar Arquivo</Button>
+    <div className="space-y-3">
+      <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+        <div
+          className={`border border-dashed rounded-lg p-6 text-center transition-colors ${drag ? 'border-primary bg-primary/5' : 'border-border'}`}
+          onDragOver={e => { e.preventDefault(); setDrag(true); }}
+          onDragLeave={() => setDrag(false)}
+          onDrop={e => { e.preventDefault(); setDrag(false); const fs = Array.from(e.dataTransfer.files ?? []); if (fs.length) handle(fs); }}
+        >
+          {busy ? <Loader2 className="w-8 h-8 text-primary mx-auto mb-2 animate-spin" /> : <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />}
+          <p className="text-sm font-medium">{busy ? `Lendo ${busy}...` : 'Importar Relatórios de Performance'}</p>
+          <p className="text-xs text-muted-foreground">Arraste um ou mais PDFs/Excels ou clique para selecionar</p>
+          <input ref={ref} type="file" hidden multiple accept=".pdf,.xlsx,.xls,.csv,.png,.jpg,.jpeg" onChange={e => { const fs = Array.from(e.target.files ?? []); if (fs.length) handle(fs); }} />
+          <Button type="button" size="sm" className="mt-3" disabled={!!busy} onClick={() => ref.current?.click()}>Selecionar Arquivos</Button>
+        </div>
+        <Button type="button" variant="outline" className="h-auto md:w-44" onClick={onAdd}>
+          <Plus className="w-4 h-4 mr-1" /> Adicionar Ativo
+        </Button>
       </div>
-      <Button type="button" variant="outline" className="h-auto md:w-44" onClick={onAdd}>
-        <Plus className="w-4 h-4 mr-1" /> Adicionar Ativo
-      </Button>
+
+      {importedFiles.length > 0 && (
+        <div className="rounded-lg border border-border bg-muted/30 p-3">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Arquivos importados ({importedFiles.length})</p>
+          <ul className="space-y-1">
+            {importedFiles.map(name => (
+              <li key={name} className="flex items-center justify-between gap-2 text-sm">
+                <span className="flex items-center gap-2 min-w-0">
+                  <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <span className="truncate">{name}</span>
+                </span>
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                  title="Remover da lista (os ativos importados são mantidos)"
+                  onClick={() => onRemoveFile(name)}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
