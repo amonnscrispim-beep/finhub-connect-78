@@ -8,6 +8,7 @@ export interface ConsolidatedAsset {
   value: number; // reais
   maturity: string | null;
   rate: string | null;
+  sourceFile?: string | null;
 }
 
 export interface Comparative {

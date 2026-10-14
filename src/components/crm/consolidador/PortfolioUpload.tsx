@@ -42,9 +42,11 @@ interface Props {
   onImport: (assets: ConsolidatedAsset[], fileNames: string[]) => void;
   onRemoveFile: (name: string) => void;
   onAdd: () => void;
+  onClearAll: () => void;
+  assetCount: number;
 }
 
-export function PortfolioUpload({ clientId, importedFiles, onImport, onRemoveFile, onAdd }: Props) {
+export function PortfolioUpload({ clientId, importedFiles, onImport, onRemoveFile, onAdd, onClearAll, assetCount }: Props) {
   const ref = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [drag, setDrag] = useState(false);
@@ -92,7 +94,7 @@ export function PortfolioUpload({ clientId, importedFiles, onImport, onRemoveFil
       try {
         const assets = await parseFile(file);
         if (assets.length === 0) throw new Error('nenhum ativo encontrado');
-        allAssets.push(...assets);
+        allAssets.push(...assets.map(a => ({ ...a, sourceFile: file.name })));
         okNames.push(file.name);
       } catch (e: any) {
         errors.push(`${file.name}: ${e?.message ?? 'erro ao importar'}`);
@@ -128,9 +130,16 @@ export function PortfolioUpload({ clientId, importedFiles, onImport, onRemoveFil
         </Button>
       </div>
 
-      {importedFiles.length > 0 && (
+      {(importedFiles.length > 0 || assetCount > 0) && (
         <div className="rounded-lg border border-border bg-muted/30 p-3">
-          <p className="text-xs font-medium text-muted-foreground mb-2">Arquivos importados ({importedFiles.length})</p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium text-muted-foreground">Arquivos importados ({importedFiles.length})</p>
+            {assetCount > 0 && (
+              <button type="button" className="text-xs text-muted-foreground hover:text-destructive" onClick={() => { if (confirm('Remover todos os ativos e arquivos do consolidador?')) onClearAll(); }}>
+                Limpar tudo
+              </button>
+            )}
+          </div>
           <ul className="space-y-1">
             {importedFiles.map(name => (
               <li key={name} className="flex items-center justify-between gap-2 text-sm">
@@ -141,7 +150,7 @@ export function PortfolioUpload({ clientId, importedFiles, onImport, onRemoveFil
                 <button
                   type="button"
                   className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
-                  title="Remover da lista (os ativos importados são mantidos)"
+                  title="Remover arquivo e os ativos importados dele"
                   onClick={() => onRemoveFile(name)}
                 >
                   <X className="w-3.5 h-3.5" />

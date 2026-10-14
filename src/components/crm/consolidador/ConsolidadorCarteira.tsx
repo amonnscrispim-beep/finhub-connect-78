@@ -117,7 +117,12 @@ export function ConsolidadorCarteira({ clientId, initialPatrimony }: Props) {
           assets: [...state.assets, ...imported],
           importedFiles: [...state.importedFiles, ...fileNames.filter(n => !state.importedFiles.includes(n))],
         })}
-        onRemoveFile={name => update({ importedFiles: state.importedFiles.filter(n => n !== name) })}
+        onRemoveFile={name => update({
+          importedFiles: state.importedFiles.filter(n => n !== name),
+          assets: state.assets.filter(a => a.sourceFile !== name),
+        })}
+        onClearAll={() => update({ assets: [], importedFiles: [] })}
+        assetCount={state.assets.length}
         onAdd={() => update({ assets: [...state.assets, { id: crypto.randomUUID(), name: 'Novo ativo', type: 'Ações', strategy: 'Ações Brasil', value: 0, maturity: null, rate: null }] })}
       />
 
