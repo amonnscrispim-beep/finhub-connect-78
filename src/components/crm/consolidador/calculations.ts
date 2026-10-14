@@ -116,6 +116,8 @@ export function guessType(raw: string, name: string): string {
     return 'Fundo Multimercado';
   }
   if (has(/conta corrente|saldo em conta|saldo disponivel|\bcaixa\b/)) return 'Caixa/Conta Corrente';
+  const tk = norm(name).trim();
+  if (/^[a-z]{4}11\b/.test(tk) && !/^(taee|sanb|klbn|bpac|alup|engi|sapr|tiet|igta|cple|bbse)11/.test(tk)) return 'Fundos Imobiliários';
   if (has(/\bacao\b|\bacoes\b/) || /^[a-z]{4}(3|4|5|6|11)\b/.test(norm(name).trim())) return 'Ações';
   return 'Outros';
 }
@@ -129,6 +131,6 @@ export function guessStrategy(type: string, rate: string, indexer = '', name = '
   if (/\bcdi\b|\bselic\b|\bdi\b|\blft\b|pos[- ]?fixad|\bpos\b/.test(t)) return 'Renda Fixa Pós Fixada';
   if (/prefixad|\bpre\b|\bltn\b|\bntn-?f\b/.test(t) || /^\s*\d+[,.]?\d*\s*%\s*(a\.?a\.?)?\s*$/.test(norm(rate))) return 'Renda Fixa Pré Fixada';
   // FIDC e fundos de RF sem indexador explícito são quase sempre CDI
-  if (type === 'FIDC' || type === 'Fundo de Renda Fixa') return 'Renda Fixa Pós Fixada';
+  if (type === 'FIDC' || type === 'Fundo de Renda Fixa' || type === 'Previdência') return 'Renda Fixa Pós Fixada';
   return 'Outros';
 }
