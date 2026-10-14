@@ -50,10 +50,16 @@ export function Field({
   ai?: boolean;
 }) {
   const id = useId();
+  const [percentText, setPercentText] = useState<string | null>(null);
+  useEffect(() => {
+    if (kind === "percent") setPercentText(null);
+  }, [value, kind]);
   const display =
     kind === "money" && typeof value === "number"
       ? value.toLocaleString("pt-BR", { maximumFractionDigits: 0 })
-      : (value ?? "");
+      : kind === "percent"
+        ? (percentText ?? String(value ?? ""))
+        : (value ?? "");
   return (
     <div className="planning-field">
       <label htmlFor={id}>{label}</label>
