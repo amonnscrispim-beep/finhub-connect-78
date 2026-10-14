@@ -30,7 +30,7 @@ function fromSheet(rows: Record<string, unknown>[]): ConsolidatedAsset[] {
     const stratRaw = String(pick(r, ['estratégia', 'estrategia']) ?? '');
     return {
       id: uid(), name, type, rate: rate || null, value,
-      strategy: stratRaw || guessStrategy(type, rate),
+      strategy: stratRaw || guessStrategy(type, rate, '', name),
       maturity: (pick(r, ['vencimento']) as string) ? String(pick(r, ['vencimento'])) : null,
     };
   }).filter(a => a.name && a.value > 0);
@@ -71,13 +71,18 @@ export function PortfolioUpload({ clientId, importedFiles, onImport, onRemoveFil
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !json?.success) throw new Error(json?.error ?? 'Falha na leitura do relatório');
       const positions: any[] = json.extractedData?.positions ?? [];
+      const clean = (v: unknown) => {
+        const s = v == null ? '' : String(v).trim();
+        return /^(null|undefined|—|-|n\/a)$/i.test(s) ? '' : s;
+      };
       return positions.map(p => {
-        const name = String(p.ticker && p.ticker !== '—' ? `${p.ticker}${p.name && p.name !== p.ticker ? ` — ${p.name}` : ''}` : p.name ?? '').trim();
-        const type = guessType(String(p.type ?? ''), name);
-        const rate = String(p.rate ?? '');
+        const ticker = clean(p.ticker); const pname = clean(p.name);
+        const name = ticker ? `${ticker}${pname && pname !== ticker ? ` — ${pname}` : ''}` : pname;
+        const type = guessType(clean(p.type), name);
+        const rate = clean(p.rate);
         return {
           id: uid(), name, type, value: Number(p.grossBalance) || 0,
-          strategy: guessStrategy(type, rate, String(p.indexer ?? '')),
+          strategy: guessStrategy(type, rate, clean(p.indexer), name),
           maturity: p.maturityDate ?? null, rate: rate || null,
         };
       }).filter(a => a.name && a.value > 0);

@@ -80,26 +80,57 @@ const STRAT_BY_TYPE: Record<string, string> = {
   'Fundos Imobiliários': 'Fundos Imobiliários',
   'Caixa/Conta Corrente': 'Caixa',
   'Ações': 'Ações Brasil',
+  'Fundo de Ações': 'Ações Brasil',
+  'BDR': 'Ações Americanas',
+  'Fundo Multimercado': 'Outros',
+  'COE': 'Outros',
+  'Criptoativos': 'Outros',
+  'Outros': 'Outros',
 };
 
+const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+/**
+ * Classifica o ativo pelo nome + tipo informado. Ordem importa: produtos mais
+ * específicos (previdência, FIDC, FII) antes dos genéricos. Usa limites de
+ * palavra para evitar falsos positivos (ex.: "di" dentro de "FIDC").
+ * Sem evidência, retorna "Outros" — nunca assume Ações.
+ */
 export function guessType(raw: string, name: string): string {
-  const t = `${raw} ${name}`.toLowerCase();
-  if (t.includes('fii') || /\d11\b/.test(name.toLowerCase()) && t.includes('imob')) return 'Fundos Imobiliários';
-  if (t.includes('fii')) return 'Fundos Imobiliários';
-  if (t.includes('etf')) return "ETF's";
-  if (t.includes('tesouro') || t.includes('ntn') || t.includes('lft') || t.includes('ltn') || t.includes('público')) return 'Título Público';
-  if (t.includes('cdb') || t.includes('lci') || t.includes('lca') || t.includes('renda fixa') || t.includes('lc ') || t.includes('cri') || t.includes('cra') || t.includes('debênture')) return 'Emissão Bancária (CDB, LCI/LCA)';
-  if (t.includes('caixa') || t.includes('conta') || t.includes('saldo')) return 'Caixa/Conta Corrente';
-  if (t.includes('ação') || t.includes('acao') || t.includes('ações')) return 'Ações';
-  return 'Ações';
+  const t = ` ${norm(`${raw} ${name}`)} `;
+  const has = (re: RegExp) => re.test(t);
+  if (has(/\bprev\b|previd|\bvgbl\b|\bpgbl\b/)) return 'Previdência';
+  if (has(/\bfidc\b|direitos credit/)) return 'FIDC';
+  if (has(/\bfii\b|\bfiagro\b|imobiliari/)) return 'Fundos Imobiliários';
+  if (has(/\betf\b/)) return "ETF's";
+  if (has(/\bbdr\b/) || /^[a-z]{4}3[2-5]\b/.test(norm(name).trim())) return 'BDR';
+  if (has(/\bcoe\b/)) return 'COE';
+  if (has(/cripto|bitcoin|\bbtc\b|\beth\b/)) return 'Criptoativos';
+  if (has(/tesouro|\bntn|\blft\b|\bltn\b|titulo publico/)) return 'Título Público';
+  if (has(/debenture|\bcri\b|\bcra\b|credito privado/) && !has(/\bfundo\b|\bfic?\b|\bfim\b/)) return 'Crédito Privado (Debêntures, CRI/CRA)';
+  if (has(/\bcdb\b|\blci\b|\blca\b|\blc\b|\blf\b|\blig\b|\brdb\b|emissao bancaria/)) return 'Emissão Bancária (CDB, LCI/LCA)';
+  if (has(/\bfundo\b|\bfic\b|\bfi\b|\bfim\b|\bfia\b|\bfif\b|\bfi[cm]?[- ]/)) {
+    if (has(/\bfia\b|\bacoes\b|equity|\bfic fia\b/)) return 'Fundo de Ações';
+    if (has(/multimercado|\bmm\b|\bfim\b|macro|long short|multiestrategia/)) return 'Fundo Multimercado';
+    if (has(/\brf\b|renda fixa|\bcdi\b|\bdi\b|credito|referenciado|\bsimples\b|soberano|ipca|inflacao/)) return 'Fundo de Renda Fixa';
+    return 'Fundo Multimercado';
+  }
+  if (has(/conta corrente|saldo em conta|saldo disponivel|\bcaixa\b/)) return 'Caixa/Conta Corrente';
+  const tk = norm(name).trim();
+  if (/^[a-z]{4}11\b/.test(tk) && !/^(taee|sanb|klbn|bpac|alup|engi|sapr|tiet|igta|cple|bbse)11/.test(tk)) return 'Fundos Imobiliários';
+  if (has(/\bacao\b|\bacoes\b/) || /^[a-z]{4}(3|4|5|6|11)\b/.test(norm(name).trim())) return 'Ações';
+  return 'Outros';
 }
 
-export function guessStrategy(type: string, rate: string, indexer = ''): string {
-  const t = `${rate} ${indexer}`.toLowerCase();
+export function guessStrategy(type: string, rate: string, indexer = '', name = ''): string {
   if (STRAT_BY_TYPE[type]) return STRAT_BY_TYPE[type];
-  if (type === "ETF's") return /ivvb|spx|nasd|usa|s&p/.test(t) ? 'Ações Americanas' : 'Ações Brasil';
-  if (t.includes('ipca') || t.includes('ima')) return 'Renda Fixa Inflação';
-  if (t.includes('cdi') || t.includes('selic') || t.includes('di')) return 'Renda Fixa Pós Fixada';
-  if (t.includes('pré') || t.includes('pre') || /\d+[,.]?\d*\s*%/.test(t)) return 'Renda Fixa Pré Fixada';
+  if (type === "ETF's") return /ivvb|spx|nasd|usa|s&p|\bacwi\b|\bwrld\b/.test(norm(`${name} ${rate}`)) ? 'Ações Americanas' : 'Ações Brasil';
+  const t = ` ${norm(`${rate} ${indexer} ${name}`)} `;
+  if (type === 'Previdência' && !/\brf\b|renda fixa|\bcdi\b|\bdi\b|ipca|inflacao|\bpre\b|soberano/.test(t)) return 'Outros';
+  if (/ipca|\bima\b|ima-b|inflacao|\bntn-?b\b|\bigpm\b/.test(t)) return 'Renda Fixa Inflação';
+  if (/\bcdi\b|\bselic\b|\bdi\b|\blft\b|pos[- ]?fixad|\bpos\b/.test(t)) return 'Renda Fixa Pós Fixada';
+  if (/prefixad|\bpre\b|\bltn\b|\bntn-?f\b/.test(t) || /^\s*\d+[,.]?\d*\s*%\s*(a\.?a\.?)?\s*$/.test(norm(rate))) return 'Renda Fixa Pré Fixada';
+  // FIDC e fundos de RF sem indexador explícito são quase sempre CDI
+  if (type === 'FIDC' || type === 'Fundo de Renda Fixa' || type === 'Previdência') return 'Renda Fixa Pós Fixada';
   return 'Outros';
 }

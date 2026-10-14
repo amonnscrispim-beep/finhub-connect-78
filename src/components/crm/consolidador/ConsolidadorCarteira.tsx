@@ -9,7 +9,7 @@ import { PortfolioDetail } from './PortfolioDetail';
 import { MethodologyTable } from './MethodologyTable';
 import { BacktestSimulator } from './BacktestSimulator';
 import { DEFAULT_COMPARATIVES, DEFAULT_MODELS } from './constants';
-import { brl, strategyRows } from './calculations';
+import { brl, strategyRows, guessType, guessStrategy } from './calculations';
 import type { ConsolidatedAsset, ConsolidationState } from './types';
 
 const defaults = (initial: number): ConsolidationState => ({
@@ -105,9 +105,21 @@ export function ConsolidadorCarteira({ clientId, initialPatrimony }: Props) {
           <h2 className="text-lg font-semibold font-display">Consolidador de Carteira</h2>
           <p className="text-xs text-muted-foreground">{state.assets.length} ativo(s) · Patrimônio consolidado {brl(total)}</p>
         </div>
-        <span className="text-xs text-muted-foreground">
-          {saving === 'saving' ? 'Salvando...' : saving === 'saved' ? 'Salvo' : saving === 'error' ? 'Erro ao salvar' : ''}
-        </span>
+        <div className="flex items-center gap-3">
+          {state.assets.length > 0 && (
+            <button type="button" className="text-xs underline text-primary"
+              onClick={() => update({ assets: state.assets.map(a => {
+                const name = a.name.replace(/^(null|undefined)\s*—\s*/i, '');
+                const type = guessType('', name);
+                return { ...a, name, type, strategy: guessStrategy(type, a.rate ?? '', '', name) };
+              }) })}>
+              Reclassificar ativos
+            </button>
+          )}
+          <span className="text-xs text-muted-foreground">
+            {saving === 'saving' ? 'Salvando...' : saving === 'saved' ? 'Salvo' : saving === 'error' ? 'Erro ao salvar' : ''}
+          </span>
+        </div>
       </div>
 
       <PortfolioUpload
