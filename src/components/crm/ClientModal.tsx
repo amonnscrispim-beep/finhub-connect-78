@@ -59,7 +59,8 @@ import { useClients } from '@/contexts/ClientContext';
 import { ClientFiles } from './ClientFiles';
 import { SimuladorImovelCarteira } from './SimuladorImovelCarteira';
 import { EficienciaTributariaPFPJ } from './planejamento/EficienciaTributariaPFPJ';
-import { Scale } from 'lucide-react';
+import { Scale, PieChart as PieChartIcon } from 'lucide-react';
+import { ConsolidadorCarteira } from './consolidador/ConsolidadorCarteira';
 import { SimuladorPlanejamentoPatrimonial } from './planejamento/SimuladorPlanejamentoPatrimonial';
 import { Progress } from '@/components/ui/progress';
 import { CollapsibleSection } from './CollapsibleSection';
@@ -943,6 +944,7 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
     { id: 'personal', label: 'Informações Pessoais', icon: User },
     { id: 'meetings', label: 'Reuniões', icon: Calendar },
     { id: 'financial', label: 'Situação Financeira Atual', icon: DollarSign },
+    { id: 'consolidador', label: 'Consolidador de Carteira', icon: PieChartIcon },
     { id: 'debts', label: 'Dívidas e Obrigações', icon: CreditCard },
     { id: 'pension', label: 'Previdência e Aposentadoria', icon: Landmark },
     { id: 'goals', label: 'Metas Financeiras', icon: Target },
@@ -1571,6 +1573,14 @@ export function ClientModal({ open, onOpenChange, client }: ClientModalProps) {
                 <div className="text-sm text-muted-foreground p-6 text-center border border-dashed rounded-md">
                   Salve o cliente primeiro para usar o planejamento patrimonial.
                 </div>
+              )}
+            </div>
+
+            <div hidden={activeTab !== 'consolidador'}>
+              {client?.id ? (
+                activeTab === 'consolidador' && <ConsolidadorCarteira clientId={client.id} initialPatrimony={Number(formData.financialAssets) || 0} />
+              ) : (
+                <div className="text-sm text-muted-foreground p-6 text-center border border-dashed rounded-md">Salve o cliente primeiro para usar o consolidador.</div>
               )}
             </div>
 

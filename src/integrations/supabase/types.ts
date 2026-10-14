@@ -506,6 +506,62 @@ export type Database = {
           },
         ]
       }
+      client_portfolio_consolidation: {
+        Row: {
+          assets: Json
+          backtest: Json | null
+          client_id: string
+          comparatives: Json
+          created_at: string
+          custom_model: Json | null
+          id: string
+          methodology_location: string
+          methodology_name: string
+          models: Json | null
+          selected_model: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assets?: Json
+          backtest?: Json | null
+          client_id: string
+          comparatives?: Json
+          created_at?: string
+          custom_model?: Json | null
+          id?: string
+          methodology_location?: string
+          methodology_name?: string
+          models?: Json | null
+          selected_model?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assets?: Json
+          backtest?: Json | null
+          client_id?: string
+          comparatives?: Json
+          created_at?: string
+          custom_model?: Json | null
+          id?: string
+          methodology_location?: string
+          methodology_name?: string
+          models?: Json | null
+          selected_model?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portfolio_consolidation_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_portfolio_performance: {
         Row: {
           client_id: string

@@ -5,3 +5,4 @@
 - Keep monthly financial calculation functions pure and tested, separate from presentation and AI; deterministic calculations preserve auditable financial values.
 - Extract planning documents only in the authenticated `patrimonial-prefill` edge function through server-only gateway helpers; AI suggestions require review and cannot silently modify CRM data.
 - Capture each report section separately for PDF export and download via Blob anchors; this preserves section boundaries and avoids blocked downloads.
+- Keep the portfolio consolidator in `src/components/crm/consolidador/`, persisted per user-and-client in `public.client_portfolio_consolidation`; it is a planning view and must not write to master client fields.
