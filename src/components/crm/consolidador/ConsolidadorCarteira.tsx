@@ -72,12 +72,19 @@ export function ConsolidadorCarteira({ clientId, initialPatrimony }: Props) {
     if (error) { setSaving('error'); toast.error('Erro ao salvar o consolidador'); } else setSaving('saved');
   }, [clientId, user]);
 
+  const pending = useRef<ConsolidationState | null>(null);
+  useEffect(() => () => {
+    window.clearTimeout(timer.current);
+    if (pending.current) persist(pending.current);
+  }, [persist]);
+
   const update = (patch: Partial<ConsolidationState>) => {
     setState(prev => {
       if (!prev) return prev;
       const next = { ...prev, ...patch };
       window.clearTimeout(timer.current);
-      timer.current = window.setTimeout(() => persist(next), 2000);
+      pending.current = next;
+      timer.current = window.setTimeout(() => { pending.current = null; persist(next); }, 2000);
       return next;
     });
   };
