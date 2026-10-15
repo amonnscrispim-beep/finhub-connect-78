@@ -1,5 +1,7 @@
 import { Fragment, useMemo, useState } from 'react';
-import { ArrowUpDown, Search, Pencil, Maximize2, Minimize2, Trash2 } from 'lucide-react';
+import { DndContext, DragEndEvent, DragStartEvent, PointerSensor, useDraggable, useDroppable, useSensor, useSensors } from '@dnd-kit/core';
+import { toast } from 'sonner';
+import { ArrowUpDown, GripVertical, Search, Pencil, Maximize2, Minimize2, Trash2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -8,6 +10,25 @@ import { Panel, NumField } from './shared';
 import { ASSET_TYPES, STRATEGIES, TIPO_COLORS, STRATEGY_COLORS } from './constants';
 import { brl, pct2 } from './calculations';
 import type { ConsolidatedAsset } from './types';
+
+function DropHeader({ id, colSpan, children }: { id: string; colSpan: number; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `group:${id}` });
+  return (
+    <tr ref={setNodeRef as any}>
+      <td colSpan={colSpan} className={cn('px-3 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground transition-colors', isOver && 'outline outline-2 outline-primary bg-primary/10 rounded')}>{children}</td>
+    </tr>
+  );
+}
+
+function DragRow({ id, className, children }: { id: string; className?: string; children: (handle: React.ReactNode) => React.ReactNode }) {
+  const { setNodeRef, attributes, listeners, isDragging } = useDraggable({ id });
+  const handle = (
+    <button type="button" {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity touch-none" title="Arraste para outra estratégia">
+      <GripVertical className="w-4 h-4" />
+    </button>
+  );
+  return <tr ref={setNodeRef as any} className={cn('group', className, isDragging && 'opacity-40')}>{children(handle)}</tr>;
+}
 
 type SortKey = 'name' | 'type' | 'strategy' | 'value' | 'pctStrat' | 'pctTotal';
 
@@ -25,6 +46,19 @@ export function PortfolioDetail({ assets, onChange, onRemove }: Props) {
   const [showSearch, setShowSearch] = useState(false);
   const [edit, setEdit] = useState(false);
   const [full, setFull] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const reclassify = (id: string, strategy: string) => {
+    const a = assets.find(x => x.id === id);
+    if (!a || a.strategy === strategy) return;
+    onChange(id, { strategy });
+    toast.success(`${a.name} reclassificado para ${strategy}`);
+  };
+  const onDragEnd = (e: DragEndEvent) => {
+    setDragging(false);
+    const over = e.over?.id ? String(e.over.id) : '';
+    if (over.startsWith('group:')) reclassify(String(e.active.id), over.slice(6));
+  };
 
   const total = assets.reduce((s, a) => s + a.value, 0);
   const stratTotals = useMemo(() => {
@@ -44,8 +78,9 @@ export function PortfolioDetail({ assets, onChange, onRemove }: Props) {
     });
     const g: Record<string, typeof rows> = {};
     rows.forEach(r => { (g[r.strategy] ??= []).push(r); });
+    if (dragging) STRATEGIES.forEach(st => { g[st] ??= []; });
     return Object.entries(g).sort((a, b) => (stratTotals[b[0]] ?? 0) - (stratTotals[a[0]] ?? 0));
-  }, [assets, fType, fStrat, search, sort, stratTotals, total]);
+  }, [assets, fType, fStrat, search, sort, stratTotals, total, dragging]);
 
   const Th = ({ k, label, right }: { k: SortKey; label: string; right?: boolean }) => (
     <th className={cn('px-3 py-2 font-semibold whitespace-nowrap', right && 'text-right')}>
@@ -79,10 +114,11 @@ export function PortfolioDetail({ assets, onChange, onRemove }: Props) {
       }
     >
       <div className={cn('overflow-x-auto', full && 'max-h-[calc(100vh-220px)] overflow-y-auto')}>
+        <DndContext sensors={sensors} onDragStart={(_: DragStartEvent) => setDragging(true)} onDragCancel={() => setDragging(false)} onDragEnd={onDragEnd}>
         <table className="w-full text-sm min-w-[820px]">
           <thead className="bg-muted/60 text-xs text-muted-foreground text-left">
             <tr>
-              <Th k="name" label="Ativo" /><Th k="type" label="Tipo" /><Th k="strategy" label="Estratégia" />
+              <th className="w-6" /><Th k="name" label="Ativo" /><Th k="type" label="Tipo" /><Th k="strategy" label="Estratégia" />
               <Th k="value" label="Valor" right /><Th k="pctStrat" label="% Estratégia" right /><Th k="pctTotal" label="% Total" right />
               {edit && <th className="w-10" />}
             </tr>
@@ -90,14 +126,13 @@ export function PortfolioDetail({ assets, onChange, onRemove }: Props) {
           <tbody>
             {groups.map(([strategy, rows], gi) => (
               <Fragment key={strategy}>
-                <tr className={cn(gi > 0 && 'border-t-2 border-border')}>
-                  <td colSpan={edit ? 7 : 6} className="px-3 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ backgroundColor: STRATEGY_COLORS[strategy] ?? STRATEGY_COLORS.Outros }} />
-                    {strategy} · {brl(stratTotals[strategy] ?? 0)}
-                  </td>
-                </tr>
+                <DropHeader id={strategy} colSpan={edit ? 8 : 7}>
+                  <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ backgroundColor: STRATEGY_COLORS[strategy] ?? STRATEGY_COLORS.Outros }} />
+                  {strategy} · {brl(stratTotals[strategy] ?? 0)}
+                </DropHeader>
                 {rows.map((a, i) => (
-                  <tr key={a.id} className={cn('border-b border-border/50', i % 2 === 1 && 'bg-muted/20')}>
+                  <DragRow key={a.id} id={a.id} className={cn('border-b border-border/50', i % 2 === 1 && 'bg-muted/20')}>{handle => (<>
+                    <td className="pl-2 w-6">{handle}</td>
                     <td className="px-3 py-2">
                       {edit ? <Input className="h-8 text-sm" defaultValue={a.name} onBlur={e => onChange(a.id, { name: e.target.value })} /> : (
                         <div><p className="font-medium">{a.name}</p>{(a.rate || a.maturity) && <p className="text-[11px] text-muted-foreground">{[a.rate, a.maturity && `venc. ${a.maturity}`].filter(Boolean).join(' · ')}</p>}</div>
@@ -112,12 +147,10 @@ export function PortfolioDetail({ assets, onChange, onRemove }: Props) {
                       ) : <span className={cn('px-2 py-0.5 rounded-full text-[11px] font-medium whitespace-nowrap', TIPO_COLORS[a.type] ?? 'bg-muted text-muted-foreground')}>{a.type}</span>}
                     </td>
                     <td className="px-3 py-2">
-                      {edit ? (
-                        <Select value={a.strategy} onValueChange={v => onChange(a.id, { strategy: v })}>
-                          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                          <SelectContent>{STRATEGIES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-                        </Select>
-                      ) : a.strategy}
+                      <Select value={a.strategy} onValueChange={v => reclassify(a.id, v)}>
+                        <SelectTrigger className={cn('h-8 text-xs', !edit && 'border-transparent bg-transparent shadow-none hover:border-border px-2')}><SelectValue /></SelectTrigger>
+                        <SelectContent>{STRATEGIES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                      </Select>
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums">
                       {edit ? <NumField className="w-36 ml-auto" prefix="R$" value={a.value} onCommit={n => onChange(a.id, { value: n })} /> : brl(a.value)}
@@ -127,16 +160,17 @@ export function PortfolioDetail({ assets, onChange, onRemove }: Props) {
                     {edit && (
                       <td className="px-1"><Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => onRemove(a.id)}><Trash2 className="w-4 h-4" /></Button></td>
                     )}
-                  </tr>
+                  </>)}</DragRow>
                 ))}
               </Fragment>
             ))}
-            {groups.length === 0 && <tr><td colSpan={7} className="text-center text-muted-foreground py-8">Nenhum ativo. Importe um relatório ou adicione manualmente.</td></tr>}
+            {groups.length === 0 && <tr><td colSpan={8} className="text-center text-muted-foreground py-8">Nenhum ativo. Importe um relatório ou adicione manualmente.</td></tr>}
           </tbody>
           {total > 0 && (
-            <tfoot><tr className="border-t-2 border-border font-semibold"><td className="px-3 py-2" colSpan={3}>Total</td><td className="px-3 py-2 text-right">{brl(total)}</td><td /><td className="px-3 py-2 text-right">100,00%</td>{edit && <td />}</tr></tfoot>
+            <tfoot><tr className="border-t-2 border-border font-semibold"><td className="px-3 py-2" colSpan={4}>Total</td><td className="px-3 py-2 text-right">{brl(total)}</td><td /><td className="px-3 py-2 text-right">100,00%</td>{edit && <td />}</tr></tfoot>
           )}
         </table>
+        </DndContext>
       </div>
       <div className="flex flex-wrap items-center justify-end gap-2 mt-3">
         {showSearch && <Input autoFocus placeholder="Buscar ativo..." className="h-8 w-56 text-sm" value={search} onChange={e => setSearch(e.target.value)} />}
