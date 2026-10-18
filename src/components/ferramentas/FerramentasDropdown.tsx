@@ -95,6 +95,18 @@ export function FerramentasDropdown({ onSelect, active }: Props) {
               {item.label}
             </button>
           ))}
+          <div className="my-1.5 border-t border-border" />
+          <p className="px-3 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Administração</p>
+          {administracao.map(item => (
+            <button
+              key={item.id}
+              onClick={() => { onSelect(item.id); setOpen(false); }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+            >
+              <item.icon className="w-4 h-4 text-muted-foreground" />
+              {item.label}
+            </button>
+          ))}
         </div>
       )}
     </div>
