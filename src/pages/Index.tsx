@@ -466,7 +466,7 @@ function CRMDashboard() {
               {ferramentaAtiva === 'tesouro-selic' && <SimuladorTesouroSelic />}
               {ferramentaAtiva === 'dividendos' && <ViverDeDividendos />}
               {ferramentaAtiva === 'migrar-clientes' && (
-                <MigrateClientsModal open onClose={() => setFerramentaAtiva('juros-compostos')} />
+                <MigrateClientsModal open onOpenChange={(o) => { if (!o) setFerramentaAtiva('juros-compostos'); }} />
               )}
             </ErrorBoundary>
           </TabsContent>
