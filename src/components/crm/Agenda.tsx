@@ -13,8 +13,9 @@ import { useClients } from '@/contexts/ClientContext';
 import { useCrmMeetings } from '@/hooks/useCrmMeetings';
 import { Client } from '@/types/client';
 import { ScheduleMeetingModal } from './ScheduleMeetingModal';
+import { classifyMeeting, isMeetingVisible, isMeetingScheduled, type AgendaStatus } from '@/lib/meeting-status';
 
-type Status = 'confirmada' | 'pendente' | 'atrasada';
+type Status = AgendaStatus;
 type Filter = 'todas' | 'pendentes' | 'confirmadas' | 'atrasadas' | 'projetadas';
 
 interface AgendaItem {
@@ -27,6 +28,7 @@ interface AgendaItem {
   time?: string;
   status: Status;
   isProjected?: boolean;
+  meetingStatus?: string;
 }
 
 interface AgendaProps {
@@ -37,20 +39,19 @@ const statusConfig: Record<Status, { label: string; className: string }> = {
   confirmada: { label: 'CONFIRMADA', className: 'bg-success/15 text-success border-success/30' },
   pendente: { label: 'PENDENTE', className: 'bg-yellow-500/15 text-yellow-600 border-yellow-500/30' },
   atrasada: { label: 'ATRASADA', className: 'bg-destructive/15 text-destructive border-destructive/30' },
+  realizada: { label: 'REALIZADA', className: 'bg-primary/15 text-primary border-primary/30' },
+  cancelada: { label: 'CANCELADA', className: 'bg-muted text-muted-foreground border-border' },
 };
 
-function classify(date: Date, client?: Client): Status {
-  if (isPast(date) && !isToday(date)) return 'atrasada';
-  // Confirmadas: tem horário definido e cliente não é "pendingSchedule"
-  if (client?.pendingSchedule) return 'pendente';
-  return 'confirmada';
+function classify(date: Date, client?: Client, meetingStatus?: string): Status {
+  return classifyMeeting(date, client?.pendingSchedule, meetingStatus);
 }
 
 function groupLabel(date: Date): string {
   if (isToday(date)) return `HOJE — ${format(date, "EEEE, d 'de' MMMM", { locale: ptBR })}`;
   if (isTomorrow(date)) return `AMANHÃ — ${format(date, "EEEE, d 'de' MMMM", { locale: ptBR })}`;
   if (isThisWeek(date, { weekStartsOn: 1 })) return `ESTA SEMANA — ${format(date, "EEEE, d 'de' MMMM", { locale: ptBR })}`;
-  if (isPast(date)) return `ATRASADAS — ${format(date, "EEEE, d 'de' MMMM", { locale: ptBR })}`;
+  if (isPast(date)) return format(date, "EEEE, d 'de' MMMM", { locale: ptBR }).toUpperCase();
   return format(date, "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR }).toUpperCase();
 }
 
@@ -95,7 +96,15 @@ export function Agenda({ onEditClient }: AgendaProps) {
       setSavingDone(false);
     }
   };
-  const { meetings, isLoading: isLoadingMeetings, refetch } = useCrmMeetings();
+  const { meetings, isLoading: isLoadingMeetings, refetch, completeMeeting, completingMeetingId } = useCrmMeetings();
+  const handleMarkMeetingAsDone = async (item: AgendaItem) => {
+    try {
+      await completeMeeting(item.id);
+      toast.success(`Reunião com ${item.clientName} marcada como realizada!`);
+    } catch {
+      toast.error('Erro ao marcar reunião como realizada');
+    }
+  };
   const [filter, setFilter] = useState<Filter>('todas');
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [calendarDate, setCalendarDate] = useState<Date | undefined>();
@@ -112,11 +121,10 @@ export function Agenda({ onEditClient }: AgendaProps) {
 
       if (meeting.client_id && finishedIds.has(meeting.client_id)) return;
       const client = meeting.client_id ? clientById.get(meeting.client_id) : undefined;
-      // Reuniões reais com mais de 7 dias no passado não aparecem mais
-      const daysPast = Math.floor((Date.now() - date.getTime()) / 86400000);
-      if (daysPast > 7) return;
       const key = `${meeting.client_id ?? meeting.client_name}-${startOfDay(date).toISOString()}`;
       persistedKeys.add(key);
+      // Keep the persisted key even when hidden, preventing stale legacy duplicates.
+      if (!isMeetingVisible(date, meeting.status)) return;
 
       out.push({
         id: meeting.id,
@@ -126,7 +134,8 @@ export function Agenda({ onEditClient }: AgendaProps) {
         description: meeting.description,
         date,
         time: format(date, 'HH:mm'),
-        status: classify(date, client),
+        status: classify(date, client, meeting.status),
+        meetingStatus: meeting.status,
       });
     });
 
@@ -135,7 +144,7 @@ export function Agenda({ onEditClient }: AgendaProps) {
       const date = new Date(c.scheduledMeeting.date);
       if (isNaN(date.getTime())) return;
       const key = `${c.id}-${startOfDay(date).toISOString()}`;
-      if (persistedKeys.has(key)) return;
+      if (persistedKeys.has(key) || !isMeetingVisible(date)) return;
       out.push({
         id: `client-${c.id}-${date.toISOString()}`,
         client: c,
@@ -149,7 +158,8 @@ export function Agenda({ onEditClient }: AgendaProps) {
     // Reuniões projetadas pela periodicidade de cada cliente
     const today = startOfDay(new Date());
     const hasUpcomingReal = new Set(
-      out.filter((i) => i.client && i.date >= today).map((i) => i.client!.id)
+      out.filter((i) => i.date >= today && isMeetingScheduled(i.meetingStatus))
+        .flatMap((i) => i.client ? [i.client.id] : [])
     );
     clients.forEach((client) => {
       const period = client.meetingPeriodicityDays ?? 30;
@@ -184,7 +194,7 @@ export function Agenda({ onEditClient }: AgendaProps) {
   const weekItems = items.filter((i) => isThisWeek(i.date, { weekStartsOn: 1 }));
   const pendentes = items.filter((i) => i.status === 'pendente');
   const atrasadas = items.filter((i) => i.status === 'atrasada');
-  const proxima = items.find((i) => !isPast(i.date) || isToday(i.date));
+  const proxima = items.find((i) => isMeetingScheduled(i.meetingStatus) && (!isPast(i.date) || isToday(i.date)));
 
   // Aplica filtros
   const filtered = items.filter((i) => {
@@ -203,7 +213,7 @@ export function Agenda({ onEditClient }: AgendaProps) {
     filtered.forEach((i) => {
       const key = i.isProjected && i.status === 'atrasada' ? 'projected-late' : startOfDay(i.date).toISOString();
       if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(i);
+      map.get(key)?.push(i);
     });
     return Array.from(map.entries()).map(([key, list]) => ({
       key,
@@ -215,7 +225,7 @@ export function Agenda({ onEditClient }: AgendaProps) {
 
   // Dias com reunião (para marcar no mini calendário)
   const daysWithMeetings = useMemo(
-    () => items.filter((i) => !i.isProjected && i.status !== 'atrasada').map((i) => startOfDay(i.date)),
+    () => items.filter((i) => !i.isProjected && isMeetingScheduled(i.meetingStatus) && i.status !== 'atrasada').map((i) => startOfDay(i.date)),
     [items]
   );
   const daysProjected = useMemo(
@@ -368,12 +378,12 @@ export function Agenda({ onEditClient }: AgendaProps) {
                         <div className="flex items-center gap-3 min-w-0">
                           {item.isProjected && <Clock className="w-3.5 h-3.5 text-yellow-600 flex-shrink-0" />}
                           {item.client ? (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); onEditClient(item.client!); }}
-                              className="font-medium text-sm text-foreground hover:text-primary truncate text-left"
+                            <Button type="button" variant="ghost"
+                              onClick={(e) => { e.stopPropagation(); if (item.client) onEditClient(item.client); }}
+                              className="h-auto p-0 font-medium text-sm text-foreground hover:text-primary truncate text-left"
                             >
                               {item.clientName}
-                            </button>
+                            </Button>
                           ) : (
                             <span className="font-medium text-sm text-foreground truncate">{item.clientName}</span>
                           )}
@@ -395,6 +405,15 @@ export function Agenda({ onEditClient }: AgendaProps) {
                           </Badge>
                         </div>
                         <div className="flex items-center gap-1">
+                          {!item.isProjected && item.meetingStatus === 'scheduled' && (
+                            <Button type="button" size="sm" variant="ghost"
+                              className="h-7 text-success hover:text-success hover:bg-success/10"
+                              disabled={completingMeetingId !== undefined}
+                              onClick={(e) => { e.stopPropagation(); void handleMarkMeetingAsDone(item); }}
+                              title="Marcar como realizada" aria-label={`Marcar reunião com ${item.clientName} como realizada`}>
+                              {completingMeetingId === item.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                            </Button>
+                          )}
                           {item.isProjected && item.status === 'atrasada' && (
                             <Button
                               size="sm"

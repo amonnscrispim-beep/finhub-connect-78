@@ -3,6 +3,7 @@ import { format, isToday, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useClients } from '@/contexts/ClientContext';
 import { useCrmMeetings } from '@/hooks/useCrmMeetings';
+import { isMeetingScheduled } from '@/lib/meeting-status';
 import type { Client } from '@/types/client';
 import { meetingStatusOf } from './KanbanView';
 import { clientPatrimony, formatCompactBRL } from './KanbanToolbar';
@@ -28,7 +29,7 @@ export function VisaoGeral({ onEditClient }: { onEditClient: (c: Client) => void
 
   const finishedIds = new Set(clients.filter((c) => c.consultingFinished).map((c) => c.id));
   const upcoming = meetings
-    .filter((m) => new Date(m.start_at) >= startOfDay(new Date()) && !(m.client_id && finishedIds.has(m.client_id)))
+    .filter((m) => isMeetingScheduled(m.status) && new Date(m.start_at) >= startOfDay(new Date()) && !(m.client_id && finishedIds.has(m.client_id)))
     .slice(0, 5);
 
   return (
