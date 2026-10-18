@@ -71,6 +71,13 @@
       "when": 1792010103809,
       "tag": "0009_consolidador_source_files",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792349730375,
+      "tag": "0010_crm_meeting_completion_status",
+      "breakpoints": true
     }
   ]
 }

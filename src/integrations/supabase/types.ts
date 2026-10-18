@@ -1104,6 +1104,7 @@ export type Database = {
           google_event_id: string | null
           id: string
           start_at: string
+          status: string
           timezone: string
           title: string
           updated_at: string
@@ -1119,6 +1120,7 @@ export type Database = {
           google_event_id?: string | null
           id?: string
           start_at: string
+          status?: string
           timezone?: string
           title: string
           updated_at?: string
@@ -1134,6 +1136,7 @@ export type Database = {
           google_event_id?: string | null
           id?: string
           start_at?: string
+          status?: string
           timezone?: string
           title?: string
           updated_at?: string

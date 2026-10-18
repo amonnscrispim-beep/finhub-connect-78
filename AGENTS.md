@@ -1,4 +1,6 @@
 # Architecture rules
+- Complete real CRM meetings through an RLS-protected status update with an atomic database trigger updating the linked client's meeting/activity dates; this prevents partial saves.
+- Keep Agenda status and retention rules in pure tested meeting helpers; persisted meeting keys must suppress stale legacy duplicates even after a meeting disappears.
 
 - Keep the patrimonial simulator in a dedicated client-menu module; projections must not modify master diagnostic fields because scenarios are independent planning assumptions.
 - Persist simulator state in `public.client_patrimonial_simulations` with user-and-client RLS and separate browser drafts; serialized saves must protect newer edits from older responses.
