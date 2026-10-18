@@ -2226,6 +2226,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_list_consultants: {
+        Args: never
+        Returns: {
+          client_count: number
+          email: string
+          full_name: string
+          user_id: string
+        }[]
+      }
+      admin_migrate_clients: {
+        Args: { p_from_user: string; p_to_user: string }
+        Returns: Json
+      }
       is_master_user: { Args: { p_user_id: string }; Returns: boolean }
       normalize_kanban_order: {
         Args: { p_stage: string; p_user_id: string }
