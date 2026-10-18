@@ -48,6 +48,7 @@ import { SimuladorLCILCA } from '@/components/ferramentas/SimuladorLCILCA';
 import { SimuladorTesouroPre } from '@/components/ferramentas/SimuladorTesouroPre';
 import { SimuladorTesouroSelic } from '@/components/ferramentas/SimuladorTesouroSelic';
 import { ViverDeDividendos } from '@/components/ferramentas/ViverDeDividendos';
+import { MigrateClientsModal } from '@/components/ferramentas/MigrateClientsModal';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -464,6 +465,9 @@ function CRMDashboard() {
               {ferramentaAtiva === 'tesouro-pre' && <SimuladorTesouroPre />}
               {ferramentaAtiva === 'tesouro-selic' && <SimuladorTesouroSelic />}
               {ferramentaAtiva === 'dividendos' && <ViverDeDividendos />}
+              {ferramentaAtiva === 'migrar-clientes' && (
+                <MigrateClientsModal open onClose={() => setFerramentaAtiva('juros-compostos')} />
+              )}
             </ErrorBoundary>
           </TabsContent>
 
