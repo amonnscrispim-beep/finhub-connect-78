@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Wrench, ChevronDown, Calculator, TrendingUp, DollarSign, Home, ShoppingCart, Percent, Target, Landmark, LineChart, Wallet, PiggyBank, Receipt } from 'lucide-react';
+import { Wrench, ChevronDown, Calculator, TrendingUp, DollarSign, Home, ShoppingCart, Percent, Target, Landmark, LineChart, Wallet, PiggyBank, Receipt, Users } from 'lucide-react';
 
 export type FerramentaId =
   | 'juros-compostos'
@@ -13,7 +13,8 @@ export type FerramentaId =
   | 'lci-lca'
   | 'tesouro-pre'
   | 'tesouro-selic'
-  | 'dividendos';
+  | 'dividendos'
+  | 'migrar-clientes';
 
 interface Props {
   onSelect: (id: FerramentaId) => void;
@@ -36,6 +37,10 @@ const simuladores = [
   { id: 'tesouro-pre' as FerramentaId, label: 'Simulador Tesouro Prefixado', icon: LineChart },
   { id: 'tesouro-selic' as FerramentaId, label: 'Simulador Tesouro Selic', icon: Wallet },
   { id: 'dividendos' as FerramentaId, label: 'Viver de Dividendos', icon: PiggyBank },
+];
+
+const administracao = [
+  { id: 'migrar-clientes' as FerramentaId, label: 'Migrar Clientes', icon: Users },
 ];
 
 export function FerramentasDropdown({ onSelect, active }: Props) {
