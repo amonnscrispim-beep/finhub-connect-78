@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Wrench, ChevronDown, Calculator, TrendingUp, DollarSign, Home, ShoppingCart, Percent, Target, Landmark, LineChart, Wallet, PiggyBank, Receipt } from 'lucide-react';
+import { Wrench, ChevronDown, Calculator, TrendingUp, DollarSign, Home, ShoppingCart, Percent, Target, Landmark, LineChart, Wallet, PiggyBank, Receipt, Users } from 'lucide-react';
 
 export type FerramentaId =
   | 'juros-compostos'
@@ -13,7 +13,8 @@ export type FerramentaId =
   | 'lci-lca'
   | 'tesouro-pre'
   | 'tesouro-selic'
-  | 'dividendos';
+  | 'dividendos'
+  | 'migrar-clientes';
 
 interface Props {
   onSelect: (id: FerramentaId) => void;
@@ -36,6 +37,10 @@ const simuladores = [
   { id: 'tesouro-pre' as FerramentaId, label: 'Simulador Tesouro Prefixado', icon: LineChart },
   { id: 'tesouro-selic' as FerramentaId, label: 'Simulador Tesouro Selic', icon: Wallet },
   { id: 'dividendos' as FerramentaId, label: 'Viver de Dividendos', icon: PiggyBank },
+];
+
+const administracao = [
+  { id: 'migrar-clientes' as FerramentaId, label: 'Migrar Clientes', icon: Users },
 ];
 
 export function FerramentasDropdown({ onSelect, active }: Props) {
@@ -81,6 +86,18 @@ export function FerramentasDropdown({ onSelect, active }: Props) {
           <div className="my-1.5 border-t border-border" />
           <p className="px-3 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Simuladores</p>
           {simuladores.map(item => (
+            <button
+              key={item.id}
+              onClick={() => { onSelect(item.id); setOpen(false); }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+            >
+              <item.icon className="w-4 h-4 text-muted-foreground" />
+              {item.label}
+            </button>
+          ))}
+          <div className="my-1.5 border-t border-border" />
+          <p className="px-3 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Administração</p>
+          {administracao.map(item => (
             <button
               key={item.id}
               onClick={() => { onSelect(item.id); setOpen(false); }}

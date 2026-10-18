@@ -78,6 +78,13 @@
       "when": 1792349730375,
       "tag": "0010_crm_meeting_completion_status",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792358387443,
+      "tag": "0011_admin_migrate_clients",
+      "breakpoints": true
     }
   ]
 }
